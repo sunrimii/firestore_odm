@@ -145,6 +145,47 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
         'class ${className}Document extends FirestoreDocument<$className> {');
     buffer.writeln('  ${className}Document(super.collection, super.id);');
 
+    // Generate strong-typed update method
+    buffer.writeln('');
+    buffer.writeln('  /// Strong-typed update method similar to copyWith');
+    buffer.writeln('  Future<void> updateTyped({');
+    
+    if (constructor != null) {
+      for (final param in constructor.parameters) {
+        final fieldName = param.name;
+        final fieldType = param.type.getDisplayString(withNullability: false);
+        final isNullable = param.type.nullabilitySuffix != NullabilitySuffix.none;
+        
+        // Skip the id field as it shouldn't be updated
+        if (fieldName == 'id') continue;
+        
+        if (isNullable) {
+          buffer.writeln('    $fieldType? $fieldName,');
+        } else {
+          buffer.writeln('    $fieldType? $fieldName,');
+        }
+      }
+    }
+    
+    buffer.writeln('  }) async {');
+    buffer.writeln('    final updates = <String, dynamic>{};');
+    
+    if (constructor != null) {
+      for (final param in constructor.parameters) {
+        final fieldName = param.name;
+        
+        // Skip the id field
+        if (fieldName == 'id') continue;
+        
+        buffer.writeln('    if ($fieldName != null) updates[\'$fieldName\'] = $fieldName;');
+      }
+    }
+    
+    buffer.writeln('    if (updates.isNotEmpty) {');
+    buffer.writeln('      await updateFields(updates);');
+    buffer.writeln('    }');
+    buffer.writeln('  }');
+
     // Generate subcollections under the document class
     for (final metadata in element.metadata) {
       final constantValue = metadata.computeConstantValue();

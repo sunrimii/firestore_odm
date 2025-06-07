@@ -51,6 +51,74 @@ class FirestoreDocument<T> {
     return result;
   }
 
+  /// Analyzes changes and converts them to atomic operations where possible
+  static Map<String, dynamic> _diffWithAtomicOperations(
+    Map<String, dynamic> oldData,
+    Map<String, dynamic> newData,
+  ) {
+    final result = <String, dynamic>{};
+
+    // Find removed fields
+    for (final key in oldData.keys) {
+      if (!newData.containsKey(key)) {
+        result[key] = FieldValue.delete();
+      }
+    }
+
+    // Find added or changed fields with atomic operation detection
+    for (final entry in newData.entries) {
+      final key = entry.key;
+      final newValue = entry.value;
+      final oldValue = oldData[key];
+
+      if (!oldData.containsKey(key)) {
+        // New field
+        result[key] = newValue;
+      } else if (oldValue != newValue) {
+        // Changed field - try to detect atomic operations
+        final atomicOp = _detectAtomicOperation(oldValue, newValue);
+        result[key] = atomicOp ?? newValue;
+      }
+    }
+
+    return result;
+  }
+
+  /// Detects if a change can be represented as an atomic operation
+  static dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
+    // Numeric increment detection
+    if (oldValue is num && newValue is num) {
+      final diff = newValue - oldValue;
+      if (diff != 0) {
+        return FieldValue.increment(diff);
+      }
+    }
+
+    // Array operations detection
+    if (oldValue is List && newValue is List) {
+      final oldSet = Set.from(oldValue);
+      final newSet = Set.from(newValue);
+      
+      final added = newSet.difference(oldSet).toList();
+      final removed = oldSet.difference(newSet).toList();
+      
+      // If only additions, use arrayUnion
+      if (removed.isEmpty && added.isNotEmpty) {
+        return FieldValue.arrayUnion(added);
+      }
+      
+      // If only removals, use arrayRemove
+      if (added.isEmpty && removed.isNotEmpty) {
+        return FieldValue.arrayRemove(removed);
+      }
+      
+      // For mixed operations, fall back to direct assignment
+    }
+
+    // No atomic operation detected
+    return null;
+  }
+
   /// Stream subscription for real-time updates
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
 
@@ -141,28 +209,103 @@ class FirestoreDocument<T> {
     }
   }
 
-  /// Updates the document using a callback function
-  /// Computes the difference for efficient partial updates
-  Future<void> update(T Function(T state) cb) async {
+  /// RxDB-style incremental modify with automatic atomic operations
+  /// Automatically detects and uses Firestore atomic operations where possible
+  Future<void> incrementalModify(T Function(T docData) modifier) async {
     final oldState = await get();
     if (oldState == null) {
       throw FirestoreDocumentNotFoundException(id);
     }
-    final newState = cb(oldState);
+    
+    final newState = modifier(oldState);
+    final oldData = collection.toJson(oldState);
     final newData = collection.toJson(newState);
-    final data = _diff(_cache ?? {}, newData);
+    final updateData = _diffWithAtomicOperations(oldData, newData);
+
+    if (updateData.isEmpty) return; // No changes
 
     final transaction = Zone.current[#transaction] as Transaction?;
     if (transaction != null) {
-      log('updating with transaction: $data');
-      transaction.set(ref, data, SetOptions(merge: true));
+      log('incrementalModify with transaction: $updateData');
+      transaction.update(ref, updateData);
       Zone.current[#onSuccess](() {
         _cache = newData;
       });
     } else {
-      log('updating without transaction: $data');
-      await ref.set(data, SetOptions(merge: true));
+      log('incrementalModify without transaction: $updateData');
+      await ref.update(updateData);
       _cache = newData;
+    }
+  }
+
+  /// RxDB-style modify without atomic operations
+  /// Only computes differences and updates changed fields
+  Future<void> modify(T Function(T docData) modifier) async {
+    final oldState = await get();
+    if (oldState == null) {
+      throw FirestoreDocumentNotFoundException(id);
+    }
+    
+    final newState = modifier(oldState);
+    final oldData = collection.toJson(oldState);
+    final newData = collection.toJson(newState);
+    final updateData = _diff(oldData, newData);
+
+    if (updateData.isEmpty) return; // No changes
+
+    final transaction = Zone.current[#transaction] as Transaction?;
+    if (transaction != null) {
+      log('modify with transaction: $updateData');
+      transaction.set(ref, updateData, SetOptions(merge: true));
+      Zone.current[#onSuccess](() {
+        _cache = newData;
+      });
+    } else {
+      log('modify without transaction: $updateData');
+      await ref.set(updateData, SetOptions(merge: true));
+      _cache = newData;
+    }
+  }
+
+  /// Legacy update method (kept for backward compatibility)
+  /// Computes the difference for efficient partial updates
+  @Deprecated('Use modify() or incrementalModify() instead')
+  Future<void> update(T Function(T state) cb) async {
+    await modify(cb);
+  }
+
+  /// Updates specific fields using a Map (similar to Firestore's update)
+  /// This will be enhanced with strong typing through code generation
+  Future<void> updateFields(Map<String, dynamic> fields) async {
+    final transaction = Zone.current[#transaction] as Transaction?;
+    if (transaction != null) {
+      log('updateFields with transaction: $fields');
+      transaction.update(ref, fields);
+      Zone.current[#onSuccess](() {
+        // Update cache by merging fields
+        _cache = {...?_cache, ...fields};
+      });
+    } else {
+      log('updateFields without transaction: $fields');
+      await ref.update(fields);
+      // Update cache by merging fields
+      _cache = {...?_cache, ...fields};
+    }
+  }
+
+  /// Deletes the document
+  Future<void> delete() async {
+    final transaction = Zone.current[#transaction] as Transaction?;
+    if (transaction != null) {
+      log('deleting with transaction');
+      transaction.delete(ref);
+      Zone.current[#onSuccess](() {
+        _cache = null;
+      });
+    } else {
+      log('deleting without transaction');
+      await ref.delete();
+      _cache = null;
     }
   }
 
