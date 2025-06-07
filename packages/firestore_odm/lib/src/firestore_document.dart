@@ -267,15 +267,7 @@ class FirestoreDocument<T> {
     }
   }
 
-  /// Legacy update method (kept for backward compatibility)
-  /// Computes the difference for efficient partial updates
-  @Deprecated('Use modify() or incrementalModify() instead')
-  Future<void> update(T Function(T state) cb) async {
-    await modify(cb);
-  }
-
   /// Updates specific fields using a Map (similar to Firestore's update)
-  /// This will be enhanced with strong typing through code generation
   Future<void> updateFields(Map<String, dynamic> fields) async {
     final transaction = Zone.current[#transaction] as Transaction?;
     if (transaction != null) {
