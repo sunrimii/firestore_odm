@@ -58,6 +58,14 @@ class FirestoreFilter {
         );
 }
 
+/// Represents an order by field with direction
+class OrderByField {
+  final String field;
+  final bool descending;
+  
+  const OrderByField(this.field, {this.descending = false});
+}
+
 /// Base filter builder class
 /// Extended by generated FilterBuilder classes that provide type-safe filtering methods
 abstract class FilterBuilder {
@@ -66,4 +74,14 @@ abstract class FilterBuilder {
   
   /// Create a FilterBuilder with optional field prefix for nested objects
   FilterBuilder({this.prefix = ''});
+}
+
+/// Base order by builder class
+/// Extended by generated OrderByBuilder classes that provide type-safe ordering methods
+abstract class OrderByBuilder {
+  /// Field prefix for nested object ordering
+  final String prefix;
+  
+  /// Create an OrderByBuilder with optional field prefix for nested objects
+  OrderByBuilder({this.prefix = ''});
 }

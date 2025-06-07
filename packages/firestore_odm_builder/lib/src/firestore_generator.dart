@@ -56,6 +56,12 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     // Generate FilterBuilder classes for all nested types
     _generateNestedFilterBuilderClasses(buffer, constructor, <String>{}, className);
 
+    // Generate OrderByBuilder class
+    _generateOrderByBuilderClass(buffer, className, constructor, className);
+    
+    // Generate OrderByBuilder classes for all nested types
+    _generateNestedOrderByBuilderClasses(buffer, constructor, <String>{}, className);
+
     // Generate Filter class
     _generateFilterClass(buffer, className);
     buffer.writeln('');
@@ -130,14 +136,23 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('    final newQuery = applyFilterToQuery(ref, builtFilter);');
     buffer.writeln('    return ${className}Query(this, newQuery);');
     buffer.writeln('  }');
+    buffer.writeln('');
+    
+    // Generate new orderBy method using OrderByBuilder
+    buffer.writeln('  /// Order using an OrderBy Builder');
+    buffer.writeln('  ${className}Query orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
+    buffer.writeln('    final builder = ${className}OrderByBuilder();');
+    buffer.writeln('    final orderField = orderBuilder(builder);');
+    buffer.writeln('    return ${className}Query(this, ref.orderBy(orderField.field, descending: orderField.descending));');
+    buffer.writeln('  }');
 
-    // Generate orderBy methods for Collection
+    // Generate legacy orderBy methods for Collection (for backward compatibility)
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       if (fieldName == 'id') continue;
 
       buffer.writeln('');
-      buffer.writeln('  /// Order by $fieldName');
+      buffer.writeln('  /// Order by $fieldName (legacy method)');
       buffer.writeln('  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {');
       buffer.writeln('    return ${className}Query(this, ref.orderBy(\'$fieldName\', descending: descending));');
       buffer.writeln('  }');
@@ -200,14 +215,23 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('');
     buffer.writeln('  @override');
     buffer.writeln('  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);');
+    buffer.writeln('');
+    
+    // Generate new orderBy method using OrderByBuilder
+    buffer.writeln('  /// Order using an OrderBy Builder');
+    buffer.writeln('  ${className}Query orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
+    buffer.writeln('    final builder = ${className}OrderByBuilder();');
+    buffer.writeln('    final orderField = orderBuilder(builder);');
+    buffer.writeln('    return ${className}Query(collection, query.orderBy(orderField.field, descending: orderField.descending));');
+    buffer.writeln('  }');
 
-    // Generate orderBy methods
+    // Generate legacy orderBy methods (for backward compatibility)
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       if (fieldName == 'id') continue;
 
       buffer.writeln('');
-      buffer.writeln('  /// Order by $fieldName');
+      buffer.writeln('  /// Order by $fieldName (legacy method)');
       buffer.writeln('  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {');
       buffer.writeln('    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));');
       buffer.writeln('  }');
@@ -572,6 +596,99 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     if (text.isEmpty) return text;
     final words = text.split('_');
     return words[0] + words.skip(1).map((word) => _capitalize(word)).join();
+  }
+
+  void _generateOrderByBuilderClass(
+    StringBuffer buffer,
+    String className,
+    ConstructorElement constructor,
+    String rootOrderByType,
+  ) {
+    buffer.writeln('/// Generated OrderByBuilder for $className');
+    buffer.writeln('class ${className}OrderByBuilder extends OrderByBuilder {');
+    buffer.writeln('  ${className}OrderByBuilder({String prefix = \'\'}) : super(prefix: prefix);');
+    buffer.writeln('');
+
+    // Generate field methods
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      final fieldType = param.type;
+      
+      if (fieldName == 'id') continue;
+      
+      if (_isPrimitiveType(fieldType) || _isComparableType(fieldType)) {
+        _generateOrderByFieldMethod(buffer, className, fieldName);
+      } else if (_isCustomClass(fieldType)) {
+        // Generate nested object getter for custom classes
+        _generateOrderByNestedGetter(buffer, fieldName, fieldType);
+      }
+    }
+
+    buffer.writeln('}');
+    buffer.writeln('');
+  }
+
+  void _generateOrderByFieldMethod(StringBuffer buffer, String className, String fieldName) {
+    buffer.writeln('  /// Order by $fieldName');
+    buffer.writeln('  OrderByField $fieldName({bool descending = false}) {');
+    buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
+    buffer.writeln('    return OrderByField(fieldPath, descending: descending);');
+    buffer.writeln('  }');
+    buffer.writeln('');
+  }
+
+  void _generateOrderByNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
+    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
+    buffer.writeln('  /// Access nested $fieldName for ordering');
+    buffer.writeln('  ${nestedTypeName}OrderByBuilder get $fieldName {');
+    buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
+    buffer.writeln('    return ${nestedTypeName}OrderByBuilder(prefix: nestedPrefix);');
+    buffer.writeln('  }');
+    buffer.writeln('');
+  }
+
+  void _generateNestedOrderByBuilderClasses(
+    StringBuffer buffer,
+    ConstructorElement constructor,
+    Set<String> processedTypes,
+    String rootOrderByType,
+  ) {
+    for (final param in constructor.parameters) {
+      final fieldType = param.type;
+
+      // Skip the id field and built-in types
+      if (param.name == 'id' || _isBuiltInType(fieldType)) {
+        continue;
+      }
+
+      final nestedClassName = fieldType.getDisplayString(
+        withNullability: false,
+      );
+
+      // Avoid generating duplicate builders
+      if (processedTypes.contains(nestedClassName)) {
+        continue;
+      }
+      processedTypes.add(nestedClassName);
+
+      // Try to get the constructor of the nested class
+      if (fieldType.element is ClassElement) {
+        final nestedClass = fieldType.element as ClassElement;
+        final nestedConstructor = nestedClass.unnamedConstructor;
+
+        if (nestedConstructor != null) {
+          _generateOrderByBuilderClass(buffer, nestedClassName, nestedConstructor, rootOrderByType);
+
+          // Recursively generate builders for nested classes
+          _generateNestedOrderByBuilderClasses(
+            buffer,
+            nestedConstructor,
+            processedTypes,
+            rootOrderByType,
+          );
+        }
+      }
+    }
   }
 
   String _getSubcollectionType(DartObject constantValue) {
