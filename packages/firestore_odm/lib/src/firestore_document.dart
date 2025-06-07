@@ -290,8 +290,8 @@ class FirestoreDocument<T> {
     }
   }
 
-  /// RxDB-style modify without atomic operations
-  /// Only computes differences and updates changed fields
+  /// RxDB-style modify with atomic operations support
+  /// Computes differences and uses atomic operations where possible
   Future<void> modify(T Function(T docData) modifier) async {
     final oldState = await get();
     if (oldState == null) {
@@ -301,20 +301,22 @@ class FirestoreDocument<T> {
     final newState = modifier(oldState);
     final oldData = collection.toJson(oldState);
     final newData = collection.toJson(newState);
-    final updateData = _diff(oldData, newData);
+    final updateData = _diffWithAtomicOperations(oldData, newData);
 
     if (updateData.isEmpty) return; // No changes
 
     final transaction = Zone.current[#transaction] as Transaction?;
     if (transaction != null) {
       log('modify with transaction: $updateData');
-      transaction.set(ref, updateData, SetOptions(merge: true));
+      final serializedUpdateData = _deepSerialize(updateData);
+      transaction.set(ref, serializedUpdateData, SetOptions(merge: true));
       Zone.current[#onSuccess](() {
         _cache = newData;
       });
     } else {
       log('modify without transaction: $updateData');
-      await ref.set(updateData, SetOptions(merge: true));
+      final serializedUpdateData = _deepSerialize(updateData);
+      await ref.set(serializedUpdateData, SetOptions(merge: true));
       _cache = newData;
     }
   }
@@ -324,16 +326,18 @@ class FirestoreDocument<T> {
     final transaction = Zone.current[#transaction] as Transaction?;
     if (transaction != null) {
       log('updateFields with transaction: $fields');
-      transaction.update(ref, fields);
+      final serializedFields = _deepSerialize(fields);
+      transaction.update(ref, serializedFields);
       Zone.current[#onSuccess](() {
         // Update cache by merging fields
-        _cache = {...?_cache, ...fields};
+        _cache = {...?_cache, ...serializedFields};
       });
     } else {
       log('updateFields without transaction: $fields');
-      await ref.update(fields);
+      final serializedFields = _deepSerialize(fields);
+      await ref.update(serializedFields);
       // Update cache by merging fields
-      _cache = {...?_cache, ...fields};
+      _cache = {...?_cache, ...serializedFields};
     }
   }
 
