@@ -1,0 +1,14 @@
+targets:
+  $default:
+    builders:
+      hero_ai|firestoreBuilder:
+        enabled: true
+
+builders:
+  firestoreBuilder:
+    import: "package:hero_ai/builders/firestore_builder.dart"
+    builder_factories: ["firestoreBuilder"]
+    build_extensions: {".dart": [".odm.dart"]}
+    auto_apply: dependents
+    build_to: source
+    # applies_builders: ["source_gen|combining_builder"]
