@@ -7,12 +7,16 @@ import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
-  static const TypeChecker subcollectionChecker =
-      TypeChecker.fromRuntime(SubcollectionPath);
+  static const TypeChecker subcollectionChecker = TypeChecker.fromRuntime(
+    SubcollectionPath,
+  );
 
   @override
   generateForAnnotatedElement(
-      Element element, ConstantReader annotation, BuildStep buildStep) {
+    Element element,
+    ConstantReader annotation,
+    BuildStep buildStep,
+  ) {
     if (element is! ClassElement) {
       throw InvalidGenerationSourceError(
         'Generator cannot target `${element.name}`.',
@@ -30,8 +34,13 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('  Query<Map<String, dynamic>> get query;');
 
     // Helper method for where clauses
-    void writeWhereClause(String field, String fieldName, String fieldType,
-        bool isArray, bool isNullable) {
+    void writeWhereClause(
+      String field,
+      String fieldName,
+      String fieldType,
+      bool isArray,
+      bool isNullable,
+    ) {
       buffer.writeln('  ${className}Query where${_capitalize(fieldName)}({');
 
       if (isArray) {
@@ -81,13 +90,20 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
     // Generate whereDocumentId method using the helper method
     writeWhereClause(
-        'FieldPath.documentId', 'DocumentId', 'String', false, true);
+      'FieldPath.documentId',
+      'DocumentId',
+      'String',
+      false,
+      true,
+    );
 
     // Generate orderByDocumentId method
     buffer.writeln(
-        '  ${className}Query orderByDocumentId({bool descending = false}) {');
+      '  ${className}Query orderByDocumentId({bool descending = false}) {',
+    );
     buffer.writeln(
-        '    return ${className}Query(collection, query.orderBy(FieldPath.documentId, descending: descending));');
+      '    return ${className}Query(collection, query.orderBy(FieldPath.documentId, descending: descending));',
+    );
     buffer.writeln('  }');
 
     final constructor = element.unnamedConstructor;
@@ -100,13 +116,20 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
         final isArray = param.type.isDartCoreList;
 
         writeWhereClause(
-            '\'$fieldName\'', fieldName, fieldType, isArray, isNullable);
+          '\'$fieldName\'',
+          fieldName,
+          fieldType,
+          isArray,
+          isNullable,
+        );
 
         // Generate orderBy methods
         buffer.writeln(
-            '  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {');
+          '  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {',
+        );
         buffer.writeln(
-            '    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));');
+          '    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));',
+        );
         buffer.writeln('  }');
       }
     }
@@ -115,10 +138,12 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
     // Generate collection class
     buffer.writeln(
-        'class ${className}Collection extends FirestoreCollection<$className> with ${className}QueryMixin {');
+      'class ${className}Collection extends FirestoreCollection<$className> with ${className}QueryMixin {',
+    );
     buffer.writeln('  ${className}Collection() : super(');
     buffer.writeln(
-        '    ref: FirebaseFirestore.instance.collection(\'$collectionPath\'),');
+      '    ref: FirebaseFirestore.instance.collection(\'$collectionPath\'),',
+    );
     buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
     buffer.writeln('    toJson: (value) => value.toJson(),');
     buffer.writeln('  );');
@@ -133,71 +158,37 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
     // Generate query class
     buffer.writeln(
-        'class ${className}Query extends FirestoreQuery<$className> with ${className}QueryMixin {');
+      'class ${className}Query extends FirestoreQuery<$className> with ${className}QueryMixin {',
+    );
     buffer.writeln('  ${className}Query(super.collection, super.query);');
     buffer.writeln('  @override');
     buffer.writeln(
-        '  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);');
+      '  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);',
+    );
     buffer.writeln('}'); // Close the query class
 
     // Generate document class
     buffer.writeln(
-        'class ${className}Document extends FirestoreDocument<$className> {');
+      'class ${className}Document extends FirestoreDocument<$className> {',
+    );
     buffer.writeln('  ${className}Document(super.collection, super.id);');
-
-    // Generate strong-typed update method
-    buffer.writeln('');
-    buffer.writeln('  /// Strong-typed update method similar to copyWith');
-    buffer.writeln('  Future<void> update({');
-    
-    if (constructor != null) {
-      for (final param in constructor.parameters) {
-        final fieldName = param.name;
-        final fieldType = param.type.getDisplayString(withNullability: false);
-        final isNullable = param.type.nullabilitySuffix != NullabilitySuffix.none;
-        
-        // Skip the id field as it shouldn't be updated
-        if (fieldName == 'id') continue;
-        
-        if (isNullable) {
-          buffer.writeln('    $fieldType? $fieldName,');
-        } else {
-          buffer.writeln('    $fieldType? $fieldName,');
-        }
-      }
-    }
-    
-    buffer.writeln('  }) async {');
-    buffer.writeln('    final updates = <String, dynamic>{};');
-    
-    if (constructor != null) {
-      for (final param in constructor.parameters) {
-        final fieldName = param.name;
-        
-        // Skip the id field
-        if (fieldName == 'id') continue;
-        
-        buffer.writeln('    if ($fieldName != null) updates[\'$fieldName\'] = $fieldName;');
-      }
-    }
-    
-    buffer.writeln('    if (updates.isNotEmpty) {');
-    buffer.writeln('      await updateFields(updates);');
-    buffer.writeln('    }');
-    buffer.writeln('  }');
 
     // Generate subcollections under the document class
     for (final metadata in element.metadata) {
       final constantValue = metadata.computeConstantValue();
-      if (constantValue != null && subcollectionChecker.isExactlyType(constantValue.type!)) {
+      if (constantValue != null &&
+          subcollectionChecker.isExactlyType(constantValue.type!)) {
         final subcollectionType = _getSubcollectionType(constantValue);
-        final subcollectionPath =
-            constantValue.getField('path')!.toStringValue()!;
+        final subcollectionPath = constantValue
+            .getField('path')!
+            .toStringValue()!;
         buffer.writeln(
-            '  FirestoreCollection<$subcollectionType> get $subcollectionPath => FirestoreCollection(');
+          '  FirestoreCollection<$subcollectionType> get $subcollectionPath => FirestoreCollection(',
+        );
         buffer.writeln('    ref: ref.collection(\'$subcollectionPath\'),');
         buffer.writeln(
-            '    fromJson: (data) => $subcollectionType.fromJson(data),');
+          '    fromJson: (data) => $subcollectionType.fromJson(data),',
+        );
         buffer.writeln('    toJson: (value) => value.toJson(),');
         buffer.writeln('  );');
       }
@@ -207,9 +198,53 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
     // Generate extension to add the collection to FirestoreODM
     buffer.writeln(
-        'extension FirestoreODM${className}Extension on FirestoreODM {');
+      'extension FirestoreODM${className}Extension on FirestoreODM {',
+    );
     buffer.writeln(
-        '  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection();');
+      '  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection();',
+    );
+    buffer.writeln('}');
+
+    // Generate extension for strong-typed update method
+    buffer.writeln('');
+    buffer.writeln(
+      'extension ${className}DocumentExtension on FirestoreDocument<$className> {',
+    );
+    buffer.writeln('  /// Strong-typed update method similar to copyWith');
+    buffer.writeln('  Future<void> update({');
+
+    if (constructor != null) {
+      for (final param in constructor.parameters) {
+        final fieldName = param.name;
+        final fieldType = param.type.getDisplayString(withNullability: false);
+
+        // Skip the id field as it shouldn't be updated
+        if (fieldName == 'id') continue;
+
+        buffer.writeln('    $fieldType? $fieldName,');
+      }
+    }
+
+    buffer.writeln('  }) async {');
+    buffer.writeln('    final updates = <String, dynamic>{};');
+
+    if (constructor != null) {
+      for (final param in constructor.parameters) {
+        final fieldName = param.name;
+
+        // Skip the id field
+        if (fieldName == 'id') continue;
+
+        buffer.writeln(
+          '    if ($fieldName != null) updates[\'$fieldName\'] = $fieldName;',
+        );
+      }
+    }
+
+    buffer.writeln('    if (updates.isNotEmpty) {');
+    buffer.writeln('      await updateFields(updates);');
+    buffer.writeln('    }');
+    buffer.writeln('  }');
     buffer.writeln('}');
 
     return buffer.toString();

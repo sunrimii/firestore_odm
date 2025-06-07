@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'models/user.dart';
+import 'models/profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,8 +112,17 @@ class _UserListScreenState extends State<UserListScreen> {
       name: _nameController.text,
       email: _emailController.text,
       age: int.parse(_ageController.text),
+      profile: Profile(
+        bio: 'New user',
+        avatar: 'default.jpg',
+        socialLinks: {},
+        interests: [],
+      ),
       createdAt: DateTime.now(),
     );
+
+    // TODO: Add user to Firestore
+    print('Created user: ${user.name}');
 
     // This would use the generated ODM code
     // await FirestoreODM.instance.users.doc(user.id).set(user);

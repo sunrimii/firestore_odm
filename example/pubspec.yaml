@@ -1,6 +1,7 @@
 name: firestore_odm_example
 description: Example usage of Firestore ODM
 version: 1.0.0
+publish_to: none
 
 environment:
   sdk: '^3.8.1'
