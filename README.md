@@ -1,133 +1,67 @@
-# 🔥 Firestore ODM - Revolutionary Flutter/Dart Library
+# Firestore ODM for Dart/Flutter
 
-[![Pub Version](https://img.shields.io/pub/v/firestore_odm)](https://pub.dev/packages/firestore_odm)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://github.com/your-org/firestore_odm/workflows/Tests/badge.svg)](https://github.com/your-org/firestore_odm/actions)
+A powerful Object-Document Mapping (ODM) library for Cloud Firestore in Dart and Flutter applications. This library provides type-safe, code-generated access to Firestore with advanced filtering, querying, and update capabilities.
 
-A **revolutionary** Object Document Mapper (ODM) for Cloud Firestore that brings **type safety**, **code generation**, and **unprecedented developer experience** to Flutter/Dart applications.
+## Features
 
-## 🚀 Why Firestore ODM?
+- 🔥 **Type-safe Firestore operations** - Generated code ensures compile-time safety
+- 🎯 **Advanced filtering** - Fluent API for complex queries with nested field support
+- 🔄 **Atomic updates** - Safe field-level updates with conflict resolution
+- 📝 **Code generation** - Automatic generation of collections, queries, and filters
+- 🎨 **Fluent API** - Intuitive, chainable method calls
+- 🧪 **Test-friendly** - Works seamlessly with `fake_cloud_firestore`
 
-### ❌ Before: Traditional Firestore Development
-```dart
-// Painful manual serialization
-final userDoc = await FirebaseFirestore.instance
-    .collection('users')
-    .doc('user123')
-    .get();
+## Architecture
 
-final userData = userDoc.data();
-if (userData != null) {
-  final user = User(
-    id: userData['id'] as String,
-    name: userData['name'] as String,
-    // ... manual field mapping nightmare
-  );
-}
+This project is organized as a monorepo with separate packages:
 
-// Nested updates are a disaster
-await FirebaseFirestore.instance
-    .collection('users')
-    .doc('user123')
-    .update({
-  'profile.bio': 'New bio',
-  'profile.followers': 1000,
-  'profile.story.place.coordinates.latitude': 40.7128,
-  // Error-prone string paths
-});
+```
+packages/
+├── firestore_odm/              # Core runtime library
+├── firestore_odm_annotation/   # Annotations for code generation
+└── firestore_odm_builder/      # Code generator (dev dependency)
 ```
 
-### ✅ After: Firestore ODM Magic
-```dart
-// Type-safe, auto-generated, beautiful
-final user = await odm.users.doc('user123').get();
+## Installation
 
-// Revolutionary chained updates (WORLD'S FIRST!)
-await odm.users.doc('user123').update.profile.story.place.coordinates(
-  latitude: 40.7128,  // New York
-  longitude: -74.0060,
-  altitude: 20.0,
-);
-
-// Type-safe queries with IntelliSense
-final premiumUsers = await odm.users
-    .whereIsPremium(isEqualTo: true)
-    .whereRating(isGreaterThan: 4.0)
-    .get();
-```
-
-## 🌟 Revolutionary Features
-
-### 🔗 **World's First Chained Nested Updates**
-Update deeply nested objects with unprecedented elegance:
-
-```dart
-// 5 levels deep - IMPOSSIBLE with traditional Firestore!
-await odm.users.doc('travel_blogger').update.profile.story.place.coordinates(
-  latitude: 48.8566,  // Paris
-  longitude: 2.3522,
-  altitude: 35.0,
-);
-
-// Only coordinates change, everything else stays intact!
-```
-
-### 🛡️ **100% Type Safety**
-- **Compile-time error detection** - catch bugs before they reach production
-- **IntelliSense everywhere** - autocomplete for all fields and methods
-- **Null safety** - leverages Dart's null safety for bulletproof code
-
-### ⚡ **Code Generation Magic**
-- **Zero boilerplate** - write models, get everything else for free
-- **Automatic query builders** - type-safe where clauses and ordering
-- **Smart serialization** - handles complex nested objects automatically
-
-### 🎯 **Developer Experience Excellence**
-- **Intuitive API** - feels natural, reads like English
-- **Comprehensive testing** - 17 test scenarios covering every edge case
-- **Real-time updates** - reactive streams out of the box
-- **Transaction support** - atomic operations made simple
-
-## 📦 Installation
-
-Add to your `pubspec.yaml`:
+Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   firestore_odm: ^1.0.0
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
+  firestore_odm_annotation: ^1.0.0
 
 dev_dependencies:
   firestore_odm_builder: ^1.0.0
-  build_runner: ^2.4.15
-  freezed: ^2.5.7
-  json_serializable: ^6.9.0
+  build_runner: ^2.4.7
 ```
 
-## 🏗️ Quick Start
+## Quick Start
 
 ### 1. Define Your Models
 
 ```dart
-import 'package:firestore_odm/firestore_odm.dart';
+// lib/models/user.dart
+import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
-part 'user.odm.dart'; // Generated ODM code
+part 'user.odm.dart';
 
 @freezed
-@CollectionPath('users')
+@FirestoreDocument(collection: 'users')
 class User with _$User {
   const factory User({
     required String id,
     required String name,
     required String email,
     required int age,
-    required Profile profile, // Nested objects supported!
-    @Default(0.0) double rating,
-    @Default(false) bool isPremium,
+    required Profile profile,
+    required bool isActive,
+    required bool isPremium,
+    @Default([]) List<String> tags,
+    @Default([]) List<int> scores,
     DateTime? createdAt,
   }) = _User;
 
@@ -141,8 +75,8 @@ class Profile with _$Profile {
     required String avatar,
     required Map<String, String> socialLinks,
     required List<String> interests,
-    @Default(0) int followers,
-    Story? story, // Deeply nested objects!
+    required int followers,
+    DateTime? lastActive,
   }) = _Profile;
 
   factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
@@ -155,152 +89,241 @@ class Profile with _$Profile {
 dart run build_runner build
 ```
 
-### 3. Initialize ODM
+### 3. Initialize and Use
 
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
+import 'models/user.dart';
 
-final odm = FirestoreODM(FirebaseFirestore.instance);
+void main() async {
+  final firestore = FirebaseFirestore.instance;
+  final users = UserCollection(firestore);
+
+  // Create a user
+  final user = User(
+    id: 'user1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    age: 25,
+    profile: Profile(
+      bio: 'Software developer',
+      avatar: 'avatar.jpg',
+      socialLinks: {'github': 'johndoe'},
+      interests: ['coding', 'gaming'],
+      followers: 100,
+    ),
+    isActive: true,
+    isPremium: false,
+    tags: ['developer', 'flutter'],
+    createdAt: DateTime.now(),
+  );
+
+  await users.doc(user.id).set(user);
+}
 ```
 
-### 4. Use the Magic! ✨
+## Advanced Usage
+
+### Filtering and Querying
 
 ```dart
-// Create
-final user = User(
-  id: 'user123',
-  name: 'John Doe',
-  email: 'john@example.com',
-  age: 30,
-  profile: Profile(
-    bio: 'Flutter developer',
-    avatar: 'avatar.jpg',
-    socialLinks: {'github': 'johndoe'},
-    interests: ['flutter', 'dart'],
-    followers: 100,
-  ),
-);
-
-await odm.users.doc('user123').set(user);
-
-// Read
-final retrievedUser = await odm.users.doc('user123').get();
-print(retrievedUser?.name); // John Doe
-
-// Update (Revolutionary!)
-await odm.users.doc('user123').update.profile(
-  bio: 'Senior Flutter Developer',
-  followers: 1000,
-  socialLinks: {
-    'github': 'johndoe',
-    'twitter': '@johndoe',
-    'linkedin': 'john-doe-dev',
-  },
-);
-
-// Query
-final seniorDevs = await odm.users
-    .whereAge(isGreaterThan: 25)
-    .whereIsPremium(isEqualTo: true)
-    .orderByRating(descending: true)
+// Basic field filtering
+final activeUsers = await users
+    .where((filter) => filter.isActive(isEqualTo: true))
     .get();
 
-// Delete
-await odm.users.doc('user123').delete();
+// Numeric comparisons
+final youngUsers = await users
+    .where((filter) => filter.age(isLessThan: 30))
+    .get();
+
+// String operations
+final johnUsers = await users
+    .where((filter) => filter.name(contains: 'John'))
+    .get();
+
+// Array operations
+final developerUsers = await users
+    .where((filter) => filter.tags(arrayContains: 'developer'))
+    .get();
+
+// Multiple conditions
+final premiumActiveUsers = await users
+    .where((filter) => filter.isActive(isEqualTo: true))
+    .where((filter) => filter.isPremium(isEqualTo: true))
+    .get();
+
+// Logical operations
+final complexQuery = await users
+    .where((filter) => filter.or(
+      filter.age(isLessThan: 25),
+      filter.isPremium(isEqualTo: true),
+    ))
+    .get();
 ```
 
-## 🔥 Advanced Features
+### Atomic Updates
 
-### Real-time Updates
 ```dart
-// Listen to document changes
-odm.users.doc('user123').changes.listen((user) {
-  print('User updated: ${user?.name}');
-});
+// Get a document reference
+final userDoc = users.doc('user1');
+
+// Atomic field updates
+await userDoc.update
+    .name('New Name')
+    .age(26)
+    .isActive(false)
+    .apply();
+
+// Nested field updates
+await userDoc.update
+    .profile.bio('Updated bio')
+    .profile.followers(150)
+    .apply();
+
+// Array operations
+await userDoc.update
+    .tags.add('expert')
+    .scores.add(95)
+    .apply();
 ```
 
-### Transactions
+### Ordering and Limiting
+
 ```dart
-await odm.runTransaction((transaction) async {
-  final user = await odm.users.doc('user123').get();
-  if (user != null) {
-    await odm.users.doc('user123').update(
-      rating: user.rating + 0.1,
-    );
-  }
-});
+// Order by field
+final orderedUsers = await users
+    .orderByAge(descending: true)
+    .limit(10)
+    .get();
+
+// Multiple ordering
+final complexOrder = await users
+    .orderByAge()
+    .orderByName()
+    .get();
 ```
 
-### Complex Nested Updates
+## Generated Code Structure
+
+For each `@FirestoreDocument` class, the generator creates:
+
+- **Collection class** (`UserCollection`) - Entry point for queries
+- **Query class** (`UserQuery`) - Chainable query builder
+- **Filter class** (`UserFilter`) - Type-safe filtering
+- **Update builder** (`UserUpdateBuilder`) - Atomic updates
+- **Document extensions** - Convenient update methods
+
+## API Reference
+
+### Collection Operations
+
 ```dart
-// Update story location (4 levels deep!)
-await odm.users.doc('travel_blogger').update.profile.story.place(
-  name: 'Paris',
-  address: 'Champs-Élysées, Paris, France',
-  coordinates: Coordinates(
-    latitude: 48.8566,
-    longitude: 2.3522,
-    altitude: 35.0,
-  ),
-);
+final users = UserCollection(firestore);
+
+// Document operations
+await users.doc('id').set(user);
+await users.doc('id').update(updates);
+await users.doc('id').delete();
+final user = await users.doc('id').get();
+
+// Query operations
+final query = users.where((filter) => /* conditions */);
+final results = await query.get();
 ```
 
-## 🧪 Testing
+### Filter Operations
 
-Firestore ODM includes comprehensive testing support:
+```dart
+// Equality
+filter.field(isEqualTo: value)
+filter.field(isNotEqualTo: value)
+
+// Comparisons (numbers, strings, dates)
+filter.field(isLessThan: value)
+filter.field(isLessThanOrEqualTo: value)
+filter.field(isGreaterThan: value)
+filter.field(isGreaterThanOrEqualTo: value)
+
+// Arrays
+filter.field(whereIn: [values])
+filter.field(whereNotIn: [values])
+
+// Array fields
+filter.arrayField(arrayContains: value)
+filter.arrayField(arrayContainsAny: [values])
+
+// Null checks
+filter.field(isNull: true)
+
+// String operations
+filter.stringField(contains: 'substring')
+
+// Logical operations
+filter.or(filter1, filter2, ...)
+filter.and(filter1, filter2, ...)
+```
+
+### Update Operations
+
+```dart
+// Basic field updates
+await doc.update
+    .field1(newValue)
+    .field2(anotherValue)
+    .apply();
+
+// Nested field updates
+await doc.update
+    .nestedObject.field(value)
+    .apply();
+
+// Array operations
+await doc.update
+    .arrayField.add(item)
+    .arrayField.remove(item)
+    .apply();
+```
+
+## Testing
+
+The library works seamlessly with `fake_cloud_firestore` for testing:
 
 ```dart
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 
 void main() {
-  test('should create and retrieve user', () async {
-    final fakeFirestore = FakeFirebaseFirestore();
-    final odm = FirestoreODM(fakeFirestore);
-
-    final user = User(/* ... */);
-    await odm.users.doc('test').set(user);
+  test('user operations', () async {
+    final firestore = FakeFirebaseFirestore();
+    final users = UserCollection(firestore);
     
-    final retrieved = await odm.users.doc('test').get();
-    expect(retrieved?.name, equals(user.name));
+    // Your test code here
   });
 }
 ```
 
-## 📊 Performance
+## Examples
 
-- **Optimized serialization** - smart deep serialization for complex objects
-- **Minimal rebuilds** - only affected widgets update
-- **Efficient queries** - leverages Firestore's native indexing
-- **Memory efficient** - automatic cleanup and disposal
+See the `flutter_example/` directory for a complete working example with:
 
-## 🏆 Comparison
+- Model definitions
+- CRUD operations
+- Advanced filtering
+- Atomic updates
+- Comprehensive tests
 
-| Feature | Firestore ODM | Traditional Firestore | Other ODMs |
-|---------|---------------|----------------------|------------|
-| Type Safety | ✅ 100% | ❌ None | ⚠️ Partial |
-| Nested Updates | ✅ Revolutionary | ❌ Manual strings | ❌ Limited |
-| Code Generation | ✅ Full | ❌ None | ⚠️ Basic |
-| Testing Support | ✅ Complete | ⚠️ Manual | ⚠️ Limited |
-| Developer Experience | ✅ Exceptional | ❌ Poor | ⚠️ Average |
+## Contributing
 
-## 🤝 Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Changelog
 
-- Built with ❤️ for the Flutter community
-- Inspired by the need for better Firestore developer experience
-- Powered by [Freezed](https://pub.dev/packages/freezed) and [json_serializable](https://pub.dev/packages/json_serializable)
-
----
-
-**Made with 🔥 by the Firestore ODM Team**
-
-[Documentation](https://firestore-odm.dev) • [Examples](https://github.com/your-org/firestore_odm/tree/main/example) • [Issues](https://github.com/your-org/firestore_odm/issues)
+See [CHANGELOG.md](CHANGELOG.md) for version history and changes.

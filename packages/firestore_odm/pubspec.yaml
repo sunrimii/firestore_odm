@@ -3,7 +3,7 @@ description: Type-safe Firestore ODM with code generation support
 version: 1.0.0
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '^3.8.1'
   flutter: '>=3.0.0'
 
 dependencies:
@@ -17,4 +17,5 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  test: ^1.24.0
   very_good_analysis: ^6.0.0

@@ -397,10 +397,12 @@ void main() {
         }
 
         // Act
-        final youngUsers = await odm.users.whereAge(isLessThan: 30).get();
+        final youngUsers = await odm.users
+            .where((filter) => filter.age(isLessThan: 30))
+            .get();
 
         final experiencedUsers = await odm.users
-            .whereAge(isGreaterThanOrEqualTo: 30)
+            .where((filter) => filter.age(isGreaterThanOrEqualTo: 30))
             .get();
 
         // Assert
@@ -455,12 +457,14 @@ void main() {
 
         // Act
         final premiumUsers = await odm.users
-            .whereIsPremium(isEqualTo: true)
-            .whereRating(isGreaterThan: 4.0)
+            .where((filter) => filter.and(
+              filter.isPremium(isEqualTo: true),
+              filter.rating(isGreaterThan: 4.0),
+            ))
             .get();
 
         final freeUsers = await odm.users
-            .whereIsPremium(isEqualTo: false)
+            .where((filter) => filter.isPremium(isEqualTo: false))
             .get();
 
         // Assert
@@ -515,10 +519,12 @@ void main() {
 
         // Act - Complex query with multiple conditions
         final filteredUsers = await odm.users
-            .whereAge(isGreaterThan: 25)
-            .whereRating(isGreaterThanOrEqualTo: 4.0)
-            .whereIsActive(isEqualTo: true)
-            .whereIsPremium(isEqualTo: true)
+            .where((filter) => filter.and(
+              filter.age(isGreaterThan: 25),
+              filter.rating(isGreaterThanOrEqualTo: 4.0),
+              filter.isActive(isEqualTo: true),
+              filter.isPremium(isEqualTo: true),
+            ))
             .get();
 
         // Assert
@@ -539,7 +545,7 @@ void main() {
       test('should handle empty query results', () async {
         // Act
         final noUsers = await odm.users
-            .whereAge(isGreaterThan: 1000) // Impossible condition
+            .where((filter) => filter.age(isGreaterThan: 1000)) // Impossible condition
             .get();
 
         // Assert
