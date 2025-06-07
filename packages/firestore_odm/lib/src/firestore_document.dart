@@ -77,7 +77,20 @@ class FirestoreDocument<T> {
       } else if (oldValue != newValue) {
         // Changed field - try to detect atomic operations
         final atomicOp = _detectAtomicOperation(oldValue, newValue);
-        result[key] = atomicOp ?? newValue;
+        if (atomicOp != null) {
+          result[key] = atomicOp;
+        } else if (oldValue is Map && newValue is Map) {
+          // Handle nested objects - check if it's an empty map (deletion scenario)
+          if (newValue.isEmpty && oldValue.isNotEmpty) {
+            // Empty map means we want to clear all nested fields
+            result[key] = newValue; // Set to empty map
+          } else {
+            // For other nested changes, use the new value
+            result[key] = newValue;
+          }
+        } else {
+          result[key] = newValue;
+        }
       }
     }
 
@@ -112,7 +125,8 @@ class FirestoreDocument<T> {
         return FieldValue.arrayRemove(removed);
       }
 
-      // For mixed operations, fall back to direct assignment
+      // For mixed operations or when trying to add duplicates, fall back to direct assignment
+      // Note: arrayUnion naturally handles duplicates by not adding them again
     }
 
     // No atomic operation detected
