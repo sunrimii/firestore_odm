@@ -26,7 +26,7 @@ void main() async {
   });
 
   // Example 3: Strong-typed update (like copyWith but for Firestore)
-  await userDoc.updateTyped(
+  await userDoc.update(
     name: 'John Doe',
     age: 30,
     tags: ['developer', 'flutter'],
@@ -104,7 +104,7 @@ void comparisonExample() async {
   });
 
   // ✅ Strong-typed updates (like copyWith for Firestore)
-  await userDoc.updateTyped(
+  await userDoc.update(
     name: 'John Doe',  // Type-safe field names
     age: 30,          // Correct types enforced
     // email: 123,    // ← This would be a compile error!

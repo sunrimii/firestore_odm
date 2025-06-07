@@ -148,7 +148,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     // Generate strong-typed update method
     buffer.writeln('');
     buffer.writeln('  /// Strong-typed update method similar to copyWith');
-    buffer.writeln('  Future<void> updateTyped({');
+    buffer.writeln('  Future<void> update({');
     
     if (constructor != null) {
       for (final param in constructor.parameters) {
