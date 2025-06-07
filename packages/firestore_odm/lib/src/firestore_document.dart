@@ -98,20 +98,20 @@ class FirestoreDocument<T> {
     if (oldValue is List && newValue is List) {
       final oldSet = Set.from(oldValue);
       final newSet = Set.from(newValue);
-      
+
       final added = newSet.difference(oldSet).toList();
       final removed = oldSet.difference(newSet).toList();
-      
+
       // If only additions, use arrayUnion
       if (removed.isEmpty && added.isNotEmpty) {
         return FieldValue.arrayUnion(added);
       }
-      
+
       // If only removals, use arrayRemove
       if (added.isEmpty && removed.isNotEmpty) {
         return FieldValue.arrayRemove(removed);
       }
-      
+
       // For mixed operations, fall back to direct assignment
     }
 
@@ -196,17 +196,53 @@ class FirestoreDocument<T> {
   Future<void> set(T state) async {
     final transaction = Zone.current[#transaction] as Transaction?;
     final data = collection.toJson(state);
+    final serializedData = _deepSerialize(data);
     if (transaction != null) {
-      log('setting with transaction: $data');
-      transaction.set(ref, data);
+      log('setting with transaction: $serializedData');
+      transaction.set(ref, serializedData);
       Zone.current[#onSuccess](() {
-        _cache = data;
+        _cache = serializedData;
       });
     } else {
-      log('setting without transaction: $data');
-      await ref.set(data);
-      _cache = data;
+      log('setting without transaction: $serializedData');
+      await ref.set(serializedData);
+      _cache = serializedData;
     }
+  }
+
+  /// Recursively serializes nested objects to ensure compatibility with fake_cloud_firestore
+  Map<String, dynamic> _deepSerialize(Map<String, dynamic> data) {
+    final result = <String, dynamic>{};
+
+    for (final entry in data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (value == null) {
+        result[key] = null;
+      } else if (value is Map<String, dynamic>) {
+        result[key] = _deepSerialize(value);
+      } else if (value is List) {
+        result[key] = value.map((item) {
+          if (item is Map<String, dynamic>) {
+            return _deepSerialize(item);
+          } else if (item.runtimeType.toString().contains('Impl')) {
+            // This is a Freezed object, serialize it
+            return _deepSerialize(
+                (item as dynamic).toJson() as Map<String, dynamic>);
+          }
+          return item;
+        }).toList();
+      } else if (value.runtimeType.toString().contains('Impl')) {
+        // This is a Freezed object, serialize it
+        result[key] =
+            _deepSerialize((value as dynamic).toJson() as Map<String, dynamic>);
+      } else {
+        result[key] = value;
+      }
+    }
+
+    return result;
   }
 
   /// RxDB-style incremental modify with automatic atomic operations
@@ -216,7 +252,7 @@ class FirestoreDocument<T> {
     if (oldState == null) {
       throw FirestoreDocumentNotFoundException(id);
     }
-    
+
     final newState = modifier(oldState);
     final oldData = collection.toJson(oldState);
     final newData = collection.toJson(newState);
@@ -245,7 +281,7 @@ class FirestoreDocument<T> {
     if (oldState == null) {
       throw FirestoreDocumentNotFoundException(id);
     }
-    
+
     final newState = modifier(oldState);
     final oldData = collection.toJson(oldState);
     final newData = collection.toJson(newState);

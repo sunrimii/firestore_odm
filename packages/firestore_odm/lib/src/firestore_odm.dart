@@ -4,10 +4,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Main ODM class for managing Firestore transactions and operations
 class FirestoreODM {
-  const FirestoreODM();
+  final FirebaseFirestore _firestore;
 
-  /// Singleton instance of FirestoreODM
-  static const FirestoreODM instance = FirestoreODM();
+  FirestoreODM([FirebaseFirestore? firestore])
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  /// Default instance of FirestoreODM
+  static FirestoreODM get instance => FirestoreODM();
+
+  /// Get the Firestore instance
+  FirebaseFirestore get firestore => _firestore;
 
   /// Runs a Firestore transaction with automatic success handler management
   ///
@@ -21,7 +27,7 @@ class FirestoreODM {
       handlers.add(cb);
     }
 
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
+    await _firestore.runTransaction((transaction) async {
       await runZoned(
         cb,
         zoneValues: {#transaction: transaction, #onSuccess: onSuccess},

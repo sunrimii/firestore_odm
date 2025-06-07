@@ -103,10 +103,10 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln(
       'class ${className}Collection extends FirestoreCollection<$className> with ${className}QueryMixin {',
     );
-    buffer.writeln('  ${className}Collection() : super(');
     buffer.writeln(
-      '    ref: FirebaseFirestore.instance.collection(\'$collectionPath\'),',
+      '  ${className}Collection(FirebaseFirestore firestore) : super(',
     );
+    buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
     buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
     buffer.writeln('    toJson: (value) => value.toJson(),');
     buffer.writeln('  );');
@@ -167,7 +167,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       'extension FirestoreODM${className}Extension on FirestoreODM {',
     );
     buffer.writeln(
-      '  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection();',
+      '  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection(firestore);',
     );
     buffer.writeln('}');
 
@@ -184,13 +184,19 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       'extension ${className}DocumentExtension on FirestoreDocument<$className> {',
     );
     buffer.writeln('  /// Chained update API similar to copyWith');
-    buffer.writeln('  ${className}UpdateBuilder get update => ${className}UpdateBuilder(this, \'\');');
+    buffer.writeln(
+      '  ${className}UpdateBuilder get update => ${className}UpdateBuilder(this, \'\');',
+    );
     buffer.writeln('}');
 
     return buffer.toString();
   }
 
-  void _generateUpdateBuilder(StringBuffer buffer, String className, ConstructorElement constructor) {
+  void _generateUpdateBuilder(
+    StringBuffer buffer,
+    String className,
+    ConstructorElement constructor,
+  ) {
     buffer.writeln('');
     buffer.writeln('class ${className}UpdateBuilder {');
     buffer.writeln('  final FirestoreDocument _document;');
@@ -212,26 +218,28 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       // Generate call method for direct field updates
       buffer.writeln('  /// Update fields at current level');
       buffer.writeln('  Future<void> call({');
-      
+
       // Generate parameters
       for (final param in validParams) {
         final fieldName = param.name;
         final fieldType = param.type.getDisplayString(withNullability: false);
         buffer.writeln('    $fieldType? $fieldName,');
       }
-      
+
       buffer.writeln('  }) async {');
       buffer.writeln('    final updates = <String, dynamic>{};');
-      
+
       for (final param in validParams) {
         final fieldName = param.name;
-        
+
         buffer.writeln('    if ($fieldName != null) {');
-        buffer.writeln('      final fieldPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';');
+        buffer.writeln(
+          '      final fieldPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';',
+        );
         buffer.writeln('      updates[fieldPath] = $fieldName;');
         buffer.writeln('    }');
       }
-      
+
       buffer.writeln('    if (updates.isNotEmpty) {');
       buffer.writeln('      await _document.updateFields(updates);');
       buffer.writeln('    }');
@@ -242,82 +250,101 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
-      
+
       // Skip the id field and built-in types
       if (fieldName == 'id' || _isBuiltInType(fieldType)) {
         continue;
       }
-      
+
       // Only generate for custom classes that have constructors
       if (fieldType.element is ClassElement) {
         final nestedClass = fieldType.element as ClassElement;
         final nestedConstructor = nestedClass.unnamedConstructor;
-        
+
         if (nestedConstructor != null) {
-          final nestedClassName = fieldType.getDisplayString(withNullability: false);
-          
+          final nestedClassName = fieldType.getDisplayString(
+            withNullability: false,
+          );
+
           buffer.writeln('');
           buffer.writeln('  /// Access nested $fieldName builder');
           buffer.writeln('  ${nestedClassName}UpdateBuilder get $fieldName {');
-          buffer.writeln('    final newPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';');
-          buffer.writeln('    return ${nestedClassName}UpdateBuilder(_document, newPath);');
+          buffer.writeln(
+            '    final newPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';',
+          );
+          buffer.writeln(
+            '    return ${nestedClassName}UpdateBuilder(_document, newPath);',
+          );
           buffer.writeln('  }');
         }
       }
     }
-    
+
     buffer.writeln('}');
   }
 
-  void _generateNestedUpdateBuilders(StringBuffer buffer, ConstructorElement constructor, Set<String> processedTypes) {
+  void _generateNestedUpdateBuilders(
+    StringBuffer buffer,
+    ConstructorElement constructor,
+    Set<String> processedTypes,
+  ) {
     for (final param in constructor.parameters) {
       final fieldType = param.type;
-      
+
       // Skip the id field and built-in types
       if (param.name == 'id' || _isBuiltInType(fieldType)) {
         continue;
       }
-      
-      final nestedClassName = fieldType.getDisplayString(withNullability: false);
-      
+
+      final nestedClassName = fieldType.getDisplayString(
+        withNullability: false,
+      );
+
       // Avoid generating duplicate builders
       if (processedTypes.contains(nestedClassName)) {
         continue;
       }
       processedTypes.add(nestedClassName);
-      
+
       // Try to get the constructor of the nested class
       if (fieldType.element is ClassElement) {
         final nestedClass = fieldType.element as ClassElement;
         final nestedConstructor = nestedClass.unnamedConstructor;
-        
+
         if (nestedConstructor != null) {
           _generateUpdateBuilder(buffer, nestedClassName, nestedConstructor);
-          
+
           // Recursively generate builders for nested classes
-          _generateNestedUpdateBuilders(buffer, nestedConstructor, processedTypes);
+          _generateNestedUpdateBuilders(
+            buffer,
+            nestedConstructor,
+            processedTypes,
+          );
         }
       }
     }
   }
 
-  void _collectCustomTypes(ConstructorElement constructor, Set<String> customTypes) {
+  void _collectCustomTypes(
+    ConstructorElement constructor,
+    Set<String> customTypes,
+  ) {
     for (final param in constructor.parameters) {
       final fieldType = param.type;
-      
+
       // Skip the id field and built-in types
       if (param.name == 'id' || _isBuiltInType(fieldType)) {
         continue;
       }
-      
+
       final typeName = fieldType.getDisplayString(withNullability: false);
       customTypes.add(typeName);
-      
+
       // Recursively collect types from nested classes
       if (fieldType.element is ClassElement) {
         final nestedClass = fieldType.element as ClassElement;
         final nestedConstructor = nestedClass.unnamedConstructor;
-        
+
         if (nestedConstructor != null) {
           _collectCustomTypes(nestedConstructor, customTypes);
         }
@@ -328,17 +355,20 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   bool _isBuiltInType(DartType type) {
     final typeString = type.toString();
     return type.isDartCoreType ||
-           typeString.startsWith('List<') ||
-           typeString.startsWith('Map<') ||
-           typeString == 'DateTime' ||
-           typeString == 'DateTime?';
+        typeString.startsWith('List<') ||
+        typeString.startsWith('Map<') ||
+        typeString == 'DateTime' ||
+        typeString == 'DateTime?';
   }
 
   String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
 
   String _camelToSnake(String camelCase) {
     return camelCase
-        .replaceAllMapped(RegExp(r'[A-Z]'), (match) => '_${match.group(0)!.toLowerCase()}')
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
         .replaceFirst(RegExp(r'^_'), '');
   }
 
