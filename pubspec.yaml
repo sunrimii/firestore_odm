@@ -1,0 +1,19 @@
+name: firestore_odm_workspace
+description: A monorepo workspace for Firestore ODM packages
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+# This is a workspace root - no dependencies needed
+# Individual packages have their own dependencies
+
+dev_dependencies:
+  very_good_analysis: ^6.0.0
+
+# Workspace configuration
+workspace:
+  - packages/firestore_odm_annotation
+  - packages/firestore_odm
+  - packages/firestore_odm_builder
+  - example
