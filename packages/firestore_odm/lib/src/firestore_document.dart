@@ -290,8 +290,8 @@ class FirestoreDocument<T> {
     }
   }
 
-  /// RxDB-style modify with atomic operations support
-  /// Computes differences and uses atomic operations where possible
+  /// RxDB-style modify without atomic operations
+  /// Only computes differences and updates changed fields
   Future<void> modify(T Function(T docData) modifier) async {
     final oldState = await get();
     if (oldState == null) {
@@ -301,7 +301,7 @@ class FirestoreDocument<T> {
     final newState = modifier(oldState);
     final oldData = collection.toJson(oldState);
     final newData = collection.toJson(newState);
-    final updateData = _diffWithAtomicOperations(oldData, newData);
+    final updateData = _diff(oldData, newData);
 
     if (updateData.isEmpty) return; // No changes
 
