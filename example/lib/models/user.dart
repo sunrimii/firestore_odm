@@ -1,6 +1,7 @@
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'profile.dart';
+import 'story.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';

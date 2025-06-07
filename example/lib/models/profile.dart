@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'story.dart';
 
 part 'profile.freezed.dart';
 part 'profile.g.dart';
@@ -12,6 +13,7 @@ class Profile with _$Profile {
     required List<String> interests,
     @Default(0) int followers,
     DateTime? lastActive,
+    Story? story,
   }) = _Profile;
 
   factory Profile.fromJson(Map<String, dynamic> json) =>
