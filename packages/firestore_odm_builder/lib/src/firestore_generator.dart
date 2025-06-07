@@ -4,20 +4,40 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 /// Code generator for Firestore ODM annotations
-class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
-  static const TypeChecker subcollectionChecker = TypeChecker.fromRuntime(
-    SubcollectionPath,
+class FirestoreGenerator extends Generator {
+  static const TypeChecker collectionPathChecker = TypeChecker.fromUrl(
+    'package:firestore_odm_annotation/firestore_odm_annotation.dart#CollectionPath',
+  );
+
+  static const TypeChecker subcollectionChecker = TypeChecker.fromUrl(
+    'package:firestore_odm_annotation/firestore_odm_annotation.dart#SubcollectionPath',
   );
 
   @override
-  generateForAnnotatedElement(
-    Element element,
-    ConstantReader annotation,
-    BuildStep buildStep,
-  ) {
+  String generate(LibraryReader library, BuildStep buildStep) {
+    final buffer = StringBuffer();
+
+    for (final element in library.allElements) {
+      if (element is ClassElement &&
+          collectionPathChecker.hasAnnotationOfExact(element)) {
+        final annotation = collectionPathChecker.firstAnnotationOfExact(
+          element,
+        );
+        if (annotation == null) continue;
+
+        final result = _generateForElement(element, ConstantReader(annotation));
+        if (result != null) {
+          buffer.writeln(result);
+        }
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  String? _generateForElement(Element element, ConstantReader annotation) {
     if (element is! ClassElement) {
       throw InvalidGenerationSourceError(
         'Generator cannot target `${element.name}`.',
@@ -46,19 +66,18 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
       if (isArray) {
         buffer.writeln('    Object? arrayContains,');
-        buffer.writeln('    Iterable<Object?>? arrayContainsAny,');
+        buffer.writeln('    List<Object?>? arrayContainsAny,');
+        buffer.writeln('    List<Object?>? whereIn,');
+        buffer.writeln('    List<Object?>? whereNotIn,');
       } else {
-        buffer.writeln('    $fieldType? isEqualTo,');
-        buffer.writeln('    $fieldType? isNotEqualTo,');
-        buffer.writeln('    $fieldType? isLessThan,');
-        buffer.writeln('    $fieldType? isLessThanOrEqualTo,');
-        buffer.writeln('    $fieldType? isGreaterThan,');
-        buffer.writeln('    $fieldType? isGreaterThanOrEqualTo,');
-        buffer.writeln('    Iterable<$fieldType>? whereIn,');
-        buffer.writeln('    Iterable<$fieldType>? whereNotIn,');
-        if (fieldType == 'String') {
-          buffer.writeln('    String? startsWith,');
-        }
+        buffer.writeln('    Object? isEqualTo,');
+        buffer.writeln('    Object? isNotEqualTo,');
+        buffer.writeln('    Object? isLessThan,');
+        buffer.writeln('    Object? isLessThanOrEqualTo,');
+        buffer.writeln('    Object? isGreaterThan,');
+        buffer.writeln('    Object? isGreaterThanOrEqualTo,');
+        buffer.writeln('    List<Object?>? whereIn,');
+        buffer.writeln('    List<Object?>? whereNotIn,');
       }
 
       if (isNullable) {
@@ -66,11 +85,29 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       }
 
       buffer.writeln('  }) {');
-      buffer.writeln('    var newQuery = query.where(');
-      buffer.writeln('      $field,');
+      buffer.writeln('    Query<Map<String, dynamic>> newQuery = query;');
+
       if (isArray) {
-        buffer.writeln('      arrayContains: arrayContains,');
-        buffer.writeln('      arrayContainsAny: arrayContainsAny,');
+        buffer.writeln('    if (arrayContains != null) {');
+        buffer.writeln(
+          '      newQuery = newQuery.where($field, arrayContains: arrayContains);',
+        );
+        buffer.writeln('    }');
+        buffer.writeln('    if (arrayContainsAny != null) {');
+        buffer.writeln(
+          '      newQuery = newQuery.where($field, arrayContainsAny: arrayContainsAny);',
+        );
+        buffer.writeln('    }');
+        buffer.writeln('    if (whereIn != null) {');
+        buffer.writeln(
+          '      newQuery = newQuery.where($field, whereIn: whereIn);',
+        );
+        buffer.writeln('    }');
+        buffer.writeln('    if (whereNotIn != null) {');
+        buffer.writeln(
+          '      newQuery = newQuery.where($field, whereNotIn: whereNotIn);',
+        );
+        buffer.writeln('    }');
       } else {
         buffer.writeln('      isEqualTo: isEqualTo,');
         buffer.writeln('      isNotEqualTo: isNotEqualTo,');
@@ -161,61 +198,25 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln(
       'class ${className}Query extends FirestoreQuery<$className> with ${className}QueryMixin {',
     );
-    buffer.writeln('  ${className}Query(super.collection, super.query);');
+    buffer.writeln(
+      '  ${className}Query(this.collection, Query<Map<String, dynamic>> query)',
+    );
+    buffer.writeln('      : super(query, collection.fromJson);');
+
     buffer.writeln('  @override');
-    buffer.writeln(
-      '  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);',
-    );
+    buffer.writeln('  final FirestoreCollection<$className> collection;');
+
+    buffer.writeln('  @override');
+    buffer.writeln('  Query<Map<String, dynamic>> get query => _query;');
+
     buffer.writeln('}'); // Close the query class
-
-    // Generate document class
-    buffer.writeln(
-      'class ${className}Document extends FirestoreDocument<$className> {',
-    );
-    buffer.writeln('  ${className}Document(super.collection, super.id);');
-
-    // Generate subcollections under the document class
-    for (final metadata in element.metadata) {
-      final constantValue = metadata.computeConstantValue();
-      if (subcollectionChecker.isExactlyType(constantValue!.type!)) {
-        final subcollectionType = _getSubcollectionType(constantValue);
-        final subcollectionPath = constantValue
-            .getField('path')!
-            .toStringValue()!;
-        buffer.writeln(
-          '  FirestoreCollection<$subcollectionType> get $subcollectionPath => FirestoreCollection(',
-        );
-        buffer.writeln('    ref: ref.collection(\'$subcollectionPath\'),');
-        buffer.writeln(
-          '    fromJson: (data) => $subcollectionType.fromJson(data),',
-        );
-        buffer.writeln('    toJson: (value) => value.toJson(),');
-        buffer.writeln('  );');
-      }
-    }
-
-    buffer.writeln('}'); // Close the document class
-
-    // Generate extension to add the collection to FirestoreODM
-    buffer.writeln(
-      'extension FirestoreODM${className}Extension on FirestoreODM {',
-    );
-    buffer.writeln(
-      '  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection();',
-    );
-    buffer.writeln('}');
 
     return buffer.toString();
   }
 
-  String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
-
-  String _camelCase(String text) {
-    if (text.isEmpty) {
-      return text;
-    }
-    final words = text.split('_');
-    return words[0] + words.skip(1).map((word) => _capitalize(word)).join();
+  String _capitalize(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1);
   }
 
   String _getSubcollectionType(DartObject constantValue) {

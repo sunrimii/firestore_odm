@@ -6,7 +6,6 @@ environment:
   sdk: '^3.8.1'
   flutter: '>=3.0.0'
 
-resolution: workspace
 
 dependencies:
   flutter:

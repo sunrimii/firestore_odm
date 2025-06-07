@@ -9,7 +9,6 @@ environment:
 resolution: workspace
 
 dependencies:
-  firestore_odm_annotation: ^1.0.0
   build: ^2.4.1
   source_gen: ^1.5.0
   analyzer: ^6.4.1

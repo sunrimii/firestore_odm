@@ -3,6 +3,7 @@ repository: https://github.com/your-org/firestore_odm
 
 packages:
   - packages/**
+  - example
 
 command:
   bootstrap:
