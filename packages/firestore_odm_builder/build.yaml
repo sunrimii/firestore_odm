@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      firestore_odm_builder|firestore_odm_builder:
+        enabled: true
+
+builders:
+  firestore_odm_builder:
+    import: "package:firestore_odm_builder/src/builder.dart"
+    builder_factories: ["firestoreOdmBuilder"]
+    build_extensions: {".dart": [".odm.dart"]}
+    auto_apply: dependents
+    build_to: source

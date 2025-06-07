@@ -1,0 +1,42 @@
+name: firestore_odm
+repository: https://github.com/your-org/firestore_odm
+
+packages:
+  - packages/**
+
+command:
+  bootstrap:
+    hooks:
+      post: melos run get:all
+
+scripts:
+  get:all:
+    run: dart pub get
+    exec:
+      concurrency: 6
+    description: Install dependencies for all packages.
+
+  analyze:
+    run: dart analyze --fatal-infos
+    exec:
+      concurrency: 6
+    description: Run static analysis for all packages.
+
+  format:
+    run: dart format --set-exit-if-changed .
+    exec:
+      concurrency: 6
+    description: Format all packages.
+
+  test:
+    run: dart test
+    exec:
+      concurrency: 6
+      failFast: true
+    description: Run tests for all packages.
+
+  publish:
+    run: dart pub publish --dry-run
+    exec:
+      concurrency: 1
+    description: Publish all packages (dry run).

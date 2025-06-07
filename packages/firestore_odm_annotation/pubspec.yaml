@@ -1,0 +1,16 @@
+name: firestore_odm_annotation
+description: Annotations and runtime classes for Firestore ODM
+version: 1.0.0
+homepage: https://github.com/your-org/firestore_odm
+
+environment:
+  sdk: '^3.8.1'
+
+resolution: workspace
+
+dependencies:
+  cloud_firestore: ^5.4.4
+  meta: ^1.16.0
+
+dev_dependencies:
+  very_good_analysis: ^6.0.0

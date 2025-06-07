@@ -1,0 +1,32 @@
+name: firestore_odm_example
+description: Example usage of Firestore ODM
+version: 1.0.0
+
+environment:
+  sdk: '^3.8.1'
+  flutter: '>=3.0.0'
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firestore_odm_annotation:
+    path: ../packages/firestore_odm_annotation
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  firestore_odm_builder:
+    path: ../packages/firestore_odm_builder
+  build_runner: ^2.4.9
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+  very_good_analysis: ^6.0.0
+
+flutter:
+  uses-material-design: true
