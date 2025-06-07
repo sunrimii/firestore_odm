@@ -1,25 +1,21 @@
-import 'package:meta/meta_meta.dart';
+import 'package:meta/meta.dart';
 
-/// Annotation to mark a parameter as unique
-@Target({TargetKind.parameter})
-class Unique {
-  const Unique();
-}
-
-/// Annotation to specify the Firestore collection path for a model class
-@Target({TargetKind.classType})
+/// Annotation to mark a class as a Firestore collection
+@immutable
 class CollectionPath {
-  /// The Firestore collection path
+  /// The path to the Firestore collection
   final String path;
 
+  /// Creates a [CollectionPath] annotation
   const CollectionPath(this.path);
 }
 
-/// Annotation to specify a subcollection path with its type
-@Target({TargetKind.classType})
-class SubcollectionPath<T> {
-  /// The subcollection path
+/// Annotation to mark a field as a subcollection
+@immutable
+class SubcollectionPath {
+  /// The path to the subcollection
   final String path;
 
+  /// Creates a [SubcollectionPath] annotation
   const SubcollectionPath(this.path);
 }

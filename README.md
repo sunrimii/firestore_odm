@@ -1,55 +1,52 @@
 # Firestore ODM
 
-A powerful Object-Document Mapping (ODM) library for Cloud Firestore in Flutter/Dart applications. This library provides type-safe, reactive access to Firestore with automatic code generation.
+A type-safe Object Document Mapper (ODM) for Cloud Firestore with code generation support.
 
 ## Features
 
-- 🔥 **Type-safe Firestore operations** - Full type safety with compile-time checks
-- 🚀 **Automatic code generation** - Generate collection and document classes from annotations
-- 📱 **Reactive streams** - Real-time updates with automatic subscription management
-- 🔄 **Optimistic updates** - Efficient partial updates with automatic diff computation
-- 🏗️ **Transaction support** - Built-in transaction handling for atomic operations
-- 📦 **Monorepo structure** - Separate packages for annotations and code generation
+- 🔥 **Type-safe queries** - Strong typing for all field operations
+- 🚀 **Code generation** - Automatic generation of collection, query, and document classes
+- 📝 **Simple annotations** - Just add `@CollectionPath('collection_name')` to your models
+- 🎯 **Intuitive API** - Fluent interface for building complex queries
+- 🔍 **Rich query support** - Support for where clauses, ordering, and array operations
+- 📦 **Monorepo structure** - Clean separation of concerns
 
-## Packages
+## Package Structure
 
-This monorepo contains two packages:
+This project consists of three packages:
 
-### `firestore_odm_annotation`
-Runtime annotations and base classes for the ODM. Add this to your app's dependencies.
-
-### `firestore_odm_builder`
-Code generator for creating ODM classes. Add this to your app's dev_dependencies.
+- **`firestore_odm_annotation`** - Pure annotations (no Flutter dependencies)
+- **`firestore_odm`** - Core ODM classes with Flutter/Firestore integration
+- **`firestore_odm_builder`** - Code generator for build_runner
 
 ## Installation
 
-Add the following to your `pubspec.yaml`:
+Add these dependencies to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  firestore_odm_annotation: ^1.0.0
-  cloud_firestore: ^5.4.4
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
+  firestore_odm: ^1.0.0
+  # Your other dependencies...
 
 dev_dependencies:
   firestore_odm_builder: ^1.0.0
   build_runner: ^2.4.9
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
+  # Your other dev dependencies...
 ```
 
 ## Usage
 
-### 1. Define your model with annotations
+### 1. Define Your Model
+
+Create a model class with Freezed and add the `@CollectionPath` annotation:
 
 ```dart
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
-part 'user.odm.dart'; // Generated ODM code
+part 'user.odm.dart'; // Generated ODM file
 
 @freezed
 @CollectionPath('users')
@@ -59,15 +56,15 @@ class User with _$User {
     required String name,
     required String email,
     required int age,
-    @Default([]) List<String> tags,
-    @Default(false) bool isActive,
+    required List<String> tags,
+    required DateTime createdAt,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }
 ```
 
-### 2. Generate code
+### 2. Generate Code
 
 Run the code generator:
 
@@ -75,119 +72,137 @@ Run the code generator:
 dart run build_runner build
 ```
 
-### 3. Use the generated ODM
+This generates a `user.odm.dart` file with type-safe collection, query, and document classes.
+
+### 3. Use the Generated ODM
 
 ```dart
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'models/user.dart';
 
 void main() async {
+  // Initialize Firebase
   await Firebase.initializeApp();
   
-  // Access the generated collection
-  final usersCollection = UserCollection();
+  // Get the ODM instance
+  final odm = FirestoreODM();
+  
+  // Access the users collection
+  final usersCollection = odm.users;
+  
+  // Type-safe queries
+  final adults = await usersCollection
+      .whereAge(isGreaterThanOrEqualTo: 18)
+      .whereName(startsWith: 'John')
+      .orderByCreatedAt(descending: true)
+      .limit(10)
+      .get();
   
   // Create a new user
   final newUser = User(
     id: 'user123',
     name: 'John Doe',
     email: 'john@example.com',
-    age: 30,
+    age: 25,
+    tags: ['developer', 'flutter'],
+    createdAt: DateTime.now(),
   );
   
-  // Save to Firestore
-  await usersCollection.doc('user123').set(newUser);
+  // Add to Firestore
+  await usersCollection.add(newUser);
   
-  // Get a user
-  final user = await usersCollection.doc('user123').get();
-  print('User: ${user?.name}');
+  // Get a specific document
+  final userDoc = usersCollection.doc('user123');
+  final userData = await userDoc.get();
   
-  // Listen to real-time updates
-  usersCollection.doc('user123').changes.listen((user) {
-    print('User updated: ${user?.name}');
-  });
+  // Update a document
+  await userDoc.update(userData.copyWith(age: 26));
   
-  // Update user
-  await usersCollection.doc('user123').update((user) => user.copyWith(
-    age: user.age + 1,
-  ));
-  
-  // Query users
-  final activeUsers = await usersCollection
-      .where('isActive', isEqualTo: true)
-      .get();
-  
-  // Stream query results
-  usersCollection
-      .where('age', isGreaterThan: 18)
-      .snapshots()
-      .listen((users) {
-    print('Adult users: ${users.length}');
-  });
+  // Delete a document
+  await userDoc.delete();
 }
 ```
 
-## Advanced Features
+### 4. Advanced Queries
 
-### Subcollections
+The generated ODM provides type-safe methods for all field types:
 
 ```dart
-@freezed
-@SubcollectionPath('users/{userId}/posts')
-class Post with _$Post {
-  const factory Post({
-    required String id,
-    required String title,
-    required String content,
-    required DateTime createdAt,
-  }) = _Post;
+// String fields
+final users = await usersCollection
+    .whereName(isEqualTo: 'John')
+    .whereEmail(startsWith: 'john@')
+    .get();
 
-  factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
-}
+// Numeric fields
+final youngUsers = await usersCollection
+    .whereAge(isLessThan: 30)
+    .whereAge(isGreaterThan: 18)
+    .get();
+
+// Array fields
+final developers = await usersCollection
+    .whereTags(arrayContains: 'developer')
+    .get();
+
+// Date fields
+final recentUsers = await usersCollection
+    .whereCreatedAt(isGreaterThan: DateTime.now().subtract(Duration(days: 7)))
+    .orderByCreatedAt(descending: true)
+    .get();
+
+// Complex queries
+final complexQuery = await usersCollection
+    .whereName(whereIn: ['John', 'Jane', 'Bob'])
+    .whereAge(isGreaterThanOrEqualTo: 21)
+    .whereTags(arrayContainsAny: ['flutter', 'dart'])
+    .orderByCreatedAt(descending: true)
+    .limit(50)
+    .get();
 ```
 
-### Transactions
+### 5. Real-time Streams
 
 ```dart
-await runFirestoreTransaction(() async {
-  final user = await usersCollection.doc('user123').get();
-  if (user != null) {
-    await usersCollection.doc('user123').update((u) => u.copyWith(
-      age: u.age + 1,
-    ));
+// Listen to collection changes
+usersCollection
+    .whereAge(isGreaterThan: 18)
+    .snapshots()
+    .listen((snapshot) {
+  for (final user in snapshot.docs) {
+    print('User: ${user.data.name}');
+  }
+});
+
+// Listen to document changes
+usersCollection
+    .doc('user123')
+    .snapshots()
+    .listen((doc) {
+  if (doc.exists) {
+    print('User updated: ${doc.data.name}');
   }
 });
 ```
 
-### Custom Queries
+## Generated Classes
 
-```dart
-// Complex queries
-final results = await usersCollection
-    .where('age', isGreaterThan: 18)
-    .where('isActive', isEqualTo: true)
-    .orderBy('name')
-    .limit(10)
-    .get();
+For each model with `@CollectionPath`, the generator creates:
 
-// Real-time queries
-usersCollection
-    .where('tags', arrayContains: 'flutter')
-    .snapshots()
-    .listen((users) {
-  // Handle real-time updates
-});
-```
+- **`UserCollection`** - Collection-level operations (add, query, etc.)
+- **`UserQuery`** - Type-safe query builder with where/orderBy methods
+- **`UserDocument`** - Document-level operations (get, update, delete, etc.)
+- **`UserQueryMixin`** - Shared query methods between collection and query classes
 
-## Architecture
+## Type Safety
 
-The ODM follows a clean architecture pattern:
+The ODM provides complete type safety:
 
-- **Annotations**: Define collection paths and document structure
-- **Generated Code**: Type-safe collection and document classes
-- **Runtime Classes**: Base classes for collections, documents, and queries
-- **Reactive Streams**: Automatic subscription management and real-time updates
+- ✅ **Field types** - `whereAge(isEqualTo: 25)` only accepts `int`
+- ✅ **Array operations** - `whereTags(arrayContains: 'tag')` for List fields
+- ✅ **String operations** - `whereName(startsWith: 'prefix')` for String fields
+- ✅ **Compile-time errors** - Invalid field names or types cause build errors
+- ✅ **IDE support** - Full autocomplete and IntelliSense
 
 ## Development
 
@@ -201,23 +216,25 @@ dart pub global activate melos
 melos bootstrap
 
 # Run tests
-melos run test
-
-# Analyze code
-melos run analyze
+melos test
 
 # Format code
-melos run format
+melos format
+
+# Analyze code
+melos analyze
+
+# Build example
+melos run build:example
 ```
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Run `melos run analyze` and `melos run test`
-6. Submit a pull request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 

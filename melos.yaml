@@ -1,43 +1,31 @@
-name: firestore_odm
+name: firestore_odm_workspace
 repository: https://github.com/your-org/firestore_odm
 
 packages:
-  - packages/**
+  - packages/firestore_odm_annotation
+  - packages/firestore_odm
+  - packages/firestore_odm_builder
   - example
 
 command:
   bootstrap:
-    hooks:
-      post: melos run get:all
+    usePubspecOverrides: true
 
 scripts:
-  get:all:
-    run: dart pub get
-    exec:
-      concurrency: 6
-    description: Install dependencies for all packages.
-
   analyze:
-    run: dart analyze --fatal-infos
-    exec:
-      concurrency: 6
-    description: Run static analysis for all packages.
-
-  format:
-    run: dart format --set-exit-if-changed .
-    exec:
-      concurrency: 6
-    description: Format all packages.
+    run: dart analyze .
+    description: Run static analysis on all packages.
 
   test:
     run: dart test
-    exec:
-      concurrency: 6
-      failFast: true
-    description: Run tests for all packages.
+    description: Run tests in all packages.
 
-  publish:
-    run: dart pub publish --dry-run
-    exec:
-      concurrency: 1
-    description: Publish all packages (dry run).
+  format:
+    run: dart format .
+    description: Format all Dart files.
+
+  build:example:
+    run: dart run build_runner build --delete-conflicting-outputs
+    description: Generate code for the example.
+    packageFilters:
+      scope: example

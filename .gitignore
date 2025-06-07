@@ -1,0 +1,41 @@
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.odm.dart
+*.mocks.dart
+*.gr.dart
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Melos
+.melos_tool/
+
+# Example specific
+example/pubspec_overrides.yaml
+example/.dart_tool/
+example/build/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+
+# Package specific overrides
+packages/*/pubspec_overrides.yaml
+packages/*/.dart_tool/
+packages/*/build/

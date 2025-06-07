@@ -1,4 +1,4 @@
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user.freezed.dart';
