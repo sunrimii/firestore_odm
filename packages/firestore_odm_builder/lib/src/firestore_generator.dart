@@ -1,15 +1,13 @@
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
-  static const TypeChecker subcollectionChecker = TypeChecker.fromRuntime(
-    SubcollectionPath,
-  );
+  const FirestoreGenerator();
 
   @override
   generateForAnnotatedElement(
@@ -19,124 +17,89 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   ) {
     if (element is! ClassElement) {
       throw InvalidGenerationSourceError(
-        'Generator cannot target `${element.name}`.',
-        todo: 'Remove the CollectionPath annotation from `${element.name}`.',
+        'CollectionPath can only be applied to classes.',
+        element: element,
       );
     }
 
     final className = element.name;
     final collectionPath = annotation.read('path').stringValue;
-    final buffer = StringBuffer();
+    final constructor = element.unnamedConstructor;
 
-    // Generate mixin for where and orderBy methods
+    if (constructor == null) {
+      throw InvalidGenerationSourceError(
+        'Class must have an unnamed constructor.',
+        element: element,
+      );
+    }
+
+    final buffer = StringBuffer();
+    final subcollectionChecker = TypeChecker.fromRuntime(SubcollectionPath);
+
+    // Generate mixin for query methods
     buffer.writeln('mixin ${className}QueryMixin {');
     buffer.writeln('  FirestoreCollection<$className> get collection;');
     buffer.writeln('  Query<Map<String, dynamic>> get query;');
 
-    // Helper method for where clauses
-    void writeWhereClause(
-      String field,
-      String fieldName,
-      String fieldType,
-      bool isArray,
-      bool isNullable,
-    ) {
+    // Generate where and orderBy methods for each field
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      final fieldType = param.type.getDisplayString(withNullability: false);
+
+      if (fieldName == 'id') continue; // Skip id field for queries
+
+      // Generate where methods
+      buffer.writeln('');
       buffer.writeln('  ${className}Query where${_capitalize(fieldName)}({');
+      buffer.writeln('    $fieldType? isEqualTo,');
+      buffer.writeln('    $fieldType? isNotEqualTo,');
+      buffer.writeln('    $fieldType? isLessThan,');
+      buffer.writeln('    $fieldType? isLessThanOrEqualTo,');
+      buffer.writeln('    $fieldType? isGreaterThan,');
+      buffer.writeln('    $fieldType? isGreaterThanOrEqualTo,');
+      buffer.writeln('    Iterable<$fieldType>? whereIn,');
+      buffer.writeln('    Iterable<$fieldType>? whereNotIn,');
 
-      if (isArray) {
-        buffer.writeln('    Object? arrayContains,');
-        buffer.writeln('    Iterable<Object?>? arrayContainsAny,');
-      } else {
-        buffer.writeln('    $fieldType? isEqualTo,');
-        buffer.writeln('    $fieldType? isNotEqualTo,');
-        buffer.writeln('    $fieldType? isLessThan,');
-        buffer.writeln('    $fieldType? isLessThanOrEqualTo,');
-        buffer.writeln('    $fieldType? isGreaterThan,');
-        buffer.writeln('    $fieldType? isGreaterThanOrEqualTo,');
-        buffer.writeln('    Iterable<$fieldType>? whereIn,');
-        buffer.writeln('    Iterable<$fieldType>? whereNotIn,');
-        if (fieldType == 'String') {
-          buffer.writeln('    String? startsWith,');
-        }
-      }
-
-      if (isNullable) {
+      // Add isNull parameter for nullable types
+      if (param.type.nullabilitySuffix != NullabilitySuffix.none) {
         buffer.writeln('    bool? isNull,');
       }
 
       buffer.writeln('  }) {');
       buffer.writeln('    var newQuery = query.where(');
-      buffer.writeln('      $field,');
-      if (isArray) {
-        buffer.writeln('      arrayContains: arrayContains,');
-        buffer.writeln('      arrayContainsAny: arrayContainsAny,');
-      } else {
-        buffer.writeln('      isEqualTo: isEqualTo,');
-        buffer.writeln('      isNotEqualTo: isNotEqualTo,');
-        buffer.writeln('      isLessThan: isLessThan,');
-        buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
-        buffer.writeln('      isGreaterThan: isGreaterThan,');
-        buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
-        buffer.writeln('      whereIn: whereIn,');
-        buffer.writeln('      whereNotIn: whereNotIn,');
-      }
-      if (isNullable) {
+      buffer.writeln('      \'$fieldName\',');
+      buffer.writeln('      isEqualTo: isEqualTo,');
+      buffer.writeln('      isNotEqualTo: isNotEqualTo,');
+      buffer.writeln('      isLessThan: isLessThan,');
+      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
+      buffer.writeln('      isGreaterThan: isGreaterThan,');
+      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
+      buffer.writeln('      whereIn: whereIn,');
+      buffer.writeln('      whereNotIn: whereNotIn,');
+
+      if (param.type.nullabilitySuffix != NullabilitySuffix.none) {
         buffer.writeln('      isNull: isNull,');
       }
+
       buffer.writeln('    );');
       buffer.writeln('    return ${className}Query(collection, newQuery);');
       buffer.writeln('  }');
-    }
 
-    // Generate whereDocumentId method using the helper method
-    writeWhereClause(
-      'FieldPath.documentId',
-      'DocumentId',
-      'String',
-      false,
-      true,
-    );
-
-    // Generate orderByDocumentId method
-    buffer.writeln(
-      '  ${className}Query orderByDocumentId({bool descending = false}) {',
-    );
-    buffer.writeln(
-      '    return ${className}Query(collection, query.orderBy(FieldPath.documentId, descending: descending));',
-    );
-    buffer.writeln('  }');
-
-    final constructor = element.unnamedConstructor;
-    if (constructor != null) {
-      for (final param in constructor.parameters) {
-        final fieldName = param.name;
-        final fieldType = param.type.getDisplayString(withNullability: false);
-        final isNullable =
-            param.type.nullabilitySuffix != NullabilitySuffix.none;
-        final isArray = param.type.isDartCoreList;
-
-        writeWhereClause(
-          '\'$fieldName\'',
-          fieldName,
-          fieldType,
-          isArray,
-          isNullable,
-        );
-
-        // Generate orderBy methods
-        buffer.writeln(
-          '  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {',
-        );
-        buffer.writeln(
-          '    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));',
-        );
-        buffer.writeln('  }');
-      }
+      // Generate orderBy methods
+      buffer.writeln('');
+      buffer.writeln(
+        '  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {',
+      );
+      buffer.writeln(
+        '    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));',
+      );
+      buffer.writeln('  }');
     }
 
     buffer.writeln('}'); // Close the mixin
 
     // Generate collection class
+    buffer.writeln('');
     buffer.writeln(
       'class ${className}Collection extends FirestoreCollection<$className> with ${className}QueryMixin {',
     );
@@ -157,6 +120,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('}'); // Close the collection class
 
     // Generate query class
+    buffer.writeln('');
     buffer.writeln(
       'class ${className}Query extends FirestoreQuery<$className> with ${className}QueryMixin {',
     );
@@ -168,6 +132,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('}'); // Close the query class
 
     // Generate document class
+    buffer.writeln('');
     buffer.writeln(
       'class ${className}Document extends FirestoreDocument<$className> {',
     );
@@ -197,6 +162,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('}'); // Close the document class
 
     // Generate extension to add the collection to FirestoreODM
+    buffer.writeln('');
     buffer.writeln(
       'extension FirestoreODM${className}Extension on FirestoreODM {',
     );
@@ -210,44 +176,115 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln(
       'extension ${className}DocumentExtension on FirestoreDocument<$className> {',
     );
+    
+    // Generate main update method
     buffer.writeln('  /// Strong-typed update method similar to copyWith');
     buffer.writeln('  Future<void> update({');
-
-    if (constructor != null) {
-      for (final param in constructor.parameters) {
-        final fieldName = param.name;
-        final fieldType = param.type.getDisplayString(withNullability: false);
-
-        // Skip the id field as it shouldn't be updated
-        if (fieldName == 'id') continue;
-
-        buffer.writeln('    $fieldType? $fieldName,');
-      }
+    
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      final fieldType = param.type.getDisplayString(withNullability: false);
+      
+      // Skip the id field as it shouldn't be updated
+      if (fieldName == 'id') continue;
+      
+      buffer.writeln('    $fieldType? $fieldName,');
     }
-
+    
     buffer.writeln('  }) async {');
     buffer.writeln('    final updates = <String, dynamic>{};');
-
-    if (constructor != null) {
-      for (final param in constructor.parameters) {
-        final fieldName = param.name;
-
-        // Skip the id field
-        if (fieldName == 'id') continue;
-
-        buffer.writeln(
-          '    if ($fieldName != null) updates[\'$fieldName\'] = $fieldName;',
-        );
-      }
+    
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      
+      // Skip the id field
+      if (fieldName == 'id') continue;
+      
+      buffer.writeln(
+        '    if ($fieldName != null) updates[\'$fieldName\'] = $fieldName;',
+      );
     }
-
+    
     buffer.writeln('    if (updates.isNotEmpty) {');
     buffer.writeln('      await updateFields(updates);');
     buffer.writeln('    }');
     buffer.writeln('  }');
+    
+    // Generate nested update methods for custom classes
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      final fieldType = param.type;
+      
+      // Skip the id field
+      if (fieldName == 'id') continue;
+      
+      // Check if this is a custom class (not built-in types)
+      if (_isBuiltInType(fieldType)) {
+        continue;
+      }
+      
+      // Generate nested update method for custom classes
+      final nestedClassName = fieldType.getDisplayString(withNullability: false);
+      
+      // Try to get the constructor of the nested class
+      if (fieldType.element is ClassElement) {
+        final nestedClass = fieldType.element as ClassElement;
+        final nestedConstructor = nestedClass.unnamedConstructor;
+        
+        if (nestedConstructor != null) {
+          // Collect valid parameters first
+          final validParams = <ParameterElement>[];
+          for (final nestedParam in nestedConstructor.parameters) {
+            if (nestedParam.name != 'id') {
+              validParams.add(nestedParam);
+            }
+          }
+          
+          // Only generate method if there are valid parameters
+          if (validParams.isNotEmpty) {
+            buffer.writeln('');
+            buffer.writeln('  /// Update nested $fieldName fields');
+            buffer.writeln('  Future<void> update${_capitalize(fieldName)}({');
+            
+            // Add parameters for each field in the nested class
+            for (final nestedParam in validParams) {
+              final nestedFieldName = nestedParam.name;
+              final nestedFieldType = nestedParam.type.getDisplayString(withNullability: false);
+              buffer.writeln('    $nestedFieldType? $nestedFieldName,');
+            }
+            
+            buffer.writeln('  }) async {');
+            buffer.writeln('    final updates = <String, dynamic>{};');
+            
+            // Generate field updates with dot notation
+            for (final nestedParam in validParams) {
+              final nestedFieldName = nestedParam.name;
+              buffer.writeln(
+                '    if ($nestedFieldName != null) updates[\'$fieldName.$nestedFieldName\'] = $nestedFieldName;',
+              );
+            }
+            
+            buffer.writeln('    if (updates.isNotEmpty) {');
+            buffer.writeln('      await updateFields(updates);');
+            buffer.writeln('    }');
+            buffer.writeln('  }');
+          }
+        }
+      }
+    }
+    
     buffer.writeln('}');
 
     return buffer.toString();
+  }
+
+  bool _isBuiltInType(DartType type) {
+    final typeString = type.toString();
+    return type.isDartCoreType || 
+           typeString.startsWith('List<') ||
+           typeString.startsWith('Map<') ||
+           typeString == 'DateTime' ||
+           typeString == 'DateTime?';
   }
 
   String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
