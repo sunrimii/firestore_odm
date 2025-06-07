@@ -5,7 +5,7 @@ import '../lib/models/user.dart';
 import '../lib/models/profile.dart';
 
 void main() {
-  group('Modify Method Atomic Operations Test', () {
+  group('Modify Method Non-Atomic Operations Test', () {
     late FakeFirebaseFirestore fakeFirestore;
     late FirestoreODM odm;
 
@@ -15,7 +15,7 @@ void main() {
     });
 
     test(
-      'modify() should use atomic operations for numeric increments',
+      'modify() should use direct field updates (non-atomic) for numeric changes',
       () async {
         // Arrange
         final profile = Profile(
@@ -40,7 +40,7 @@ void main() {
 
         await odm.users.doc('modify_user').set(user);
 
-        // Act - Use modify() method with atomic increment
+        // Act - Use modify() method with direct field updates (non-atomic)
         await odm.users.doc('modify_user').modify((currentUser) {
           return currentUser.copyWith(
             profile: currentUser.profile.copyWith(
@@ -58,7 +58,7 @@ void main() {
     );
 
     test(
-      'modify() should use atomic operations for array operations',
+      'modify() should use direct field updates (non-atomic) for array operations',
       () async {
         // Arrange
         final profile = Profile(
@@ -83,7 +83,7 @@ void main() {
 
         await odm.users.doc('array_modify_user').set(user);
 
-        // Act - Use modify() method with array union
+        // Act - Use modify() method with direct array replacement (non-atomic)
         await odm.users.doc('array_modify_user').modify((currentUser) {
           return currentUser.copyWith(
             profile: currentUser.profile.copyWith(
@@ -102,7 +102,7 @@ void main() {
       },
     );
 
-    test('modify() should handle mixed atomic operations', () async {
+    test('modify() should handle mixed field updates (non-atomic)', () async {
       // Arrange
       final profile = Profile(
         bio: 'Mixed modify test',
@@ -126,7 +126,7 @@ void main() {
 
       await odm.users.doc('mixed_modify_user').set(user);
 
-      // Act - Mixed operations: increment, array add, boolean change, string change
+      // Act - Mixed operations: direct field updates (non-atomic)
       await odm.users.doc('mixed_modify_user').modify((currentUser) {
         return currentUser.copyWith(
           age: currentUser.age + 1, // Increment
@@ -157,7 +157,7 @@ void main() {
     });
 
     test(
-      'modify() vs incrementalModify() should produce same results',
+      'modify() vs incrementalModify() should show different update approaches',
       () async {
         // Arrange - Create two identical users
         final profile1 = Profile(
@@ -203,7 +203,7 @@ void main() {
         await odm.users.doc('compare_user1').set(user1);
         await odm.users.doc('compare_user2').set(user2);
 
-        // Act - Apply same changes using both methods
+        // Act - Apply same changes using both methods (different approaches)
         final updateFunction = (User currentUser) {
           return currentUser.copyWith(
             rating: currentUser.rating + 0.5,
@@ -217,7 +217,7 @@ void main() {
         await odm.users.doc('compare_user1').modify(updateFunction);
         await odm.users.doc('compare_user2').incrementalModify(updateFunction);
 
-        // Assert - Both should have same results
+        // Assert - Both should have same final results (despite different update methods)
         final updatedUser1 = await odm.users.doc('compare_user1').get();
         final updatedUser2 = await odm.users.doc('compare_user2').get();
 
@@ -233,45 +233,48 @@ void main() {
       },
     );
 
-    test('modify() should handle array removal operations', () async {
-      // Arrange
-      final profile = Profile(
-        bio: 'Array removal test',
-        avatar: 'test.jpg',
-        socialLinks: {},
-        interests: ['coding', 'reading', 'gaming', 'music'],
-        followers: 200,
-      );
-
-      final user = User(
-        id: 'removal_user',
-        name: 'Removal User',
-        email: 'removal@example.com',
-        age: 25,
-        profile: profile,
-        rating: 4.2,
-        isActive: true,
-        isPremium: true,
-        createdAt: DateTime.now(),
-      );
-
-      await odm.users.doc('removal_user').set(user);
-
-      // Act - Remove specific interests using modify()
-      await odm.users.doc('removal_user').modify((currentUser) {
-        final newInterests = currentUser.profile.interests
-            .where((interest) => !['gaming', 'music'].contains(interest))
-            .toList();
-        return currentUser.copyWith(
-          profile: currentUser.profile.copyWith(interests: newInterests),
+    test(
+      'modify() should handle array removal operations (non-atomic)',
+      () async {
+        // Arrange
+        final profile = Profile(
+          bio: 'Array removal test',
+          avatar: 'test.jpg',
+          socialLinks: {},
+          interests: ['coding', 'reading', 'gaming', 'music'],
+          followers: 200,
         );
-      });
 
-      // Assert
-      final updatedUser = await odm.users.doc('removal_user').get();
-      expect(updatedUser!.profile.interests, equals(['coding', 'reading']));
-      expect(updatedUser.profile.interests, isNot(contains('gaming')));
-      expect(updatedUser.profile.interests, isNot(contains('music')));
-    });
+        final user = User(
+          id: 'removal_user',
+          name: 'Removal User',
+          email: 'removal@example.com',
+          age: 25,
+          profile: profile,
+          rating: 4.2,
+          isActive: true,
+          isPremium: true,
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users.doc('removal_user').set(user);
+
+        // Act - Remove specific interests using modify()
+        await odm.users.doc('removal_user').modify((currentUser) {
+          final newInterests = currentUser.profile.interests
+              .where((interest) => !['gaming', 'music'].contains(interest))
+              .toList();
+          return currentUser.copyWith(
+            profile: currentUser.profile.copyWith(interests: newInterests),
+          );
+        });
+
+        // Assert
+        final updatedUser = await odm.users.doc('removal_user').get();
+        expect(updatedUser!.profile.interests, equals(['coding', 'reading']));
+        expect(updatedUser.profile.interests, isNot(contains('gaming')));
+        expect(updatedUser.profile.interests, isNot(contains('music')));
+      },
+    );
   });
 }
