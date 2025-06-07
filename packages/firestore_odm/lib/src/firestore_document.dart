@@ -263,13 +263,15 @@ class FirestoreDocument<T> {
     final transaction = Zone.current[#transaction] as Transaction?;
     if (transaction != null) {
       log('incrementalModify with transaction: $updateData');
-      transaction.update(ref, updateData);
+      final serializedUpdateData = _deepSerialize(updateData);
+      transaction.update(ref, serializedUpdateData);
       Zone.current[#onSuccess](() {
         _cache = newData;
       });
     } else {
       log('incrementalModify without transaction: $updateData');
-      await ref.update(updateData);
+      final serializedUpdateData = _deepSerialize(updateData);
+      await ref.update(serializedUpdateData);
       _cache = newData;
     }
   }
