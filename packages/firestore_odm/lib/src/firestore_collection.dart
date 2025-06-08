@@ -13,7 +13,7 @@ class FirestoreCollection<T> extends FirestoreQuery<T> {
   /// Creates a new FirestoreCollection instance
   FirestoreCollection({
     required this.ref,
-    required T Function(Map<String, dynamic> data) fromJson,
+    required T Function(Map<String, dynamic> data, [String? documentId]) fromJson,
     required Map<String, dynamic> Function(T value) toJson,
   }) : super(ref, fromJson, toJson);
 
@@ -32,7 +32,7 @@ class FirestoreCollection<T> extends FirestoreQuery<T> {
 /// Internal implementation of FirestoreQuery for queries derived from collections
 class _FirestoreQueryImpl<T> extends FirestoreQuery<T> {
   _FirestoreQueryImpl(Query<Map<String, dynamic>> query,
-      T Function(Map<String, dynamic> data) fromJson,
+      T Function(Map<String, dynamic> data, [String? documentId]) fromJson,
       Map<String, dynamic> Function(T value) toJson)
       : super(query, fromJson, toJson);
 

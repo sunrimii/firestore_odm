@@ -8,7 +8,8 @@ A powerful Object-Document Mapping (ODM) library for Cloud Firestore in Dart and
 - 🎯 **Advanced nested filtering** - Fluent API for complex queries with deep nested field support
 - 🔄 **Atomic updates** - Safe field-level updates with conflict resolution
 - 📝 **Code generation** - Automatic generation of collections, queries, and filters
-- 🎨 **Fluent API** - Intuitive, chainable method calls
+- 🆔 **Document ID field support** - Virtual document ID fields with automatic sync and `FieldPath.documentId` support
+-  **Fluent API** - Intuitive, chainable method calls
 - 🧪 **Test-friendly** - Works seamlessly with `fake_cloud_firestore`
 
 ## Architecture
@@ -53,7 +54,7 @@ part 'user.odm.dart';
 @CollectionPath('users')
 class User with _$User {
   const factory User({
-    required String id,
+    @DocumentIdField() required String id,  // Virtual field synced with document ID
     required String name,
     required String email,
     required int age,
@@ -124,6 +125,106 @@ void main() async {
   await odm.users.doc(user.id).set(user);
 }
 ```
+
+## Document ID Field Support
+
+The `@DocumentIdField()` annotation allows you to mark a field as a virtual document ID field. This field is automatically synchronized with the Firestore document ID and provides seamless integration with queries and updates.
+
+### Key Features
+
+- **Virtual Field**: The annotated field doesn't exist in the document content - it's synchronized with the Firestore document ID
+- **Automatic Sync**: When reading documents, the field is automatically populated with the document ID
+- **Query Support**: Filter and order by document ID using `FieldPath.documentId` internally
+- **Upsert Operations**: Use the field value as the document ID for upsert operations
+
+### Basic Usage
+
+```dart
+@freezed
+@CollectionPath('posts')
+class Post with _$Post {
+  const factory Post({
+    @DocumentIdField() required String id,  // Virtual field synced with document ID
+    required String title,
+    required String content,
+    required String authorId,
+    required List<String> tags,
+    required Map<String, dynamic> metadata,
+    required DateTime createdAt,
+  }) = _Post;
+
+  factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
+}
+```
+
+### Upsert Operations
+
+```dart
+final post = Post(
+  id: 'my_custom_id',
+  title: 'My Post',
+  content: 'Post content...',
+  authorId: 'author123',
+  tags: ['flutter', 'dart'],
+  metadata: {'category': 'tech'},
+  createdAt: DateTime.now(),
+);
+
+// Upserts to document with ID 'my_custom_id'
+await odm.posts.upsert(post);
+
+// The id field is NOT stored in the document content
+// It's automatically populated when reading back
+final retrievedPost = await odm.posts.doc('my_custom_id').get();
+print(retrievedPost?.id); // 'my_custom_id'
+```
+
+### Filtering by Document ID
+
+```dart
+// Filter by specific document ID
+final specificPost = await odm.posts
+    .where(($) => $.id(isEqualTo: 'my_custom_id'))
+    .get();
+
+// Filter by multiple document IDs
+final multiplePosts = await odm.posts
+    .where(($) => $.id(whereIn: ['id1', 'id2', 'id3']))
+    .get();
+
+// Range queries on document IDs
+final postsInRange = await odm.posts
+    .where(($) => $.id(isGreaterThan: 'post_a', isLessThan: 'post_z'))
+    .get();
+```
+
+### Ordering by Document ID
+
+```dart
+// Order by document ID ascending
+final orderedPosts = await odm.posts
+    .orderBy(($) => $.id())
+    .get();
+
+// Order by document ID descending
+final reversedPosts = await odm.posts
+    .orderBy(($) => $.id(descending: true))
+    .get();
+
+// Combine with other ordering
+final complexOrder = await odm.posts
+    .orderBy(($) => $.createdAt(descending: true))
+    .orderBy(($) => $.id())
+    .get();
+```
+
+### Important Notes
+
+- Only **one field per model** can be annotated with `@DocumentIdField()`
+- The field **must be of type `String`**
+- The field value is **never stored in the document content**
+- Empty or null ID values will throw an `ArgumentError` during upsert
+- The field is automatically populated when documents are retrieved
 
 ## Advanced Filtering with New Where API
 

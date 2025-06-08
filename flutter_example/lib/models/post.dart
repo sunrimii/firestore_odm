@@ -9,7 +9,7 @@ part 'post.odm.dart';
 @CollectionPath('posts')
 class Post with _$Post {
   const factory Post({
-    required String id,
+    @DocumentIdField() required String id,
     required String title,
     required String content,
     required String authorId,

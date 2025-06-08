@@ -37,9 +37,26 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
     final buffer = StringBuffer();
     final subcollectionChecker = TypeChecker.fromRuntime(SubcollectionPath);
+    final documentIdChecker = TypeChecker.fromRuntime(DocumentIdField);
+
+    // Find document ID field
+    String? documentIdField;
+    for (final param in constructor.parameters) {
+      // Check parameter metadata directly
+      for (final metadata in param.metadata) {
+        final metadataValue = metadata.computeConstantValue();
+        if (metadataValue != null &&
+            metadataValue.type != null &&
+            documentIdChecker.isExactlyType(metadataValue.type!)) {
+          documentIdField = param.name;
+          break;
+        }
+      }
+      if (documentIdField != null) break;
+    }
 
     // Generate Collection class
-    _generateCollectionClass(buffer, className, collectionPath, constructor);
+    _generateCollectionClass(buffer, className, collectionPath, constructor, documentIdField);
     buffer.writeln('');
 
     // Generate Document class
@@ -51,13 +68,13 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('');
 
     // Generate FilterBuilder class
-    _generateFilterBuilderClass(buffer, className, constructor, className);
+    _generateFilterBuilderClass(buffer, className, constructor, className, documentIdField);
     
     // Generate FilterBuilder classes for all nested types
     _generateNestedFilterBuilderClasses(buffer, constructor, <String>{}, className);
 
     // Generate OrderByBuilder class
-    _generateOrderByBuilderClass(buffer, className, constructor, className);
+    _generateOrderByBuilderClass(buffer, className, constructor, className, documentIdField);
     
     // Generate OrderByBuilder classes for all nested types
     _generateNestedOrderByBuilderClasses(buffer, constructor, <String>{}, className);
@@ -99,7 +116,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
           final nestedConstructor = element.unnamedConstructor;
           if (nestedConstructor != null) {
             buffer.writeln('');
-            _generateFilterBuilderClass(buffer, typeName, nestedConstructor, rootFilterType);
+            _generateFilterBuilderClass(buffer, typeName, nestedConstructor, rootFilterType, null);
             
             // Recursively generate for deeply nested types
             _generateNestedFilterBuilderClasses(buffer, nestedConstructor, processedTypes, rootFilterType);
@@ -109,15 +126,54 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     }
   }
 
-  void _generateCollectionClass(StringBuffer buffer, String className, String collectionPath, ConstructorElement constructor) {
+  void _generateCollectionClass(StringBuffer buffer, String className, String collectionPath, ConstructorElement constructor, String? documentIdField) {
     buffer.writeln('/// Generated Collection for $className');
     buffer.writeln('class ${className}Collection extends FirestoreCollection<$className> {');
     buffer.writeln('  ${className}Collection(FirebaseFirestore firestore) : super(');
     buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
-    buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
-    buffer.writeln('    toJson: (value) => value.toJson(),');
+    
+    if (documentIdField != null) {
+      buffer.writeln('    fromJson: (data, [documentId]) {');
+      buffer.writeln('      // Add document ID to data for ${documentIdField} field');
+      buffer.writeln('      final dataWithId = Map<String, dynamic>.from(data);');
+      buffer.writeln('      if (documentId != null) dataWithId[\'$documentIdField\'] = documentId;');
+      buffer.writeln('      return $className.fromJson(dataWithId);');
+      buffer.writeln('    },');
+      buffer.writeln('    toJson: (value) {');
+      buffer.writeln('      // Remove document ID field from JSON as it\'s virtual');
+      buffer.writeln('      final json = value.toJson();');
+      buffer.writeln('      json.remove(\'$documentIdField\');');
+      buffer.writeln('      return json;');
+      buffer.writeln('    },');
+    } else {
+      buffer.writeln('    fromJson: (data, [documentId]) {');
+      buffer.writeln('      // Add document ID to data for backward compatibility');
+      buffer.writeln('      final dataWithId = Map<String, dynamic>.from(data);');
+      buffer.writeln('      if (documentId != null) dataWithId[\'id\'] = documentId;');
+      buffer.writeln('      return $className.fromJson(dataWithId);');
+      buffer.writeln('    },');
+      buffer.writeln('    toJson: (value) => value.toJson(),');
+    }
+    
     buffer.writeln('  );');
     buffer.writeln('');
+    
+    // Add upsert method if there's a document ID field
+    if (documentIdField != null) {
+      buffer.writeln('  /// Upsert a document using the $documentIdField field as document ID');
+      buffer.writeln('  Future<void> upsert($className value) async {');
+      buffer.writeln('    final json = value.toJson();');
+      buffer.writeln('    final documentId = json[\'$documentIdField\'] as String?;');
+      buffer.writeln('    if (documentId == null || documentId.isEmpty) {');
+      buffer.writeln('      throw ArgumentError(\'Document ID field \\\'$documentIdField\\\' must not be null or empty for upsert operation\');');
+      buffer.writeln('    }');
+      buffer.writeln('    // Remove document ID from data since it\'s the document ID');
+      buffer.writeln('    json.remove(\'$documentIdField\');');
+      buffer.writeln('    await ref.doc(documentId).set(json, SetOptions(merge: true));');
+      buffer.writeln('  }');
+      buffer.writeln('');
+    }
+    
     buffer.writeln('  /// Filter using a Filter Builder');
     buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
     buffer.writeln('    final builder = ${className}FilterBuilder();');
@@ -197,18 +253,48 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('}');
   }
 
-  void _generateFilterBuilderClass(StringBuffer buffer, String className, ConstructorElement constructor, String rootFilterType) {
+  void _generateFilterBuilderClass(StringBuffer buffer, String className, ConstructorElement constructor, String rootFilterType, String? documentIdField) {
     buffer.writeln('/// Generated FilterBuilder for $className');
     buffer.writeln('class ${className}FilterBuilder extends RootFilterBuilder<${rootFilterType}Filter> {');
     buffer.writeln('  ${className}FilterBuilder({super.prefix = \'\'});');
     buffer.writeln('');
+
+    // Add document ID filter if there's a document ID field
+    if (documentIdField != null) {
+      buffer.writeln('  /// Filter by document ID (${documentIdField} field)');
+      buffer.writeln('  ${rootFilterType}Filter $documentIdField({');
+      buffer.writeln('    String? isEqualTo,');
+      buffer.writeln('    String? isNotEqualTo,');
+      buffer.writeln('    String? isLessThan,');
+      buffer.writeln('    String? isLessThanOrEqualTo,');
+      buffer.writeln('    String? isGreaterThan,');
+      buffer.writeln('    String? isGreaterThanOrEqualTo,');
+      buffer.writeln('    List<String>? whereIn,');
+      buffer.writeln('    List<String>? whereNotIn,');
+      buffer.writeln('    bool? isNull,');
+      buffer.writeln('  }) {');
+      buffer.writeln('    return stringFilter(FieldPath.documentId,');
+      buffer.writeln('      isEqualTo: isEqualTo,');
+      buffer.writeln('      isNotEqualTo: isNotEqualTo,');
+      buffer.writeln('      isLessThan: isLessThan,');
+      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
+      buffer.writeln('      isGreaterThan: isGreaterThan,');
+      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
+      buffer.writeln('      whereIn: whereIn,');
+      buffer.writeln('      whereNotIn: whereNotIn,');
+      buffer.writeln('      isNull: isNull,');
+      buffer.writeln('    );');
+      buffer.writeln('  }');
+      buffer.writeln('');
+    }
 
     // Generate field methods and nested object getters
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
       
-      if (fieldName == 'id') continue;
+      // Skip document ID field as it's handled separately above
+      if (fieldName == documentIdField) continue;
       
       if (_isPrimitiveType(fieldType)) {
         _generateFieldMethod(buffer, className, fieldName, fieldType, rootFilterType);
@@ -300,6 +386,51 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     if (_isListType(fieldType)) {
       buffer.writeln('      arrayContains: arrayContains,');
       buffer.writeln('      arrayContainsAny: arrayContainsAny,');
+    }
+    
+    buffer.writeln('      whereIn: whereIn,');
+    buffer.writeln('      whereNotIn: whereNotIn,');
+    buffer.writeln('      isNull: isNull,');
+    buffer.writeln('    );');
+    buffer.writeln('  }');
+    buffer.writeln('');
+  }
+
+  void _generateDocumentIdFieldMethod(StringBuffer buffer, String className, String fieldName, DartType fieldType, String rootFilterType) {
+    final typeString = fieldType.getDisplayString(withNullability: false);
+    
+    buffer.writeln('  /// Filter by document ID ($fieldName field)');
+    buffer.writeln('  ${rootFilterType}Filter $fieldName({');
+    
+    // Basic operators
+    buffer.writeln('    $typeString? isEqualTo,');
+    buffer.writeln('    $typeString? isNotEqualTo,');
+    
+    // Comparison operators for comparable types
+    if (_isComparableType(fieldType)) {
+      buffer.writeln('    $typeString? isLessThan,');
+      buffer.writeln('    $typeString? isLessThanOrEqualTo,');
+      buffer.writeln('    $typeString? isGreaterThan,');
+      buffer.writeln('    $typeString? isGreaterThanOrEqualTo,');
+    }
+    
+    // In operators
+    buffer.writeln('    List<$typeString>? whereIn,');
+    buffer.writeln('    List<$typeString>? whereNotIn,');
+    buffer.writeln('    bool? isNull,');
+    
+    buffer.writeln('  }) {');
+    
+    // Use special documentId filter method
+    buffer.writeln('    return documentIdFilter(');
+    buffer.writeln('      isEqualTo: isEqualTo,');
+    buffer.writeln('      isNotEqualTo: isNotEqualTo,');
+    
+    if (_isComparableType(fieldType)) {
+      buffer.writeln('      isLessThan: isLessThan,');
+      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
+      buffer.writeln('      isGreaterThan: isGreaterThan,');
+      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
     }
     
     buffer.writeln('      whereIn: whereIn,');
@@ -512,18 +643,27 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     String className,
     ConstructorElement constructor,
     String rootOrderByType,
+    String? documentIdField,
   ) {
     buffer.writeln('/// Generated OrderByBuilder for $className');
     buffer.writeln('class ${className}OrderByBuilder extends OrderByBuilder {');
     buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
     buffer.writeln('');
 
+    // Add document ID order method if there's a document ID field
+    if (documentIdField != null) {
+      buffer.writeln('  /// Order by document ID (${documentIdField} field)');
+      buffer.writeln('  OrderByField $documentIdField({bool descending = false}) => orderByField(FieldPath.documentId, descending: descending);');
+      buffer.writeln('');
+    }
+
     // Generate field methods
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
       
-      if (fieldName == 'id') continue;
+      // Skip document ID field as it's handled separately above
+      if (fieldName == documentIdField) continue;
       
       if (_isPrimitiveType(fieldType) || _isComparableType(fieldType)) {
         _generateOrderByFieldMethod(buffer, className, fieldName);
@@ -583,7 +723,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          _generateOrderByBuilderClass(buffer, nestedClassName, nestedConstructor, rootOrderByType);
+          _generateOrderByBuilderClass(buffer, nestedClassName, nestedConstructor, rootOrderByType, null);
 
           // Recursively generate builders for nested classes
           _generateNestedOrderByBuilderClasses(

@@ -12,7 +12,7 @@ abstract class FirestoreQuery<T> {
   Query<Map<String, dynamic>> get underlyingQuery => query;
 
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
+  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
 
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
@@ -35,8 +35,8 @@ abstract class FirestoreQuery<T> {
     final snapshot = await query.get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
-      data['id'] = doc.id; // Add document ID to the data
-      return fromJson(data);
+      // Pass both data and document ID to fromJson
+      return fromJson(data, doc.id);
     }).toList();
   }
 

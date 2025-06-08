@@ -28,7 +28,7 @@ class FirestoreFilter {
   final FilterType type;
   
   // For field filters
-  final String? field;
+  final Object? field;
   final FilterOperator? operator;
   final dynamic value;
   
@@ -48,7 +48,7 @@ class FirestoreFilter {
 
   /// Create a field filter
   const FirestoreFilter.field({
-    required String field,
+    required Object field,
     required FilterOperator operator,
     required dynamic value,
   }) : this._(
@@ -85,7 +85,7 @@ class FirestoreFilter {
 
 /// Represents an order by field with direction
 class OrderByField {
-  final String field;
+  final dynamic field;
   final bool descending;
   
   const OrderByField(this.field, {this.descending = false});
@@ -246,19 +246,35 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
 
   /// Create string field filter
   T stringFilter(
-    String fieldName, {
+    dynamic fieldName, {
     String? isEqualTo,
     String? isNotEqualTo,
+    String? isLessThan,
+    String? isLessThanOrEqualTo,
+    String? isGreaterThan,
+    String? isGreaterThanOrEqualTo,
     List<String>? whereIn,
     List<String>? whereNotIn,
     bool? isNull,
   }) {
-    final fieldPath = getFieldPath(fieldName);
+    final fieldPath = fieldName is String ? getFieldPath(fieldName) : fieldName;
     if (isEqualTo != null) {
       return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
       return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+    }
+    if (isLessThan != null) {
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
+    }
+    if (isLessThanOrEqualTo != null) {
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
+    }
+    if (isGreaterThan != null) {
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
     }
     if (whereIn != null) {
       return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
@@ -816,8 +832,11 @@ class LogicalFilterFactory {
 /// Extension for OrderBy operations
 extension OrderByBuilderExtensions on OrderByBuilder {
   /// Generate OrderBy field method
-  OrderByField orderByField(String fieldName, {bool descending = false}) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+  OrderByField orderByField(dynamic fieldName, {bool descending = false}) {
+    // Handle FieldPath.documentId directly, or create prefixed field path for string fields
+    final fieldPath = fieldName is String
+        ? (prefix.isEmpty ? fieldName : '$prefix.$fieldName')
+        : fieldName;
     return OrderByField(fieldPath, descending: descending);
   }
 }

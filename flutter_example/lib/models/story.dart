@@ -14,16 +14,6 @@ class Story with _$Story {
   }) = _Story;
 
   factory Story.fromJson(Map<String, dynamic> json) => _$StoryFromJson(json);
-
-  @override
-  Map<String, dynamic> toJson() {
-    final json = _$$StoryImplToJson(this as _$StoryImpl);
-    // Ensure nested objects are properly serialized
-    if (json['place'] is Place) {
-      json['place'] = (json['place'] as Place).toJson();
-    }
-    return json;
-  }
 }
 
 @freezed
@@ -36,16 +26,6 @@ class Place with _$Place {
   }) = _Place;
 
   factory Place.fromJson(Map<String, dynamic> json) => _$PlaceFromJson(json);
-
-  @override
-  Map<String, dynamic> toJson() {
-    final json = _$$PlaceImplToJson(this as _$PlaceImpl);
-    // Ensure nested objects are properly serialized
-    if (json['coordinates'] is Coordinates) {
-      json['coordinates'] = (json['coordinates'] as Coordinates).toJson();
-    }
-    return json;
-  }
 }
 
 @freezed
@@ -58,8 +38,4 @@ class Coordinates with _$Coordinates {
 
   factory Coordinates.fromJson(Map<String, dynamic> json) =>
       _$CoordinatesFromJson(json);
-
-  @override
-  Map<String, dynamic> toJson() =>
-      _$$CoordinatesImplToJson(this as _$CoordinatesImpl);
 }
