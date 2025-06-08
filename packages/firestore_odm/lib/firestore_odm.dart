@@ -9,6 +9,7 @@ export 'src/firestore_document.dart';
 export 'src/firestore_odm.dart';
 export 'src/firestore_query.dart';
 export 'src/filter_builder.dart';
+export 'src/data_processor.dart';
 
 // Re-export annotations for convenience
 export 'package:firestore_odm_annotation/firestore_odm_annotation.dart';

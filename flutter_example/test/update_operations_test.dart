@@ -245,10 +245,10 @@ void main() {
         final userDoc = odm.users.doc('test_user');
         await userDoc.set(initialUser);
 
-        // Act - Use object merge syntax
+        // Act - Use strongly-typed named parameters
         await userDoc.update((as) => [
-          as({'name': 'Kyle', 'isPremium': true}),
-          as.profile({'bio': 'Good developer', 'followers': 200}),
+          as(name: 'Kyle', isPremium: true),
+          as.profile(bio: 'Good developer', followers: 200),
         ]);
 
         // Assert
@@ -295,8 +295,8 @@ void main() {
           as.rating.increment(0.1),
           as.tags.add('popular'),
           as.profile.lastActive(DateTime.now()),
-          as({'name': 'Kyle'}), // This will override the earlier name change
-          as.profile({'bio': 'Good'}), // This will override the earlier bio change
+          as(name: 'Kyle'), // This will override the earlier name change
+          as.profile(bio: 'Good'), // This will override the earlier bio change
         ]);
 
         // Assert
@@ -569,11 +569,11 @@ void main() {
 
         // Act - Test deep nested array-style updates
         await userDoc.update((update) => [
-          update.profile.story({
-            'name': 'Updated SF Adventure',
-            'content': 'Even more amazing day in SF with array-style updates!',
-            'tags': ['travel', 'technology', 'firestore-odm'],
-          }),
+          update.profile.story(
+            name: 'Updated SF Adventure',
+            content: 'Even more amazing day in SF with array-style updates!',
+            tags: ['travel', 'technology', 'firestore-odm'],
+          ),
         ]);
 
         // Assert
@@ -634,11 +634,11 @@ void main() {
 
         // Act - Test 5-level deep array-style update
         await userDoc.update((update) => [
-          update.profile.story.place.coordinates({
-            'latitude': 40.7128, // New York
-            'longitude': -74.0060,
-            'altitude': 20.0,
-          }),
+          update.profile.story.place.coordinates(
+            latitude: 40.7128, // New York
+            longitude: -74.0060,
+            altitude: 20.0,
+          ),
         ]);
 
         // Assert
@@ -684,7 +684,7 @@ void main() {
         final futures = [
           userDoc.update((update) => [update.name('Updated 1')]),
           userDoc.update((update) => [update.name('Updated 2')]),
-          userDoc.update((update) => [update.profile({'bio': 'Updated bio'})]),
+          userDoc.update((update) => [update.profile(bio: 'Updated bio')]),
         ];
 
         await Future.wait(futures);

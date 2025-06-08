@@ -26,7 +26,7 @@ class SubcollectionPath {
 /// Annotation to mark a field as the document ID
 /// This field will be synchronized with the Firestore document ID
 /// but will not be included in the document content.
-@Target({TargetKind.field})
+@Target({TargetKind.field, TargetKind.parameter})
 @immutable
 class DocumentIdField {
   /// Creates a [DocumentIdField] annotation

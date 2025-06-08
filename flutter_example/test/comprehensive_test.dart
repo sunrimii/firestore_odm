@@ -834,7 +834,7 @@ void main() {
         await odm.users.doc('lifecycle_user').update(($) => [
           $.profile.bio('Flutter enthusiast and mobile developer'),
           $.profile.avatar('custom_avatar.jpg'),
-          $.profile({'socialLinks': {'github': 'flutter_dev'}}),
+          $.profile(socialLinks: {'github': 'flutter_dev'}),
           $.profile.interests.add('flutter'),
           $.profile.interests.add('mobile-development'),
           $.tags.add('developer'),

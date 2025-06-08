@@ -240,14 +240,14 @@ class FirestoreDocument<T> {
         result[key] = value.map((item) {
           if (item is Map<String, dynamic>) {
             return _deepSerialize(item);
-          } else if (item.runtimeType.toString().contains('Impl')) {
+          } else if (_isFreezedObject(item)) {
             // This is a Freezed object, serialize it
             return _deepSerialize(
                 (item as dynamic).toJson() as Map<String, dynamic>);
           }
           return item;
         }).toList();
-      } else if (value.runtimeType.toString().contains('Impl')) {
+      } else if (_isFreezedObject(value)) {
         // This is a Freezed object, serialize it
         result[key] =
             _deepSerialize((value as dynamic).toJson() as Map<String, dynamic>);
@@ -257,6 +257,16 @@ class FirestoreDocument<T> {
     }
 
     return result;
+  }
+
+  /// Check if an object is a Freezed-generated object
+  bool _isFreezedObject(dynamic obj) {
+    if (obj == null) return false;
+    final typeName = obj.runtimeType.toString();
+    // Check for Freezed patterns: ends with 'Impl' or contains '$'
+    return typeName.contains('Impl') ||
+           typeName.contains('\$') ||
+           (obj is Object && obj.toString().startsWith('_\$'));
   }
 
   /// RxDB-style incremental modify with automatic atomic operations
