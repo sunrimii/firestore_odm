@@ -1,13 +1,20 @@
 import 'dart:async';
 
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
-import 'package:analyzer/dart/constant/value.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
+import 'utils/type_analyzer.dart';
+import 'generators/collection_generator.dart';
+import 'generators/document_generator.dart';
+import 'generators/query_generator.dart';
+import 'generators/filter_generator.dart';
+import 'generators/order_by_generator.dart';
+import 'generators/update_generator.dart';
+import 'generators/odm_extension_generator.dart';
+
+/// Refactored Firestore code generator using modular architecture
 class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   const FirestoreGenerator();
 
@@ -35,1057 +42,111 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       );
     }
 
+    // Find document ID field using the TypeAnalyzer utility
+    final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
+
     final buffer = StringBuffer();
-    final subcollectionChecker = TypeChecker.fromRuntime(SubcollectionPath);
-    final documentIdChecker = TypeChecker.fromRuntime(DocumentIdField);
 
-    // Find document ID field
-    String? documentIdField;
-    for (final param in constructor.parameters) {
-      // Check parameter metadata directly
-      for (final metadata in param.metadata) {
-        final metadataValue = metadata.computeConstantValue();
-        if (metadataValue != null &&
-            metadataValue.type != null &&
-            documentIdChecker.isExactlyType(metadataValue.type!)) {
-          documentIdField = param.name;
-          break;
-        }
-      }
-      if (documentIdField != null) break;
-    }
-
-    // Generate Collection class
-    _generateCollectionClass(buffer, className, collectionPath, constructor, documentIdField);
-    buffer.writeln('');
-
-    // Generate Document class
-    _generateDocumentClass(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate Query class
-    _generateQueryClass(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate FilterBuilder class
-    _generateFilterBuilderClass(buffer, className, constructor, className, documentIdField);
-    
-    // Generate FilterBuilder classes for all nested types
-    _generateNestedFilterBuilderClasses(buffer, constructor, <String>{}, className);
-
-    // Generate OrderByBuilder class
-    _generateOrderByBuilderClass(buffer, className, constructor, className, documentIdField);
-    
-    // Generate OrderByBuilder classes for all nested types
-    _generateNestedOrderByBuilderClasses(buffer, constructor, <String>{}, className, documentIdField);
-
-    // Generate base update classes first
-    _generateBaseUpdateClasses(buffer);
-
-    // Generate UpdateBuilder class and all nested types
-    _generateUpdateBuilderClass(buffer, className, constructor, className, documentIdField);
-    _generateNestedUpdateBuilderClasses(buffer, constructor, <String>{className}, className);
-    
-    // Generate nested updater classes
-    _generateAllNestedUpdaterClasses(buffer, constructor, <String>{className});
-
-    // Generate Filter class
-    _generateFilterClass(buffer, className);
-    buffer.writeln('');
-
-    // Generate Query Extension (for new where API)
-    _generateQueryExtension(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate extension to add the collection to FirestoreODM
-    _generateODMExtension(buffer, className, collectionPath);
+    // Generate all components using the modular generators
+    _generateAllComponents(buffer, className, collectionPath, constructor, documentIdField);
 
     return buffer.toString();
   }
 
-  void _generateNestedFilterBuilderClasses(StringBuffer buffer, ConstructorElement constructor, Set<String> processedTypes, String rootFilterType) {
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
-      
-      if (_isCustomClass(fieldType)) {
-        final element = fieldType.element;
-        if (element is ClassElement) {
-          final typeName = element.name;
-          
-          // Avoid processing the same type multiple times
-          if (processedTypes.contains(typeName)) continue;
-          processedTypes.add(typeName);
-          
-          final nestedConstructor = element.unnamedConstructor;
-          if (nestedConstructor != null) {
-            buffer.writeln('');
-            _generateFilterBuilderClass(buffer, typeName, nestedConstructor, rootFilterType, null);
-            
-            // Recursively generate for deeply nested types
-            _generateNestedFilterBuilderClasses(buffer, nestedConstructor, processedTypes, rootFilterType);
-          }
-        }
-      }
-    }
-  }
-
-  void _generateCollectionClass(StringBuffer buffer, String className, String collectionPath, ConstructorElement constructor, String? documentIdField) {
-    buffer.writeln('/// Generated Collection for $className');
-    buffer.writeln('class ${className}Collection extends FirestoreCollection<$className> {');
-    buffer.writeln('  ${className}Collection(FirebaseFirestore firestore) : super(');
-    buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
-    
-    buffer.writeln('    fromJson: (data, [documentId]) {');
-    buffer.writeln('      final processedData = FirestoreDataProcessor.processFirestoreData(');
-    buffer.writeln('        data,');
-    buffer.writeln('        documentIdField: ${documentIdField != null ? '\'$documentIdField\'' : 'null'},');
-    buffer.writeln('        documentId: documentId,');
-    buffer.writeln('      );');
-    buffer.writeln('      return $className.fromJson(processedData);');
-    buffer.writeln('    },');
-    buffer.writeln('    toJson: (value) {');
-    buffer.writeln('      final json = value.toJson();');
-    buffer.writeln('      final serialized = FirestoreDataProcessor.serializeForFirestore(json);');
-    buffer.writeln('      return DocumentIdHandler.removeDocumentIdField(serialized, ${documentIdField != null ? '\'$documentIdField\'' : 'null'});');
-    buffer.writeln('    },');
-    
-    buffer.writeln('  );');
-    buffer.writeln('');
-    
-    // Add upsert method if there's a document ID field
-    if (documentIdField != null) {
-      buffer.writeln('  /// Upsert a document using the $documentIdField field as document ID');
-      buffer.writeln('  Future<void> upsert($className value) async {');
-      buffer.writeln('    final json = toJson(value);');
-      buffer.writeln('    final documentId = DocumentIdHandler.extractDocumentId(value.toJson(), \'$documentIdField\');');
-      buffer.writeln('    DocumentIdHandler.validateDocumentId(documentId, \'$documentIdField\');');
-      buffer.writeln('    await ref.doc(documentId!).set(json, SetOptions(merge: true));');
-      buffer.writeln('  }');
-      buffer.writeln('');
-    }
-    
-    buffer.writeln('  /// Filter using a Filter Builder');
-    buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
-    buffer.writeln('    final builder = ${className}FilterBuilder();');
-    buffer.writeln('    final builtFilter = filterBuilder(builder);');
-    buffer.writeln('    final newQuery = applyFilterToQuery(ref, builtFilter);');
-    buffer.writeln('    return ${className}Query(this, newQuery);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-    
-    // Generate new orderBy method using OrderByBuilder
-    buffer.writeln('  /// Order using an OrderBy Builder');
-    buffer.writeln('  ${className}Query orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
-    buffer.writeln('    final builder = ${className}OrderByBuilder();');
-    buffer.writeln('    final orderField = orderBuilder(builder);');
-    buffer.writeln('    return ${className}Query(this, ref.orderBy(orderField.field, descending: orderField.descending));');
-    buffer.writeln('  }');
-
-    buffer.writeln('}');
-  }
-
-  void _generateDocumentClass(StringBuffer buffer, String className, ConstructorElement constructor) {
-    buffer.writeln('/// Generated extension for $className Document');
-    buffer.writeln('extension ${className}DocumentExtension on FirestoreDocument<$className> {');
-    
-    // Array-style update method (primary API)
-    buffer.writeln('  /// Update using array-style update operations');
-    buffer.writeln('  Future<void> update(List<UpdateOperation> Function(${className}UpdateBuilder update) updateBuilder) async {');
-    buffer.writeln('    final builder = ${className}UpdateBuilder();');
-    buffer.writeln('    final operations = updateBuilder(builder);');
-    buffer.writeln('    final updateMap = UpdateBuilder.operationsToMap(operations);');
-    buffer.writeln('    if (updateMap.isNotEmpty) {');
-    buffer.writeln('      await updateFields(updateMap);');
-    buffer.writeln('    }');
-    buffer.writeln('  }');
-    buffer.writeln('');
-    
-    buffer.writeln('}');
-  }
-
-  void _generateQueryClass(StringBuffer buffer, String className, ConstructorElement constructor) {
-    buffer.writeln('/// Generated Query for $className');
-    buffer.writeln('class ${className}Query extends FirestoreQuery<$className> {');
-    buffer.writeln('  final FirestoreCollection<$className> collection;');
-    buffer.writeln('');
-    buffer.writeln('  ${className}Query(this.collection, Query<Map<String, dynamic>> query) : super(query, collection.fromJson, collection.toJson);');
-    buffer.writeln('');
-    buffer.writeln('  @override');
-    buffer.writeln('  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);');
-    buffer.writeln('');
-    
-    // Generate new orderBy method using OrderByBuilder
-    buffer.writeln('  /// Order using an OrderBy Builder');
-    buffer.writeln('  ${className}Query orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
-    buffer.writeln('    final builder = ${className}OrderByBuilder();');
-    buffer.writeln('    final orderField = orderBuilder(builder);');
-    buffer.writeln('    return ${className}Query(collection, query.orderBy(orderField.field, descending: orderField.descending));');
-    buffer.writeln('  }');
-
-
-    buffer.writeln('}');
-  }
-
-  void _generateQueryExtension(StringBuffer buffer, String className, ConstructorElement constructor) {
-    buffer.writeln('/// Extension methods for $className queries');
-    buffer.writeln('extension ${className}QueryExtension on ${className}Query {');
-    
-    // Generate where method
-    buffer.writeln('  /// Filter using a Filter Builder');
-    buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
-    buffer.writeln('    final builder = ${className}FilterBuilder();');
-    buffer.writeln('    final builtFilter = filterBuilder(builder);');
-    buffer.writeln('    final newQuery = applyFilterToQuery(underlyingQuery, builtFilter);');
-    buffer.writeln('    return ${className}Query(collection, newQuery);');
-    buffer.writeln('  }');
-    
-    buffer.writeln('}');
-  }
-
-  void _generateFilterBuilderClass(StringBuffer buffer, String className, ConstructorElement constructor, String rootFilterType, String? documentIdField) {
-    buffer.writeln('/// Generated FilterBuilder for $className');
-    buffer.writeln('class ${className}FilterBuilder extends RootFilterBuilder<${rootFilterType}Filter> {');
-    buffer.writeln('  ${className}FilterBuilder({super.prefix = \'\'});');
-    buffer.writeln('');
-
-    // Add document ID filter if there's a document ID field
-    if (documentIdField != null) {
-      buffer.writeln('  /// Filter by document ID (${documentIdField} field)');
-      buffer.writeln('  ${rootFilterType}Filter $documentIdField({');
-      buffer.writeln('    String? isEqualTo,');
-      buffer.writeln('    String? isNotEqualTo,');
-      buffer.writeln('    String? isLessThan,');
-      buffer.writeln('    String? isLessThanOrEqualTo,');
-      buffer.writeln('    String? isGreaterThan,');
-      buffer.writeln('    String? isGreaterThanOrEqualTo,');
-      buffer.writeln('    List<String>? whereIn,');
-      buffer.writeln('    List<String>? whereNotIn,');
-      buffer.writeln('    bool? isNull,');
-      buffer.writeln('  }) {');
-      buffer.writeln('    return stringFilter(FieldPath.documentId,');
-      buffer.writeln('      isEqualTo: isEqualTo,');
-      buffer.writeln('      isNotEqualTo: isNotEqualTo,');
-      buffer.writeln('      isLessThan: isLessThan,');
-      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
-      buffer.writeln('      isGreaterThan: isGreaterThan,');
-      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
-      buffer.writeln('      whereIn: whereIn,');
-      buffer.writeln('      whereNotIn: whereNotIn,');
-      buffer.writeln('      isNull: isNull,');
-      buffer.writeln('    );');
-      buffer.writeln('  }');
-      buffer.writeln('');
-    }
-
-    // Generate field methods and nested object getters
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      final fieldType = param.type;
-      
-      // Skip document ID field as it's handled separately above
-      if (fieldName == documentIdField) continue;
-      
-      if (_isPrimitiveType(fieldType)) {
-        _generateFieldMethod(buffer, className, fieldName, fieldType, rootFilterType);
-      } else if (_isCustomClass(fieldType)) {
-        // Generate nested object getter for custom classes
-        _generateNestedFilterGetter(buffer, fieldName, fieldType, rootFilterType);
-      }
-    }
-
-    // Implement abstract method from RootFilterBuilder
-    buffer.writeln('  @override');
-    buffer.writeln('  ${rootFilterType}Filter wrapFilter(FirestoreFilter coreFilter) {');
-    buffer.writeln('    return ${rootFilterType}Filter._fromCore(coreFilter);');
-    buffer.writeln('  }');
-
-    buffer.writeln('}');
-  }
-
-  void _generateNestedFilterGetter(StringBuffer buffer, String fieldName, DartType fieldType, String rootFilterType) {
-    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-    
-    buffer.writeln('  /// Access nested $fieldName filters');
-    buffer.writeln('  ${nestedTypeName}FilterBuilder get $fieldName {');
-    buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    return ${nestedTypeName}FilterBuilder(prefix: nestedPrefix);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-  void _generateFieldMethod(StringBuffer buffer, String className, String fieldName, DartType fieldType, String rootFilterType) {
-    final typeString = fieldType.getDisplayString(withNullability: false);
-    
-    buffer.writeln('  /// Filter by $fieldName');
-    buffer.writeln('  ${rootFilterType}Filter $fieldName({');
-    
-    // Basic operators
-    buffer.writeln('    $typeString? isEqualTo,');
-    buffer.writeln('    $typeString? isNotEqualTo,');
-    
-    // Comparison operators for comparable types
-    if (_isComparableType(fieldType)) {
-      buffer.writeln('    $typeString? isLessThan,');
-      buffer.writeln('    $typeString? isLessThanOrEqualTo,');
-      buffer.writeln('    $typeString? isGreaterThan,');
-      buffer.writeln('    $typeString? isGreaterThanOrEqualTo,');
-    }
-    
-    // Array operators
-    if (_isListType(fieldType)) {
-      buffer.writeln('    dynamic arrayContains,');
-      buffer.writeln('    List<dynamic>? arrayContainsAny,');
-    }
-    
-    // In operators
-    buffer.writeln('    List<$typeString>? whereIn,');
-    buffer.writeln('    List<$typeString>? whereNotIn,');
-    buffer.writeln('    bool? isNull,');
-    
-    buffer.writeln('  }) {');
-    
-    // Use base filter methods based on type
-    if (typeString == 'String') {
-      buffer.writeln('    return stringFilter(\'$fieldName\',');
-    } else if (_isListType(fieldType)) {
-      final elementType = _getListElementType(fieldType);
-      buffer.writeln('    return arrayFilter<$elementType>(\'$fieldName\',');
-    } else if (typeString == 'bool') {
-      buffer.writeln('    return boolFilter(\'$fieldName\',');
-    } else if (typeString == 'DateTime') {
-      buffer.writeln('    return dateTimeFilter(\'$fieldName\',');
-    } else if (_isNumericType(fieldType)) {
-      buffer.writeln('    return numericFilter<$typeString>(\'$fieldName\',');
-    } else {
-      // Fallback for other types, treat as string-like
-      buffer.writeln('    return stringFilter(\'$fieldName\',');
-    }
-    
-    // Parameters
-    buffer.writeln('      isEqualTo: isEqualTo,');
-    buffer.writeln('      isNotEqualTo: isNotEqualTo,');
-    
-    if (_isComparableType(fieldType)) {
-      buffer.writeln('      isLessThan: isLessThan,');
-      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
-      buffer.writeln('      isGreaterThan: isGreaterThan,');
-      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
-    }
-    
-    if (_isListType(fieldType)) {
-      buffer.writeln('      arrayContains: arrayContains,');
-      buffer.writeln('      arrayContainsAny: arrayContainsAny,');
-    }
-    
-    buffer.writeln('      whereIn: whereIn,');
-    buffer.writeln('      whereNotIn: whereNotIn,');
-    buffer.writeln('      isNull: isNull,');
-    buffer.writeln('    );');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-  void _generateDocumentIdFieldMethod(StringBuffer buffer, String className, String fieldName, DartType fieldType, String rootFilterType) {
-    final typeString = fieldType.getDisplayString(withNullability: false);
-    
-    buffer.writeln('  /// Filter by document ID ($fieldName field)');
-    buffer.writeln('  ${rootFilterType}Filter $fieldName({');
-    
-    // Basic operators
-    buffer.writeln('    $typeString? isEqualTo,');
-    buffer.writeln('    $typeString? isNotEqualTo,');
-    
-    // Comparison operators for comparable types
-    if (_isComparableType(fieldType)) {
-      buffer.writeln('    $typeString? isLessThan,');
-      buffer.writeln('    $typeString? isLessThanOrEqualTo,');
-      buffer.writeln('    $typeString? isGreaterThan,');
-      buffer.writeln('    $typeString? isGreaterThanOrEqualTo,');
-    }
-    
-    // In operators
-    buffer.writeln('    List<$typeString>? whereIn,');
-    buffer.writeln('    List<$typeString>? whereNotIn,');
-    buffer.writeln('    bool? isNull,');
-    
-    buffer.writeln('  }) {');
-    
-    // Use special documentId filter method
-    buffer.writeln('    return documentIdFilter(');
-    buffer.writeln('      isEqualTo: isEqualTo,');
-    buffer.writeln('      isNotEqualTo: isNotEqualTo,');
-    
-    if (_isComparableType(fieldType)) {
-      buffer.writeln('      isLessThan: isLessThan,');
-      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
-      buffer.writeln('      isGreaterThan: isGreaterThan,');
-      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
-    }
-    
-    buffer.writeln('      whereIn: whereIn,');
-    buffer.writeln('      whereNotIn: whereNotIn,');
-    buffer.writeln('      isNull: isNull,');
-    buffer.writeln('    );');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-
-  void _generateFilterClass(StringBuffer buffer, String className) {
-    buffer.writeln('/// Generated Filter for $className');
-    buffer.writeln('class ${className}Filter extends FirestoreFilter {');
-    buffer.writeln('  const ${className}Filter() : super();');
-    buffer.writeln('');
-    buffer.writeln('  /// Create from core FirestoreFilter - handles both field and logical filters');
-    buffer.writeln('  ${className}Filter._fromCore(super.filter) : super.fromFilter();');
-    buffer.writeln('}');
-  }
-
-  void _generateODMExtension(StringBuffer buffer, String className, String collectionPath) {
-    buffer.writeln('/// Extension to add the collection to FirestoreODM');
-    buffer.writeln('extension FirestoreODM${className}Extension on FirestoreODM {');
-    buffer.writeln('  ${className}Collection get ${_camelCase(collectionPath)} => ${className}Collection(firestore);');
-    buffer.writeln('}');
-  }
-
-  void _generateUpdateBuilder(
+  void _generateAllComponents(
     StringBuffer buffer,
     String className,
+    String collectionPath,
     ConstructorElement constructor,
     String? documentIdField,
   ) {
-    buffer.writeln('');
-    buffer.writeln('class ${className}UpdateBuilder {');
-    buffer.writeln('  final FirestoreDocument _document;');
-    buffer.writeln('  final String _path;');
-    buffer.writeln('');
-    buffer.writeln('  ${className}UpdateBuilder(this._document, this._path);');
-    buffer.writeln('');
-
-    // Collect valid parameters first
-    final validParams = <ParameterElement>[];
-    for (final param in constructor.parameters) {
-      if (param.name != documentIdField) {
-        validParams.add(param);
-      }
-    }
-
-    // Only generate call method if there are valid parameters
-    if (validParams.isNotEmpty) {
-      // Generate call method for direct field updates
-      buffer.writeln('  /// Update fields at current level');
-      buffer.writeln('  Future<void> call({');
-
-      // Generate parameters
-      for (final param in validParams) {
-        final fieldName = param.name;
-        final fieldType = param.type.getDisplayString(withNullability: false);
-        buffer.writeln('    $fieldType? $fieldName,');
-      }
-
-      buffer.writeln('  }) async {');
-      buffer.writeln('    final updates = <String, dynamic>{};');
-
-      for (final param in validParams) {
-        final fieldName = param.name;
-
-        buffer.writeln('    if ($fieldName != null) {');
-        buffer.writeln(
-          '      final fieldPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';',
-        );
-        buffer.writeln('      updates[fieldPath] = $fieldName;');
-        buffer.writeln('    }');
-      }
-
-      buffer.writeln('    if (updates.isNotEmpty) {');
-      buffer.writeln('      await _document.updateFields(updates);');
-      buffer.writeln('    }');
-      buffer.writeln('  }');
-    }
-
-    // Generate nested builders for custom classes only
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      final fieldType = param.type;
-
-      // Skip the document ID field and built-in types
-      if (fieldName == documentIdField || _isBuiltInType(fieldType)) {
-        continue;
-      }
-
-      // Only generate for custom classes that have constructors
-      if (fieldType.element is ClassElement) {
-        final nestedClass = fieldType.element as ClassElement;
-        final nestedConstructor = nestedClass.unnamedConstructor;
-
-        if (nestedConstructor != null) {
-          final nestedClassName = fieldType.getDisplayString(
-            withNullability: false,
-          );
-
-          buffer.writeln('');
-          buffer.writeln('  /// Access nested $fieldName builder');
-          buffer.writeln('  ${nestedClassName}UpdateBuilder get $fieldName {');
-          buffer.writeln(
-            '    final newPath = _path.isEmpty ? \'$fieldName\' : \'\$_path.$fieldName\';',
-          );
-          buffer.writeln(
-            '    return ${nestedClassName}UpdateBuilder(_document, newPath);',
-          );
-          buffer.writeln('  }');
-        }
-      }
-    }
-
-    buffer.writeln('}');
-  }
-
-  void _generateNestedUpdateBuilders(
-    StringBuffer buffer,
-    ConstructorElement constructor,
-    Set<String> processedTypes,
-    String? documentIdField,
-  ) {
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
-
-      // Skip the document ID field and built-in types
-      if (param.name == documentIdField || _isBuiltInType(fieldType)) {
-        continue;
-      }
-
-      final nestedClassName = fieldType.getDisplayString(
-        withNullability: false,
-      );
-
-      // Avoid generating duplicate builders
-      if (processedTypes.contains(nestedClassName)) {
-        continue;
-      }
-      processedTypes.add(nestedClassName);
-
-      // Try to get the constructor of the nested class
-      if (fieldType.element is ClassElement) {
-        final nestedClass = fieldType.element as ClassElement;
-        final nestedConstructor = nestedClass.unnamedConstructor;
-
-        if (nestedConstructor != null) {
-          _generateUpdateBuilder(buffer, nestedClassName, nestedConstructor, null);
-
-          // Recursively generate builders for nested classes
-          _generateNestedUpdateBuilders(
-            buffer,
-            nestedConstructor,
-            processedTypes,
-            null,
-          );
-        }
-      }
-    }
-  }
-
-  bool _isPrimitiveType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return [
-      'String', 'int', 'double', 'bool', 'DateTime', 'Timestamp',
-      'List<String>', 'List<int>', 'List<double>', 'List<bool>',
-    ].contains(typeName);
-  }
-
-  bool _isCustomClass(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    // Check if it's not a primitive type and not a collection type
-    return !_isPrimitiveType(type) &&
-           !_isListType(type) &&
-           !typeName.startsWith('Map<') &&
-           !typeName.startsWith('Set<');
-  }
-
-  bool _isComparableType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return ['int', 'double', 'DateTime', 'Timestamp'].contains(typeName);
-  }
-
-  bool _isListType(DartType type) {
-    return type.getDisplayString(withNullability: false).startsWith('List<');
-  }
-
-  bool _isBuiltInType(DartType type) {
-    final typeString = type.getDisplayString(withNullability: false);
-    return type.isDartCoreType ||
-        typeString.startsWith('List<') ||
-        typeString.startsWith('Map<') ||
-        typeString == 'DateTime' ||
-        typeString == 'double' ||
-        typeString == 'int' ||
-        typeString == 'bool' ||
-        typeString == 'String';
-  }
-
-
-  String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
-
-  String _camelCase(String text) {
-    if (text.isEmpty) return text;
-    final words = text.split('_');
-    return words[0] + words.skip(1).map((word) => _capitalize(word)).join();
-  }
-
-  void _generateOrderByBuilderClass(
-    StringBuffer buffer,
-    String className,
-    ConstructorElement constructor,
-    String rootOrderByType,
-    String? documentIdField,
-  ) {
-    buffer.writeln('/// Generated OrderByBuilder for $className');
-    buffer.writeln('class ${className}OrderByBuilder extends OrderByBuilder {');
-    buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
+    // Generate Collection class
+    CollectionGenerator.generateCollectionClass(
+      buffer,
+      className,
+      collectionPath,
+      constructor,
+      documentIdField,
+    );
     buffer.writeln('');
 
-    // Add document ID order method if there's a document ID field
-    if (documentIdField != null) {
-      buffer.writeln('  /// Order by document ID (${documentIdField} field)');
-      buffer.writeln('  OrderByField $documentIdField({bool descending = false}) => orderByField(FieldPath.documentId, descending: descending);');
-      buffer.writeln('');
-    }
-
-    // Generate field methods
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      final fieldType = param.type;
-      
-      // Skip document ID field as it's handled separately above
-      if (fieldName == documentIdField) continue;
-      
-      if (_isPrimitiveType(fieldType) || _isComparableType(fieldType)) {
-        _generateOrderByFieldMethod(buffer, className, fieldName);
-      } else if (_isCustomClass(fieldType)) {
-        // Generate nested object getter for custom classes
-        _generateOrderByNestedGetter(buffer, fieldName, fieldType);
-      }
-    }
-
-    buffer.writeln('}');
-    buffer.writeln('');
-  }
-
-  void _generateOrderByFieldMethod(StringBuffer buffer, String className, String fieldName) {
-    buffer.writeln('  /// Order by $fieldName');
-    buffer.writeln('  OrderByField $fieldName({bool descending = false}) => orderByField(\'$fieldName\', descending: descending);');
-    buffer.writeln('');
-  }
-
-  void _generateOrderByNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
-    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-    buffer.writeln('  /// Access nested $fieldName for ordering');
-    buffer.writeln('  ${nestedTypeName}OrderByBuilder get $fieldName {');
-    buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    return ${nestedTypeName}OrderByBuilder(prefix: nestedPrefix);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-  void _generateNestedOrderByBuilderClasses(
-    StringBuffer buffer,
-    ConstructorElement constructor,
-    Set<String> processedTypes,
-    String rootOrderByType,
-    String? documentIdField,
-  ) {
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
-
-      // Skip the document ID field and built-in types
-      if (param.name == documentIdField || _isBuiltInType(fieldType)) {
-        continue;
-      }
-
-      final nestedClassName = fieldType.getDisplayString(
-        withNullability: false,
-      );
-
-      // Avoid generating duplicate builders
-      if (processedTypes.contains(nestedClassName)) {
-        continue;
-      }
-      processedTypes.add(nestedClassName);
-
-      // Try to get the constructor of the nested class
-      if (fieldType.element is ClassElement) {
-        final nestedClass = fieldType.element as ClassElement;
-        final nestedConstructor = nestedClass.unnamedConstructor;
-
-        if (nestedConstructor != null) {
-          _generateOrderByBuilderClass(buffer, nestedClassName, nestedConstructor, rootOrderByType, null);
-
-          // Recursively generate builders for nested classes
-          _generateNestedOrderByBuilderClasses(
-            buffer,
-            nestedConstructor,
-            processedTypes,
-            rootOrderByType,
-            null,
-          );
-        }
-      }
-    }
-  }
-
-  void _generateUpdateBuilderClass(
-    StringBuffer buffer,
-    String className,
-    ConstructorElement constructor,
-    String rootUpdateType,
-    String? documentIdField,
-  ) {
-    buffer.writeln('/// Generated UpdateBuilder for $className');
-    buffer.writeln('class ${className}UpdateBuilder extends UpdateBuilder {');
-    buffer.writeln('  ${className}UpdateBuilder({super.prefix = \'\'});');
+    // Generate Document class
+    DocumentGenerator.generateDocumentClass(buffer, className, constructor);
     buffer.writeln('');
 
-    // Generate strongly-typed named parameter update method
-    buffer.writeln('  /// Update with strongly-typed named parameters');
-    buffer.writeln('  UpdateOperation call({');
-    
-    // Generate named parameters for all fields except document ID
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      final fieldType = param.type;
-      
-      // Skip document ID field
-      if (fieldName == documentIdField) continue;
-      
-      // Make all parameters optional for object merge operations
-      final baseType = fieldType.getDisplayString(withNullability: false);
-      final optionalType = fieldType.isDartCoreNull ? baseType : '$baseType?';
-      buffer.writeln('    $optionalType $fieldName,');
-    }
-    
-    buffer.writeln('  }) {');
-    buffer.writeln('    final data = <String, dynamic>{};');
-    
-    // Generate assignments for provided parameters
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      
-      // Skip document ID field
-      if (fieldName == documentIdField) continue;
-      
-      buffer.writeln('    if ($fieldName != null) data[\'$fieldName\'] = $fieldName;');
-    }
-    
-    buffer.writeln('    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);');
-    buffer.writeln('  }');
+    // Generate Query class
+    QueryGenerator.generateQueryClass(buffer, className, constructor);
     buffer.writeln('');
 
-    // Generate field methods
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      final fieldType = param.type;
-      
-      // Skip document ID field
-      if (fieldName == documentIdField) continue;
-      
-      if (_isPrimitiveType(fieldType) || _isComparableType(fieldType)) {
-        _generateUpdateFieldMethod(buffer, className, fieldName, fieldType);
-      } else if (_isCustomClass(fieldType)) {
-        // Generate nested object getter for custom classes
-        _generateUpdateNestedGetter(buffer, fieldName, fieldType);
-      }
-    }
+    // Generate FilterBuilder class
+    FilterGenerator.generateFilterBuilderClass(
+      buffer,
+      className,
+      constructor,
+      className,
+      documentIdField,
+    );
+    
+    // Generate FilterBuilder classes for all nested types
+    FilterGenerator.generateNestedFilterBuilderClasses(
+      buffer,
+      constructor,
+      <String>{},
+      className,
+    );
 
-    buffer.writeln('}');
+    // Generate OrderByBuilder class
+    OrderByGenerator.generateOrderByBuilderClass(
+      buffer,
+      className,
+      constructor,
+      className,
+      documentIdField,
+    );
+    
+    // Generate OrderByBuilder classes for all nested types
+    OrderByGenerator.generateNestedOrderByBuilderClasses(
+      buffer,
+      constructor,
+      <String>{},
+      className,
+      documentIdField,
+    );
+
+    // Generate base update classes first
+    UpdateGenerator.generateBaseUpdateClasses(buffer);
+
+    // Generate UpdateBuilder class and all nested types
+    UpdateGenerator.generateUpdateBuilderClass(
+      buffer,
+      className,
+      constructor,
+      className,
+      documentIdField,
+    );
+    UpdateGenerator.generateNestedUpdateBuilderClasses(
+      buffer,
+      constructor,
+      <String>{className},
+      className,
+    );
+    
+    // Generate nested updater classes
+    UpdateGenerator.generateAllNestedUpdaterClasses(
+      buffer,
+      constructor,
+      <String>{className},
+    );
+
+    // Generate Filter class
+    FilterGenerator.generateFilterClass(buffer, className);
     buffer.writeln('');
-  }
 
-  void _generateUpdateFieldMethod(StringBuffer buffer, String className, String fieldName, DartType fieldType) {
-    final typeString = fieldType.getDisplayString(withNullability: false);
-    
-    // Generate field method that can be called directly or provide field operations
-    buffer.writeln('  /// Update $fieldName field');
-    
-    if (_isListType(fieldType)) {
-      final elementType = _getListElementType(fieldType);
-      buffer.writeln('  ListFieldBuilder<$elementType> get $fieldName => ListFieldBuilder<$elementType>(getFieldPath(\'$fieldName\'));');
-    } else if (_isNumericType(fieldType)) {
-      buffer.writeln('  NumericFieldBuilder<$typeString> get $fieldName => NumericFieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));');
-    } else if (typeString == 'DateTime') {
-      buffer.writeln('  DateTimeFieldBuilder get $fieldName => DateTimeFieldBuilder(getFieldPath(\'$fieldName\'));');
-    } else {
-      buffer.writeln('  /// Set $fieldName value');
-      buffer.writeln('  UpdateOperation $fieldName($typeString value) {');
-      buffer.writeln('    return UpdateOperation(getFieldPath(\'$fieldName\'), UpdateOperationType.set, value);');
-      buffer.writeln('  }');
-    }
+    // Generate Query Extension (for new where API)
+    QueryGenerator.generateQueryExtension(buffer, className, constructor);
     buffer.writeln('');
-  }
 
-
-  String _getListElementType(DartType listType) {
-    final typeString = listType.getDisplayString(withNullability: false);
-    if (typeString.startsWith('List<') && typeString.endsWith('>')) {
-      return typeString.substring(5, typeString.length - 1);
-    }
-    return 'dynamic';
-  }
-
-  void _generateUpdateNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
-    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-    buffer.writeln('  /// Access nested $fieldName for updates');
-    buffer.writeln('  ${_capitalize(fieldName)}NestedUpdater get $fieldName => ${_capitalize(fieldName)}NestedUpdater(prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\');');
-    buffer.writeln('');
-  }
-
-  void _generateNestedUpdaterClass(StringBuffer buffer, String fieldName, DartType fieldType) {
-    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-    final capitalizedFieldName = _capitalize(fieldName);
-    
-    // Get the constructor for this nested type
-    final element = fieldType.element;
-    if (element is! ClassElement) return;
-    
-    final constructor = element.unnamedConstructor;
-    if (constructor == null) return;
-    
-    buffer.writeln('class ${capitalizedFieldName}NestedUpdater {');
-    buffer.writeln('  final String prefix;');
-    buffer.writeln('  ${capitalizedFieldName}NestedUpdater(this.prefix);');
-    buffer.writeln('');
-    buffer.writeln('  /// Update with strongly-typed named parameters');
-    buffer.writeln('  UpdateOperation call({');
-    
-    // Get document ID field for this nested type
-    final nestedDocumentIdField = _getDocumentIdField(constructor);
-    
-    // Generate all field update methods directly on this nested updater
-    for (final param in constructor.parameters) {
-      final paramFieldName = param.name;
-      final paramType = param.type;
-      
-      // Skip document ID field
-      if (paramFieldName == nestedDocumentIdField) continue;
-      
-      // Make all parameters optional for object merge operations
-      final baseType = paramType.getDisplayString(withNullability: false);
-      final optionalType = paramType.isDartCoreNull ? baseType : '$baseType?';
-      buffer.writeln('    $optionalType $paramFieldName,');
-    }
-    
-    buffer.writeln('  }) {');
-    buffer.writeln('    final data = <String, dynamic>{};');
-    
-    // Generate assignments for provided parameters
-    for (final param in constructor.parameters) {
-      final paramFieldName = param.name;
-      
-      // Skip document ID field
-      if (paramFieldName == nestedDocumentIdField) continue;
-      
-      buffer.writeln('    if ($paramFieldName != null) data[\'$paramFieldName\'] = $paramFieldName;');
-    }
-    
-    buffer.writeln('    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-    
-    // Generate all field update methods directly on this nested updater
-    for (final param in constructor.parameters) {
-      final paramFieldName = param.name;
-      final paramType = param.type;
-      
-      // Skip document ID field
-      if (paramFieldName == nestedDocumentIdField) continue;
-      
-      if (_isStringType(paramType)) {
-        buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  /// Set $paramFieldName value');
-        buffer.writeln('  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.set, value);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      } else if (_isNumericType(paramType)) {
-        final numericType = paramType.getDisplayString(withNullability: false);
-        buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  NumericFieldBuilder<$numericType> get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return NumericFieldBuilder<$numericType>(fieldPath);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      } else if (_isBoolType(paramType)) {
-        buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  /// Set $paramFieldName value');
-        buffer.writeln('  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.set, value);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      } else if (_isDateTimeType(paramType)) {
-        buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  DateTimeFieldBuilder get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return DateTimeFieldBuilder(fieldPath);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      } else if (_isListType(paramType)) {
-        final elementType = _getListElementType(paramType);
-        buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  ListFieldBuilder<$elementType> get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return ListFieldBuilder<$elementType>(fieldPath);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      } else if (_isCustomClass(paramType)) {
-        // Nested custom class - create accessor
-        final nestedClassName = paramType.getDisplayString(withNullability: false);
-        final nestedUpdaterClassName = '${_capitalize(paramFieldName)}NestedUpdater';
-        buffer.writeln('  /// Access nested $paramFieldName for updates');
-        buffer.writeln('  $nestedUpdaterClassName get $paramFieldName {');
-        buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return $nestedUpdaterClassName(nestedPrefix);');
-        buffer.writeln('  }');
-        buffer.writeln('');
-      }
-    }
-    
-    buffer.writeln('}');
-    buffer.writeln('');
-  }
-
-  void _generateNestedUpdateBuilderClasses(
-    StringBuffer buffer,
-    ConstructorElement constructor,
-    Set<String> processedTypes,
-    String rootUpdateType,
-  ) {
-    // Get document ID field for this constructor
-    final documentIdField = _getDocumentIdField(constructor);
-    
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
-
-      // Skip the document ID field and built-in types
-      if (param.name == documentIdField || _isBuiltInType(fieldType)) {
-        continue;
-      }
-
-      final nestedClassName = fieldType.getDisplayString(
-        withNullability: false,
-      );
-
-      // Avoid generating duplicate builders
-      if (processedTypes.contains(nestedClassName)) {
-        continue;
-      }
-      processedTypes.add(nestedClassName);
-
-      // Try to get the constructor of the nested class
-      if (fieldType.element is ClassElement) {
-        final nestedClass = fieldType.element as ClassElement;
-        final nestedConstructor = nestedClass.unnamedConstructor;
-
-        if (nestedConstructor != null) {
-          _generateUpdateBuilderClass(buffer, nestedClassName, nestedConstructor, rootUpdateType, null);
-
-          // Recursively generate builders for nested classes
-          _generateNestedUpdateBuilderClasses(
-            buffer,
-            nestedConstructor,
-            processedTypes,
-            rootUpdateType,
-          );
-        }
-      }
-    }
-  }
-
-  bool _isNumericType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return ['int', 'double'].contains(typeName);
-  }
-
-  bool _isStringType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return typeName == 'String';
-  }
-
-  bool _isBoolType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return typeName == 'bool';
-  }
-
-  bool _isDateTimeType(DartType type) {
-    final typeName = type.getDisplayString(withNullability: false);
-    return typeName == 'DateTime' || typeName == 'Timestamp';
-  }
-
-  /// Get the document ID field name for a constructor, returns null if none found
-  String? _getDocumentIdField(ConstructorElement constructor) {
-    for (final param in constructor.parameters) {
-      final annotations = param.metadata;
-      for (final annotation in annotations) {
-        final annotationElement = annotation.element;
-        if (annotationElement is ConstructorElement) {
-          final className = annotationElement.enclosingElement.name;
-          if (className == 'DocumentIdField') {
-            return param.name;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  String _getSubcollectionType(DartObject constantValue) {
-    final type = constantValue.type;
-    if (type is ParameterizedType) {
-      final typeArgument = type.typeArguments.first;
-      if (typeArgument is InterfaceType) {
-        return typeArgument.element.name;
-      }
-    }
-    throw InvalidGenerationSourceError('Invalid subcollection type');
-  }
-
-  void _generateBaseUpdateClasses(StringBuffer buffer) {
-    // Base classes are now provided by the core package
-    // Only need to generate specific update builders for each model
-
-  }
-
-  void _generateAllNestedUpdaterClasses(StringBuffer buffer, ConstructorElement constructor, Set<String> processedTypes) {
-    // Get document ID field for this constructor
-    final documentIdField = _getDocumentIdField(constructor);
-    
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
-      final fieldName = param.name;
-      
-      // Skip the document ID field and built-in types
-      if (fieldName == documentIdField || _isBuiltInType(fieldType)) {
-        continue;
-      }
-      
-      if (_isCustomClass(fieldType)) {
-        final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-        
-        // Avoid processing the same type multiple times
-        if (processedTypes.contains(nestedTypeName)) continue;
-        processedTypes.add(nestedTypeName);
-        
-        // Generate the nested updater class for this field
-        _generateNestedUpdaterClass(buffer, fieldName, fieldType);
-        
-        // Recursively generate for deeper nested types
-        if (fieldType.element is ClassElement) {
-          final nestedClass = fieldType.element as ClassElement;
-          final nestedConstructor = nestedClass.unnamedConstructor;
-          if (nestedConstructor != null) {
-            _generateAllNestedUpdaterClasses(buffer, nestedConstructor, processedTypes);
-          }
-        }
-      }
-    }
+    // Generate extension to add the collection to FirestoreODM
+    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath);
   }
 }
