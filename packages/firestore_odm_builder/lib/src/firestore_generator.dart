@@ -190,7 +190,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
     buffer.writeln('    final builder = ${className}FilterBuilder();');
     buffer.writeln('    final builtFilter = filterBuilder(builder);');
-    buffer.writeln('    final newQuery = applyFilterToQuery(query, builtFilter);');
+    buffer.writeln('    final newQuery = applyFilterToQuery(underlyingQuery, builtFilter);');
     buffer.writeln('    return ${className}Query(collection, newQuery);');
     buffer.writeln('  }');
     
@@ -199,7 +199,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
   void _generateFilterBuilderClass(StringBuffer buffer, String className, ConstructorElement constructor, String rootFilterType) {
     buffer.writeln('/// Generated FilterBuilder for $className');
-    buffer.writeln('class ${className}FilterBuilder extends FilterBuilder {');
+    buffer.writeln('class ${className}FilterBuilder extends RootFilterBuilder<${rootFilterType}Filter> {');
     buffer.writeln('  ${className}FilterBuilder({super.prefix = \'\'});');
     buffer.writeln('');
 
@@ -218,33 +218,11 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       }
     }
 
-    // Generate type-safe or and and methods with support for up to 30 filters
-    buffer.writeln('  /// Create OR filter with type safety (supports up to 30 filters)');
-    buffer.write('  ${rootFilterType}Filter or(${rootFilterType}Filter filter1, ${rootFilterType}Filter filter2, [');
-    for (int i = 3; i <= 30; i++) {
-      buffer.write('${rootFilterType}Filter? filter$i, ');
-    }
-    buffer.writeln(']) {');
-    buffer.writeln('    final allFilters = <FirestoreFilter>[filter1, filter2];');
-    for (int i = 3; i <= 30; i++) {
-      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i);');
-    }
-    buffer.writeln('    return ${rootFilterType}Filter._or(allFilters);');
+    // Implement abstract method from RootFilterBuilder
+    buffer.writeln('  @override');
+    buffer.writeln('  ${rootFilterType}Filter wrapFilter(FirestoreFilter coreFilter) {');
+    buffer.writeln('    return ${rootFilterType}Filter._fromCore(coreFilter);');
     buffer.writeln('  }');
-    buffer.writeln('');
-    buffer.writeln('  /// Create AND filter with type safety (supports up to 30 filters)');
-    buffer.write('  ${rootFilterType}Filter and(${rootFilterType}Filter filter1, ${rootFilterType}Filter filter2, [');
-    for (int i = 3; i <= 30; i++) {
-      buffer.write('${rootFilterType}Filter? filter$i, ');
-    }
-    buffer.writeln(']) {');
-    buffer.writeln('    final allFilters = <FirestoreFilter>[filter1, filter2];');
-    for (int i = 3; i <= 30; i++) {
-      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i);');
-    }
-    buffer.writeln('    return ${rootFilterType}Filter._and(allFilters);');
-    buffer.writeln('  }');
-    buffer.writeln('');
 
     buffer.writeln('}');
   }
@@ -290,69 +268,56 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('    bool? isNull,');
     
     buffer.writeln('  }) {');
-    buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    if (isEqualTo != null) {');
-    buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'==\', value: isEqualTo);');
-    buffer.writeln('    }');
-    buffer.writeln('    if (isNotEqualTo != null) {');
-    buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'!=\', value: isNotEqualTo);');
-    buffer.writeln('    }');
+    
+    // Use base filter methods based on type
+    if (typeString == 'String') {
+      buffer.writeln('    return stringFilter(\'$fieldName\',');
+    } else if (_isListType(fieldType)) {
+      final elementType = _getListElementType(fieldType);
+      buffer.writeln('    return arrayFilter<$elementType>(\'$fieldName\',');
+    } else if (typeString == 'bool') {
+      buffer.writeln('    return boolFilter(\'$fieldName\',');
+    } else if (typeString == 'DateTime') {
+      buffer.writeln('    return dateTimeFilter(\'$fieldName\',');
+    } else if (_isNumericType(fieldType)) {
+      buffer.writeln('    return numericFilter<$typeString>(\'$fieldName\',');
+    } else {
+      // Fallback for other types, treat as string-like
+      buffer.writeln('    return stringFilter(\'$fieldName\',');
+    }
+    
+    // Parameters
+    buffer.writeln('      isEqualTo: isEqualTo,');
+    buffer.writeln('      isNotEqualTo: isNotEqualTo,');
     
     if (_isComparableType(fieldType)) {
-      buffer.writeln('    if (isLessThan != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'<\', value: isLessThan);');
-      buffer.writeln('    }');
-      buffer.writeln('    if (isLessThanOrEqualTo != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'<=\', value: isLessThanOrEqualTo);');
-      buffer.writeln('    }');
-      buffer.writeln('    if (isGreaterThan != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'>\', value: isGreaterThan);');
-      buffer.writeln('    }');
-      buffer.writeln('    if (isGreaterThanOrEqualTo != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'>=\', value: isGreaterThanOrEqualTo);');
-      buffer.writeln('    }');
+      buffer.writeln('      isLessThan: isLessThan,');
+      buffer.writeln('      isLessThanOrEqualTo: isLessThanOrEqualTo,');
+      buffer.writeln('      isGreaterThan: isGreaterThan,');
+      buffer.writeln('      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,');
     }
     
     if (_isListType(fieldType)) {
-      buffer.writeln('    if (arrayContains != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'array-contains\', value: arrayContains);');
-      buffer.writeln('    }');
-      buffer.writeln('    if (arrayContainsAny != null) {');
-      buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'array-contains-any\', value: arrayContainsAny);');
-      buffer.writeln('    }');
+      buffer.writeln('      arrayContains: arrayContains,');
+      buffer.writeln('      arrayContainsAny: arrayContainsAny,');
     }
     
-    buffer.writeln('    if (whereIn != null) {');
-    buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'in\', value: whereIn);');
-    buffer.writeln('    }');
-    buffer.writeln('    if (whereNotIn != null) {');
-    buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: \'not-in\', value: whereNotIn);');
-    buffer.writeln('    }');
-    buffer.writeln('    if (isNull != null) {');
-    buffer.writeln('      return ${rootFilterType}Filter._field(field: fieldPath, operator: isNull ? \'==\' : \'!=\', value: null);');
-    buffer.writeln('    }');
-    buffer.writeln('    throw ArgumentError(\'At least one filter condition must be provided\');');
+    buffer.writeln('      whereIn: whereIn,');
+    buffer.writeln('      whereNotIn: whereNotIn,');
+    buffer.writeln('      isNull: isNull,');
+    buffer.writeln('    );');
     buffer.writeln('  }');
     buffer.writeln('');
   }
+
 
   void _generateFilterClass(StringBuffer buffer, String className) {
     buffer.writeln('/// Generated Filter for $className');
     buffer.writeln('class ${className}Filter extends FirestoreFilter {');
     buffer.writeln('  const ${className}Filter() : super();');
-    buffer.writeln('  ');
-    buffer.writeln('  /// Create field filter');
-    buffer.writeln('  const ${className}Filter._field({');
-    buffer.writeln('    required String field,');
-    buffer.writeln('    required String operator,');
-    buffer.writeln('    required dynamic value,');
-    buffer.writeln('  }) : super.field(field: field, operator: operator, value: value);');
-    buffer.writeln('  ');
-    buffer.writeln('  /// Create OR filter');
-    buffer.writeln('  const ${className}Filter._or(List<FirestoreFilter> filters) : super.or(filters);');
-    buffer.writeln('  ');
-    buffer.writeln('  /// Create AND filter');
-    buffer.writeln('  const ${className}Filter._and(List<FirestoreFilter> filters) : super.and(filters);');
+    buffer.writeln('');
+    buffer.writeln('  /// Create from core FirestoreFilter - handles both field and logical filters');
+    buffer.writeln('  ${className}Filter._fromCore(super.filter) : super.fromFilter();');
     buffer.writeln('}');
   }
 
@@ -574,10 +539,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
   void _generateOrderByFieldMethod(StringBuffer buffer, String className, String fieldName) {
     buffer.writeln('  /// Order by $fieldName');
-    buffer.writeln('  OrderByField $fieldName({bool descending = false}) {');
-    buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    return OrderByField(fieldPath, descending: descending);');
-    buffer.writeln('  }');
+    buffer.writeln('  OrderByField $fieldName({bool descending = false}) => orderByField(\'$fieldName\', descending: descending);');
     buffer.writeln('');
   }
 
@@ -680,23 +642,14 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     
     if (_isListType(fieldType)) {
       final elementType = _getListElementType(fieldType);
-      buffer.writeln('  ListFieldBuilder<$elementType> get $fieldName {');
-      buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return ListFieldBuilder<$elementType>(fieldPath);');
+      buffer.writeln('  ListFieldBuilder<$elementType> get $fieldName => ListFieldBuilder<$elementType>(getFieldPath(\'$fieldName\'));');
     } else if (_isNumericType(fieldType)) {
-      buffer.writeln('  NumericFieldBuilder<$typeString> get $fieldName {');
-      buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return NumericFieldBuilder<$typeString>(fieldPath);');
+      buffer.writeln('  NumericFieldBuilder<$typeString> get $fieldName => NumericFieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));');
     } else if (typeString == 'DateTime') {
-      buffer.writeln('  DateTimeFieldBuilder get $fieldName {');
-      buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return DateTimeFieldBuilder(fieldPath);');
+      buffer.writeln('  DateTimeFieldBuilder get $fieldName => DateTimeFieldBuilder(getFieldPath(\'$fieldName\'));');
     } else {
-      buffer.writeln('  FieldBuilder<$typeString> get $fieldName {');
-      buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return FieldBuilder<$typeString>(fieldPath);');
+      buffer.writeln('  FieldBuilder<$typeString> get $fieldName => FieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));');
     }
-    buffer.writeln('  }');
     buffer.writeln('');
   }
 

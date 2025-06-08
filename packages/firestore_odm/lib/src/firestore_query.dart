@@ -9,6 +9,9 @@ abstract class FirestoreQuery<T> {
   @protected
   final Query<Map<String, dynamic>> query;
 
+  /// Get the underlying query for extensions
+  Query<Map<String, dynamic>> get underlyingQuery => query;
+
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data) fromJson;
 
