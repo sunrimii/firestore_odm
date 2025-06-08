@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:meta/meta.dart';
-import 'firestore_collection.dart';
 
 /// Abstract base class for type-safe Firestore queries
 abstract class FirestoreQuery<T> {
@@ -45,8 +44,6 @@ abstract class FirestoreQuery<T> {
   @protected
   FirestoreQuery<T> newInstance(Query<Map<String, dynamic>> query);
 }
-
-
 
 /// Applies a filter to the given Firestore query
 Query<Map<String, dynamic>> applyFilterToQuery(Query<Map<String, dynamic>> query, FirestoreFilter filter) {
