@@ -51,6 +51,7 @@ await userDoc.update(($) => [
 - **🛡️ Runtime Error Prevention** - Catch mistakes at compile-time, not in production
 - **🎯 Intuitive Queries** - Write complex filters that read like natural language
 - **🔄 Smart Updates** - Atomic operations, conflict resolution, and optimistic updates
+- **🔗 Unified Collections** - Single models work across multiple collection paths
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
 ## Quick Start
@@ -309,45 +310,63 @@ await userDoc.incrementalModify((user) => user.copyWith(
 </details>
 
 <details>
-<summary><strong>🏗️ Subcollections & Nested Data</strong></summary>
+<summary><strong>🏗️ Multiple Collections & Subcollections</strong></summary>
 
 ```dart
-// Define subcollection models with wildcard syntax
+// 🆕 NEW: Use a single model for multiple collection paths!
 @freezed
-@Collection('users/*/posts')  // Notice the wildcard * for user ID
-class UserPost with _$UserPost {
-  const factory UserPost({
+@Collection('posts')           // Top-level posts collection
+@Collection('users/*/posts')   // User subcollection posts
+class SharedPost with _$SharedPost {
+  const factory SharedPost({
     @DocumentIdField() required String id,
     required String title,
     required String content,
     required int likes,
     required DateTime createdAt,
-  }) = _UserPost;
+  }) = _SharedPost;
   
-  factory UserPost.fromJson(Map<String, dynamic> json) => _$UserPostFromJson(json);
+  factory SharedPost.fromJson(Map<String, dynamic> json) => _$SharedPostFromJson(json);
 }
 
-// Access subcollections with fluent API
-final userPosts = odm.users('user123').posts;
+// ✨ Access BOTH collections with the same model:
 
-// All normal operations work on subcollections
-await userPosts.upsert(UserPost(
-  id: 'post1',
-  title: 'My First Post',
-  content: 'Hello world!',
-  likes: 0,
+// 1. Top-level posts collection
+await odm.posts.upsert(SharedPost(
+  id: 'global1',
+  title: 'Global Post',
+  content: 'Visible to everyone!',
+  likes: 42,
   createdAt: DateTime.now(),
 ));
 
-// Query subcollections naturally
-final popularPosts = await odm.users('user123').posts
+// 2. User-specific subcollection
+await odm.users('alice').posts.upsert(SharedPost(
+  id: 'personal1',
+  title: 'Alice\'s Personal Post',
+  content: 'Just for me!',
+  likes: 5,
+  createdAt: DateTime.now(),
+));
+
+// Query both collections independently
+final globalPosts = await odm.posts
   .where(($) => $.likes(isGreaterThan: 10))
-  .orderBy(($) => $.createdAt(descending: true))
   .get();
 
-// Supports arbitrary nesting levels
-@Collection('organizations/*/departments/*/employees')
-class Employee with _$Employee { /* ... */ }
+final alicePosts = await odm.users('alice').posts
+  .where(($) => $.title(contains: 'Personal'))
+  .get();
+
+// 🔥 Supports unlimited nesting levels
+@Collection('organizations/*/departments/*/teams/*/projects')
+class Project with _$Project { /* ... */ }
+
+// Access deeply nested collections
+final teamProjects = odm.organizations('acme')
+  .departments('engineering')
+  .teams('mobile')
+  .projects;
 
 // Access deeply nested collections
 final employees = odm.organizations('org1').departments('dept1').employees;
@@ -404,10 +423,13 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 dependencies:
   firestore_odm: ^1.0.0
   firestore_odm_annotation: ^1.0.0
+  freezed_annotation: ^2.4.4
 
 dev_dependencies:
   firestore_odm_builder: ^1.0.0
-  build_runner: ^2.4.7
+  build_runner: ^2.4.9
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
 ```
 
 ### Code Generation
