@@ -387,6 +387,197 @@ await userDoc.incrementalModify((user) => user.copyWith(
 ));
 ```
 
+## Transactions
+
+Firestore ODM provides seamless transaction support with automatic context detection. All document operations automatically work within transactions when called inside `runTransaction`.
+
+### Basic Transaction Usage
+
+```dart
+final odm = FirestoreODM(firestore);
+
+// Simple transaction
+await odm.runTransaction(() async {
+  final user = await odm.users.doc('user1').get();
+  if (user != null) {
+    await odm.users.doc('user1').modify((currentUser) {
+      return currentUser.copyWith(
+        age: currentUser.age + 1,
+        profile: currentUser.profile.copyWith(
+          followers: currentUser.profile.followers + 10,
+        ),
+      );
+    });
+  }
+});
+```
+
+### Complex Multi-Document Transactions
+
+```dart
+// Transfer followers between users atomically
+await odm.runTransaction(() async {
+  // Read current state
+  final user1 = await odm.users.doc('user1').get();
+  final user2 = await odm.users.doc('user2').get();
+  
+  if (user1 != null && user2 != null) {
+    final transferAmount = 50;
+    
+    // Check if user1 has enough followers
+    if (user1.profile.followers >= transferAmount) {
+      // Update both users atomically
+      await odm.users.doc('user1').incrementalModify((user) {
+        return user.copyWith(
+          profile: user.profile.copyWith(
+            followers: user.profile.followers - transferAmount,
+          ),
+        );
+      });
+      
+      await odm.users.doc('user2').incrementalModify((user) {
+        return user.copyWith(
+          profile: user.profile.copyWith(
+            followers: user.profile.followers + transferAmount,
+          ),
+        );
+      });
+    } else {
+      throw Exception('Insufficient followers for transfer');
+    }
+  }
+});
+```
+
+### Transaction with Array-Style Updates
+
+```dart
+// All update methods work seamlessly in transactions
+await odm.runTransaction(() async {
+  final user = await odm.users.doc('user1').get();
+  
+  if (user != null && user.rating < 5.0) {
+    // Array-style updates within transaction
+    await odm.users.doc('user1').update((update) => [
+      update.rating.increment(0.5),
+      update.tags.add('verified'),
+      update.profile.followers.increment(25),
+      update.lastLogin.serverTimestamp(),
+    ]);
+    
+    // Create activity log
+    await odm.activities.doc().set(Activity(
+      userId: user.id,
+      action: 'rating_increased',
+      timestamp: DateTime.now(),
+    ));
+  }
+});
+```
+
+### Error Handling in Transactions
+
+```dart
+try {
+  await odm.runTransaction(() async {
+    final user = await odm.users.doc('user1').get();
+    
+    if (user == null) {
+      throw Exception('User not found');
+    }
+    
+    if (user.profile.followers < 100) {
+      throw Exception('User must have at least 100 followers');
+    }
+    
+    // Promote user to premium
+    await odm.users.doc('user1').modify((currentUser) {
+      return currentUser.copyWith(
+        isPremium: true,
+        rating: math.min(5.0, currentUser.rating + 0.5),
+      );
+    });
+  });
+  
+  print('User promoted successfully!');
+} catch (e) {
+  print('Transaction failed: $e');
+}
+```
+
+### Automatic Transaction Context
+
+All document operations automatically detect transaction context:
+
+```dart
+await odm.runTransaction(() async {
+  // All these operations happen within the same transaction
+  
+  // Reading - uses transaction.get()
+  final user = await odm.users.doc('user1').get();
+  
+  // Writing - uses transaction.set()
+  await odm.users.doc('user1').set(updatedUser);
+  
+  // Updating - uses transaction.update()
+  await odm.users.doc('user1').update((update) => [
+    update.age.increment(1),
+  ]);
+  
+  // Modifying - uses transaction.set() with merge
+  await odm.users.doc('user1').modify((user) =>
+    user.copyWith(name: 'New Name'));
+  
+  // Incremental modifying - uses transaction.update()
+  await odm.users.doc('user1').incrementalModify((user) =>
+    user.copyWith(age: user.age + 1));
+  
+  // Deleting - uses transaction.delete()
+  await odm.users.doc('old_user').delete();
+});
+```
+
+### Transaction Best Practices
+
+1. **Keep transactions short**: Minimize the time between reads and writes
+2. **Read before write**: Always read current state before modifying
+3. **Handle conflicts**: Be prepared for transaction retry scenarios
+4. **Validate data**: Check constraints before making changes
+5. **Use atomic operations**: Prefer `incrementalModify` for numeric/array operations
+
+```dart
+// Example: Bank account transfer pattern
+await odm.runTransaction(() async {
+  // 1. Read current balances
+  final fromAccount = await odm.accounts.doc(fromId).get();
+  final toAccount = await odm.accounts.doc(toId).get();
+  
+  // 2. Validate operation
+  if (fromAccount == null || toAccount == null) {
+    throw Exception('Account not found');
+  }
+  
+  if (fromAccount.balance < amount) {
+    throw Exception('Insufficient funds');
+  }
+  
+  // 3. Perform atomic updates
+  await odm.accounts.doc(fromId).incrementalModify((account) =>
+    account.copyWith(balance: account.balance - amount));
+    
+  await odm.accounts.doc(toId).incrementalModify((account) =>
+    account.copyWith(balance: account.balance + amount));
+    
+  // 4. Create audit log
+  await odm.transactions.doc().set(TransactionLog(
+    fromAccount: fromId,
+    toAccount: toId,
+    amount: amount,
+    timestamp: DateTime.now(),
+  ));
+});
+```
+
 ## Ordering and Limiting
 
 ```dart
