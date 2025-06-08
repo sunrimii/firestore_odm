@@ -53,28 +53,26 @@ Query<Map<String, dynamic>> applyFilterToQuery(Query<Map<String, dynamic>> query
     final value = filter.value;
     
     switch (operator) {
-      case '==':
+      case FilterOperator.isEqualTo:
         return query.where(field, isEqualTo: value);
-      case '!=':
+      case FilterOperator.isNotEqualTo:
         return query.where(field, isNotEqualTo: value);
-      case '<':
+      case FilterOperator.isLessThan:
         return query.where(field, isLessThan: value);
-      case '<=':
+      case FilterOperator.isLessThanOrEqualTo:
         return query.where(field, isLessThanOrEqualTo: value);
-      case '>':
+      case FilterOperator.isGreaterThan:
         return query.where(field, isGreaterThan: value);
-      case '>=':
+      case FilterOperator.isGreaterThanOrEqualTo:
         return query.where(field, isGreaterThanOrEqualTo: value);
-      case 'array-contains':
+      case FilterOperator.arrayContains:
         return query.where(field, arrayContains: value);
-      case 'array-contains-any':
+      case FilterOperator.arrayContainsAny:
         return query.where(field, arrayContainsAny: value);
-      case 'in':
+      case FilterOperator.whereIn:
         return query.where(field, whereIn: value);
-      case 'not-in':
+      case FilterOperator.whereNotIn:
         return query.where(field, whereNotIn: value);
-      default:
-        throw ArgumentError('Unsupported operator: $operator');
     }
   } else if (filter.type == FilterType.and) {
     Query<Map<String, dynamic>> newQuery = query;
@@ -113,28 +111,26 @@ Filter _buildFirestoreFilter(FirestoreFilter filter) {
 /// Build a single field Filter
 Filter _buildFieldFilter(FirestoreFilter filter) {
   switch (filter.operator!) {
-    case '==':
+    case FilterOperator.isEqualTo:
       return Filter(filter.field!, isEqualTo: filter.value);
-    case '!=':
+    case FilterOperator.isNotEqualTo:
       return Filter(filter.field!, isNotEqualTo: filter.value);
-    case '<':
+    case FilterOperator.isLessThan:
       return Filter(filter.field!, isLessThan: filter.value);
-    case '<=':
+    case FilterOperator.isLessThanOrEqualTo:
       return Filter(filter.field!, isLessThanOrEqualTo: filter.value);
-    case '>':
+    case FilterOperator.isGreaterThan:
       return Filter(filter.field!, isGreaterThan: filter.value);
-    case '>=':
+    case FilterOperator.isGreaterThanOrEqualTo:
       return Filter(filter.field!, isGreaterThanOrEqualTo: filter.value);
-    case 'array-contains':
+    case FilterOperator.arrayContains:
       return Filter(filter.field!, arrayContains: filter.value);
-    case 'array-contains-any':
+    case FilterOperator.arrayContainsAny:
       return Filter(filter.field!, arrayContainsAny: filter.value);
-    case 'in':
+    case FilterOperator.whereIn:
       return Filter(filter.field!, whereIn: filter.value);
-    case 'not-in':
+    case FilterOperator.whereNotIn:
       return Filter(filter.field!, whereNotIn: filter.value);
-    default:
-      throw ArgumentError('Unsupported operator: ${filter.operator}');
   }
 }
 

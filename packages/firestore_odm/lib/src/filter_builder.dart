@@ -9,13 +9,27 @@ enum FilterType {
   or,
 }
 
+/// Firestore operators
+enum FilterOperator {
+  isEqualTo,
+  isNotEqualTo,
+  isLessThan,
+  isLessThanOrEqualTo,
+  isGreaterThan,
+  isGreaterThanOrEqualTo,
+  arrayContains,
+  arrayContainsAny,
+  whereIn,
+  whereNotIn,
+}
+
 /// Universal filter class that can represent any filter type
 class FirestoreFilter {
   final FilterType type;
   
   // For field filters
   final String? field;
-  final String? operator;
+  final FilterOperator? operator;
   final dynamic value;
   
   // For logical filters (AND/OR)
@@ -35,7 +49,7 @@ class FirestoreFilter {
   /// Create a field filter
   const FirestoreFilter.field({
     required String field,
-    required String operator,
+    required FilterOperator operator,
     required dynamic value,
   }) : this._(
           type: FilterType.field,
@@ -241,19 +255,19 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -273,31 +287,31 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
     }
     if (isLessThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '<', value: isLessThan));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
     }
     if (isLessThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '<=', value: isLessThanOrEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
     }
     if (isGreaterThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '>', value: isGreaterThan));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
     }
     if (isGreaterThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '>=', value: isGreaterThanOrEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -313,19 +327,19 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -345,31 +359,31 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
     }
     if (isLessThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '<', value: isLessThan));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
     }
     if (isLessThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '<=', value: isLessThanOrEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
     }
     if (isGreaterThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '>', value: isGreaterThan));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
     }
     if (isGreaterThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '>=', value: isGreaterThanOrEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -387,25 +401,25 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
     }
     if (arrayContains != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'array-contains', value: arrayContains));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains));
     }
     if (arrayContainsAny != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'array-contains-any', value: arrayContainsAny));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny));
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null));
+      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -583,19 +597,19 @@ class FilterFactory {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
     
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null);
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -613,19 +627,19 @@ class FilterFactory {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
     
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null);
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -647,31 +661,31 @@ class FilterFactory {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
     
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (isLessThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '<', value: isLessThan);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
     }
     if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '<=', value: isLessThanOrEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
     }
     if (isGreaterThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '>', value: isGreaterThan);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
     }
     if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '>=', value: isGreaterThanOrEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null);
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -691,25 +705,25 @@ class FilterFactory {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
     
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '==', value: isEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: '!=', value: isNotEqualTo);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (arrayContains != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'array-contains', value: arrayContains);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains);
     }
     if (arrayContainsAny != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'array-contains-any', value: arrayContainsAny);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny);
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'in', value: whereIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: 'not-in', value: whereNotIn);
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? '==' : '!=', value: null);
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
