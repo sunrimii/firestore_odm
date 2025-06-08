@@ -6,6 +6,13 @@ import 'package:meta/meta_meta.dart';
 /// Supports both regular collections and subcollections with wildcard syntax:
 /// - Regular collection: `@Collection("users")`
 /// - Subcollection: `@Collection("users/*/posts")` where * represents a document ID
+///
+/// Multiple annotations can be used on the same class to register it in multiple collections:
+/// ```dart
+/// @Collection('posts')  // Standalone collection
+/// @Collection('users/*/posts')  // Subcollection under users
+/// class Post with _$Post { ... }
+/// ```
 @Target({TargetKind.classType})
 @immutable
 class Collection {

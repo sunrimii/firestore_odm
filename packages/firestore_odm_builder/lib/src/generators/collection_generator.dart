@@ -11,8 +11,9 @@ class CollectionGenerator {
     String collectionPath,
     ConstructorElement constructor,
     String? documentIdField,
-    bool isSubcollection,
-  ) {
+    bool isSubcollection, {
+    String suffix = '',
+  }) {
     final pathSegments = collectionPath.split('/');
     final wildcardParams = <String>[];
     
@@ -27,15 +28,17 @@ class CollectionGenerator {
       }
     }
     
+    final collectionClassName = '${className}Collection$suffix';
+    
     buffer.writeln('/// Generated Collection for $className');
     if (isSubcollection) {
       buffer.writeln('/// Subcollection path: $collectionPath');
     }
-    buffer.writeln('class ${className}Collection extends FirestoreCollection<$className> {');
+    buffer.writeln('class $collectionClassName extends FirestoreCollection<$className> {');
     
     // Generate constructor
     if (isSubcollection && wildcardParams.isNotEmpty) {
-      buffer.writeln('  ${className}Collection(FirebaseFirestore firestore, {');
+      buffer.writeln('  $collectionClassName(FirebaseFirestore firestore, {');
       for (final param in wildcardParams) {
         buffer.writeln('    required String $param,');
       }
@@ -45,7 +48,7 @@ class CollectionGenerator {
       final dynamicPath = _buildDynamicPath(collectionPath, wildcardParams);
       buffer.writeln('    ref: firestore.collection($dynamicPath),');
     } else {
-      buffer.writeln('  ${className}Collection(FirebaseFirestore firestore) : super(');
+      buffer.writeln('  $collectionClassName(FirebaseFirestore firestore) : super(');
       buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
     }
     
