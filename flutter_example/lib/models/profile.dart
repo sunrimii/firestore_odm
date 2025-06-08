@@ -16,8 +16,20 @@ class Profile with _$Profile {
     Story? story,
   }) = _Profile;
 
-  factory Profile.fromJson(Map<String, dynamic> json) =>
-      _$ProfileFromJson(json);
+  factory Profile.fromJson(Map<String, dynamic> json) {
+    // Handle Firestore Timestamp fields
+    final processedJson = Map<String, dynamic>.from(json);
+    
+    // Convert Timestamp to DateTime for lastActive
+    if (processedJson['lastActive'] != null && processedJson['lastActive'] is! String) {
+      final timestamp = processedJson['lastActive'];
+      if (timestamp.runtimeType.toString() == 'Timestamp') {
+        processedJson['lastActive'] = (timestamp as dynamic).toDate().toIso8601String();
+      }
+    }
+    
+    return _$ProfileFromJson(processedJson);
+  }
 
   @override
   Map<String, dynamic> toJson() {

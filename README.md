@@ -222,30 +222,77 @@ final engagedUsers = await odm.users
     .get();
 ```
 
-## Atomic Updates
+## Array-Style Updates
+
+Firestore ODM supports powerful array-style update operations that allow you to combine multiple update types in a single operation.
 
 ```dart
 // Get a document reference
 final userDoc = odm.users.doc('user1');
 
-// Atomic field updates
-await userDoc.update
-    .name('New Name')
-    .age(26)
-    .isActive(false)
-    .apply();
+// Basic field updates
+await userDoc.update(($) => [
+  $.name('New Name'),
+  $.age(26),
+  $.isActive(false),
+]);
 
 // Nested field updates
-await userDoc.update
-    .profile.bio('Updated bio')
-    .profile.followers(150)
-    .apply();
+await userDoc.update((update) => [
+  update.profile.bio('Updated bio'),
+  update.profile.followers(150),
+]);
 
 // Array operations
-await userDoc.update
-    .tags.add('expert')
-    .scores.add(95)
-    .apply();
+await userDoc.update((update) => [
+  update.tags.add('expert'),
+  update.scores.add(95),
+]);
+
+// Numeric increment operations
+await userDoc.update((update) => [
+  update.age.increment(1),
+  update.rating.increment(0.5),
+  update.profile.followers.increment(50),
+]);
+
+// Server timestamp operations
+await userDoc.update((update) => [
+  update.lastLogin.serverTimestamp(),
+  update.updatedAt.serverTimestamp(),
+]);
+
+// Object merge operations
+await userDoc.update((update) => [
+  update({'name': 'John Smith', 'isPremium': true}),
+  update.profile({'bio': 'Senior Developer', 'followers': 200}),
+]);
+
+// Mixed operations - The Revolutionary Feature! 🚀
+await userDoc.update((update) => [
+  // Increments
+  update.age.increment(1),
+  update.rating.increment(0.5),
+  update.profile.followers.increment(50),
+  
+  // Array operations
+  update.tags.add('expert'),
+  update.tags.add('verified'),
+  
+  // Object merges
+  update({
+    'age': 26, // Can override increments
+    'rating': 3.5,
+    'isPremium': true,
+  }),
+  update.profile({
+    'followers': 150, // Can override increments
+    'bio': 'Full-stack developer',
+  }),
+  
+  // Server timestamps
+  update.lastLogin.serverTimestamp(),
+]);
 ```
 
 ## Ordering and Limiting
@@ -337,21 +384,49 @@ filter.or(filter1, filter2, filter3, ...)   // Up to 30 filters
 
 ```dart
 // Basic field updates
-await doc.update
-    .field1(newValue)
-    .field2(anotherValue)
-    .apply();
+await doc.update((update) => [
+  update.field1(newValue),
+  update.field2(anotherValue),
+]);
 
 // Nested field updates
-await doc.update
-    .nestedObject.field(value)
-    .apply();
+await doc.update((update) => [
+  update.nestedObject.field(value),
+  update.deeply.nested.object.field(anotherValue),
+]);
 
 // Array operations
-await doc.update
-    .arrayField.add(item)
-    .arrayField.remove(item)
-    .apply();
+await doc.update((update) => [
+  update.arrayField.add(item),
+  update.arrayField.remove(item),
+]);
+
+// Numeric operations
+await doc.update((update) => [
+  update.numericField.increment(5),
+  update.nestedObject.count.increment(1),
+]);
+
+// Server timestamp
+await doc.update((update) => [
+  update.timestampField.serverTimestamp(),
+]);
+
+// Object merge operations
+await doc.update((update) => [
+  update({'field1': 'value1', 'field2': 'value2'}),
+  update.nestedObject({'subField': 'newValue'}),
+]);
+
+// Mixed operations in single update
+await doc.update((update) => [
+  update.name('John'),
+  update.age.increment(1),
+  update.tags.add('expert'),
+  update.profile.followers.increment(10),
+  update({'isPremium': true}),
+  update.lastUpdated.serverTimestamp(),
+]);
 ```
 
 ## Testing

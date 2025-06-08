@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:meta/meta.dart';
 
 /// Filter types
@@ -84,4 +85,75 @@ abstract class OrderByBuilder {
   
   /// Create an OrderByBuilder with optional field prefix for nested objects
   OrderByBuilder({this.prefix = ''});
+}
+
+/// Update operation types
+enum UpdateOperationType {
+  set,           // Direct field assignment
+  increment,     // Numeric increment/decrement
+  arrayAdd,      // Array add operation
+  arrayRemove,   // Array remove operation
+  delete,        // Delete field
+  serverTimestamp, // Server timestamp
+  objectMerge,   // Object merge update
+}
+
+/// Represents a single update operation
+class UpdateOperation {
+  final String field;
+  final UpdateOperationType type;
+  final dynamic value;
+  
+  const UpdateOperation(this.field, this.type, this.value);
+  
+  @override
+  String toString() => 'UpdateOperation($field, $type, $value)';
+}
+
+/// Base update builder class
+/// Extended by generated UpdateBuilder classes that provide type-safe update methods
+abstract class UpdateBuilder {
+  /// Field prefix for nested object updates
+  final String prefix;
+  
+  /// Create an UpdateBuilder with optional field prefix for nested objects
+  UpdateBuilder({this.prefix = ''});
+  
+  /// Convert operations to Firestore update map
+  static Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
+    final updates = <String, dynamic>{};
+    
+    for (final op in operations) {
+      switch (op.type) {
+        case UpdateOperationType.set:
+          updates[op.field] = op.value;
+          break;
+        case UpdateOperationType.increment:
+          updates[op.field] = FieldValue.increment(op.value);
+          break;
+        case UpdateOperationType.arrayAdd:
+          updates[op.field] = FieldValue.arrayUnion([op.value]);
+          break;
+        case UpdateOperationType.arrayRemove:
+          updates[op.field] = FieldValue.arrayRemove([op.value]);
+          break;
+        case UpdateOperationType.delete:
+          updates[op.field] = FieldValue.delete();
+          break;
+        case UpdateOperationType.serverTimestamp:
+          updates[op.field] = FieldValue.serverTimestamp();
+          break;
+        case UpdateOperationType.objectMerge:
+          if (op.value is Map<String, dynamic>) {
+            for (final entry in (op.value as Map<String, dynamic>).entries) {
+              final nestedField = op.field.isEmpty ? entry.key : '${op.field}.${entry.key}';
+              updates[nestedField] = entry.value;
+            }
+          }
+          break;
+      }
+    }
+    
+    return updates;
+  }
 }

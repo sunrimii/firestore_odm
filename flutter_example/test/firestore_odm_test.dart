@@ -66,7 +66,7 @@ void main() {
         expect(retrievedUser.profile.bio, equals('Test bio'));
       });
 
-      test('should update top-level fields', () async {
+      test('should update top-level fields using array-style API', () async {
         // Arrange
         final profile = Profile(
           bio: 'Original bio',
@@ -90,10 +90,14 @@ void main() {
 
         await odm.users.doc('update_test').set(user);
 
-        // Act
+        // Act - Use array-style update API
         await odm.users
             .doc('update_test')
-            .update(name: 'Updated Name', age: 26, isActive: true);
+            .update(($) => [
+              $.name('Updated Name'),
+              $.age(26),
+              $.isActive(true),
+            ]);
 
         // Assert
         final updatedUser = await odm.users.doc('update_test').get();
@@ -136,8 +140,8 @@ void main() {
       });
     });
 
-    group('🔗 Chained Updates (Revolutionary Feature)', () {
-      test('should update nested profile fields using chained API', () async {
+    group('🔗 Array-Style Updates (Revolutionary Feature)', () {
+      test('should update nested profile fields using array-style API', () async {
         // Arrange
         final profile = Profile(
           bio: 'Original bio',
@@ -161,23 +165,24 @@ void main() {
 
         await odm.users.doc('nested_test').set(user);
 
-        // Act - Test revolutionary chained update API
+        // Act - Test revolutionary array-style update API
         await odm.users
             .doc('nested_test')
-            .update
-            .profile(
-              bio: 'Updated bio via chained API',
-              followers: 100,
-              socialLinks: {
-                'github': 'updated-user',
-                'twitter': '@updated_user',
-                'linkedin': 'updated-developer',
-              },
-            );
+            .update((update) => [
+              update.profile({
+                'bio': 'Updated bio via array-style API',
+                'followers': 100,
+                'socialLinks': {
+                  'github': 'updated-user',
+                  'twitter': '@updated_user',
+                  'linkedin': 'updated-developer',
+                },
+              }),
+            ]);
 
         // Assert
         final updatedUser = await odm.users.doc('nested_test').get();
-        expect(updatedUser!.profile.bio, equals('Updated bio via chained API'));
+        expect(updatedUser!.profile.bio, equals('Updated bio via array-style API'));
         expect(updatedUser.profile.followers, equals(100));
         expect(
           updatedUser.profile.socialLinks['github'],
@@ -240,16 +245,16 @@ void main() {
 
         await odm.users.doc('story_test').set(user);
 
-        // Act - Test 3-level deep chained updates
+        // Act - Test 3-level deep array-style updates
         await odm.users
             .doc('story_test')
-            .update
-            .profile
-            .story(
-              name: 'Updated SF Adventure',
-              content: 'Even more amazing day in SF with chained updates!',
-              tags: ['travel', 'technology', 'firestore-odm'],
-            );
+            .update((update) => [
+              update.profile.story({
+                'name': 'Updated SF Adventure',
+                'content': 'Even more amazing day in SF with array-style updates!',
+                'tags': ['travel', 'technology', 'firestore-odm'],
+              }),
+            ]);
 
         // Assert
         final updatedUser = await odm.users.doc('story_test').get();
@@ -257,7 +262,7 @@ void main() {
           updatedUser!.profile.story!.name,
           equals('Updated SF Adventure'),
         );
-        expect(updatedUser.profile.story!.content, contains('chained updates'));
+        expect(updatedUser.profile.story!.content, contains('array-style updates'));
         expect(updatedUser.profile.story!.tags, contains('firestore-odm'));
         expect(
           updatedUser.profile.bio,
@@ -314,18 +319,16 @@ void main() {
 
           await odm.users.doc('coordinates_test').set(user);
 
-          // Act - Test 5-level deep chained update (REVOLUTIONARY!)
+          // Act - Test 5-level deep array-style update (REVOLUTIONARY!)
           await odm.users
               .doc('coordinates_test')
-              .update
-              .profile
-              .story
-              .place
-              .coordinates(
-                latitude: 40.7128, // New York
-                longitude: -74.0060,
-                altitude: 20.0,
-              );
+              .update((update) => [
+                update.profile.story.place.coordinates({
+                  'latitude': 40.7128, // New York
+                  'longitude': -74.0060,
+                  'altitude': 20.0,
+                }),
+              ]);
 
           // Assert
           final updatedUser = await odm.users.doc('coordinates_test').get();
@@ -576,11 +579,17 @@ void main() {
 
         await odm.users.doc('concurrent_test').set(user);
 
-        // Act - Simulate concurrent updates
+        // Act - Simulate concurrent updates using array-style API
         final futures = [
-          odm.users.doc('concurrent_test').update(name: 'Updated 1'),
-          odm.users.doc('concurrent_test').update(name: 'Updated 2'),
-          odm.users.doc('concurrent_test').update.profile(bio: 'Updated bio'),
+          odm.users.doc('concurrent_test').update((update) => [
+            update.name('Updated 1')
+          ]),
+          odm.users.doc('concurrent_test').update((update) => [
+            update.name('Updated 2')
+          ]),
+          odm.users.doc('concurrent_test').update((update) => [
+            update.profile({'bio': 'Updated bio'})
+          ]),
         ];
 
         await Future.wait(futures);
@@ -617,30 +626,30 @@ void main() {
 
         await odm.users.doc('social_user').set(user);
 
-        // Act - Social media influencer upgrade
+        // Act - Social media influencer upgrade using array-style API
         await odm.users
             .doc('social_user')
-            .update
-            .profile(
-              bio:
-                  '🚀 Flutter Developer | 📱 Mobile Expert | 🎯 Tech Influencer',
-              followers: 10000,
-              socialLinks: {
-                'github': 'flutter-expert',
-                'twitter': '@flutter_expert',
-                'linkedin': 'flutter-expert-dev',
-                'instagram': '@flutter_content',
-                'youtube': 'FlutterTutorials',
-                'website': 'https://flutter-expert.dev',
-              },
-              interests: [
-                'flutter',
-                'mobile-development',
-                'content-creation',
-                'tech-talks',
-                'open-source',
-              ],
-            );
+            .update((update) => [
+              update.profile({
+                'bio': '🚀 Flutter Developer | 📱 Mobile Expert | 🎯 Tech Influencer',
+                'followers': 10000,
+                'socialLinks': {
+                  'github': 'flutter-expert',
+                  'twitter': '@flutter_expert',
+                  'linkedin': 'flutter-expert-dev',
+                  'instagram': '@flutter_content',
+                  'youtube': 'FlutterTutorials',
+                  'website': 'https://flutter-expert.dev',
+                },
+                'interests': [
+                  'flutter',
+                  'mobile-development',
+                  'content-creation',
+                  'tech-talks',
+                  'open-source',
+                ],
+              }),
+            ]);
 
         // Assert
         final updatedUser = await odm.users.doc('social_user').get();
@@ -696,39 +705,36 @@ void main() {
 
         await odm.users.doc('travel_blogger').set(user);
 
-        // Act - Move to Paris and update everything
+        // Act - Move to Paris and update everything using array-style API
         await odm.users
             .doc('travel_blogger')
-            .update
-            .profile
-            .story
-            .place
-            .coordinates(
-              latitude: 48.8566, // Paris coordinates
-              longitude: 2.3522,
-              altitude: 35.0,
-            );
+            .update((update) => [
+              update.profile.story.place.coordinates({
+                'latitude': 48.8566, // Paris coordinates
+                'longitude': 2.3522,
+                'altitude': 35.0,
+              }),
+            ]);
 
         await odm.users
             .doc('travel_blogger')
-            .update
-            .profile
-            .story
-            .place(
-              name: 'Paris',
-              address: 'Champs-Élysées, Paris, France',
-              metadata: {'country': 'France', 'city': 'Paris'},
-            );
+            .update((update) => [
+              update.profile.story.place({
+                'name': 'Paris',
+                'address': 'Champs-Élysées, Paris, France',
+                'metadata': {'country': 'France', 'city': 'Paris'},
+              }),
+            ]);
 
         await odm.users
             .doc('travel_blogger')
-            .update
-            .profile
-            .story(
-              name: 'Paris Romance',
-              content: 'Falling in love with the City of Light!',
-              tags: ['travel', 'france', 'paris', 'romance'],
-            );
+            .update((update) => [
+              update.profile.story({
+                'name': 'Paris Romance',
+                'content': 'Falling in love with the City of Light!',
+                'tags': ['travel', 'france', 'paris', 'romance'],
+              }),
+            ]);
 
         // Assert
         final updatedUser = await odm.users.doc('travel_blogger').get();
