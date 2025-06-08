@@ -42,7 +42,7 @@ void main() {
         });
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Test isEqualTo
@@ -182,7 +182,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Test: (active AND premium) OR (young AND high-rated)
@@ -272,7 +272,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Test null field handling (skip isNull filtering due to fake_cloud_firestore limitations)
@@ -414,10 +414,10 @@ void main() {
 
         // Setup data
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
         for (final post in posts) {
-          await odm.posts.doc(post.id).set(post);
+          await odm.posts(post.id).set(post);
         }
 
         // Act & Assert - Complex queries simulating real scenarios
@@ -568,7 +568,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - E-commerce specific queries
@@ -713,8 +713,8 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('large_data_user').set(user);
-        final retrievedUser = await odm.users.doc('large_data_user').get();
+        await odm.users('large_data_user').set(user);
+        final retrievedUser = await odm.users('large_data_user').get();
 
         // Assert
         expect(retrievedUser, isNotNull);
@@ -754,7 +754,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('concurrent_test_user').set(baseUser);
+        await odm.users('concurrent_test_user').set(baseUser);
 
         // Act - Simulate concurrent operations
         final futures = <Future>[];
@@ -762,7 +762,7 @@ void main() {
         // Multiple increments
         for (int i = 0; i < 10; i++) {
           futures.add(
-            odm.users.doc('concurrent_test_user').update(($) => [
+            odm.users('concurrent_test_user').update(($) => [
               $.profile.followers.increment(1),
               $.rating.increment(0.01),
             ]),
@@ -772,7 +772,7 @@ void main() {
         // Multiple array additions
         for (int i = 0; i < 5; i++) {
           futures.add(
-            odm.users.doc('concurrent_test_user').update(($) => [
+            odm.users('concurrent_test_user').update(($) => [
               $.tags.add('tag_$i'),
               $.scores.add(80 + i),
             ]),
@@ -782,7 +782,7 @@ void main() {
         // Multiple field updates
         for (int i = 0; i < 3; i++) {
           futures.add(
-            odm.users.doc('concurrent_test_user').update(($) => [
+            odm.users('concurrent_test_user').update(($) => [
               $.name('Updated Name $i'),
             ]),
           );
@@ -791,7 +791,7 @@ void main() {
         await Future.wait(futures);
 
         // Assert - Verify final state is consistent
-        final finalUser = await odm.users.doc('concurrent_test_user').get();
+        final finalUser = await odm.users('concurrent_test_user').get();
         expect(finalUser, isNotNull);
         expect(finalUser!.profile.followers, equals(10)); // 10 increments
         expect(finalUser.rating, closeTo(3.1, 0.01)); // 10 * 0.01 = 0.1 increment
@@ -828,10 +828,10 @@ void main() {
         );
 
         // Act 1 - User registration
-        await odm.users.doc('lifecycle_user').set(initialUser);
+        await odm.users('lifecycle_user').set(initialUser);
 
         // Act 2 - Profile completion
-        await odm.users.doc('lifecycle_user').update(($) => [
+        await odm.users('lifecycle_user').update(($) => [
           $.profile.bio('Flutter enthusiast and mobile developer'),
           $.profile.avatar('custom_avatar.jpg'),
           $.profile(socialLinks: {'github': 'flutter_dev'}),
@@ -841,7 +841,7 @@ void main() {
         ]);
 
         // Act 3 - Engagement and activity
-        await odm.users.doc('lifecycle_user').incrementalModify((user) {
+        await odm.users('lifecycle_user').incrementalModify((user) {
           return user.copyWith(
             profile: user.profile.copyWith(
               followers: user.profile.followers + 50,
@@ -852,7 +852,7 @@ void main() {
         });
 
         // Act 4 - Premium upgrade
-        await odm.users.doc('lifecycle_user').update(($) => [
+        await odm.users('lifecycle_user').update(($) => [
           $.isPremium(true),
           $.tags.add('premium'),
           $.rating.increment(0.3),
@@ -860,7 +860,7 @@ void main() {
         ]);
 
         // Act 5 - Advanced user activities
-        await odm.users.doc('lifecycle_user').incrementalModify((user) {
+        await odm.users('lifecycle_user').incrementalModify((user) {
           return user.copyWith(
             name: 'Experienced Flutter Dev',
             profile: user.profile.copyWith(
@@ -888,7 +888,7 @@ void main() {
         });
 
         // Assert - Verify complete user evolution
-        final finalUser = await odm.users.doc('lifecycle_user').get();
+        final finalUser = await odm.users('lifecycle_user').get();
         expect(finalUser, isNotNull);
         expect(finalUser!.name, equals('Experienced Flutter Dev'));
         expect(finalUser.profile.followers, equals(250)); // 0 + 50 + 200
@@ -916,14 +916,14 @@ void main() {
 
         // Act 7 - Stream the final changes
         final changes = <User?>[];
-        final subscription = odm.users.doc('lifecycle_user').changes.listen((user) {
+        final subscription = odm.users('lifecycle_user').changes.listen((user) {
           changes.add(user);
         });
 
         await Future.delayed(Duration(milliseconds: 50));
 
         // Make final update
-        await odm.users.doc('lifecycle_user').update(($) => [
+        await odm.users('lifecycle_user').update(($) => [
           $.name('Final Updated Name'),
         ]);
 

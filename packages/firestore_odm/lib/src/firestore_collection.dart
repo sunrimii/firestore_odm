@@ -24,7 +24,8 @@ class FirestoreCollection<T> extends FirestoreQuery<T> {
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
-  FirestoreDocument<T> doc(String id) {
+  /// Usage: users('id')
+  FirestoreDocument<T> call(String id) {
     return _cache.putIfAbsent(id, () => FirestoreDocument(this, id));
   }
 }

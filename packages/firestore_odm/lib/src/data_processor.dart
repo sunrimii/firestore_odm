@@ -75,17 +75,21 @@ class FirestoreDataProcessor {
       return result;
     } else if (value is List) {
       return value.map((item) => _serializeValue(item)).toList();
-    } else if (value.runtimeType.toString().contains('Impl')) {
-      // Handle Freezed objects - they should have toJson() method
-      try {
-        final json = (value as dynamic).toJson() as Map<String, dynamic>;
-        return _serializeValue(json);
-      } catch (e) {
-        return value;
-      }
-    } else {
-      return value;
     }
+    
+    // Handle Freezed objects - check if they have toJson() method
+    try {
+      // Try to call toJson method
+      final json = (value as dynamic).toJson();
+      if (json is Map<String, dynamic>) {
+        return _serializeValue(json);
+      }
+    } catch (e) {
+      // Not a Freezed object or doesn't have toJson, continue
+    }
+    
+    // For primitive types and objects without toJson
+    return value;
   }
 
   /// Check if a value is a Firestore Timestamp

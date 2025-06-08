@@ -109,8 +109,8 @@ void main() async {
   final firestore = FirebaseFirestore.instance;
   final odm = FirestoreODM(firestore);
 
-  // Create users effortlessly
-  await odm.users.doc('john').set(User(
+  // Create users effortlessly with concise syntax
+  await odm.users('john').set(User(
     id: 'john',
     name: 'John Doe',
     email: 'john@example.com',
@@ -189,7 +189,7 @@ class UserProfileWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: odm.users.doc(userId).changes,
+      stream: odm.users(userId).changes,
       builder: (context, snapshot) {
         final user = snapshot.data;
         if (user == null) return Text('Loading...');
@@ -209,14 +209,14 @@ class UserProfileWidget extends StatelessWidget {
 ```dart
 // Multi-document operations with ACID guarantees
 await odm.runTransaction(() async {
-  final sender = await odm.users.doc('user1').get();
-  final receiver = await odm.users.doc('user2').get();
+  final sender = await odm.users('user1').get();
+  final receiver = await odm.users('user2').get();
   
   if (sender!.points >= 100) {
-    await odm.users.doc('user1').incrementalModify((user) =>
+    await odm.users('user1').incrementalModify((user) =>
       user.copyWith(points: user.points - 100));
       
-    await odm.users.doc('user2').incrementalModify((user) =>
+    await odm.users('user2').incrementalModify((user) =>
       user.copyWith(points: user.points + 100));
   }
 });

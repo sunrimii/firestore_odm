@@ -37,11 +37,11 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('stream_user').set(user);
+        await odm.users('stream_user').set(user);
 
         // Act - Listen to changes
         final changes = <User?>[];
-        final subscription = odm.users.doc('stream_user').changes.listen((user) {
+        final subscription = odm.users('stream_user').changes.listen((user) {
           changes.add(user);
         });
 
@@ -49,11 +49,11 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make some changes
-        await odm.users.doc('stream_user').incrementalModify((user) {
+        await odm.users('stream_user').incrementalModify((user) {
           return user.copyWith(name: 'Updated Stream User');
         });
         
-        await odm.users.doc('stream_user').incrementalModify((user) {
+        await odm.users('stream_user').incrementalModify((user) {
           return user.copyWith(
             profile: user.profile.copyWith(followers: 20),
           );
@@ -91,11 +91,11 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('lifecycle_user').set(user);
+        await odm.users('lifecycle_user').set(user);
 
         // Act - Test subscription lifecycle
         var isListening = false;
-        final subscription = odm.users.doc('lifecycle_user').changes.listen((user) {
+        final subscription = odm.users('lifecycle_user').changes.listen((user) {
           isListening = true;
         });
 
@@ -103,7 +103,7 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make a change to trigger listener
-        await odm.users.doc('lifecycle_user').incrementalModify((user) {
+        await odm.users('lifecycle_user').incrementalModify((user) {
           return user.copyWith(name: 'Updated Lifecycle User');
         });
         await Future.delayed(Duration(milliseconds: 100));
@@ -113,7 +113,7 @@ void main() {
         isListening = false;
 
         // Make another change - should not trigger listener
-        await odm.users.doc('lifecycle_user').incrementalModify((user) {
+        await odm.users('lifecycle_user').incrementalModify((user) {
           return user.copyWith(name: 'Final Update');
         });
         await Future.delayed(Duration(milliseconds: 100));
@@ -162,18 +162,18 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act - Observe multiple documents
         final user1Changes = <User?>[];
         final user2Changes = <User?>[];
 
-        final subscription1 = odm.users.doc('multi_user_1').changes.listen((user) {
+        final subscription1 = odm.users('multi_user_1').changes.listen((user) {
           user1Changes.add(user);
         });
 
-        final subscription2 = odm.users.doc('multi_user_2').changes.listen((user) {
+        final subscription2 = odm.users('multi_user_2').changes.listen((user) {
           user2Changes.add(user);
         });
 
@@ -181,11 +181,11 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make changes to both users
-        await odm.users.doc('multi_user_1').update(($) => [
+        await odm.users('multi_user_1').update(($) => [
           $.name('Updated Multi User 1'),
         ]);
 
-        await odm.users.doc('multi_user_2').update(($) => [
+        await odm.users('multi_user_2').update(($) => [
           $.rating.increment(0.5),
         ]);
 
@@ -223,11 +223,11 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('delete_stream_user').set(user);
+        await odm.users('delete_stream_user').set(user);
 
         // Act - Listen to changes including deletion
         final changes = <User?>[];
-        final subscription = odm.users.doc('delete_stream_user').changes.listen((user) {
+        final subscription = odm.users('delete_stream_user').changes.listen((user) {
           changes.add(user);
         });
 
@@ -235,14 +235,14 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Update the user
-        await odm.users.doc('delete_stream_user').update(($) => [
+        await odm.users('delete_stream_user').update(($) => [
           $.name('Updated Before Delete'),
         ]);
 
         await Future.delayed(Duration(milliseconds: 100));
 
         // Delete the user
-        await odm.users.doc('delete_stream_user').delete();
+        await odm.users('delete_stream_user').delete();
 
         await Future.delayed(Duration(milliseconds: 100));
 
@@ -250,7 +250,7 @@ void main() {
         expect(changes.length, greaterThan(0));
         
         // The last change should be null (document deleted)
-        final finalUser = await odm.users.doc('delete_stream_user').get();
+        final finalUser = await odm.users('delete_stream_user').get();
         expect(finalUser, isNull);
 
         // Clean up
@@ -279,14 +279,14 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('error_user').set(user);
+        await odm.users('error_user').set(user);
 
         // Act - Listen to changes with error handling
         final changes = <User?>[];
         final errors = <dynamic>[];
         var streamCompleted = false;
 
-        final subscription = odm.users.doc('error_user').changes.listen(
+        final subscription = odm.users('error_user').changes.listen(
           (user) {
             changes.add(user);
           },
@@ -302,7 +302,7 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make normal changes
-        await odm.users.doc('error_user').update(($) => [
+        await odm.users('error_user').update(($) => [
           $.name('Updated Error User'),
         ]);
 
@@ -344,7 +344,7 @@ void main() {
 
         // Act - Create all users in batch
         final futures = batchUsers.map((user) {
-          return odm.users.doc(user.id).set(user);
+          return odm.users(user.id).set(user);
         }).toList();
 
         await Future.wait(futures);
@@ -352,7 +352,7 @@ void main() {
         // Assert - Verify all users were created
         final createdBatchUsers = <User>[];
         for (final user in batchUsers) {
-          final retrievedUser = await odm.users.doc(user.id).get();
+          final retrievedUser = await odm.users(user.id).get();
           if (retrievedUser != null) {
             createdBatchUsers.add(retrievedUser);
           }
@@ -361,7 +361,7 @@ void main() {
         expect(createdBatchUsers.length, equals(10));
 
         // Verify specific user
-        final specificUser = await odm.users.doc('batch_user_5').get();
+        final specificUser = await odm.users('batch_user_5').get();
         expect(specificUser!.name, equals('Batch User 5'));
         expect(specificUser.age, equals(30));
       });
@@ -390,12 +390,12 @@ void main() {
 
         // Create initial users
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act - Batch update all users
         final updateFutures = users.map((user) {
-          return odm.users.doc(user.id).incrementalModify((currentUser) {
+          return odm.users(user.id).incrementalModify((currentUser) {
             return currentUser.copyWith(isActive: true, rating: 4.5);
           });
         }).toList();
@@ -404,7 +404,7 @@ void main() {
 
         // Assert - Verify all updates
         for (final user in users) {
-          final updatedUser = await odm.users.doc(user.id).get();
+          final updatedUser = await odm.users(user.id).get();
           expect(updatedUser!.isActive, isTrue);
           expect(updatedUser.rating, equals(4.5));
           expect(updatedUser.name, equals(user.name)); // Unchanged
@@ -431,12 +431,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('existing_mixed').set(existingUser);
+        await odm.users('existing_mixed').set(existingUser);
 
         // Act - Mixed operations: create, update, delete
         final operations = [
           // Create new user
-          odm.users.doc('new_mixed').set(
+          odm.users('new_mixed').set(
             User(
               id: 'new_mixed',
               name: 'New User',
@@ -457,7 +457,7 @@ void main() {
           ),
 
           // Update existing user
-          odm.users.doc('existing_mixed').incrementalModify((user) {
+          odm.users('existing_mixed').incrementalModify((user) {
             return user.copyWith(
               name: 'Updated Existing User',
               isPremium: true,
@@ -465,7 +465,7 @@ void main() {
           }),
 
           // Create another user to delete
-          odm.users.doc('to_delete_mixed').set(
+          odm.users('to_delete_mixed').set(
             User(
               id: 'to_delete_mixed',
               name: 'To Delete',
@@ -489,17 +489,17 @@ void main() {
         await Future.wait(operations);
 
         // Delete the user marked for deletion
-        await odm.users.doc('to_delete_mixed').delete();
+        await odm.users('to_delete_mixed').delete();
 
         // Assert
-        final newUser = await odm.users.doc('new_mixed').get();
+        final newUser = await odm.users('new_mixed').get();
         expect(newUser!.name, equals('New User'));
 
-        final updatedUser = await odm.users.doc('existing_mixed').get();
+        final updatedUser = await odm.users('existing_mixed').get();
         expect(updatedUser!.name, equals('Updated Existing User'));
         expect(updatedUser.isPremium, isTrue);
 
-        final deletedUser = await odm.users.doc('to_delete_mixed').get();
+        final deletedUser = await odm.users('to_delete_mixed').get();
         expect(deletedUser, isNull);
       });
     });
@@ -547,18 +547,18 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('tx_user1').set(user1);
-        await odm.users.doc('tx_user2').set(user2);
+        await odm.users('tx_user1').set(user1);
+        await odm.users('tx_user2').set(user2);
 
         // Act - Transfer followers between users (transaction-like)
         final transferAmount = 25;
 
         // Get current states
-        final currentUser1 = await odm.users.doc('tx_user1').get();
-        final currentUser2 = await odm.users.doc('tx_user2').get();
+        final currentUser1 = await odm.users('tx_user1').get();
+        final currentUser2 = await odm.users('tx_user2').get();
 
         // Perform "transaction" - transfer followers
-        await odm.users.doc('tx_user1').incrementalModify((user) {
+        await odm.users('tx_user1').incrementalModify((user) {
           return user.copyWith(
             profile: user.profile.copyWith(
               followers: currentUser1!.profile.followers - transferAmount,
@@ -566,7 +566,7 @@ void main() {
           );
         });
 
-        await odm.users.doc('tx_user2').incrementalModify((user) {
+        await odm.users('tx_user2').incrementalModify((user) {
           return user.copyWith(
             profile: user.profile.copyWith(
               followers: currentUser2!.profile.followers + transferAmount,
@@ -575,8 +575,8 @@ void main() {
         });
 
         // Assert
-        final finalUser1 = await odm.users.doc('tx_user1').get();
-        final finalUser2 = await odm.users.doc('tx_user2').get();
+        final finalUser1 = await odm.users('tx_user1').get();
+        final finalUser2 = await odm.users('tx_user2').get();
 
         expect(finalUser1!.profile.followers, equals(75));
         expect(finalUser2!.profile.followers, equals(75));
@@ -608,11 +608,11 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('concurrent_user').set(user);
+        await odm.users('concurrent_user').set(user);
 
         // Act - Simulate sequential increments (fake_cloud_firestore doesn't support true concurrency)
         for (int i = 0; i < 5; i++) {
-          await odm.users.doc('concurrent_user').incrementalModify((currentUser) {
+          await odm.users('concurrent_user').incrementalModify((currentUser) {
             return currentUser.copyWith(
               profile: currentUser.profile.copyWith(
                 followers: currentUser.profile.followers + 1,
@@ -622,7 +622,7 @@ void main() {
         }
 
         // Assert - Should have incremented 5 times
-        final finalUser = await odm.users.doc('concurrent_user').get();
+        final finalUser = await odm.users('concurrent_user').get();
         expect(finalUser!.profile.followers, equals(5));
       });
     });
@@ -653,14 +653,14 @@ void main() {
 
         // Act - Create all users
         final createFutures = users.map((user) {
-          return odm.users.doc(user.id).set(user);
+          return odm.users(user.id).set(user);
         }).toList();
 
         await Future.wait(createFutures);
 
         // Update all users
         final updateFutures = users.map((user) {
-          return odm.users.doc(user.id).update(($) => [
+          return odm.users(user.id).update(($) => [
             $.rating.increment(0.1),
           ]);
         }).toList();
@@ -668,7 +668,7 @@ void main() {
         await Future.wait(updateFutures);
 
         // Assert - Verify operations completed
-        final sampleUser = await odm.users.doc('perf_user_25').get();
+        final sampleUser = await odm.users('perf_user_25').get();
         expect(sampleUser, isNotNull);
         expect(sampleUser!.rating, closeTo(4.1, 0.01)); // 3.0 + 1 + 0.1
 
@@ -702,13 +702,13 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('memory_user').set(user);
+        await odm.users('memory_user').set(user);
 
         // Act - Create and cancel multiple subscriptions
         final subscriptions = <dynamic>[];
 
         for (int i = 0; i < 10; i++) {
-          final subscription = odm.users.doc('memory_user').changes.listen((user) {
+          final subscription = odm.users('memory_user').changes.listen((user) {
             // Do nothing
           });
           subscriptions.add(subscription);
@@ -725,7 +725,7 @@ void main() {
         expect(subscriptions.length, equals(10));
 
         // Create one more subscription to verify everything still works
-        final finalSubscription = odm.users.doc('memory_user').changes.listen((user) {
+        final finalSubscription = odm.users('memory_user').changes.listen((user) {
           // Verify user data
           expect(user, isNotNull);
         });

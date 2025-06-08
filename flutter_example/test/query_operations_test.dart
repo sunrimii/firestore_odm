@@ -73,7 +73,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Boolean filtering
@@ -145,7 +145,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Filter by nested profile followers
@@ -186,7 +186,7 @@ void main() {
         });
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Age range query
@@ -254,7 +254,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Array contains query on tags
@@ -328,7 +328,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - whereIn query
@@ -405,7 +405,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Complex AND filter: Premium users under 30 with rating > 4.0
@@ -482,7 +482,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - OR filter: Premium users OR highly rated users
@@ -572,7 +572,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Complex nested query: (active AND premium) OR (age < 25 AND rating > 4.0)
@@ -653,7 +653,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Order by age descending
@@ -742,7 +742,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Order by age ascending, then by followers descending
@@ -782,7 +782,7 @@ void main() {
         });
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Get first 5 users ordered by creation time
@@ -859,7 +859,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users.doc(user.id).set(user);
+          await odm.users(user.id).set(user);
         }
 
         // Act & Assert - Filter active users, order by followers, limit to 2
@@ -906,7 +906,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('single_user').set(user);
+        await odm.users('single_user').set(user);
 
         // Act & Assert - Query that should match
         final matchingUsers = await odm.users
@@ -941,7 +941,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('test_user').set(user);
+        await odm.users('test_user').set(user);
 
         // Act & Assert - Complex query with impossible conditions
         final impossibleUsers = await odm.users

@@ -29,7 +29,7 @@ void main() {
       await odm.posts.upsert(post);
 
       // Verify document exists with correct ID
-      final doc = await odm.posts.doc(testPostId).get();
+      final doc = await odm.posts(testPostId).get();
       expect(doc, isNotNull);
       expect(doc!.id, equals(testPostId));
       expect(doc.title, equals('Test Post'));

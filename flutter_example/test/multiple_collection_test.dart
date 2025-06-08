@@ -38,7 +38,7 @@ void main() {
       await odm.posts.upsert(post);
 
       // Verify it exists in posts collection
-      final retrievedPost = await odm.posts.doc('post1').get();
+      final retrievedPost = await odm.posts('post1').get();
       expect(retrievedPost, isNotNull);
       expect(retrievedPost!.title, equals('Standalone Post'));
       expect(retrievedPost.authorId, equals('author1'));
@@ -64,7 +64,7 @@ void main() {
       await odm.users('user123').posts.upsert(userPost);
 
       // Verify it exists in user subcollection
-      final retrievedPost = await odm.users('user123').posts.doc('post2').get();
+      final retrievedPost = await odm.users('user123').posts('post2').get();
       expect(retrievedPost, isNotNull);
       expect(retrievedPost!.title, equals('User Post'));
       expect(retrievedPost.authorId, equals('user123'));
@@ -100,8 +100,8 @@ void main() {
       await odm.users('user123').posts.upsert(userPost);
 
       // Verify they exist independently
-      final standalone = await odm.posts.doc('standalone1').get();
-      final user = await odm.users('user123').posts.doc('user1').get();
+      final standalone = await odm.posts('standalone1').get();
+      final user = await odm.users('user123').posts('user1').get();
 
       expect(standalone, isNotNull);
       expect(user, isNotNull);
@@ -109,8 +109,8 @@ void main() {
       expect(user!.title, equals('User Post'));
 
       // Verify they don't interfere with each other
-      final standaloneNotInUser = await odm.users('user123').posts.doc('standalone1').get();
-      final userNotInStandalone = await odm.posts.doc('user1').get();
+      final standaloneNotInUser = await odm.users('user123').posts('standalone1').get();
+      final userNotInStandalone = await odm.posts('user1').get();
 
       expect(standaloneNotInUser, isNull);
       expect(userNotInStandalone, isNull);
@@ -142,8 +142,8 @@ void main() {
       await odm.users('user2').posts.upsert(user2Post);
 
       // Verify both exist independently
-      final user1Retrieved = await odm.users('user1').posts.doc('post1').get();
-      final user2Retrieved = await odm.users('user2').posts.doc('post1').get();
+      final user1Retrieved = await odm.users('user1').posts('post1').get();
+      final user2Retrieved = await odm.users('user2').posts('post1').get();
 
       expect(user1Retrieved, isNotNull);
       expect(user2Retrieved, isNotNull);
@@ -268,12 +268,12 @@ void main() {
       final userChanges = <SharedPost?>[];
 
       // Subscribe to standalone collection document changes
-      final standaloneSubscription = odm.posts.doc('post1').changes.listen((post) {
+      final standaloneSubscription = odm.posts('post1').changes.listen((post) {
         standaloneChanges.add(post);
       });
 
       // Subscribe to user subcollection document changes
-      final userSubscription = odm.users('user1').posts.doc('post1').changes.listen((post) {
+      final userSubscription = odm.users('user1').posts('post1').changes.listen((post) {
         userChanges.add(post);
       });
 
@@ -345,19 +345,19 @@ void main() {
       ));
 
       // Update posts
-      await odm.posts.doc('post1').update(($) => [
+      await odm.posts('post1').update(($) => [
         $.title('Updated Title'),
         $.published(true),
       ]);
 
-      await odm.users('user1').posts.doc('post1').update(($) => [
+      await odm.users('user1').posts('post1').update(($) => [
         $.likes(10),
         $.published(true),
       ]);
 
       // Verify updates
-      final updatedStandalone = await odm.posts.doc('post1').get();
-      final updatedUser = await odm.users('user1').posts.doc('post1').get();
+      final updatedStandalone = await odm.posts('post1').get();
+      final updatedUser = await odm.users('user1').posts('post1').get();
 
       expect(updatedStandalone!.title, equals('Updated Title'));
       expect(updatedStandalone.published, isTrue);
@@ -365,12 +365,12 @@ void main() {
       expect(updatedUser.published, isTrue);
 
       // Delete posts
-      await odm.posts.doc('post1').delete();
-      await odm.users('user1').posts.doc('post1').delete();
+      await odm.posts('post1').delete();
+      await odm.users('user1').posts('post1').delete();
 
       // Verify deletions
-      final deletedStandalone = await odm.posts.doc('post1').get();
-      final deletedUser = await odm.users('user1').posts.doc('post1').get();
+      final deletedStandalone = await odm.posts('post1').get();
+      final deletedUser = await odm.users('user1').posts('post1').get();
 
       expect(deletedStandalone, isNull);
       expect(deletedUser, isNull);

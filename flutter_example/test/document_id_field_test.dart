@@ -35,7 +35,7 @@ void main() {
         await odm.users.upsert(user);
 
         // Verify document exists with correct ID
-        final doc = await odm.users.doc(testUserId).get();
+        final doc = await odm.users(testUserId).get();
         expect(doc, isNotNull);
         expect(doc!.id, equals(testUserId));
         expect(doc.name, equals('Test User'));
@@ -197,7 +197,7 @@ void main() {
         await odm.posts.upsert(post);
 
         // Verify document exists
-        final doc = await odm.posts.doc(testPostId).get();
+        final doc = await odm.posts(testPostId).get();
         expect(doc, isNotNull);
         expect(doc!.id, equals(testPostId));
         expect(doc.title, equals('Test Post'));

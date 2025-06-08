@@ -41,7 +41,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Update using array syntax
@@ -81,7 +81,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Update nested profile fields
@@ -118,7 +118,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Use increment operations
@@ -163,7 +163,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Add array elements
@@ -207,7 +207,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Set server timestamp
@@ -242,7 +242,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Use strongly-typed named parameters
@@ -281,7 +281,7 @@ void main() {
           createdAt: DateTime(2023, 1, 1),
         );
         
-        final userDoc = odm.users.doc('test_user');
+        final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Complex mixed update operations
@@ -334,7 +334,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('modify_user');
+        final userDoc = odm.users('modify_user');
         await userDoc.set(initialUser);
 
         // Act - Use modify() method with direct field updates (non-atomic)
@@ -379,7 +379,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('incremental_user');
+        final userDoc = odm.users('incremental_user');
         await userDoc.set(initialUser);
 
         // Act - Use incrementalModify() with automatic atomic operations
@@ -430,7 +430,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('removal_user');
+        final userDoc = odm.users('removal_user');
         await userDoc.set(initialUser);
 
         // Act - Remove specific interests and tags using incremental modify
@@ -479,7 +479,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('mixed_user');
+        final userDoc = odm.users('mixed_user');
         await userDoc.set(initialUser);
 
         // Act - Mixed operations: direct field updates and atomic operations
@@ -564,7 +564,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('story_user');
+        final userDoc = odm.users('story_user');
         await userDoc.set(user);
 
         // Act - Test deep nested array-style updates
@@ -629,7 +629,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('coordinates_user');
+        final userDoc = odm.users('coordinates_user');
         await userDoc.set(user);
 
         // Act - Test 5-level deep array-style update
@@ -677,7 +677,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('concurrent_user');
+        final userDoc = odm.users('concurrent_user');
         await userDoc.set(initialUser);
 
         // Act - Simulate concurrent updates using array-style API
@@ -715,7 +715,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('zero_user');
+        final userDoc = odm.users('zero_user');
         await userDoc.set(initialUser);
 
         // Act - "Increment" by zero (should be no-op)
@@ -753,7 +753,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('duplicate_user');
+        final userDoc = odm.users('duplicate_user');
         await userDoc.set(initialUser);
 
         // Act - Try to add existing interest and tag
@@ -797,7 +797,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        final userDoc = odm.users.doc('empty_user');
+        final userDoc = odm.users('empty_user');
         await userDoc.set(initialUser);
 
         // Act - Set fields to empty collections

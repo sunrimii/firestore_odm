@@ -33,8 +33,8 @@ void main() {
       });
 
       test('should create document references', () {
-        final userDoc = odm.users.doc('test_user');
-        final postDoc = odm.posts.doc('test_post');
+        final userDoc = odm.users('test_user');
+        final postDoc = odm.posts('test_post');
         expect(userDoc, isNotNull);
         expect(postDoc, isNotNull);
       });
@@ -90,8 +90,8 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('test_user').set(user);
-        final retrievedUser = await odm.users.doc('test_user').get();
+        await odm.users('test_user').set(user);
+        final retrievedUser = await odm.users('test_user').get();
 
         // Assert
         expect(retrievedUser, isNotNull);
@@ -123,8 +123,8 @@ void main() {
         );
 
         // Act
-        await odm.posts.doc('test_post').set(post);
-        final retrievedPost = await odm.posts.doc('test_post').get();
+        await odm.posts('test_post').set(post);
+        final retrievedPost = await odm.posts('test_post').get();
 
         // Assert
         expect(retrievedPost, isNotNull);
@@ -158,20 +158,20 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users.doc('delete_test').set(user);
+        await odm.users('delete_test').set(user);
 
         // Act
-        await odm.users.doc('delete_test').delete();
+        await odm.users('delete_test').delete();
 
         // Assert
-        final deletedUser = await odm.users.doc('delete_test').get();
+        final deletedUser = await odm.users('delete_test').get();
         expect(deletedUser, isNull);
       });
 
       test('should handle non-existent document gracefully', () async {
         // Act
-        final nonExistentUser = await odm.users.doc('non_existent').get();
-        final nonExistentPost = await odm.posts.doc('non_existent').get();
+        final nonExistentUser = await odm.users('non_existent').get();
+        final nonExistentPost = await odm.posts('non_existent').get();
 
         // Assert
         expect(nonExistentUser, isNull);
@@ -213,12 +213,12 @@ void main() {
         );
 
         // Act & Assert - Before creation
-        final beforeCreation = await odm.users.doc('exist_test').get();
+        final beforeCreation = await odm.users('exist_test').get();
         expect(beforeCreation, isNull);
 
         // Act & Assert - After creation
-        await odm.users.doc('exist_test').set(user);
-        final afterCreation = await odm.users.doc('exist_test').get();
+        await odm.users('exist_test').set(user);
+        final afterCreation = await odm.users('exist_test').get();
         expect(afterCreation, isNotNull);
         expect(afterCreation!.name, equals('Exist Test'));
       });
@@ -266,11 +266,11 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('overwrite_test').set(user1);
-        final firstVersion = await odm.users.doc('overwrite_test').get();
+        await odm.users('overwrite_test').set(user1);
+        final firstVersion = await odm.users('overwrite_test').get();
         
-        await odm.users.doc('overwrite_test').set(user2);
-        final secondVersion = await odm.users.doc('overwrite_test').get();
+        await odm.users('overwrite_test').set(user2);
+        final secondVersion = await odm.users('overwrite_test').get();
 
         // Assert
         expect(firstVersion!.name, equals('Original User'));
@@ -307,8 +307,8 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('empty_test').set(user);
-        final retrievedUser = await odm.users.doc('empty_test').get();
+        await odm.users('empty_test').set(user);
+        final retrievedUser = await odm.users('empty_test').get();
 
         // Assert
         expect(retrievedUser, isNotNull);
@@ -345,8 +345,8 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('null_test').set(user);
-        final retrievedUser = await odm.users.doc('null_test').get();
+        await odm.users('null_test').set(user);
+        final retrievedUser = await odm.users('null_test').get();
 
         // Assert
         expect(retrievedUser, isNotNull);
@@ -420,8 +420,8 @@ void main() {
         );
 
         // Act
-        await odm.users.doc('large_test').set(user);
-        final retrievedUser = await odm.users.doc('large_test').get();
+        await odm.users('large_test').set(user);
+        final retrievedUser = await odm.users('large_test').get();
 
         // Assert
         expect(retrievedUser, isNotNull);
