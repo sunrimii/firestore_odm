@@ -523,12 +523,15 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   }
 
   bool _isBuiltInType(DartType type) {
-    final typeString = type.toString();
+    final typeString = type.getDisplayString(withNullability: false);
     return type.isDartCoreType ||
         typeString.startsWith('List<') ||
         typeString.startsWith('Map<') ||
         typeString == 'DateTime' ||
-        typeString == 'DateTime?';
+        typeString == 'double' ||
+        typeString == 'int' ||
+        typeString == 'bool' ||
+        typeString == 'String';
   }
 
   String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
