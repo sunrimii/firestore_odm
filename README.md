@@ -578,6 +578,225 @@ await odm.runTransaction(() async {
 });
 ```
 
+## Real-time Data Observation
+
+Firestore ODM provides built-in real-time data observation capabilities with automatic subscription management.
+
+### Basic Document Listening
+
+```dart
+// Listen to document changes
+final userDoc = odm.users.doc('user1');
+
+final subscription = userDoc.changes.listen((user) {
+  if (user != null) {
+    print('User updated: ${user.name}, age: ${user.age}');
+  } else {
+    print('User deleted or does not exist');
+  }
+});
+
+// Make changes - listener will be triggered automatically
+await userDoc.update((update) => [
+  update.name('Updated Name'),
+  update.age.increment(1),
+]);
+
+// Cancel subscription when no longer needed
+await subscription.cancel();
+```
+
+### Real-time UI Updates with Streams
+
+```dart
+// Flutter Widget example
+class UserProfileWidget extends StatelessWidget {
+  final String userId;
+  
+  const UserProfileWidget({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    final odm = FirestoreODM(FirebaseFirestore.instance);
+    
+    return StreamBuilder<User?>(
+      stream: odm.users.doc(userId).changes,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        }
+        
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        
+        final user = snapshot.data;
+        if (user == null) {
+          return Text('User not found');
+        }
+        
+        return Column(
+          children: [
+            Text('Name: ${user.name}'),
+            Text('Age: ${user.age}'),
+            Text('Rating: ${user.rating}'),
+            Text('Followers: ${user.profile.followers}'),
+          ],
+        );
+      },
+    );
+  }
+}
+```
+
+### Multiple Document Observation
+
+```dart
+// Observe multiple documents simultaneously
+final user1Stream = odm.users.doc('user1').changes;
+final user2Stream = odm.users.doc('user2').changes;
+
+// Combine streams
+final combinedStream = StreamGroup.merge([user1Stream, user2Stream]);
+
+combinedStream.listen((user) {
+  if (user != null) {
+    print('Any user updated: ${user.name}');
+  }
+});
+
+// Or use individual subscriptions
+final subscriptions = <StreamSubscription>[];
+
+subscriptions.add(user1Stream.listen((user) {
+  print('User 1 updated: ${user?.name}');
+}));
+
+subscriptions.add(user2Stream.listen((user) {
+  print('User 2 updated: ${user?.name}');
+}));
+
+// Cancel all subscriptions
+for (final subscription in subscriptions) {
+  await subscription.cancel();
+}
+```
+
+### Automatic Subscription Management
+
+The ODM automatically manages Firestore snapshot subscriptions:
+
+```dart
+// Subscription starts when first listener is added
+final userDoc = odm.users.doc('user1');
+print('Is subscribing: ${userDoc.isSubscribing}'); // false
+
+final subscription1 = userDoc.changes.listen((user) {
+  print('Listener 1: ${user?.name}');
+});
+print('Is subscribing: ${userDoc.isSubscribing}'); // true
+
+// Multiple listeners share the same underlying subscription
+final subscription2 = userDoc.changes.listen((user) {
+  print('Listener 2: ${user?.name}');
+});
+
+// Subscription continues until all listeners are cancelled
+await subscription1.cancel();
+print('Is subscribing: ${userDoc.isSubscribing}'); // still true
+
+await subscription2.cancel();
+print('Is subscribing: ${userDoc.isSubscribing}'); // false
+```
+
+### Error Handling in Streams
+
+```dart
+final subscription = odm.users.doc('user1').changes.listen(
+  (user) {
+    // Handle successful data updates
+    print('User data: ${user?.name}');
+  },
+  onError: (error) {
+    // Handle stream errors
+    print('Stream error: $error');
+  },
+  onDone: () {
+    // Handle stream completion
+    print('Stream completed');
+  },
+);
+```
+
+### Real-time Chat/Messaging Example
+
+```dart
+// Real-time messaging system
+class ChatService {
+  final FirestoreODM odm;
+  
+  ChatService(this.odm);
+  
+  // Listen to messages in a chat room
+  Stream<List<Message>> getMessagesStream(String chatId) {
+    return odm.chats.doc(chatId).changes
+        .map((chat) => chat?.messages ?? []);
+  }
+  
+  // Send a message and observers will be notified automatically
+  Future<void> sendMessage(String chatId, String content, String userId) async {
+    await odm.chats.doc(chatId).incrementalModify((chat) {
+      final newMessage = Message(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        content: content,
+        userId: userId,
+        timestamp: DateTime.now(),
+      );
+      
+      return chat.copyWith(
+        messages: [...chat.messages, newMessage],
+        lastActivity: DateTime.now(),
+      );
+    });
+  }
+}
+
+// Usage in Flutter
+StreamBuilder<List<Message>>(
+  stream: chatService.getMessagesStream(chatId),
+  builder: (context, snapshot) {
+    final messages = snapshot.data ?? [];
+    return ListView.builder(
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        return ListTile(
+          title: Text(message.content),
+          subtitle: Text(message.userId),
+        );
+      },
+    );
+  },
+);
+```
+
+### Performance Considerations
+
+1. **Automatic Subscription Sharing**: Multiple listeners on the same document share a single Firestore subscription
+2. **Memory Management**: Subscriptions are automatically cancelled when no listeners remain
+3. **Efficient Updates**: Only changed documents trigger listener callbacks
+4. **Skip Initial**: The stream automatically skips the initial snapshot to avoid duplicate data
+
+```dart
+// The stream skips the initial snapshot automatically
+final userDoc = odm.users.doc('user1');
+
+// This will NOT trigger for the existing data, only for changes
+userDoc.changes.listen((user) {
+  print('User changed: ${user?.name}'); // Only called on actual changes
+});
+```
+
 ## Ordering and Limiting
 
 ```dart
