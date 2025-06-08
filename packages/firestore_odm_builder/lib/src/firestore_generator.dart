@@ -680,21 +680,21 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     
     if (_isListType(fieldType)) {
       final elementType = _getListElementType(fieldType);
-      buffer.writeln('  _ListFieldBuilder<$elementType> get $fieldName {');
+      buffer.writeln('  ListFieldBuilder<$elementType> get $fieldName {');
       buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return _ListFieldBuilder<$elementType>(fieldPath);');
+      buffer.writeln('    return ListFieldBuilder<$elementType>(fieldPath);');
     } else if (_isNumericType(fieldType)) {
-      buffer.writeln('  _NumericFieldBuilder<$typeString> get $fieldName {');
+      buffer.writeln('  NumericFieldBuilder<$typeString> get $fieldName {');
       buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return _NumericFieldBuilder<$typeString>(fieldPath);');
+      buffer.writeln('    return NumericFieldBuilder<$typeString>(fieldPath);');
     } else if (typeString == 'DateTime') {
-      buffer.writeln('  _DateTimeFieldBuilder get $fieldName {');
+      buffer.writeln('  DateTimeFieldBuilder get $fieldName {');
       buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return _DateTimeFieldBuilder(fieldPath);');
+      buffer.writeln('    return DateTimeFieldBuilder(fieldPath);');
     } else {
-      buffer.writeln('  _FieldBuilder<$typeString> get $fieldName {');
+      buffer.writeln('  FieldBuilder<$typeString> get $fieldName {');
       buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-      buffer.writeln('    return _FieldBuilder<$typeString>(fieldPath);');
+      buffer.writeln('    return FieldBuilder<$typeString>(fieldPath);');
     }
     buffer.writeln('  }');
     buffer.writeln('');
@@ -780,144 +780,8 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   }
 
   void _generateBaseUpdateClasses(StringBuffer buffer) {
-    buffer.writeln('/// Update operation types');
-    buffer.writeln('enum UpdateOperationType {');
-    buffer.writeln('  set,');
-    buffer.writeln('  increment,');
-    buffer.writeln('  arrayAdd,');
-    buffer.writeln('  arrayRemove,');
-    buffer.writeln('  serverTimestamp,');
-    buffer.writeln('  objectMerge,');
-    buffer.writeln('}');
-    buffer.writeln('');
+    // Base classes are now provided by the core package
+    // Only need to generate specific update builders for each model
 
-    buffer.writeln('/// Represents a single update operation');
-    buffer.writeln('class UpdateOperation {');
-    buffer.writeln('  final String field;');
-    buffer.writeln('  final UpdateOperationType type;');
-    buffer.writeln('  final dynamic value;');
-    buffer.writeln('');
-    buffer.writeln('  const UpdateOperation(this.field, this.type, this.value);');
-    buffer.writeln('');
-    buffer.writeln('  @override');
-    buffer.writeln('  String toString() => \'UpdateOperation(field: \$field, type: \$type, value: \$value)\';');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    buffer.writeln('/// Base class for update builders');
-    buffer.writeln('abstract class UpdateBuilder {');
-    buffer.writeln('  final String prefix;');
-    buffer.writeln('');
-    buffer.writeln('  const UpdateBuilder({this.prefix = \'\'});');
-    buffer.writeln('');
-    buffer.writeln('  /// Convert operations to Firestore update map');
-    buffer.writeln('  static Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {');
-    buffer.writeln('    final Map<String, dynamic> updateMap = {};');
-    buffer.writeln('    final Map<String, List<dynamic>> arrayAdds = {};');
-    buffer.writeln('    final Map<String, List<dynamic>> arrayRemoves = {};');
-    buffer.writeln('    final Map<String, num> increments = {};');
-    buffer.writeln('');
-    buffer.writeln('    for (final operation in operations) {');
-    buffer.writeln('      switch (operation.type) {');
-    buffer.writeln('        case UpdateOperationType.set:');
-    buffer.writeln('          updateMap[operation.field] = operation.value;');
-    buffer.writeln('          break;');
-    buffer.writeln('        case UpdateOperationType.increment:');
-    buffer.writeln('          increments[operation.field] = (increments[operation.field] ?? 0) + (operation.value as num);');
-    buffer.writeln('          break;');
-    buffer.writeln('        case UpdateOperationType.arrayAdd:');
-    buffer.writeln('          arrayAdds.putIfAbsent(operation.field, () => []).add(operation.value);');
-    buffer.writeln('          break;');
-    buffer.writeln('        case UpdateOperationType.arrayRemove:');
-    buffer.writeln('          arrayRemoves.putIfAbsent(operation.field, () => []).add(operation.value);');
-    buffer.writeln('          break;');
-    buffer.writeln('        case UpdateOperationType.serverTimestamp:');
-    buffer.writeln('          updateMap[operation.field] = FieldValue.serverTimestamp();');
-    buffer.writeln('          break;');
-    buffer.writeln('        case UpdateOperationType.objectMerge:');
-    buffer.writeln('          // For object merge, flatten the nested fields');
-    buffer.writeln('          final data = operation.value as Map<String, dynamic>;');
-    buffer.writeln('          for (final entry in data.entries) {');
-    buffer.writeln('            final fieldPath = operation.field.isEmpty ? entry.key : \'\${operation.field}.\${entry.key}\';');
-    buffer.writeln('            updateMap[fieldPath] = entry.value;');
-    buffer.writeln('          }');
-    buffer.writeln('          break;');
-    buffer.writeln('      }');
-    buffer.writeln('    }');
-    buffer.writeln('');
-    buffer.writeln('    // Handle fields with both add and remove operations by executing them sequentially');
-    buffer.writeln('    final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(arrayRemoves.keys.toSet());');
-    buffer.writeln('    if (fieldsWithBothOps.isNotEmpty) {');
-    buffer.writeln('      throw ArgumentError(\'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: \$fieldsWithBothOps\');');
-    buffer.writeln('    }');
-    buffer.writeln('');
-    buffer.writeln('    // Apply accumulated increment operations');
-    buffer.writeln('    for (final entry in increments.entries) {');
-    buffer.writeln('      updateMap[entry.key] = FieldValue.increment(entry.value);');
-    buffer.writeln('    }');
-    buffer.writeln('');
-    buffer.writeln('    // Apply accumulated array operations');
-    buffer.writeln('    for (final entry in arrayAdds.entries) {');
-    buffer.writeln('      updateMap[entry.key] = FieldValue.arrayUnion(entry.value);');
-    buffer.writeln('    }');
-    buffer.writeln('    for (final entry in arrayRemoves.entries) {');
-    buffer.writeln('      updateMap[entry.key] = FieldValue.arrayRemove(entry.value);');
-    buffer.writeln('    }');
-    buffer.writeln('');
-    buffer.writeln('    return updateMap;');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    // Generate field builder classes
-    buffer.writeln('/// Generic field builder');
-    buffer.writeln('class _FieldBuilder<T> {');
-    buffer.writeln('  final String fieldPath;');
-    buffer.writeln('  _FieldBuilder(this.fieldPath);');
-    buffer.writeln('');
-    buffer.writeln('  /// Set field value');
-    buffer.writeln('  UpdateOperation call(T value) {');
-    buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.set, value);');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    buffer.writeln('/// List field builder');
-    buffer.writeln('class _ListFieldBuilder<T> extends _FieldBuilder<List<T>> {');
-    buffer.writeln('  _ListFieldBuilder(super.fieldPath);');
-    buffer.writeln('');
-    buffer.writeln('  /// Add element to array');
-    buffer.writeln('  UpdateOperation add(T value) {');
-    buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-    buffer.writeln('  /// Remove element from array');
-    buffer.writeln('  UpdateOperation remove(T value) {');
-    buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    buffer.writeln('/// Numeric field builder');
-    buffer.writeln('class _NumericFieldBuilder<T extends num> extends _FieldBuilder<T> {');
-    buffer.writeln('  _NumericFieldBuilder(super.fieldPath);');
-    buffer.writeln('');
-    buffer.writeln('  /// Increment field value');
-    buffer.writeln('  UpdateOperation increment(T value) {');
-    buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.increment, value);');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    buffer.writeln('/// DateTime field builder');
-    buffer.writeln('class _DateTimeFieldBuilder extends _FieldBuilder<DateTime> {');
-    buffer.writeln('  _DateTimeFieldBuilder(super.fieldPath);');
-    buffer.writeln('');
-    buffer.writeln('  /// Set field to server timestamp');
-    buffer.writeln('  UpdateOperation serverTimestamp() {');
-    buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.serverTimestamp, null);');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
   }
 }

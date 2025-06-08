@@ -121,39 +121,115 @@ abstract class UpdateBuilder {
   
   /// Convert operations to Firestore update map
   static Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
-    final updates = <String, dynamic>{};
-    
-    for (final op in operations) {
-      switch (op.type) {
+    final Map<String, dynamic> updateMap = {};
+    final Map<String, List<dynamic>> arrayAdds = {};
+    final Map<String, List<dynamic>> arrayRemoves = {};
+    final Map<String, num> increments = {};
+
+    for (final operation in operations) {
+      switch (operation.type) {
         case UpdateOperationType.set:
-          updates[op.field] = op.value;
+          updateMap[operation.field] = operation.value;
           break;
         case UpdateOperationType.increment:
-          updates[op.field] = FieldValue.increment(op.value);
+          increments[operation.field] =
+              (increments[operation.field] ?? 0) + (operation.value as num);
           break;
         case UpdateOperationType.arrayAdd:
-          updates[op.field] = FieldValue.arrayUnion([op.value]);
+          arrayAdds.putIfAbsent(operation.field, () => []).add(operation.value);
           break;
         case UpdateOperationType.arrayRemove:
-          updates[op.field] = FieldValue.arrayRemove([op.value]);
+          arrayRemoves
+              .putIfAbsent(operation.field, () => [])
+              .add(operation.value);
           break;
         case UpdateOperationType.delete:
-          updates[op.field] = FieldValue.delete();
+          updateMap[operation.field] = FieldValue.delete();
           break;
         case UpdateOperationType.serverTimestamp:
-          updates[op.field] = FieldValue.serverTimestamp();
+          updateMap[operation.field] = FieldValue.serverTimestamp();
           break;
         case UpdateOperationType.objectMerge:
-          if (op.value is Map<String, dynamic>) {
-            for (final entry in (op.value as Map<String, dynamic>).entries) {
-              final nestedField = op.field.isEmpty ? entry.key : '${op.field}.${entry.key}';
-              updates[nestedField] = entry.value;
-            }
+          // For object merge, flatten the nested fields
+          final data = operation.value as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final fieldPath = operation.field.isEmpty
+                ? entry.key
+                : '${operation.field}.${entry.key}';
+            updateMap[fieldPath] = entry.value;
           }
           break;
       }
     }
-    
-    return updates;
+
+    // Handle fields with both add and remove operations by executing them sequentially
+    final fieldsWithBothOps =
+        arrayAdds.keys.toSet().intersection(arrayRemoves.keys.toSet());
+    if (fieldsWithBothOps.isNotEmpty) {
+      throw ArgumentError(
+          'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $fieldsWithBothOps');
+    }
+
+    // Apply accumulated increment operations
+    for (final entry in increments.entries) {
+      updateMap[entry.key] = FieldValue.increment(entry.value);
+    }
+
+    // Apply accumulated array operations
+    for (final entry in arrayAdds.entries) {
+      updateMap[entry.key] = FieldValue.arrayUnion(entry.value);
+    }
+    for (final entry in arrayRemoves.entries) {
+      updateMap[entry.key] = FieldValue.arrayRemove(entry.value);
+    }
+
+    return updateMap;
+  }
+}
+
+/// Generic field builder
+class FieldBuilder<T> {
+  final String fieldPath;
+  FieldBuilder(this.fieldPath);
+
+  /// Set field value
+  UpdateOperation call(T value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+}
+
+/// List field builder
+class ListFieldBuilder<T> extends FieldBuilder<List<T>> {
+  ListFieldBuilder(super.fieldPath);
+
+  /// Add element to array
+  UpdateOperation add(T value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
+  }
+
+  /// Remove element from array
+  UpdateOperation remove(T value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
+  }
+}
+
+/// Numeric field builder
+class NumericFieldBuilder<T extends num> extends FieldBuilder<T> {
+  NumericFieldBuilder(super.fieldPath);
+
+  /// Increment field value
+  UpdateOperation increment(T value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.increment, value);
+  }
+}
+
+/// DateTime field builder
+class DateTimeFieldBuilder extends FieldBuilder<DateTime> {
+  DateTimeFieldBuilder(super.fieldPath);
+
+  /// Set field to server timestamp
+  UpdateOperation serverTimestamp() {
+    return UpdateOperation(
+        fieldPath, UpdateOperationType.serverTimestamp, null);
   }
 }
