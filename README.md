@@ -75,7 +75,7 @@ part 'user.g.dart';
 part 'user.odm.dart'; // This will be generated
 
 @freezed
-@CollectionPath('users')
+@Collection('users')
 class User with _$User {
   const factory User({
     @DocumentIdField() required String id,
@@ -228,7 +228,7 @@ await odm.runTransaction(() async {
 
 ```dart
 @freezed
-@CollectionPath('posts')
+@Collection('posts')
 class Post with _$Post {
   const factory Post({
     @DocumentIdField() required String id, // Virtual field, auto-synced
@@ -308,6 +308,52 @@ await userDoc.incrementalModify((user) => user.copyWith(
 ```
 </details>
 
+<details>
+<summary><strong>🏗️ Subcollections & Nested Data</strong></summary>
+
+```dart
+// Define subcollection models with wildcard syntax
+@freezed
+@Collection('users/*/posts')  // Notice the wildcard * for user ID
+class UserPost with _$UserPost {
+  const factory UserPost({
+    @DocumentIdField() required String id,
+    required String title,
+    required String content,
+    required int likes,
+    required DateTime createdAt,
+  }) = _UserPost;
+  
+  factory UserPost.fromJson(Map<String, dynamic> json) => _$UserPostFromJson(json);
+}
+
+// Access subcollections with fluent API
+final userPosts = odm.users('user123').posts;
+
+// All normal operations work on subcollections
+await userPosts.upsert(UserPost(
+  id: 'post1',
+  title: 'My First Post',
+  content: 'Hello world!',
+  likes: 0,
+  createdAt: DateTime.now(),
+));
+
+// Query subcollections naturally
+final popularPosts = await odm.users('user123').posts
+  .where(($) => $.likes(isGreaterThan: 10))
+  .orderBy(($) => $.createdAt(descending: true))
+  .get();
+
+// Supports arbitrary nesting levels
+@Collection('organizations/*/departments/*/employees')
+class Employee with _$Employee { /* ... */ }
+
+// Access deeply nested collections
+final employees = odm.organizations('org1').departments('dept1').employees;
+```
+</details>
+
 ## Current Limitations
 
 While Firestore ODM provides powerful type-safe operations, some advanced features are not yet implemented:
@@ -334,7 +380,6 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 
 - **GeoPoint Queries**: Geospatial queries and GeoPoint field filtering
 - **Reference Field Operations**: Direct DocumentReference field filtering and updates
-- **Subcollection Support**: Nested collection queries and operations
 
 ### 🎯 **Fully Supported Features**
 
@@ -347,6 +392,7 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 ✅ **Transactions** - Full transaction support with automatic context detection
 ✅ **RxDB-style Operations** - `modify()` and `incrementalModify()` with atomic detection
 ✅ **Upsert Operations** - Document creation/updates using Document ID fields
+✅ **Subcollection Support** - Fluent API for nested collection access with wildcard syntax
 ✅ **Testing Support** - Full compatibility with `fake_cloud_firestore`
 
 ## Installation & Setup

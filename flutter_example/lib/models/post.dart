@@ -6,7 +6,7 @@ part 'post.g.dart';
 part 'post.odm.dart';
 
 @freezed
-@CollectionPath('posts')
+@Collection('posts')
 class Post with _$Post {
   const factory Post({
     @DocumentIdField() required String id,

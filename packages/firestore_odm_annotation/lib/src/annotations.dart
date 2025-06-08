@@ -1,26 +1,24 @@
 import 'package:meta/meta.dart';
 import 'package:meta/meta_meta.dart';
 
-/// Annotation to mark a class as a Firestore collection
+/// Annotation to mark a class as a Firestore collection or subcollection
+///
+/// Supports both regular collections and subcollections with wildcard syntax:
+/// - Regular collection: `@Collection("users")`
+/// - Subcollection: `@Collection("users/*/posts")` where * represents a document ID
 @Target({TargetKind.classType})
 @immutable
-class CollectionPath {
-  /// The path to the Firestore collection
+class Collection {
+  /// The path to the Firestore collection or subcollection
+  ///
+  /// Examples:
+  /// - `"users"` - Regular collection
+  /// - `"users/*/posts"` - Subcollection where * represents the parent document ID
+  /// - `"organizations/*/departments/*/employees"` - Nested subcollection
   final String path;
 
-  /// Creates a [CollectionPath] annotation
-  const CollectionPath(this.path);
-}
-
-/// Annotation to mark a field as a subcollection
-@Target({TargetKind.classType})
-@immutable
-class SubcollectionPath {
-  /// The path to the subcollection
-  final String path;
-
-  /// Creates a [SubcollectionPath] annotation
-  const SubcollectionPath(this.path);
+  /// Creates a [Collection] annotation
+  const Collection(this.path);
 }
 
 /// Annotation to mark a field as the document ID

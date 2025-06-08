@@ -6,7 +6,6 @@ import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 /// Utility class for analyzing Dart types in Firestore ODM generation
 class TypeAnalyzer {
   static final TypeChecker documentIdChecker = TypeChecker.fromRuntime(DocumentIdField);
-  static final TypeChecker subcollectionChecker = TypeChecker.fromRuntime(SubcollectionPath);
 
   /// Find the document ID field in a constructor
   static String? getDocumentIdField(ConstructorElement constructor) {

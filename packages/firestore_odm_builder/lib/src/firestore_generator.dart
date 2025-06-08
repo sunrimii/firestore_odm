@@ -15,7 +15,7 @@ import 'generators/update_generator.dart';
 import 'generators/odm_extension_generator.dart';
 
 /// Refactored Firestore code generator using modular architecture
-class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
+class FirestoreGenerator extends GeneratorForAnnotation<Collection> {
   const FirestoreGenerator();
 
   @override
@@ -26,7 +26,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   ) {
     if (element is! ClassElement) {
       throw InvalidGenerationSourceError(
-        'CollectionPath can only be applied to classes.',
+        'Collection can only be applied to classes.',
         element: element,
       );
     }
@@ -42,13 +42,16 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       );
     }
 
+    // Check if this is a subcollection (contains wildcards)
+    final isSubcollection = collectionPath.contains('*');
+    
     // Find document ID field using the TypeAnalyzer utility
     final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
 
     final buffer = StringBuffer();
 
     // Generate all components using the modular generators
-    _generateAllComponents(buffer, className, collectionPath, constructor, documentIdField);
+    _generateAllComponents(buffer, className, collectionPath, constructor, documentIdField, isSubcollection);
 
     return buffer.toString();
   }
@@ -59,6 +62,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     String collectionPath,
     ConstructorElement constructor,
     String? documentIdField,
+    bool isSubcollection,
   ) {
     // Generate Collection class
     CollectionGenerator.generateCollectionClass(
@@ -67,6 +71,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       collectionPath,
       constructor,
       documentIdField,
+      isSubcollection,
     );
     buffer.writeln('');
 
@@ -147,6 +152,6 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('');
 
     // Generate extension to add the collection to FirestoreODM
-    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath);
+    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection);
   }
 }

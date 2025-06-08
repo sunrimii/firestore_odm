@@ -8,7 +8,7 @@ part 'user.g.dart';
 part 'user.odm.dart'; // Generated ODM code
 
 @freezed
-@CollectionPath('users')
+@Collection('users')
 class User with _$User {
   const factory User({
     @DocumentIdField() required String id,
