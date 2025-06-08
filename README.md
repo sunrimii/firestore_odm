@@ -833,12 +833,6 @@ final topActiveUsers = await odm.users
     .limit(10)
     .get();
 
-// Legacy orderBy methods (still supported)
-final legacyOrdering = await odm.users
-    .orderByAge(descending: true)
-    .orderByRating()
-    .limit(10)
-    .get();
 ```
 
 ## Generated Code Structure
