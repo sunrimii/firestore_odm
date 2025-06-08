@@ -132,22 +132,22 @@ void main() async {
 ```dart
 // Basic field filtering
 final activeUsers = await odm.users
-    .where((filter) => filter.isActive(isEqualTo: true))
+    .where(($) => $.isActive(isEqualTo: true))
     .get();
 
 // Numeric comparisons
 final youngUsers = await odm.users
-    .where((filter) => filter.age(isLessThan: 30))
+    .where(($) => $.age(isLessThan: 30))
     .get();
 
 // String operations
 final johnUsers = await odm.users
-    .where((filter) => filter.name(isEqualTo: 'John Doe'))
+    .where(($) => $.name(isEqualTo: 'John Doe'))
     .get();
 
 // Array operations
 final developerUsers = await odm.users
-    .where((filter) => filter.tags(arrayContains: 'developer'))
+    .where(($) => $.tags(arrayContains: 'developer'))
     .get();
 ```
 
@@ -156,17 +156,17 @@ final developerUsers = await odm.users
 ```dart
 // Filter by nested profile fields
 final popularUsers = await odm.users
-    .where((filter) => filter.profile.followers(isGreaterThan: 100))
+    .where(($) => $.profile.followers(isGreaterThan: 100))
     .get();
 
 // Filter by social links
 final githubUsers = await odm.users
-    .where((filter) => filter.profile.socialLinks.github(isNotEqualTo: null))
+    .where(($) => $.profile.socialLinks.github(isNotEqualTo: null))
     .get();
 
 // Deep nested filtering
 final specificLocationUsers = await odm.users
-    .where((filter) => filter.profile.contact.address.city(isEqualTo: "Hong Kong"))
+    .where(($) => $.profile.contact.address.city(isEqualTo: "Hong Kong"))
     .get();
 ```
 
@@ -175,30 +175,30 @@ final specificLocationUsers = await odm.users
 ```dart
 // AND operations
 final premiumActiveUsers = await odm.users
-    .where((filter) => filter.and(
-      filter.isActive(isEqualTo: true),
-      filter.isPremium(isEqualTo: true),
-      filter.age(isGreaterThan: 18),
+    .where(($) => $.and(
+      $.isActive(isEqualTo: true),
+      $.isPremium(isEqualTo: true),
+      $.age(isGreaterThan: 18),
     ))
     .get();
 
 // OR operations
 final eligibleUsers = await odm.users
-    .where((filter) => filter.or(
-      filter.isPremium(isEqualTo: true),
-      filter.rating(isGreaterThanOrEqualTo: 4.0),
+    .where(($) => $.or(
+      $.isPremium(isEqualTo: true),
+      $.rating(isGreaterThanOrEqualTo: 4.0),
     ))
     .get();
 
 // Nested AND/OR combinations
 final complexQuery = await odm.users
-    .where((filter) => filter.and(
-      filter.isActive(isEqualTo: true),
-      filter.or(
-        filter.isPremium(isEqualTo: true),
-        filter.and(
-          filter.age(isLessThan: 25),
-          filter.rating(isGreaterThan: 4.0),
+    .where(($) => $.and(
+      $.isActive(isEqualTo: true),
+      $.or(
+        $.isPremium(isEqualTo: true),
+        $.and(
+          $.age(isLessThan: 25),
+          $.rating(isGreaterThan: 4.0),
         ),
       ),
     ))
@@ -210,13 +210,13 @@ final complexQuery = await odm.users
 ```dart
 // Find active users with high engagement
 final engagedUsers = await odm.users
-    .where((filter) => filter.and(
-      filter.age(isGreaterThan: 18),
-      filter.profile.followers(isGreaterThan: 100),
-      filter.profile.socialLinks.github(isNotEqualTo: null),
-      filter.or(
-        filter.isPremium(isEqualTo: true),
-        filter.rating(isGreaterThanOrEqualTo: 4.5),
+    .where(($) => $.and(
+      $.age(isGreaterThan: 18),
+      $.profile.followers(isGreaterThan: 100),
+      $.profile.socialLinks.github(isNotEqualTo: null),
+      $.or(
+        $.isPremium(isEqualTo: true),
+        $.rating(isGreaterThanOrEqualTo: 4.5),
       ),
     ))
     .get();
@@ -238,60 +238,60 @@ await userDoc.update(($) => [
 ]);
 
 // Nested field updates
-await userDoc.update((update) => [
-  update.profile.bio('Updated bio'),
-  update.profile.followers(150),
+await userDoc.update(($) => [
+  $.profile.bio('Updated bio'),
+  $.profile.followers(150),
 ]);
 
 // Array operations
-await userDoc.update((update) => [
-  update.tags.add('expert'),
-  update.scores.add(95),
+await userDoc.update(($) => [
+  $.tags.add('expert'),
+  $.scores.add(95),
 ]);
 
 // Numeric increment operations
-await userDoc.update((update) => [
-  update.age.increment(1),
-  update.rating.increment(0.5),
-  update.profile.followers.increment(50),
+await userDoc.update(($) => [
+  $.age.increment(1),
+  $.rating.increment(0.5),
+  $.profile.followers.increment(50),
 ]);
 
 // Server timestamp operations
-await userDoc.update((update) => [
-  update.lastLogin.serverTimestamp(),
-  update.updatedAt.serverTimestamp(),
+await userDoc.update(($) => [
+  $.lastLogin.serverTimestamp(),
+  $.updatedAt.serverTimestamp(),
 ]);
 
 // Object merge operations
-await userDoc.update((update) => [
-  update({'name': 'John Smith', 'isPremium': true}),
-  update.profile({'bio': 'Senior Developer', 'followers': 200}),
+await userDoc.update(($) => [
+  $({'name': 'John Smith', 'isPremium': true}),
+  $.profile({'bio': 'Senior Developer', 'followers': 200}),
 ]);
 
 // Mixed operations - The Revolutionary Feature! 🚀
-await userDoc.update((update) => [
+await userDoc.update(($) => [
   // Increments
-  update.age.increment(1),
-  update.rating.increment(0.5),
-  update.profile.followers.increment(50),
+  $.age.increment(1),
+  $.rating.increment(0.5),
+  $.profile.followers.increment(50),
   
   // Array operations
-  update.tags.add('expert'),
-  update.tags.add('verified'),
+  $.tags.add('expert'),
+  $.tags.add('verified'),
   
   // Object merges
-  update({
+  $({
     'age': 26, // Can override increments
     'rating': 3.5,
     'isPremium': true,
   }),
-  update.profile({
+  $.profile({
     'followers': 150, // Can override increments
     'bio': 'Full-stack developer',
   }),
   
   // Server timestamps
-  update.lastLogin.serverTimestamp(),
+  $.lastLogin.serverTimestamp(),
 ]);
 ```
 
@@ -369,9 +369,9 @@ await userDoc.incrementalModify((currentUser) {
 
 ```dart
 // Array-style: Explicit and declarative
-await userDoc.update((update) => [
-  update.age.increment(1),
-  update.tags.add('expert'),
+await userDoc.update(($) => [
+  $.age.increment(1),
+  $.tags.add('expert'),
 ]);
 
 // Modify: State transformation with diff detection
@@ -458,11 +458,11 @@ await odm.runTransaction(() async {
   
   if (user != null && user.rating < 5.0) {
     // Array-style updates within transaction
-    await odm.users.doc('user1').update((update) => [
-      update.rating.increment(0.5),
-      update.tags.add('verified'),
-      update.profile.followers.increment(25),
-      update.lastLogin.serverTimestamp(),
+    await odm.users.doc('user1').update(($) => [
+      $.rating.increment(0.5),
+      $.tags.add('verified'),
+      $.profile.followers.increment(25),
+      $.lastLogin.serverTimestamp(),
     ]);
     
     // Create activity log
@@ -520,8 +520,8 @@ await odm.runTransaction(() async {
   await odm.users.doc('user1').set(updatedUser);
   
   // Updating - uses transaction.update()
-  await odm.users.doc('user1').update((update) => [
-    update.age.increment(1),
+  await odm.users.doc('user1').update(($) => [
+    $.age.increment(1),
   ]);
   
   // Modifying - uses transaction.set() with merge
@@ -597,9 +597,9 @@ final subscription = userDoc.changes.listen((user) {
 });
 
 // Make changes - listener will be triggered automatically
-await userDoc.update((update) => [
-  update.name('Updated Name'),
-  update.age.increment(1),
+await userDoc.update(($) => [
+  $.name('Updated Name'),
+  $.age.increment(1),
 ]);
 
 // Cancel subscription when no longer needed
@@ -828,7 +828,7 @@ final complexOrdering = await odm.users
 
 // Combine filtering and ordering
 final topActiveUsers = await odm.users
-    .where((filter) => filter.isActive(isEqualTo: true))
+    .where(($) => $.isActive(isEqualTo: true))
     .orderBy((order) => order.rating(descending: true))
     .limit(10)
     .get();
@@ -865,7 +865,7 @@ await users.doc('id').delete();
 final user = await users.doc('id').get();
 
 // Query operations
-final query = users.where((filter) => /* conditions */);
+final query = users.where(($) => /* conditions */);
 final results = await query.get();
 ```
 
@@ -898,55 +898,55 @@ filter.nestedObject.field(isEqualTo: value)
 filter.deeply.nested.object.field(isGreaterThan: value)
 
 // Logical operations
-filter.and(filter1, filter2, filter3, ...)  // Up to 30 filters
-filter.or(filter1, filter2, filter3, ...)   // Up to 30 filters
+$.and(filter1, filter2, filter3, ...)  // Up to 30 filters
+$.or(filter1, filter2, filter3, ...)   // Up to 30 filters
 ```
 
 ### Update Operations
 
 ```dart
 // Basic field updates
-await doc.update((update) => [
+await doc.update(($) => [
   update.field1(newValue),
   update.field2(anotherValue),
 ]);
 
 // Nested field updates
-await doc.update((update) => [
+await doc.update(($) => [
   update.nestedObject.field(value),
   update.deeply.nested.object.field(anotherValue),
 ]);
 
 // Array operations
-await doc.update((update) => [
+await doc.update(($) => [
   update.arrayField.add(item),
   update.arrayField.remove(item),
 ]);
 
 // Numeric operations
-await doc.update((update) => [
+await doc.update(($) => [
   update.numericField.increment(5),
   update.nestedObject.count.increment(1),
 ]);
 
 // Server timestamp
-await doc.update((update) => [
+await doc.update(($) => [
   update.timestampField.serverTimestamp(),
 ]);
 
 // Object merge operations
-await doc.update((update) => [
-  update({'field1': 'value1', 'field2': 'value2'}),
+await doc.update(($) => [
+  $({'field1': 'value1', 'field2': 'value2'}),
   update.nestedObject({'subField': 'newValue'}),
 ]);
 
 // Mixed operations in single update
-await doc.update((update) => [
-  update.name('John'),
-  update.age.increment(1),
-  update.tags.add('expert'),
-  update.profile.followers.increment(10),
-  update({'isPremium': true}),
+await doc.update(($) => [
+  $.name('John'),
+  $.age.increment(1),
+  $.tags.add('expert'),
+  $.profile.followers.increment(10),
+  $({'isPremium': true}),
   update.lastUpdated.serverTimestamp(),
 ]);
 ```
@@ -966,9 +966,9 @@ void main() {
     
     // Test complex filtering
     final results = await odm.users
-        .where((filter) => filter.and(
-          filter.isActive(isEqualTo: true),
-          filter.profile.followers(isGreaterThan: 50),
+        .where(($) => $.and(
+          $.isActive(isEqualTo: true),
+          $.profile.followers(isGreaterThan: 50),
         ))
         .get();
     
