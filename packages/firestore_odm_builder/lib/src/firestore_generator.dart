@@ -77,13 +77,13 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     _generateOrderByBuilderClass(buffer, className, constructor, className, documentIdField);
     
     // Generate OrderByBuilder classes for all nested types
-    _generateNestedOrderByBuilderClasses(buffer, constructor, <String>{}, className);
+    _generateNestedOrderByBuilderClasses(buffer, constructor, <String>{}, className, documentIdField);
 
     // Generate base update classes first
     _generateBaseUpdateClasses(buffer);
 
     // Generate UpdateBuilder class and all nested types
-    _generateUpdateBuilderClass(buffer, className, constructor, className);
+    _generateUpdateBuilderClass(buffer, className, constructor, className, documentIdField);
     _generateNestedUpdateBuilderClasses(buffer, constructor, <String>{className}, className);
 
     // Generate Filter class
@@ -146,12 +146,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       buffer.writeln('      return json;');
       buffer.writeln('    },');
     } else {
-      buffer.writeln('    fromJson: (data, [documentId]) {');
-      buffer.writeln('      // Add document ID to data for backward compatibility');
-      buffer.writeln('      final dataWithId = Map<String, dynamic>.from(data);');
-      buffer.writeln('      if (documentId != null) dataWithId[\'id\'] = documentId;');
-      buffer.writeln('      return $className.fromJson(dataWithId);');
-      buffer.writeln('    },');
+      buffer.writeln('    fromJson: (data, [documentId]) => $className.fromJson(data),');
       buffer.writeln('    toJson: (value) => value.toJson(),');
     }
     
@@ -463,6 +458,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     StringBuffer buffer,
     String className,
     ConstructorElement constructor,
+    String? documentIdField,
   ) {
     buffer.writeln('');
     buffer.writeln('class ${className}UpdateBuilder {');
@@ -475,7 +471,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     // Collect valid parameters first
     final validParams = <ParameterElement>[];
     for (final param in constructor.parameters) {
-      if (param.name != 'id') {
+      if (param.name != documentIdField) {
         validParams.add(param);
       }
     }
@@ -518,8 +514,8 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       final fieldName = param.name;
       final fieldType = param.type;
 
-      // Skip the id field and built-in types
-      if (fieldName == 'id' || _isBuiltInType(fieldType)) {
+      // Skip the document ID field and built-in types
+      if (fieldName == documentIdField || _isBuiltInType(fieldType)) {
         continue;
       }
 
@@ -554,12 +550,13 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     StringBuffer buffer,
     ConstructorElement constructor,
     Set<String> processedTypes,
+    String? documentIdField,
   ) {
     for (final param in constructor.parameters) {
       final fieldType = param.type;
 
-      // Skip the id field and built-in types
-      if (param.name == 'id' || _isBuiltInType(fieldType)) {
+      // Skip the document ID field and built-in types
+      if (param.name == documentIdField || _isBuiltInType(fieldType)) {
         continue;
       }
 
@@ -579,13 +576,14 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          _generateUpdateBuilder(buffer, nestedClassName, nestedConstructor);
+          _generateUpdateBuilder(buffer, nestedClassName, nestedConstructor, null);
 
           // Recursively generate builders for nested classes
           _generateNestedUpdateBuilders(
             buffer,
             nestedConstructor,
             processedTypes,
+            null,
           );
         }
       }
@@ -698,12 +696,13 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     ConstructorElement constructor,
     Set<String> processedTypes,
     String rootOrderByType,
+    String? documentIdField,
   ) {
     for (final param in constructor.parameters) {
       final fieldType = param.type;
 
-      // Skip the id field and built-in types
-      if (param.name == 'id' || _isBuiltInType(fieldType)) {
+      // Skip the document ID field and built-in types
+      if (param.name == documentIdField || _isBuiltInType(fieldType)) {
         continue;
       }
 
@@ -731,6 +730,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
             nestedConstructor,
             processedTypes,
             rootOrderByType,
+            null,
           );
         }
       }
@@ -742,6 +742,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     String className,
     ConstructorElement constructor,
     String rootUpdateType,
+    String? documentIdField,
   ) {
     buffer.writeln('/// Generated UpdateBuilder for $className');
     buffer.writeln('class ${className}UpdateBuilder extends UpdateBuilder {');
@@ -760,7 +761,8 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
       final fieldName = param.name;
       final fieldType = param.type;
       
-      if (fieldName == 'id') continue;
+      // Skip document ID field
+      if (fieldName == documentIdField) continue;
       
       if (_isPrimitiveType(fieldType) || _isComparableType(fieldType)) {
         _generateUpdateFieldMethod(buffer, className, fieldName, fieldType);
@@ -842,7 +844,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          _generateUpdateBuilderClass(buffer, nestedClassName, nestedConstructor, rootUpdateType);
+          _generateUpdateBuilderClass(buffer, nestedClassName, nestedConstructor, rootUpdateType, null);
 
           // Recursively generate builders for nested classes
           _generateNestedUpdateBuilderClasses(
