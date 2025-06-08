@@ -30,21 +30,10 @@ class FirestoreGenerator extends Generator {
 
   @override
   String? generate(LibraryReader library, BuildStep buildStep) {
-    // Step 1: Validate all @Collection configurations first
-    final validationErrors = CollectionValidator.validateCollections(library);
-    
-    if (validationErrors.isNotEmpty) {
-      final errorReport = CollectionValidator.generateErrorReport(validationErrors);
-      throw InvalidGenerationSourceError(
-        '\n' + errorReport,
-        todo: 'Fix the @Collection configuration errors listed above.',
-      );
-    }
-    
     final buffer = StringBuffer();
     final generatedClasses = <String>{};
     
-    // Step 2: Process all classes with @Collection annotations (validation passed)
+    // Process all classes with @Collection annotations
     for (final element in library.allElements) {
       if (element is ClassElement) {
         final collections = _getCollectionAnnotations(element);
@@ -155,6 +144,10 @@ class FirestoreGenerator extends Generator {
     QueryGenerator.generateQueryClass(buffer, className, constructor);
     buffer.writeln('');
 
+    // Generate Filter class first
+    FilterGenerator.generateFilterClass(buffer, className);
+    buffer.writeln('');
+    
     // Generate FilterBuilder class
     FilterGenerator.generateFilterBuilderClass(
       buffer,
@@ -175,10 +168,27 @@ class FirestoreGenerator extends Generator {
 
     // Generate OrderByBuilder class
     OrderByGenerator.generateOrderByBuilderClass(buffer, className, constructor, className, documentIdField);
+    
+    // Generate nested OrderByBuilder classes
+    OrderByGenerator.generateNestedOrderByBuilderClasses(
+      buffer,
+      constructor,
+      <String>{},
+      className,
+      documentIdField,
+    );
     buffer.writeln('');
 
     // Generate UpdateBuilder class
     UpdateGenerator.generateUpdateBuilderClass(buffer, className, constructor, className, documentIdField);
+    
+    // Generate nested UpdateBuilder classes
+    UpdateGenerator.generateNestedUpdateBuilderClasses(
+      buffer,
+      constructor,
+      <String>{},
+      documentIdField ?? '',
+    );
     buffer.writeln('');
   }
 
@@ -205,7 +215,7 @@ class FirestoreGenerator extends Generator {
     buffer.writeln('');
     
     // Generate ODM extension for this specific collection
-    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection);
+    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection, suffix: suffix);
     buffer.writeln('');
   }
 

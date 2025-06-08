@@ -3,7 +3,7 @@ import '../utils/string_helpers.dart';
 /// Generator for ODM extension classes
 class ODMExtensionGenerator {
   /// Generate the ODM extension code
-  static void generateODMExtension(StringBuffer buffer, String className, String collectionPath, bool isSubcollection) {
+  static void generateODMExtension(StringBuffer buffer, String className, String collectionPath, bool isSubcollection, {String suffix = ''}) {
     final pathSegments = collectionPath.split('/');
     final wildcardParams = <String>[];
     
@@ -20,25 +20,25 @@ class ODMExtensionGenerator {
     
     if (isSubcollection && wildcardParams.isNotEmpty) {
       // For subcollections, generate document reference class first (outside extension)
-      _generateDocumentReferenceClass(buffer, className, pathSegments, wildcardParams);
+      _generateDocumentReferenceClass(buffer, className, pathSegments, wildcardParams, suffix: suffix);
     }
     
     buffer.writeln('/// Extension to add the collection to FirestoreODM');
-    buffer.writeln('extension FirestoreODM${className}Extension on FirestoreODM {');
+    buffer.writeln('extension FirestoreODM${className}${suffix}Extension on FirestoreODM {');
     
     if (isSubcollection && wildcardParams.isNotEmpty) {
       // Generate method to create document reference
-      _generateDocumentReferenceMethod(buffer, pathSegments, wildcardParams);
+      _generateDocumentReferenceMethod(buffer, className, pathSegments, wildcardParams, suffix);
     } else {
       // Generate getter for regular collection
-      buffer.writeln('  ${className}Collection get ${StringHelpers.camelCase(collectionPath)} => ${className}Collection(firestore);');
+      buffer.writeln('  ${className}Collection${suffix} get ${StringHelpers.camelCase(collectionPath)} => ${className}Collection${suffix}(firestore);');
     }
     
     buffer.writeln('}');
   }
   
   /// Generate document reference class for fluent API
-  static void _generateDocumentReferenceClass(StringBuffer buffer, String className, List<String> pathSegments, List<String> wildcardParams) {
+  static void _generateDocumentReferenceClass(StringBuffer buffer, String className, List<String> pathSegments, List<String> wildcardParams, {String suffix = ''}) {
     final collectionsOnly = pathSegments.where((segment) => segment != '*').toList();
     if (collectionsOnly.length >= 2) {
       final parentCollection = collectionsOnly[collectionsOnly.length - 2];
@@ -61,7 +61,7 @@ class ODMExtensionGenerator {
       buffer.writeln(');');
       buffer.writeln('');
       buffer.writeln('  /// Access $childCollection subcollection');
-      buffer.write('  ${className}Collection get $childCollectionName => ${className}Collection(_firestore');
+      buffer.write('  ${className}Collection${suffix} get $childCollectionName => ${className}Collection${suffix}(_firestore');
       for (final param in wildcardParams) {
         buffer.write(', ${param.replaceAll('_', '')}: _$param');
       }
@@ -72,7 +72,7 @@ class ODMExtensionGenerator {
   }
   
   /// Generate method to create document reference
-  static void _generateDocumentReferenceMethod(StringBuffer buffer, List<String> pathSegments, List<String> wildcardParams) {
+  static void _generateDocumentReferenceMethod(StringBuffer buffer, String className, List<String> pathSegments, List<String> wildcardParams, String suffix) {
     final collectionsOnly = pathSegments.where((segment) => segment != '*').toList();
     if (collectionsOnly.length >= 2) {
       final parentCollection = collectionsOnly[collectionsOnly.length - 2];
