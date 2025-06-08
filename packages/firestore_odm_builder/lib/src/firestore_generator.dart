@@ -227,7 +227,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln(']) {');
     buffer.writeln('    final allFilters = <FirestoreFilter>[filter1, filter2];');
     for (int i = 3; i <= 30; i++) {
-      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i!);');
+      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i);');
     }
     buffer.writeln('    return ${rootFilterType}Filter._or(allFilters);');
     buffer.writeln('  }');
@@ -240,7 +240,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln(']) {');
     buffer.writeln('    final allFilters = <FirestoreFilter>[filter1, filter2];');
     for (int i = 3; i <= 30; i++) {
-      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i!);');
+      buffer.writeln('    if (filter$i != null) allFilters.add(filter$i);');
     }
     buffer.writeln('    return ${rootFilterType}Filter._and(allFilters);');
     buffer.writeln('  }');
