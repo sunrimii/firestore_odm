@@ -227,6 +227,9 @@ await odm.runTransaction(() async {
 <details>
 <summary><strong>🎯 Document ID Fields</strong></summary>
 
+The ODM automatically handles document ID fields with two approaches:
+
+### **Method 1: Explicit Annotation (Recommended)**
 ```dart
 @freezed
 @Collection('posts')
@@ -239,7 +242,31 @@ class Post with _$Post {
   
   factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
 }
+```
 
+### **Method 2: Automatic Detection (Default)**
+```dart
+@freezed
+@Collection('articles')
+class Article with _$Article {
+  const factory Article({
+    required String id, // ✨ Automatically detected as document ID field
+    required String title,
+    required String content,
+  }) = _Article;
+  
+  factory Article.fromJson(Map<String, dynamic> json) => _$ArticleFromJson(json);
+}
+```
+
+**Detection Rules:**
+- ✅ **First Priority:** Fields with `@DocumentIdField()` annotation
+- ✅ **Second Priority:** Field named `id` of type `String` (automatic fallback)
+- ⚠️ **Requirement:** Every collection model **must** have a document ID field
+
+**Both approaches provide identical functionality:**
+
+```dart
 // Use document ID in queries
 final specificPosts = await odm.posts
   .where(($) => $.id(whereIn: ['post1', 'post2', 'post3']))
@@ -249,7 +276,20 @@ final specificPosts = await odm.posts
 final orderedPosts = await odm.posts
   .orderBy(($) => $.id())
   .get();
+
+// Upsert with document ID field
+await odm.posts.upsert(Post(
+  id: 'my-post-id', // Used as Firestore document ID
+  title: 'My Post',
+  content: 'Content here',
+));
 ```
+
+**Key Benefits:**
+- **Virtual Storage:** ID field is never stored in document data
+- **Automatic Sync:** Field value always matches Firestore document ID
+- **Type-Safe Queries:** Full filtering and ordering support
+- **Seamless Upsert:** Automatic document creation/updates
 </details>
 
 <details>
@@ -402,7 +442,7 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 
 ### 🎯 **Fully Supported Features**
 
-✅ **Document ID Fields** - Virtual `@DocumentIdField()` with `FieldPath.documentId` support
+✅ **Document ID Fields** - Virtual `@DocumentIdField()` with `FieldPath.documentId` support, automatic `id` field detection
 ✅ **Type-safe Filtering** - All Firestore operators on primitive and custom types
 ✅ **Nested Object Queries** - Deep filtering on custom class fields
 ✅ **Array Operations** - `arrayContains`, `arrayContainsAny`, `arrayUnion`, `arrayRemove`

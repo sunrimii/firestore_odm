@@ -8,7 +8,10 @@ class TypeAnalyzer {
   static final TypeChecker documentIdChecker = TypeChecker.fromRuntime(DocumentIdField);
 
   /// Find the document ID field in a constructor
+  /// First looks for fields with @DocumentIdField() annotation.
+  /// If none found, defaults to a field named 'id' (must be String type).
   static String? getDocumentIdField(ConstructorElement constructor) {
+    // First pass: Look for explicit @DocumentIdField() annotation
     for (final param in constructor.parameters) {
       for (final metadata in param.metadata) {
         final metadataValue = metadata.computeConstantValue();
@@ -19,6 +22,14 @@ class TypeAnalyzer {
         }
       }
     }
+    
+    // Second pass: Look for a field named 'id' as default
+    for (final param in constructor.parameters) {
+      if (param.name == 'id' && isStringType(param.type)) {
+        return param.name;
+      }
+    }
+    
     return null;
   }
 
