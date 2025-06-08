@@ -4,7 +4,7 @@ part 'story.freezed.dart';
 part 'story.g.dart';
 
 @freezed
-class Story with _$Story {
+abstract class Story with _$Story {
   const factory Story({
     required String name,
     required String content,
@@ -17,7 +17,7 @@ class Story with _$Story {
 }
 
 @freezed
-class Place with _$Place {
+abstract class Place with _$Place {
   const factory Place({
     required String name,
     required String address,
@@ -29,7 +29,7 @@ class Place with _$Place {
 }
 
 @freezed
-class Coordinates with _$Coordinates {
+abstract class Coordinates with _$Coordinates {
   const factory Coordinates({
     required double latitude,
     required double longitude,

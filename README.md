@@ -317,7 +317,7 @@ await userDoc.incrementalModify((user) => user.copyWith(
 @freezed
 @Collection('posts')           // Top-level posts collection
 @Collection('users/*/posts')   // User subcollection posts
-class SharedPost with _$SharedPost {
+abstract class SharedPost with _$SharedPost {
   const factory SharedPost({
     @DocumentIdField() required String id,
     required String title,

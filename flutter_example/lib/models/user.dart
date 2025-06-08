@@ -9,7 +9,7 @@ part 'user.odm.dart'; // Generated ODM code
 
 @freezed
 @Collection('users')
-class User with _$User {
+abstract class User with _$User {
   const factory User({
     @DocumentIdField() required String id,
     required String name,

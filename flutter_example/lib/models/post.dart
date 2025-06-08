@@ -7,7 +7,7 @@ part 'post.odm.dart';
 
 @freezed
 @Collection('posts')
-class Post with _$Post {
+abstract class Post with _$Post {
   const factory Post({
     @DocumentIdField() required String id,
     required String title,
