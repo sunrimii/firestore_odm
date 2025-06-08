@@ -11,7 +11,7 @@ void main() {
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(fakeFirestore);
+      odm = FirestoreODM(firestore: fakeFirestore);
     });
 
     test('should support callable syntax users(id)', () async {

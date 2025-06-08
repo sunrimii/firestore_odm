@@ -10,7 +10,7 @@ void main() {
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore);
+      odm = FirestoreODM(firestore: firestore);
     });
 
     test('should upsert post with document ID', () async {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_collection.dart';
+import 'update_operations_mixin.dart';
 
 /// Exception thrown when a document is not found
 class FirestoreDocumentNotFoundException implements Exception {
@@ -14,7 +15,7 @@ class FirestoreDocumentNotFoundException implements Exception {
 }
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
-class FirestoreDocument<T> {
+class FirestoreDocument<T> with UpdateOperationsMixin<T> {
   /// The collection this document belongs to
   final FirestoreCollection<T> collection;
 
@@ -23,6 +24,15 @@ class FirestoreDocument<T> {
 
   /// Cached document data
   Map<String, dynamic>? _cache;
+
+  @override
+  DateTime get specialTimestamp => collection.specialTimestamp;
+
+  @override
+  Map<String, dynamic> Function(T value) get toJson => collection.toJson;
+
+  @override
+  T Function(Map<String, dynamic> data, [String? documentId]) get fromJson => collection.fromJson;
 
   /// Computes the difference between old and new data for efficient updates
   static Map<String, dynamic> _diff(

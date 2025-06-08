@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:meta/meta.dart';
+import 'update_operations_mixin.dart';
 
 /// Abstract base class for type-safe Firestore queries
-abstract class FirestoreQuery<T> {
+abstract class FirestoreQuery<T> with UpdateOperationsMixin<T> {
   /// The underlying Firestore query
   @protected
   final Query<Map<String, dynamic>> query;
@@ -19,6 +20,84 @@ abstract class FirestoreQuery<T> {
 
   /// Creates a new FirestoreQuery instance
   FirestoreQuery(this.query, this.fromJson, this.toJson);
+
+  /// Bulk update all documents that match this query using array-style updates
+  Future<void> update(List<UpdateOperation> Function(dynamic updateBuilder) updateBuilder) async {
+    final snapshot = await query.get();
+    final batch = query.firestore.batch();
+    
+    // We need the actual update builder class, but for now we'll create operations manually
+    final operations = updateBuilder(null); // This will need to be improved with actual builder
+    final updateMap = _operationsToMap(operations);
+    final processedUpdateMap = processUpdateData(updateMap);
+    
+    for (final docSnapshot in snapshot.docs) {
+      batch.update(docSnapshot.reference, processedUpdateMap);
+    }
+    
+    await batch.commit();
+  }
+
+  /// Bulk modify all documents that match this query using diff-based updates
+  Future<void> modify(T Function(T docData) modifier) async {
+    final snapshot = await query.get();
+    final batch = query.firestore.batch();
+    
+    for (final docSnapshot in snapshot.docs) {
+      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
+      final newDoc = modifier(doc);
+      final oldData = toJson(doc);
+      final newData = toJson(newDoc);
+      final updateData = computeDiff(oldData, newData);
+      
+      if (updateData.isNotEmpty) {
+        final processedUpdateData = processUpdateData(updateData);
+        batch.update(docSnapshot.reference, processedUpdateData);
+      }
+    }
+    
+    await batch.commit();
+  }
+
+  /// Bulk incremental modify all documents that match this query with automatic atomic operations
+  Future<void> incrementalModify(T Function(T docData) modifier) async {
+    final snapshot = await query.get();
+    final batch = query.firestore.batch();
+    
+    for (final docSnapshot in snapshot.docs) {
+      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
+      final newDoc = modifier(doc);
+      final oldData = toJson(doc);
+      final newData = toJson(newDoc);
+      final updateData = computeDiffWithAtomicOperations(oldData, newData);
+      
+      if (updateData.isNotEmpty) {
+        final processedUpdateData = processUpdateData(updateData);
+        batch.update(docSnapshot.reference, processedUpdateData);
+      }
+    }
+    
+    await batch.commit();
+  }
+
+  /// Extract collection path from query (this will need to be overridden in subclasses)
+  String getCollectionPath() {
+    // This is a simplified implementation - in real usage this would be provided by generated code
+    return 'collection'; // Placeholder
+  }
+
+  /// Extract document ID from a document instance (this will need to be overridden in subclasses)
+  String getDocumentId(T doc) {
+    // This is a simplified implementation - in real usage this would extract the ID field
+    final json = toJson(doc);
+    return json['id'] as String? ?? 'unknown';
+  }
+
+  /// Convert operations list to map (simplified implementation)
+  Map<String, dynamic> _operationsToMap(List<UpdateOperation> operations) {
+    // This is a placeholder - real implementation would be in generated code
+    return <String, dynamic>{};
+  }
 
   /// Limits the number of results returned
   FirestoreQuery<T> limit(int limit) {

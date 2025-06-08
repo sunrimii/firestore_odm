@@ -13,6 +13,9 @@ class QueryGenerator {
     buffer.writeln('  @override');
     buffer.writeln('  FirestoreQuery<$className> newInstance(Query<Map<String, dynamic>> query) => ${className}Query(collection, query);');
     buffer.writeln('');
+    buffer.writeln('  @override');
+    buffer.writeln('  DateTime get specialTimestamp => collection.specialTimestamp;');
+    buffer.writeln('');
     
     // Generate new orderBy method using OrderByBuilder
     buffer.writeln('  /// Order using an OrderBy Builder');

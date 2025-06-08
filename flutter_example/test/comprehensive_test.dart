@@ -14,7 +14,7 @@ void main() {
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(fakeFirestore);
+      odm = FirestoreODM(firestore: fakeFirestore);
     });
 
     group('🌟 Advanced Filter Builder Coverage', () {

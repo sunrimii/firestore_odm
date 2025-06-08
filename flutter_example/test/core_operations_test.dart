@@ -13,7 +13,7 @@ void main() {
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(fakeFirestore);
+      odm = FirestoreODM(firestore: fakeFirestore);
     });
 
     group('🏗️ Architecture & Initialization', () {

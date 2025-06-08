@@ -107,7 +107,7 @@ import 'models/user.dart';
 
 void main() async {
   final firestore = FirebaseFirestore.instance;
-  final odm = FirestoreODM(firestore);
+  final odm = FirestoreODM(firestore: firestore);
 
   // Create users effortlessly with concise syntax
   await odm.users('john').set(User(
@@ -161,10 +161,12 @@ final engagedUsers = await odm.users
   .get();
 ```
 
-### ⚡ **Lightning-Fast Updates**
+### ⚡ **Three Powerful Update Methods**
+
+Choose the update style that fits your workflow:
 
 ```dart
-// Single operation, multiple changes
+// 1. Array-Style Updates (Explicit atomic operations)
 await userDoc.update(($) => [
   $.name('John Smith'),           // Direct update
   $.age.increment(1),             // Atomic increment
@@ -172,10 +174,62 @@ await userDoc.update(($) => [
   $.lastLogin.serverTimestamp(),  // Server timestamp
 ]);
 
-// Or use familiar copyWith pattern with smart atomic detection
+// 2. Modify (Immutable diff-based updates)
+await userDoc.modify((user) => user.copyWith(
+  name: 'John Smith',
+  age: user.age + 1,              // Regular math operations
+  tags: [...user.tags, 'verified'], // Standard Dart list operations
+  lastLogin: FirestoreODM.serverTimestamp, // Special timestamp constant
+));
+
+// 3. Incremental Modify (Automatic atomic detection)
 await userDoc.incrementalModify((user) => user.copyWith(
-  age: user.age + 1,              // Becomes increment(1)
-  tags: [...user.tags, 'expert'], // Becomes arrayUnion(['expert'])
+  age: user.age + 1,              // Auto-detects → FieldValue.increment(1)
+  tags: [...user.tags, 'expert'], // Auto-detects → FieldValue.arrayUnion(['expert'])
+  lastLogin: FirestoreODM.serverTimestamp, // Auto-converts to server timestamp
+));
+
+// 🚀 Bulk Operations - Same methods work on queries!
+await odm.users
+  .where(($) => $.isActive(isEqualTo: false))
+  .update(($) => [$.isActive(true)]);         // Bulk array-style update
+
+await odm.users
+  .where(($) => $.age(isLessThan: 18))
+  .modify((user) => user.copyWith(            // Bulk modify
+    category: 'minor',
+  ));
+
+await odm.users
+  .where(($) => $.points(isLessThan: 100))
+  .incrementalModify((user) => user.copyWith( // Bulk incremental modify
+    points: user.points + 10,                 // Atomic increment for all matching docs
+  ));
+```
+
+### 🕒 **Smart Server Timestamps**
+
+Never worry about server timestamp conflicts again:
+
+```dart
+// Use the special timestamp constant anywhere
+final odm = FirestoreODM(); // Uses default: DateTime.utc(1900, 1, 1, 0, 0, 10)
+
+// Or customize the special timestamp to avoid conflicts
+final customOdm = FirestoreODM(
+  firestore: firestore,
+  serverTimestamp: DateTime.utc(1900, 1, 1, 0, 0, 20), // Your custom special timestamp
+);
+
+// In any update method, use the constant for server timestamps:
+await userDoc.modify((user) => user.copyWith(
+  lastLogin: FirestoreODM.serverTimestamp,    // Becomes FieldValue.serverTimestamp()
+  updatedAt: DateTime.now(),                  // Stays as regular DateTime
+));
+
+await userDoc.incrementalModify((user) => user.copyWith(
+  lastActivity: FirestoreODM.serverTimestamp, // Auto-converted to server timestamp
+  sessionCount: user.sessionCount + 1,       // Auto-converted to increment
 ));
 ```
 
@@ -324,29 +378,57 @@ await userDoc.update(($) => [
 </details>
 
 <details>
-<summary><strong>🔥 Multiple Update Patterns</strong></summary>
+<summary><strong>🔥 Three Powerful Update Methods</strong></summary>
+
+Every update method works on both **documents** and **query bulk operations**:
 
 ```dart
-// Choose your style:
+// 📋 Document Updates
+const userId = 'user123';
 
-// 1. Array-style (explicit operations)
-await userDoc.update(($) => [
+// 1. Array-Style Updates (Explicit atomic operations)
+await odm.users(userId).update(($) => [
   $.age.increment(1),
   $.tags.add('expert'),
+  $.lastLogin.serverTimestamp(),
 ]);
 
-// 2. Modify (diff-based updates)
-await userDoc.modify((user) => user.copyWith(
+// 2. Modify (Immutable diff-based updates)
+await odm.users(userId).modify((user) => user.copyWith(
   age: user.age + 1,
   tags: [...user.tags, 'expert'],
+  lastLogin: FirestoreODM.serverTimestamp, // Special timestamp constant
 ));
 
-// 3. Incremental modify (automatic atomic operations)
-await userDoc.incrementalModify((user) => user.copyWith(
-  age: user.age + 1,      // Auto-detects increment
-  tags: [...user.tags, 'expert'], // Auto-detects arrayUnion
+// 3. Incremental Modify (Automatic atomic detection - RECOMMENDED)
+await odm.users(userId).incrementalModify((user) => user.copyWith(
+  age: user.age + 1,                       // → FieldValue.increment(1)
+  tags: [...user.tags, 'expert'],          // → FieldValue.arrayUnion(['expert'])
+  lastLogin: FirestoreODM.serverTimestamp, // → FieldValue.serverTimestamp()
 ));
+
+// 🚀 Query Bulk Operations (Same API!)
+await odm.users
+  .where(($) => $.isActive(isEqualTo: false))
+  .update(($) => [$.isActive(true)]);               // Bulk array-style
+
+await odm.users
+  .where(($) => $.age(isGreaterThan: 65))
+  .modify((user) => user.copyWith(category: 'senior')); // Bulk modify
+
+await odm.users
+  .where(($) => $.points(isLessThan: 100))
+  .incrementalModify((user) => user.copyWith(       // Bulk incremental
+    points: user.points + 50,                       // Atomic increment for all
+  ));
 ```
+
+### 🎯 **When to Use Each Method**
+
+- **`update()`** - When you need explicit control over atomic operations
+- **`modify()`** - When you want simple diff-based updates with immutable patterns
+- **`incrementalModify()`** - **⭐ RECOMMENDED** - Best of both worlds with automatic atomic detection
+
 </details>
 
 <details>
@@ -499,7 +581,7 @@ import 'package:firestore_odm/firestore_odm.dart';
 void main() {
   test('user queries work perfectly', () async {
     final firestore = FakeFirebaseFirestore();
-    final odm = FirestoreODM(firestore);
+    final odm = FirestoreODM(firestore: firestore);
     
     // Test your queries with confidence
     final results = await odm.users

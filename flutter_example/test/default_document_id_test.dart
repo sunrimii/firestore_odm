@@ -10,7 +10,7 @@ void main() {
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore);
+      odm = FirestoreODM(firestore: firestore);
     });
 
     group('SimpleStory without @DocumentIdField annotation', () {
