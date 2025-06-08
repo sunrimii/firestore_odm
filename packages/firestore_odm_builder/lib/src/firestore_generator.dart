@@ -183,15 +183,15 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
 
   void _generateQueryExtension(StringBuffer buffer, String className, ConstructorElement constructor) {
     buffer.writeln('/// Extension methods for $className queries');
-    buffer.writeln('extension ${className}QueryExtension on FirestoreQuery<$className> {');
+    buffer.writeln('extension ${className}QueryExtension on ${className}Query {');
     
     // Generate where method
     buffer.writeln('  /// Filter using a Filter Builder');
-    buffer.writeln('  FirestoreQuery<$className> where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
+    buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
     buffer.writeln('    final builder = ${className}FilterBuilder();');
     buffer.writeln('    final builtFilter = filterBuilder(builder);');
     buffer.writeln('    final newQuery = applyFilterToQuery(query, builtFilter);');
-    buffer.writeln('    return newInstance(newQuery);');
+    buffer.writeln('    return ${className}Query(collection, newQuery);');
     buffer.writeln('  }');
     
     buffer.writeln('}');
@@ -200,7 +200,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   void _generateFilterBuilderClass(StringBuffer buffer, String className, ConstructorElement constructor, String rootFilterType) {
     buffer.writeln('/// Generated FilterBuilder for $className');
     buffer.writeln('class ${className}FilterBuilder extends FilterBuilder {');
-    buffer.writeln('  ${className}FilterBuilder({String prefix = \'\'}) : super(prefix: prefix);');
+    buffer.writeln('  ${className}FilterBuilder({super.prefix = \'\'});');
     buffer.writeln('');
 
     // Generate field methods and nested object getters
@@ -547,7 +547,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   ) {
     buffer.writeln('/// Generated OrderByBuilder for $className');
     buffer.writeln('class ${className}OrderByBuilder extends OrderByBuilder {');
-    buffer.writeln('  ${className}OrderByBuilder({String prefix = \'\'}) : super(prefix: prefix);');
+    buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
     buffer.writeln('');
 
     // Generate field methods
@@ -640,7 +640,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
   ) {
     buffer.writeln('/// Generated UpdateBuilder for $className');
     buffer.writeln('class ${className}UpdateBuilder extends UpdateBuilder {');
-    buffer.writeln('  ${className}UpdateBuilder({String prefix = \'\'}) : super(prefix: prefix);');
+    buffer.writeln('  ${className}UpdateBuilder({super.prefix = \'\'});');
     buffer.writeln('');
 
     // Generate object update method (for as({...}) syntax)
