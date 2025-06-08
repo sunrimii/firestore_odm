@@ -126,6 +126,13 @@ void main() {
           as.age.increment(1), // age: 25 + 1 = 26
           as.rating.increment(0.5), // rating: 3.0 + 0.5 = 3.5
           as.profile.followers.increment(50), // followers: 100 + 50 = 150
+          as(
+            age: 21,
+            rating: 3.5, // This will override the previous rating increment
+          ),
+          as.profile(
+            followers: 150, // This will override the previous followers increment
+          ),
         ]);
 
         // Assert
