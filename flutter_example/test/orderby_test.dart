@@ -499,9 +499,9 @@ void main() {
         await odm.users.doc(user.id).set(user);
       }
 
-      // Act - Use legacy orderByAge method
+      // Act - Use modern orderBy API
       final usersByAge = await odm.users
-          .orderByAge(descending: true)
+          .orderBy(($) => $.age(descending: true))
           .get();
 
       // Assert

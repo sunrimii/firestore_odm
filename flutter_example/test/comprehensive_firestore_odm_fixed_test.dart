@@ -405,7 +405,7 @@ void main() {
               filter.age(isGreaterThanOrEqualTo: 30),
               filter.age(isLessThanOrEqualTo: 50),
             ))
-            .orderByAge()
+            .orderBy(($) => $.age())
             .get();
 
         // Assert

@@ -135,17 +135,6 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('    return ${className}Query(this, ref.orderBy(orderField.field, descending: orderField.descending));');
     buffer.writeln('  }');
 
-    // Generate legacy orderBy methods for Collection (for backward compatibility)
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      if (fieldName == 'id') continue;
-
-      buffer.writeln('');
-      buffer.writeln('  /// Order by $fieldName (legacy method)');
-      buffer.writeln('  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {');
-      buffer.writeln('    return ${className}Query(this, ref.orderBy(\'$fieldName\', descending: descending));');
-      buffer.writeln('  }');
-    }
 
     buffer.writeln('}');
   }
@@ -188,17 +177,6 @@ class FirestoreGenerator extends GeneratorForAnnotation<CollectionPath> {
     buffer.writeln('    return ${className}Query(collection, query.orderBy(orderField.field, descending: orderField.descending));');
     buffer.writeln('  }');
 
-    // Generate legacy orderBy methods (for backward compatibility)
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
-      if (fieldName == 'id') continue;
-
-      buffer.writeln('');
-      buffer.writeln('  /// Order by $fieldName (legacy method)');
-      buffer.writeln('  ${className}Query orderBy${_capitalize(fieldName)}({bool descending = false}) {');
-      buffer.writeln('    return ${className}Query(collection, query.orderBy(\'$fieldName\', descending: descending));');
-      buffer.writeln('  }');
-    }
 
     buffer.writeln('}');
   }

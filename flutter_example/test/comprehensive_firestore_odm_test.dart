@@ -356,8 +356,8 @@ void main() {
 
         // Act - Order by rating (desc), then by age (asc)
         final orderedUsers = await odm.users
-            .orderByRating(descending: true)
-            .orderByAge()
+            .orderBy(($) => $.rating(descending: true))
+            .orderBy(($) => $.age())
             .get();
 
         // Assert
@@ -482,7 +482,7 @@ void main() {
               filter.age(isGreaterThanOrEqualTo: 30),
               filter.age(isLessThanOrEqualTo: 50),
             ))
-            .orderByAge()
+            .orderBy(($) => $.age())
             .get();
 
         // Assert
@@ -523,7 +523,7 @@ void main() {
         }
 
         // Act - Get first 5 users ordered by creation time
-        final firstPage = await odm.users.orderByCreatedAt().limit(5).get();
+        final firstPage = await odm.users.orderBy(($) => $.createdAt()).limit(5).get();
 
         // Assert
         expect(firstPage.length, equals(5));
