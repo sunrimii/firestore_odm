@@ -187,7 +187,14 @@ class FirestoreGenerator extends Generator {
       buffer,
       constructor,
       <String>{},
-      documentIdField ?? '',
+      className,
+    );
+    
+    // Generate nested updater classes (ProfileNestedUpdater, etc.)
+    UpdateGenerator.generateAllNestedUpdaterClasses(
+      buffer,
+      constructor,
+      <String>{},
     );
     buffer.writeln('');
   }
