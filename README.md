@@ -802,34 +802,34 @@ userDoc.changes.listen((user) {
 ```dart
 // Order by field using new orderBy API
 final orderedUsers = await odm.users
-    .orderBy((order) => order.age(descending: true))
+    .orderBy(($) => $.age(descending: true))
     .limit(10)
     .get();
 
 // Order by nested fields
 final popularUsers = await odm.users
-    .orderBy((order) => order.rating(descending: true))
-    .orderBy((order) => order.createdAt())
+    .orderBy(($) => $.rating(descending: true))
+    .orderBy(($) => $.createdAt())
     .limit(20)
     .get();
 
 // Order by deeply nested fields
 final usersByFollowers = await odm.users
-    .orderBy((order) => order.profile.followers(descending: true))
+    .orderBy(($) => $.profile.followers(descending: true))
     .limit(15)
     .get();
 
 // Multiple ordering criteria
 final complexOrdering = await odm.users
-    .orderBy((order) => order.age())
-    .orderBy((order) => order.profile.followers(descending: true))
-    .orderBy((order) => order.createdAt(descending: true))
+    .orderBy(($) => $.age())
+    .orderBy(($) => $.profile.followers(descending: true))
+    .orderBy(($) => $.createdAt(descending: true))
     .get();
 
 // Combine filtering and ordering
 final topActiveUsers = await odm.users
     .where(($) => $.isActive(isEqualTo: true))
-    .orderBy((order) => order.rating(descending: true))
+    .orderBy(($) => $.rating(descending: true))
     .limit(10)
     .get();
 
