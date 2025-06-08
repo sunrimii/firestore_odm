@@ -298,23 +298,43 @@ await userDoc.update((update) => [
 ## Ordering and Limiting
 
 ```dart
-// Order by field
+// Order by field using new orderBy API
 final orderedUsers = await odm.users
-    .orderByAge(descending: true)
+    .orderBy((order) => order.age(descending: true))
     .limit(10)
     .get();
 
 // Order by nested fields
 final popularUsers = await odm.users
-    .orderByRating(descending: true)
-    .orderByCreatedAt()
+    .orderBy((order) => order.rating(descending: true))
+    .orderBy((order) => order.createdAt())
     .limit(20)
+    .get();
+
+// Order by deeply nested fields
+final usersByFollowers = await odm.users
+    .orderBy((order) => order.profile.followers(descending: true))
+    .limit(15)
+    .get();
+
+// Multiple ordering criteria
+final complexOrdering = await odm.users
+    .orderBy((order) => order.age())
+    .orderBy((order) => order.profile.followers(descending: true))
+    .orderBy((order) => order.createdAt(descending: true))
     .get();
 
 // Combine filtering and ordering
 final topActiveUsers = await odm.users
     .where((filter) => filter.isActive(isEqualTo: true))
-    .orderByRating(descending: true)
+    .orderBy((order) => order.rating(descending: true))
+    .limit(10)
+    .get();
+
+// Legacy orderBy methods (still supported)
+final legacyOrdering = await odm.users
+    .orderByAge(descending: true)
+    .orderByRating()
     .limit(10)
     .get();
 ```
