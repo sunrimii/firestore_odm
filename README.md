@@ -365,8 +365,8 @@ await userDoc.update(($) => [
 
 // Object merge operations
 await userDoc.update(($) => [
-  $({'name': 'John Smith', 'isPremium': true}),
-  $.profile({'bio': 'Senior Developer', 'followers': 200}),
+  $(name: 'John Smith', isPremium: true}),
+  $.profile(bio: 'Senior Developer', followers: 200),
 ]);
 
 // Mixed operations - The Revolutionary Feature! 🚀
@@ -380,16 +380,16 @@ await userDoc.update(($) => [
   $.tags.add('expert'),
   $.tags.add('verified'),
   
-  // Object merges
-  $({
-    'age': 26, // Can override increments
-    'rating': 3.5,
-    'isPremium': true,
-  }),
-  $.profile({
-    'followers': 150, // Can override increments
-    'bio': 'Full-stack developer',
-  }),
+  // merges
+  $(
+    age: 26, // Can override increments
+    rating: 3.5,
+    isPremium: true,
+  ),
+  $.profile(
+    followers: 150, // Can override increments
+    bio: 'Full-stack developer',
+  ),
   
   // Server timestamps
   $.lastLogin.serverTimestamp(),
@@ -1002,37 +1002,37 @@ $.or(filter1, filter2, filter3, ...)   // Up to 30 filters
 ```dart
 // Basic field updates
 await doc.update(($) => [
-  update.field1(newValue),
-  update.field2(anotherValue),
+  $.field1(newValue),
+  $.field2(anotherValue),
 ]);
 
 // Nested field updates
 await doc.update(($) => [
-  update.nestedObject.field(value),
-  update.deeply.nested.object.field(anotherValue),
+  $.nestedObject.field(value),
+  $.deeply.nested.object.field(anotherValue),
 ]);
 
 // Array operations
 await doc.update(($) => [
-  update.arrayField.add(item),
-  update.arrayField.remove(item),
+  $.arrayField.add(item),
+  $.arrayField.remove(item),
 ]);
 
 // Numeric operations
 await doc.update(($) => [
-  update.numericField.increment(5),
-  update.nestedObject.count.increment(1),
+  $.numericField.increment(5),
+  $.nestedObject.count.increment(1),
 ]);
 
 // Server timestamp
 await doc.update(($) => [
-  update.timestampField.serverTimestamp(),
+  $.timestampField.serverTimestamp(),
 ]);
 
 // Object merge operations
 await doc.update(($) => [
-  $({'field1': 'value1', 'field2': 'value2'}),
-  update.nestedObject({'subField': 'newValue'}),
+  $(field1: 'value1', field2: 'value2'),
+  $.nestedObject({'subField': 'newValue'}),
 ]);
 
 // Mixed operations in single update
@@ -1041,8 +1041,8 @@ await doc.update(($) => [
   $.age.increment(1),
   $.tags.add('expert'),
   $.profile.followers.increment(10),
-  $({'isPremium': true}),
-  update.lastUpdated.serverTimestamp(),
+  $(isPremium: true),
+  $.lastUpdated.serverTimestamp(),
 ]);
 ```
 
