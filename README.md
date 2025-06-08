@@ -423,13 +423,13 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 dependencies:
   firestore_odm: ^1.0.0
   firestore_odm_annotation: ^1.0.0
-  freezed_annotation: ^2.4.4
+  freezed_annotation: ^3.0.0
 
 dev_dependencies:
   firestore_odm_builder: ^1.0.0
   build_runner: ^2.4.9
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
+  freezed: ^3.0.6
+  json_serializable: ^6.9.5
 ```
 
 ### Code Generation

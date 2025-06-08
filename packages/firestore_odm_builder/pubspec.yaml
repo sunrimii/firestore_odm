@@ -11,7 +11,7 @@ resolution: workspace
 dependencies:
   build: ^2.4.1
   source_gen: ^2.0.0
-  analyzer: ^7.0.0
+  analyzer: ^7.4.5
   firestore_odm_annotation:
     path: ../firestore_odm_annotation
 

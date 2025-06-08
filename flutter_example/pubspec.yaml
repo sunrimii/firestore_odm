@@ -35,7 +35,7 @@ dependencies:
     path: ../packages/firestore_odm
   firebase_core: ^3.6.0
   cloud_firestore: ^5.4.4
-  freezed_annotation: ^2.4.4
+  freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
 
 dev_dependencies:
@@ -45,8 +45,8 @@ dev_dependencies:
   firestore_odm_builder:
     path: ../packages/firestore_odm_builder
   build_runner: ^2.4.9
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
+  freezed: ^3.0.6
+  json_serializable: ^6.9.5
   fake_cloud_firestore: ^3.1.0
   test: ^1.25.15
   

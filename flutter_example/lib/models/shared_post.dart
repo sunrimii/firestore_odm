@@ -11,7 +11,7 @@ part 'shared_post.odm.dart';
 @freezed
 @Collection('posts')          // Standalone collection
 @Collection('users/*/posts')  // User subcollection
-class SharedPost with _$SharedPost {
+abstract class SharedPost with _$SharedPost {
   const factory SharedPost({
     @DocumentIdField() required String id,
     required String title,
