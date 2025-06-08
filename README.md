@@ -295,6 +295,98 @@ await userDoc.update((update) => [
 ]);
 ```
 
+## RxDB-Style Modify Operations
+
+Firestore ODM also supports RxDB-style modify operations for more advanced update scenarios:
+
+### Basic Modify
+
+The `modify` method computes differences and updates only changed fields:
+
+```dart
+// Get a document reference
+final userDoc = odm.users.doc('user1');
+
+// Modify operation - only updates changed fields
+await userDoc.modify((currentUser) {
+  return currentUser.copyWith(
+    name: 'Updated Name',
+    age: currentUser.age + 1,
+    profile: currentUser.profile.copyWith(
+      bio: 'Updated bio',
+      followers: currentUser.profile.followers + 10,
+    ),
+  );
+});
+```
+
+### Incremental Modify with Atomic Operations
+
+The `incrementalModify` method automatically detects and uses Firestore atomic operations where possible:
+
+```dart
+// Incremental modify - automatically uses atomic operations
+await userDoc.incrementalModify((currentUser) {
+  return currentUser.copyWith(
+    age: currentUser.age + 1,           // Becomes FieldValue.increment(1)
+    rating: currentUser.rating + 0.5,   // Becomes FieldValue.increment(0.5)
+    tags: [...currentUser.tags, 'expert'], // Becomes FieldValue.arrayUnion(['expert'])
+    profile: currentUser.profile.copyWith(
+      followers: currentUser.profile.followers + 50, // Becomes FieldValue.increment(50)
+    ),
+  );
+});
+
+// Remove from arrays atomically
+await userDoc.incrementalModify((currentUser) {
+  return currentUser.copyWith(
+    tags: currentUser.tags.where((tag) => tag != 'beginner').toList(),
+    // Becomes FieldValue.arrayRemove(['beginner'])
+  );
+});
+
+// Mixed atomic operations
+await userDoc.incrementalModify((currentUser) {
+  return currentUser.copyWith(
+    name: 'John Smith',                 // Direct field update
+    age: currentUser.age + 2,           // FieldValue.increment(2)
+    rating: currentUser.rating - 0.1,   // FieldValue.increment(-0.1)
+    tags: [...currentUser.tags, 'verified', 'premium'], // FieldValue.arrayUnion
+    scores: [...currentUser.scores, 95, 88], // FieldValue.arrayUnion
+    profile: currentUser.profile.copyWith(
+      followers: currentUser.profile.followers + 100, // FieldValue.increment(100)
+      bio: 'Senior Full-stack Developer', // Direct field update
+    ),
+  );
+});
+```
+
+### When to Use Each Method
+
+- **Array-style updates**: Best for explicit, declarative updates with full control
+- **`modify`**: Good for complex state transformations where you want only changed fields updated
+- **`incrementalModify`**: Perfect for numeric operations, array modifications, and mixed scenarios where atomic operations provide better consistency
+
+```dart
+// Array-style: Explicit and declarative
+await userDoc.update((update) => [
+  update.age.increment(1),
+  update.tags.add('expert'),
+]);
+
+// Modify: State transformation with diff detection
+await userDoc.modify((user) => user.copyWith(
+  age: user.age + 1,
+  tags: [...user.tags, 'expert'],
+));
+
+// Incremental modify: Automatic atomic operations
+await userDoc.incrementalModify((user) => user.copyWith(
+  age: user.age + 1,      // Auto-detected as increment
+  tags: [...user.tags, 'expert'], // Auto-detected as arrayUnion
+));
+```
+
 ## Ordering and Limiting
 
 ```dart
