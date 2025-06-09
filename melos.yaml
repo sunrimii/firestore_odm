@@ -100,8 +100,8 @@ scripts:
 
   # Publishing scripts
   version:check:
-    run: melos version --dry-run
-    description: Preview version changes without applying them.
+    run: echo "Run 'melos version' to update package versions using conventional commits"
+    description: Info about versioning - melos will handle dependency updates automatically.
 
   publish:dry-run:
     run: dart pub publish --dry-run
