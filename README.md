@@ -2,11 +2,25 @@
 
 **Stop fighting with Firestore queries. Start building amazing apps.**
 
-Transform your Firestore development experience with type-safe, intuitive database operations that feel natural and productive. No more wrestling with field strings, runtime errors, or complex update logic.
+Transform your Firestore development experience with type-safe, intuitive database operations that feel natural and productive.
 
-## Why Choose Firestore ODM?
+## Why We Built This
 
-### ✅ **Before vs After**
+If you've worked with Flutter and Firestore, you know the pain:
+
+- **No Type Safety** - String-based field paths that break at runtime, not compile time
+- **Incomplete Solutions** - FlutterFire's ODM is incomplete and not actively maintained
+- **Developer Frustration** - Wrestling with complex queries, manual serialization, and runtime errors
+
+We got tired of these limitations. We wanted a solution that:
+- ✅ Provides complete type safety throughout your entire data layer
+- ✅ Offers intuitive, readable query syntax that feels natural in Dart
+- ✅ Is actively maintained and built specifically for real-world Flutter development
+- ✅ Eliminates runtime errors before they reach production
+
+So we built Firestore ODM - a comprehensive, type-safe Object Document Mapper that makes Firestore development a joy instead of a chore.
+
+## Before vs After
 
 **Before (Raw Firestore):**
 ```dart
@@ -45,21 +59,20 @@ await userDoc.update(($) => [
 ]);
 ```
 
-### 🚀 **Key Benefits**
+## Key Benefits
 
 - **⚡ 10x Faster Development** - Autocomplete, type safety, and intuitive APIs
 - **🛡️ Runtime Error Prevention** - Catch mistakes at compile-time, not in production
 - **🎯 Intuitive Queries** - Write complex filters that read like natural language
-- **🔄 Smart Updates** - Atomic operations, conflict resolution, and optimistic updates
+- **🔄 Smart Updates** - Three different update patterns for every use case
 - **🔗 Unified Collections** - Single models work across multiple collection paths
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
 ## Quick Start
 
-### 1. Add to Your Project
+### 1. Add Dependencies
 
 ```bash
-# Add dependencies
 flutter pub add firestore_odm firestore_odm_annotation
 flutter pub add --dev firestore_odm_builder build_runner
 ```
@@ -96,8 +109,6 @@ class User with _$User {
 ```bash
 # Generate the ODM code
 dart run build_runner build
-
-# Now you're ready to use it!
 ```
 
 ```dart
@@ -109,17 +120,7 @@ void main() async {
   final firestore = FirebaseFirestore.instance;
   final odm = FirestoreODM(firestore: firestore);
 
-  // Create users effortlessly with concise syntax
-  await odm.users('john').set(User(
-    id: 'john',
-    name: 'John Doe',
-    email: 'john@example.com',
-    age: 25,
-    isActive: true,
-    tags: ['developer', 'flutter'],
-  ));
-
-  // Or use upsert with document ID field
+  // Create users effortlessly
   await odm.users.upsert(User(
     id: 'jane',
     name: 'Jane Smith',
@@ -141,12 +142,19 @@ void main() async {
 }
 ```
 
-## Common Use Cases
+## Core Features
 
-### 🔍 **Smart Filtering Made Simple**
+### 🔍 Type-Safe Querying
+
+Write complex queries that are readable, maintainable, and catch errors at compile time:
 
 ```dart
-// Find your target users with readable queries
+// Simple filtering
+final youngUsers = await odm.users
+  .where(($) => $.age(isLessThan: 30))
+  .get();
+
+// Complex logical operations
 final engagedUsers = await odm.users
   .where(($) => $.and(
     $.age(isGreaterThan: 18),
@@ -159,9 +167,17 @@ final engagedUsers = await odm.users
   .orderBy(($) => $.rating(descending: true))
   .limit(50)
   .get();
+
+// Nested object queries
+final users = await odm.users
+  .where(($) => $.and(
+    $.profile.bio(isNotEqualTo: null),
+    $.profile.followers(isGreaterThan: 100),
+  ))
+  .get();
 ```
 
-### ⚡ **Three Powerful Update Methods**
+### 🔄 Three Powerful Update Methods
 
 Choose the update style that fits your workflow:
 
@@ -182,14 +198,18 @@ await userDoc.modify((user) => user.copyWith(
   lastLogin: FirestoreODM.serverTimestamp, // Special timestamp constant
 ));
 
-// 3. Incremental Modify (Automatic atomic detection)
+// 3. Incremental Modify (Automatic atomic detection - RECOMMENDED)
 await userDoc.incrementalModify((user) => user.copyWith(
   age: user.age + 1,              // Auto-detects → FieldValue.increment(1)
   tags: [...user.tags, 'expert'], // Auto-detects → FieldValue.arrayUnion(['expert'])
   lastLogin: FirestoreODM.serverTimestamp, // Auto-converts to server timestamp
 ));
+```
 
-// 🚀 Bulk Operations - Same methods work on queries!
+**All update methods work on both individual documents AND bulk query operations:**
+
+```dart
+// Bulk operations use the same API
 await odm.users
   .where(($) => $.isActive(isEqualTo: false))
   .update(($) => [$.isActive(true)]);         // Bulk array-style update
@@ -207,26 +227,55 @@ await odm.users
   ));
 ```
 
-### 🕒 **Smart Server Timestamps**
+### 🏗️ Document ID Fields
 
-Never worry about server timestamp conflicts again:
+Handle document IDs naturally with automatic detection or explicit annotation:
 
 ```dart
-final odm = FirestoreODM();
+// Method 1: Explicit annotation (recommended)
+@freezed
+@Collection('posts')
+class Post with _$Post {
+  const factory Post({
+    @DocumentIdField() required String id, // Virtual field, auto-synced
+    required String title,
+    required String content,
+  }) = _Post;
+}
 
-// In any update method, use the constant for server timestamps:
-await userDoc.modify((user) => user.copyWith(
-  lastLogin: FirestoreODM.serverTimestamp,    // Becomes FieldValue.serverTimestamp()
-  updatedAt: DateTime.now(),                  // Stays as regular DateTime
-));
+// Method 2: Automatic detection
+@freezed
+@Collection('articles')
+class Article with _$Article {
+  const factory Article({
+    required String id, // Automatically detected as document ID field
+    required String title,
+    required String content,
+  }) = _Article;
+}
+```
 
-await userDoc.incrementalModify((user) => user.copyWith(
-  lastActivity: FirestoreODM.serverTimestamp, // Auto-converted to server timestamp
-  sessionCount: user.sessionCount + 1,       // Auto-converted to increment
+**Key Benefits:**
+- Virtual storage - ID field is never stored in document data
+- Automatic sync - Field value always matches Firestore document ID
+- Type-safe queries - Full filtering and ordering support on ID field
+- Seamless upsert - Automatic document creation/updates
+
+```dart
+// Use document ID in queries
+final specificPosts = await odm.posts
+  .where(($) => $.id(whereIn: ['post1', 'post2', 'post3']))
+  .get();
+
+// Upsert with document ID field
+await odm.posts.upsert(Post(
+  id: 'my-post-id', // Used as Firestore document ID
+  title: 'My Post',
+  content: 'Content here',
 ));
 ```
 
-### 🔄 **Real-time Data Streams**
+### 🔄 Real-time Data Streams
 
 ```dart
 // Live updates in your Flutter UI
@@ -251,7 +300,7 @@ class UserProfileWidget extends StatelessWidget {
 }
 ```
 
-### 🏦 **Safe Transactions**
+### 🏦 Safe Transactions
 
 ```dart
 // Multi-document operations with ACID guarantees
@@ -271,164 +320,12 @@ await odm.runTransaction(() async {
 
 ## Advanced Features
 
-<details>
-<summary><strong>🎯 Document ID Fields</strong></summary>
+### 🏗️ Multiple Collections & Subcollections
 
-The ODM automatically handles document ID fields with two approaches:
-
-### **Method 1: Explicit Annotation (Recommended)**
-```dart
-@freezed
-@Collection('posts')
-class Post with _$Post {
-  const factory Post({
-    @DocumentIdField() required String id, // Virtual field, auto-synced
-    required String title,
-    required String content,
-  }) = _Post;
-  
-  factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
-}
-```
-
-### **Method 2: Automatic Detection (Default)**
-```dart
-@freezed
-@Collection('articles')
-class Article with _$Article {
-  const factory Article({
-    required String id, // ✨ Automatically detected as document ID field
-    required String title,
-    required String content,
-  }) = _Article;
-  
-  factory Article.fromJson(Map<String, dynamic> json) => _$ArticleFromJson(json);
-}
-```
-
-**Detection Rules:**
-- ✅ **First Priority:** Fields with `@DocumentIdField()` annotation
-- ✅ **Second Priority:** Field named `id` of type `String` (automatic fallback)
-- ⚠️ **Requirement:** Every collection model **must** have a document ID field
-
-**Both approaches provide identical functionality:**
+Use a single model for multiple collection paths:
 
 ```dart
-// Use document ID in queries
-final specificPosts = await odm.posts
-  .where(($) => $.id(whereIn: ['post1', 'post2', 'post3']))
-  .get();
-
-// Order by document ID
-final orderedPosts = await odm.posts
-  .orderBy(($) => $.id())
-  .get();
-
-// Upsert with document ID field
-await odm.posts.upsert(Post(
-  id: 'my-post-id', // Used as Firestore document ID
-  title: 'My Post',
-  content: 'Content here',
-));
-```
-
-**Key Benefits:**
-- **Virtual Storage:** ID field is never stored in document data
-- **Automatic Sync:** Field value always matches Firestore document ID
-- **Type-Safe Queries:** Full filtering and ordering support
-- **Seamless Upsert:** Automatic document creation/updates
-</details>
-
-<details>
-<summary><strong>🏗️ Complex Nested Objects</strong></summary>
-
-```dart
-@freezed
-class Profile with _$Profile {
-  const factory Profile({
-    required String bio,
-    required Map<String, String> socialLinks,
-    required Address address,
-  }) = _Profile;
-  
-  factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
-}
-
-// Query nested fields naturally
-final users = await odm.users
-  .where(($) => $.and(
-    $.profile.bio(isNotEqualTo: null),
-    $.profile.followers(isGreaterThan: 100),
-  ))
-  .get();
-
-// Update nested fields easily
-await userDoc.update(($) => [
-  $.profile.bio('Updated bio'),
-  $.profile.followers.increment(10),
-]);
-```
-</details>
-
-<details>
-<summary><strong>🔥 Three Powerful Update Methods</strong></summary>
-
-Every update method works on both **documents** and **query bulk operations**:
-
-```dart
-// 📋 Document Updates
-const userId = 'user123';
-
-// 1. Array-Style Updates (Explicit atomic operations)
-await odm.users(userId).update(($) => [
-  $.age.increment(1),
-  $.tags.add('expert'),
-  $.lastLogin.serverTimestamp(),
-]);
-
-// 2. Modify (Immutable diff-based updates)
-await odm.users(userId).modify((user) => user.copyWith(
-  age: user.age + 1,
-  tags: [...user.tags, 'expert'],
-  lastLogin: FirestoreODM.serverTimestamp, // Special timestamp constant
-));
-
-// 3. Incremental Modify (Automatic atomic detection - RECOMMENDED)
-await odm.users(userId).incrementalModify((user) => user.copyWith(
-  age: user.age + 1,                       // → FieldValue.increment(1)
-  tags: [...user.tags, 'expert'],          // → FieldValue.arrayUnion(['expert'])
-  lastLogin: FirestoreODM.serverTimestamp, // → FieldValue.serverTimestamp()
-));
-
-// 🚀 Query Bulk Operations (Same API!)
-await odm.users
-  .where(($) => $.isActive(isEqualTo: false))
-  .update(($) => [$.isActive(true)]);               // Bulk array-style
-
-await odm.users
-  .where(($) => $.age(isGreaterThan: 65))
-  .modify((user) => user.copyWith(category: 'senior')); // Bulk modify
-
-await odm.users
-  .where(($) => $.points(isLessThan: 100))
-  .incrementalModify((user) => user.copyWith(       // Bulk incremental
-    points: user.points + 50,                       // Atomic increment for all
-  ));
-```
-
-### 🎯 **When to Use Each Method**
-
-- **`update()`** - When you need explicit control over atomic operations
-- **`modify()`** - When you want simple diff-based updates with immutable patterns
-- **`incrementalModify()`** - **⭐ RECOMMENDED** - Best of both worlds with automatic atomic detection
-
-</details>
-
-<details>
-<summary><strong>🏗️ Multiple Collections & Subcollections</strong></summary>
-
-```dart
-// 🆕 NEW: Use a single model for multiple collection paths!
+// Single model for multiple collection paths
 @freezed
 @Collection('posts')           // Top-level posts collection
 @Collection('users/*/posts')   // User subcollection posts
@@ -444,7 +341,7 @@ abstract class SharedPost with _$SharedPost {
   factory SharedPost.fromJson(Map<String, dynamic> json) => _$SharedPostFromJson(json);
 }
 
-// ✨ Access BOTH collections with the same model:
+// Access both collections with the same model:
 
 // 1. Top-level posts collection
 await odm.posts.upsert(SharedPost(
@@ -464,16 +361,7 @@ await odm.users('alice').posts.upsert(SharedPost(
   createdAt: DateTime.now(),
 ));
 
-// Query both collections independently
-final globalPosts = await odm.posts
-  .where(($) => $.likes(isGreaterThan: 10))
-  .get();
-
-final alicePosts = await odm.users('alice').posts
-  .where(($) => $.title(contains: 'Personal'))
-  .get();
-
-// 🔥 Supports unlimited nesting levels
+// Supports unlimited nesting levels
 @Collection('organizations/*/departments/*/teams/*/projects')
 class Project with _$Project { /* ... */ }
 
@@ -482,19 +370,34 @@ final teamProjects = odm.organizations('acme')
   .departments('engineering')
   .teams('mobile')
   .projects;
-
-// Access deeply nested collections
-final employees = odm.organizations('org1').departments('dept1').employees;
 ```
-</details>
+
+### 🕒 Smart Server Timestamps
+
+Never worry about server timestamp conflicts:
+
+```dart
+final odm = FirestoreODM();
+
+// In any update method, use the constant for server timestamps:
+await userDoc.modify((user) => user.copyWith(
+  lastLogin: FirestoreODM.serverTimestamp,    // Becomes FieldValue.serverTimestamp()
+  updatedAt: DateTime.now(),                  // Stays as regular DateTime
+));
+
+await userDoc.incrementalModify((user) => user.copyWith(
+  lastActivity: FirestoreODM.serverTimestamp, // Auto-converted to server timestamp
+  sessionCount: user.sessionCount + 1,       // Auto-converted to increment
+));
+```
 
 ## Current Limitations
 
 While Firestore ODM provides powerful type-safe operations, some advanced features are not yet implemented:
 
-### 🚧 **Not Yet Supported**
+### 🚧 Not Yet Supported
 
-- **Map Field Access**: Direct access to map fields like `profile.socialLinks.github` is not supported
+- **Map Field Access**: Direct access to map fields like `profile.socialLinks.github`
   ```dart
   // ❌ NOT SUPPORTED YET
   await odm.users.where(($) => $.profile.socialLinks.github(isEqualTo: 'username')).get();
@@ -515,18 +418,18 @@ While Firestore ODM provides powerful type-safe operations, some advanced featur
 - **GeoPoint Queries**: Geospatial queries and GeoPoint field filtering
 - **Reference Field Operations**: Direct DocumentReference field filtering and updates
 
-### 🎯 **Fully Supported Features**
+### 🎯 Fully Supported Features
 
-✅ **Document ID Fields** - Virtual `@DocumentIdField()` with `FieldPath.documentId` support, automatic `id` field detection
-✅ **Type-safe Filtering** - All Firestore operators on primitive and custom types
-✅ **Nested Object Queries** - Deep filtering on custom class fields
-✅ **Array Operations** - `arrayContains`, `arrayContainsAny`, `arrayUnion`, `arrayRemove`
-✅ **Atomic Updates** - Increments, server timestamps, and mixed operation arrays
-✅ **Real-time Streams** - Automatic subscription management with `changes` stream
-✅ **Transactions** - Full transaction support with automatic context detection
-✅ **RxDB-style Operations** - `modify()` and `incrementalModify()` with atomic detection
-✅ **Upsert Operations** - Document creation/updates using Document ID fields
-✅ **Subcollection Support** - Fluent API for nested collection access with wildcard syntax
+✅ **Document ID Fields** - Virtual `@DocumentIdField()` with automatic detection  
+✅ **Type-safe Filtering** - All Firestore operators on primitive and custom types  
+✅ **Nested Object Queries** - Deep filtering on custom class fields  
+✅ **Array Operations** - Complete support for array operations  
+✅ **Atomic Updates** - Increments, server timestamps, and mixed operations  
+✅ **Real-time Streams** - Automatic subscription management  
+✅ **Transactions** - Full transaction support with automatic context detection  
+✅ **Three Update Methods** - Array-style, modify, and incremental modify  
+✅ **Upsert Operations** - Document creation/updates using Document ID fields  
+✅ **Subcollection Support** - Fluent API for nested collections  
 ✅ **Testing Support** - Full compatibility with `fake_cloud_firestore`
 
 ## Installation & Setup
@@ -592,12 +495,9 @@ void main() {
 - 🧪 **[Test Suite](flutter_example/test/)** - 69 tests demonstrating every feature
 - 📚 **[API Documentation](#api-reference)** - Complete reference guide
 
-## Migration Guide
+## Migration from Raw Firestore
 
-Coming from raw Firestore? Here's how to upgrade:
-
-<details>
-<summary><strong>🔄 Common Migration Patterns</strong></summary>
+Coming from raw Firestore? Here's how common patterns translate:
 
 ```dart
 // OLD: Manual field paths and error-prone strings
@@ -628,26 +528,8 @@ await odm.users
   ))
   .get();
 ```
-</details>
-
-## Contributing
-
-We love contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-**Ready to transform your Firestore experience?** [Get started](#quick-start) now and see the difference! 🚀
-
----
 
 ## API Reference
-
-<details>
-<summary><strong>Complete API Documentation</strong></summary>
 
 ### Collection Operations
 
@@ -705,7 +587,6 @@ await doc.update(($) => [
   $.arrayField.remove(item),            // Array remove
   $.numericField.increment(5),          // Numeric increment
   $.timestampField.serverTimestamp(),   // Server timestamp
-  $(field1: 'value1', field2: 'value2'), // Object merge
 ]);
 
 // Modify operations
@@ -731,7 +612,7 @@ stream.listen((document) {
   // Handle document updates
 });
 
-// Automatic subscription management
+// Automatic subscription management:
 // - Subscription starts when first listener added
 // - Multiple listeners share same subscription
 // - Subscription stops when all listeners cancelled
@@ -750,4 +631,14 @@ await odm.runTransaction(() async {
 });
 ```
 
-</details>
+## Contributing
+
+We love contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+**Ready to transform your Firestore experience?** [Get started](#quick-start) now and build type-safe, maintainable Flutter apps! 🚀

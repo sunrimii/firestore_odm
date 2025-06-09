@@ -85,9 +85,9 @@ void main() {
         await userDoc.set(initialUser);
 
         // Act - Update nested profile fields
-        await userDoc.update((update) => [
-          update.profile.bio('Full-stack developer'),
-          update.profile.avatar('new-avatar.jpg'),
+        await userDoc.update(($) => [
+          $.profile.bio('Full-stack developer'),
+          $.profile.avatar('new-avatar.jpg'),
         ]);
 
         // Assert
@@ -568,8 +568,8 @@ void main() {
         await userDoc.set(user);
 
         // Act - Test deep nested array-style updates
-        await userDoc.update((update) => [
-          update.profile.story(
+        await userDoc.update(($) => [
+          $.profile.story(
             name: 'Updated SF Adventure',
             content: 'Even more amazing day in SF with array-style updates!',
             tags: ['travel', 'technology', 'firestore-odm'],
@@ -633,8 +633,8 @@ void main() {
         await userDoc.set(user);
 
         // Act - Test 5-level deep array-style update
-        await userDoc.update((update) => [
-          update.profile.story.place.coordinates(
+        await userDoc.update(($) => [
+          $.profile.story.place.coordinates(
             latitude: 40.7128, // New York
             longitude: -74.0060,
             altitude: 20.0,
@@ -682,9 +682,9 @@ void main() {
 
         // Act - Simulate concurrent updates using array-style API
         final futures = [
-          userDoc.update((update) => [update.name('Updated 1')]),
-          userDoc.update((update) => [update.name('Updated 2')]),
-          userDoc.update((update) => [update.profile(bio: 'Updated bio')]),
+          userDoc.update(($) => [$.name('Updated 1')]),
+          userDoc.update(($) => [$.name('Updated 2')]),
+          userDoc.update(($) => [$.profile(bio: 'Updated bio')]),
         ];
 
         await Future.wait(futures);
