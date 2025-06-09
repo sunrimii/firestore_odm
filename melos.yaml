@@ -111,10 +111,11 @@ scripts:
     packageFilters:
       noPrivate: true
 
-  publish:
+  publish:packages:
     run: dart pub publish --force
-    description: Publish packages to pub.dev.
+    description: Publish packages to pub.dev using melos order.
     exec:
       concurrency: 1
+      orderDependents: true
     packageFilters:
       noPrivate: true

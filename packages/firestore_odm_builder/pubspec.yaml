@@ -20,7 +20,8 @@ dependencies:
   build: ^2.4.1
   source_gen: ^2.0.0
   analyzer: ^7.4.5
-  firestore_odm_annotation: ^1.0.0
+  firestore_odm_annotation:
+    path: ../firestore_odm_annotation
 
 dev_dependencies:
   build_runner: ^2.4.9
