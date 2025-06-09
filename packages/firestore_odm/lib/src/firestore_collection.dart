@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
+import 'package:firestore_odm/src/firestore_odm.dart';
 import 'firestore_document.dart';
 import 'firestore_query.dart';
 import 'services/query_operations_service.dart';
@@ -11,6 +12,7 @@ import 'interfaces/update_operations.dart';
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<T>
     implements QueryOperations<T>, UpdateOperations<T> {
+
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
@@ -19,9 +21,6 @@ class FirestoreCollection<T>
 
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
-
-  /// Special timestamp that should be replaced with server timestamp
-  final DateTime specialTimestamp;
 
   /// Cache for document instances
   final Map<String, FirestoreDocument<T>> _cache = {};
@@ -39,12 +38,9 @@ class FirestoreCollection<T>
     required this.ref,
     required this.fromJson,
     required this.toJson,
-    DateTime? specialTimestamp,
-  }) : specialTimestamp =
-           specialTimestamp ?? DateTime.utc(1900, 1, 1, 0, 0, 10) {
+  }) {
     _queryService = QueryOperationsService<T>(query: ref, fromJson: fromJson, documentIdField: documentIdField);
     _updateService = UpdateOperationsService<T>(
-      specialTimestamp: this.specialTimestamp,
       toJson: toJson,
       fromJson: fromJson,
       documentIdField: documentIdField,

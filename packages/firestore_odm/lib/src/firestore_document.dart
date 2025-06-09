@@ -38,7 +38,6 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   /// Creates a new FirestoreDocument instance
   FirestoreDocument(this.collection, this.id) {
     _updateService = UpdateOperationsService<T>(
-      specialTimestamp: collection.specialTimestamp,
       toJson: collection.toJson,
       fromJson: collection.fromJson,
       documentIdField: collection.documentIdField,

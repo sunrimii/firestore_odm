@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
+import 'package:firestore_odm/src/firestore_odm.dart';
 
 /// Service class that encapsulates all update operations logic
 /// Extracted from UpdateOperationsMixin to follow composition over inheritance
 class UpdateOperationsService<T> {
-  /// Special timestamp that should be replaced with server timestamp
-  final DateTime specialTimestamp;
   
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
@@ -19,7 +18,6 @@ class UpdateOperationsService<T> {
 
   /// Creates a new UpdateOperationsService instance
   const UpdateOperationsService({
-    required this.specialTimestamp,
     required this.toJson,
     required this.fromJson,
     required this.documentIdField,
@@ -27,26 +25,26 @@ class UpdateOperationsService<T> {
 
   /// Process data for updates, replacing special timestamps with server timestamps
   Map<String, dynamic> processUpdateData(Map<String, dynamic> data) {
-    return _replaceSpecialTimestamps(data, specialTimestamp);
+    return _replaceServerTimestamps(data);
   }
 
   /// Recursively replace special timestamps with FieldValue.serverTimestamp()
-  Map<String, dynamic> _replaceSpecialTimestamps(Map<String, dynamic> data, DateTime specialTimestamp) {
+  Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
     final result = <String, dynamic>{};
     
     for (final entry in data.entries) {
       final key = entry.key;
       final value = entry.value;
       
-      if (value is DateTime && value == specialTimestamp) {
+      if (value is DateTime && value == FirestoreODM.serverTimestamp) {
         result[key] = FieldValue.serverTimestamp();
       } else if (value is Map<String, dynamic>) {
-        result[key] = _replaceSpecialTimestamps(value, specialTimestamp);
+        result[key] = _replaceServerTimestamps(value);
       } else if (value is List) {
         result[key] = value.map((item) {
           if (item is Map<String, dynamic>) {
-            return _replaceSpecialTimestamps(item, specialTimestamp);
-          } else if (item is DateTime && item == specialTimestamp) {
+            return _replaceServerTimestamps(item);
+          } else if (item is DateTime && item == FirestoreODM.serverTimestamp) {
             return FieldValue.serverTimestamp();
           }
           return item;

@@ -212,14 +212,7 @@ await odm.users
 Never worry about server timestamp conflicts again:
 
 ```dart
-// Use the special timestamp constant anywhere
-final odm = FirestoreODM(); // Uses default: DateTime.utc(1900, 1, 1, 0, 0, 10)
-
-// Or customize the special timestamp to avoid conflicts
-final customOdm = FirestoreODM(
-  firestore: firestore,
-  serverTimestamp: DateTime.utc(1900, 1, 1, 0, 0, 20), // Your custom special timestamp
-);
+final odm = FirestoreODM();
 
 // In any update method, use the constant for server timestamps:
 await userDoc.modify((user) => user.copyWith(

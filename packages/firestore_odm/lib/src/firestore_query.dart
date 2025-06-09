@@ -28,7 +28,6 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
       documentIdField: collection.documentIdField,
     );
     _updateService = UpdateOperationsService<T>(
-      specialTimestamp: collection.specialTimestamp,
       toJson: (value) => collection.toJson(value),
       fromJson: (data) => collection.fromJson(data),
       documentIdField: collection.documentIdField,
