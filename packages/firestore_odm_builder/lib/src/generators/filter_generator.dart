@@ -13,8 +13,7 @@ class FilterGenerator {
     String? documentIdField,
   ) {
     buffer.writeln('/// Generated FilterBuilder for $className');
-    buffer.writeln('class ${className}FilterBuilder extends RootFilterBuilder<${rootFilterType}Filter> {');
-    buffer.writeln('  ${className}FilterBuilder({super.prefix = \'\'});');
+    buffer.writeln('extension ${className}FilterBuilderExtension on FilterBuilder<${className}> {');
     buffer.writeln('');
 
     // Add document ID filter if there's a document ID field
@@ -38,18 +37,12 @@ class FilterGenerator {
       }
     }
 
-    // Implement abstract method from RootFilterBuilder
-    buffer.writeln('  @override');
-    buffer.writeln('  ${rootFilterType}Filter wrapFilter(FirestoreFilter coreFilter) {');
-    buffer.writeln('    return ${rootFilterType}Filter._fromCore(coreFilter);');
-    buffer.writeln('  }');
-
     buffer.writeln('}');
   }
 
   static void _generateDocumentIdFilter(StringBuffer buffer, String documentIdField, String rootFilterType) {
     buffer.writeln('  /// Filter by document ID (${documentIdField} field)');
-    buffer.writeln('  ${rootFilterType}Filter $documentIdField({');
+    buffer.writeln('  FirestoreFilter<$rootFilterType> $documentIdField({');
     buffer.writeln('    String? isEqualTo,');
     buffer.writeln('    String? isNotEqualTo,');
     buffer.writeln('    String? isLessThan,');
@@ -79,9 +72,9 @@ class FilterGenerator {
     final nestedTypeName = fieldType.getDisplayString(withNullability: false);
     
     buffer.writeln('  /// Access nested $fieldName filters');
-    buffer.writeln('  ${nestedTypeName}FilterBuilder get $fieldName {');
+    buffer.writeln('  FilterBuilder<${nestedTypeName}> get $fieldName {');
     buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    return ${nestedTypeName}FilterBuilder(prefix: nestedPrefix);');
+    buffer.writeln('    return FilterBuilder<${nestedTypeName}>(prefix: nestedPrefix);');
     buffer.writeln('  }');
     buffer.writeln('');
   }
@@ -90,8 +83,8 @@ class FilterGenerator {
     final typeString = fieldType.getDisplayString(withNullability: false);
     
     buffer.writeln('  /// Filter by $fieldName');
-    buffer.writeln('  ${rootFilterType}Filter $fieldName({');
-    
+    buffer.writeln('  FirestoreFilter<${rootFilterType}> $fieldName({');
+
     // Basic operators
     buffer.writeln('    $typeString? isEqualTo,');
     buffer.writeln('    $typeString? isNotEqualTo,');
@@ -119,19 +112,19 @@ class FilterGenerator {
     
     // Use base filter methods based on type
     if (typeString == 'String') {
-      buffer.writeln('    return stringFilter(\'$fieldName\',');
+      buffer.writeln('    return stringFilter<$rootFilterType>(\'$fieldName\',');
     } else if (TypeAnalyzer.isListType(fieldType)) {
       final elementType = TypeAnalyzer.getListElementType(fieldType);
-      buffer.writeln('    return arrayFilter<$elementType>(\'$fieldName\',');
+      buffer.writeln('    return arrayFilter<$rootFilterType, $elementType>(\'$fieldName\',');
     } else if (typeString == 'bool') {
-      buffer.writeln('    return boolFilter(\'$fieldName\',');
+      buffer.writeln('    return boolFilter<$rootFilterType>(\'$fieldName\',');
     } else if (typeString == 'DateTime') {
-      buffer.writeln('    return dateTimeFilter(\'$fieldName\',');
+      buffer.writeln('    return dateTimeFilter<$rootFilterType>(\'$fieldName\',');
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      buffer.writeln('    return numericFilter<$typeString>(\'$fieldName\',');
+      buffer.writeln('    return numericFilter<$rootFilterType, $typeString>(\'$fieldName\',');
     } else {
       // Fallback for other types, treat as string-like
-      buffer.writeln('    return stringFilter(\'$fieldName\',');
+      buffer.writeln('    return stringFilter<$rootFilterType>(\'$fieldName\',');
     }
     
     // Parameters
@@ -188,16 +181,5 @@ class FilterGenerator {
         }
       }
     }
-  }
-
-  /// Generate the filter class
-  static void generateFilterClass(StringBuffer buffer, String className) {
-    buffer.writeln('/// Generated Filter for $className');
-    buffer.writeln('class ${className}Filter extends FirestoreFilter {');
-    buffer.writeln('  const ${className}Filter() : super();');
-    buffer.writeln('');
-    buffer.writeln('  /// Create from core FirestoreFilter - handles both field and logical filters');
-    buffer.writeln('  ${className}Filter._fromCore(super.filter) : super.fromFilter();');
-    buffer.writeln('}');
   }
 }

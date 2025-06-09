@@ -90,4 +90,21 @@ class FirestoreCollection<T> implements QueryOperations<T>, UpdateOperations<T> 
   FirestoreDocument<T> call(String id) {
     return _cache.putIfAbsent(id, () => FirestoreDocument(this, id));
   }
+  
+  @override
+  FirestoreQuery<T> where(FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder) {
+    final builder = RootFilterBuilder<T>();
+    final builtFilter = filterBuilder(builder);
+    final newQuery = applyFilterToQuery(ref, builtFilter);
+    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+  }
+
+  @override
+  FirestoreQuery<T> orderBy(
+      OrderByField Function(OrderByBuilder<T> order) orderBuilder) {
+    final builder = OrderByBuilder<T>();
+    final orderByField = orderBuilder(builder);
+    final newQuery = _queryService.applyOrderBy(orderByField);
+    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+  }
 }

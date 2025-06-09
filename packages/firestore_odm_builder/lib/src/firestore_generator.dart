@@ -145,8 +145,8 @@ class FirestoreGenerator extends Generator {
     buffer.writeln('');
 
     // Generate Filter class first
-    FilterGenerator.generateFilterClass(buffer, className);
-    buffer.writeln('');
+    // FilterGenerator.generateFilterClass(buffer, className);
+    // buffer.writeln('');
     
     // Generate FilterBuilder class
     FilterGenerator.generateFilterBuilderClass(
@@ -314,8 +314,8 @@ class FirestoreGenerator extends Generator {
     );
 
     // Generate Filter class
-    FilterGenerator.generateFilterClass(buffer, className);
-    buffer.writeln('');
+    // FilterGenerator.generateFilterClass(buffer, className);
+    // buffer.writeln('');
 
     // Generate Query Extension (for new where API)
     QueryGenerator.generateQueryExtension(buffer, className, constructor);

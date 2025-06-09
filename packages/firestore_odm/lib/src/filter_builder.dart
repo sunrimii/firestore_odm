@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
+import 'package:cloud_firestore_platform_interface/src/field_path_type.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:meta/meta.dart';
 
 /// Filter types
@@ -24,7 +26,7 @@ enum FilterOperator {
 }
 
 /// Universal filter class that can represent any filter type
-class FirestoreFilter {
+class FirestoreFilter<T> {
   final FilterType type;
   
   // For field filters
@@ -84,7 +86,7 @@ class FirestoreFilter {
 }
 
 /// Represents an order by field with direction
-class OrderByField {
+class OrderByField<T> {
   final dynamic field;
   final bool descending;
   
@@ -93,159 +95,20 @@ class OrderByField {
 
 /// Base filter builder class
 /// Extended by generated FilterBuilder classes that provide type-safe filtering methods
-abstract class FilterBuilder {
+class FilterBuilder<T> {
   /// Field prefix for nested object filtering
   final String prefix;
   
   /// Create a FilterBuilder with optional field prefix for nested objects
   FilterBuilder({this.prefix = ''});
-}
-
-/// Root filter builder with all filtering logic
-/// Extended by generated FilterBuilder classes for type-safe operations
-abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilder {
-  RootFilterBuilder({super.prefix});
 
   /// Helper to get field path with prefix
   String getFieldPath(String fieldName) {
     return prefix.isEmpty ? fieldName : '$prefix.$fieldName';
   }
-
-  /// Abstract method to wrap FirestoreFilter - implemented by generated classes
-  T wrapFilter(FirestoreFilter coreFilter);
-
-  /// Create OR filter with type safety (supports up to 30 filters)
-  T or(
-    T filter1,
-    T filter2, [
-    T? filter3,
-    T? filter4,
-    T? filter5,
-    T? filter6,
-    T? filter7,
-    T? filter8,
-    T? filter9,
-    T? filter10,
-    T? filter11,
-    T? filter12,
-    T? filter13,
-    T? filter14,
-    T? filter15,
-    T? filter16,
-    T? filter17,
-    T? filter18,
-    T? filter19,
-    T? filter20,
-    T? filter21,
-    T? filter22,
-    T? filter23,
-    T? filter24,
-    T? filter25,
-    T? filter26,
-    T? filter27,
-    T? filter28,
-    T? filter29,
-    T? filter30,
-  ]) {
-    final allFilters = <FirestoreFilter>[filter1, filter2];
-    if (filter3 != null) allFilters.add(filter3);
-    if (filter4 != null) allFilters.add(filter4);
-    if (filter5 != null) allFilters.add(filter5);
-    if (filter6 != null) allFilters.add(filter6);
-    if (filter7 != null) allFilters.add(filter7);
-    if (filter8 != null) allFilters.add(filter8);
-    if (filter9 != null) allFilters.add(filter9);
-    if (filter10 != null) allFilters.add(filter10);
-    if (filter11 != null) allFilters.add(filter11);
-    if (filter12 != null) allFilters.add(filter12);
-    if (filter13 != null) allFilters.add(filter13);
-    if (filter14 != null) allFilters.add(filter14);
-    if (filter15 != null) allFilters.add(filter15);
-    if (filter16 != null) allFilters.add(filter16);
-    if (filter17 != null) allFilters.add(filter17);
-    if (filter18 != null) allFilters.add(filter18);
-    if (filter19 != null) allFilters.add(filter19);
-    if (filter20 != null) allFilters.add(filter20);
-    if (filter21 != null) allFilters.add(filter21);
-    if (filter22 != null) allFilters.add(filter22);
-    if (filter23 != null) allFilters.add(filter23);
-    if (filter24 != null) allFilters.add(filter24);
-    if (filter25 != null) allFilters.add(filter25);
-    if (filter26 != null) allFilters.add(filter26);
-    if (filter27 != null) allFilters.add(filter27);
-    if (filter28 != null) allFilters.add(filter28);
-    if (filter29 != null) allFilters.add(filter29);
-    if (filter30 != null) allFilters.add(filter30);
-    return wrapFilter(FirestoreFilter.or(allFilters));
-  }
-
-  /// Create AND filter with type safety (supports up to 30 filters)
-  T and(
-    T filter1,
-    T filter2, [
-    T? filter3,
-    T? filter4,
-    T? filter5,
-    T? filter6,
-    T? filter7,
-    T? filter8,
-    T? filter9,
-    T? filter10,
-    T? filter11,
-    T? filter12,
-    T? filter13,
-    T? filter14,
-    T? filter15,
-    T? filter16,
-    T? filter17,
-    T? filter18,
-    T? filter19,
-    T? filter20,
-    T? filter21,
-    T? filter22,
-    T? filter23,
-    T? filter24,
-    T? filter25,
-    T? filter26,
-    T? filter27,
-    T? filter28,
-    T? filter29,
-    T? filter30,
-  ]) {
-    final allFilters = <FirestoreFilter>[filter1, filter2];
-    if (filter3 != null) allFilters.add(filter3);
-    if (filter4 != null) allFilters.add(filter4);
-    if (filter5 != null) allFilters.add(filter5);
-    if (filter6 != null) allFilters.add(filter6);
-    if (filter7 != null) allFilters.add(filter7);
-    if (filter8 != null) allFilters.add(filter8);
-    if (filter9 != null) allFilters.add(filter9);
-    if (filter10 != null) allFilters.add(filter10);
-    if (filter11 != null) allFilters.add(filter11);
-    if (filter12 != null) allFilters.add(filter12);
-    if (filter13 != null) allFilters.add(filter13);
-    if (filter14 != null) allFilters.add(filter14);
-    if (filter15 != null) allFilters.add(filter15);
-    if (filter16 != null) allFilters.add(filter16);
-    if (filter17 != null) allFilters.add(filter17);
-    if (filter18 != null) allFilters.add(filter18);
-    if (filter19 != null) allFilters.add(filter19);
-    if (filter20 != null) allFilters.add(filter20);
-    if (filter21 != null) allFilters.add(filter21);
-    if (filter22 != null) allFilters.add(filter22);
-    if (filter23 != null) allFilters.add(filter23);
-    if (filter24 != null) allFilters.add(filter24);
-    if (filter25 != null) allFilters.add(filter25);
-    if (filter26 != null) allFilters.add(filter26);
-    if (filter27 != null) allFilters.add(filter27);
-    if (filter28 != null) allFilters.add(filter28);
-    if (filter29 != null) allFilters.add(filter29);
-    if (filter30 != null) allFilters.add(filter30);
-    return wrapFilter(FirestoreFilter.and(allFilters));
-  }
-
+  
   /// Create string field filter
-  T stringFilter(
+  FirestoreFilter<R> stringFilter<R>(
     dynamic fieldName, {
     String? isEqualTo,
     String? isNotEqualTo,
@@ -259,37 +122,37 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = fieldName is String ? getFieldPath(fieldName) : fieldName;
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (isLessThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
     }
     if (isLessThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
     }
     if (isGreaterThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
     }
     if (isGreaterThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 
   /// Create numeric field filter
-  T numericFilter<N extends num>(
+  FirestoreFilter<R> numericFilter<R, N extends num>(
     String fieldName, {
     N? isEqualTo,
     N? isNotEqualTo,
@@ -303,37 +166,37 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (isLessThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
     }
     if (isLessThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
     }
     if (isGreaterThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
     }
     if (isGreaterThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 
   /// Create boolean field filter
-  T boolFilter(
+  FirestoreFilter<R> boolFilter<R>(
     String fieldName, {
     bool? isEqualTo,
     bool? isNotEqualTo,
@@ -343,25 +206,25 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 
   /// Create DateTime field filter
-  T dateTimeFilter(
+  FirestoreFilter<R> dateTimeFilter<R>(
     String fieldName, {
     DateTime? isEqualTo,
     DateTime? isNotEqualTo,
@@ -375,37 +238,37 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (isLessThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
     }
     if (isLessThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
     }
     if (isGreaterThan != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
     }
     if (isGreaterThanOrEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 
   /// Create array field filter
-  T arrayFilter<E>(
+  FirestoreFilter<R> arrayFilter<R, E>(
     String fieldName, {
     List<E>? isEqualTo,
     List<E>? isNotEqualTo,
@@ -417,33 +280,171 @@ abstract class RootFilterBuilder<T extends FirestoreFilter> extends FilterBuilde
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
     }
     if (isNotEqualTo != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
     }
     if (arrayContains != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains);
     }
     if (arrayContainsAny != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny);
     }
     if (whereIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
     }
     if (whereNotIn != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn));
+      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
     }
     if (isNull != null) {
-      return wrapFilter(FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null));
+      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 }
 
+/// Root filter builder with all filtering logic
+/// Extended by generated FilterBuilder classes for type-safe operations
+class RootFilterBuilder<T> extends FilterBuilder<T> {
+  RootFilterBuilder({super.prefix});
+
+
+  /// Create OR filter with type safety (supports up to 30 filters)
+  FirestoreFilter<T> or(
+    FirestoreFilter<T> filter1,
+    FirestoreFilter<T> filter2, [
+    FirestoreFilter<T>? filter3,
+    FirestoreFilter<T>? filter4,
+    FirestoreFilter<T>? filter5,
+    FirestoreFilter<T>? filter6,
+    FirestoreFilter<T>? filter7,
+    FirestoreFilter<T>? filter8,
+    FirestoreFilter<T>? filter9,
+    FirestoreFilter<T>? filter10,
+    FirestoreFilter<T>? filter11,
+    FirestoreFilter<T>? filter12,
+    FirestoreFilter<T>? filter13,
+    FirestoreFilter<T>? filter14,
+    FirestoreFilter<T>? filter15,
+    FirestoreFilter<T>? filter16,
+    FirestoreFilter<T>? filter17,
+    FirestoreFilter<T>? filter18,
+    FirestoreFilter<T>? filter19,
+    FirestoreFilter<T>? filter20,
+    FirestoreFilter<T>? filter21,
+    FirestoreFilter<T>? filter22,
+    FirestoreFilter<T>? filter23,
+    FirestoreFilter<T>? filter24,
+    FirestoreFilter<T>? filter25,
+    FirestoreFilter<T>? filter26,
+    FirestoreFilter<T>? filter27,
+    FirestoreFilter<T>? filter28,
+    FirestoreFilter<T>? filter29,
+    FirestoreFilter<T>? filter30,
+  ]) {
+    final allFilters = <FirestoreFilter>[filter1, filter2];
+    if (filter3 != null) allFilters.add(filter3);
+    if (filter4 != null) allFilters.add(filter4);
+    if (filter5 != null) allFilters.add(filter5);
+    if (filter6 != null) allFilters.add(filter6);
+    if (filter7 != null) allFilters.add(filter7);
+    if (filter8 != null) allFilters.add(filter8);
+    if (filter9 != null) allFilters.add(filter9);
+    if (filter10 != null) allFilters.add(filter10);
+    if (filter11 != null) allFilters.add(filter11);
+    if (filter12 != null) allFilters.add(filter12);
+    if (filter13 != null) allFilters.add(filter13);
+    if (filter14 != null) allFilters.add(filter14);
+    if (filter15 != null) allFilters.add(filter15);
+    if (filter16 != null) allFilters.add(filter16);
+    if (filter17 != null) allFilters.add(filter17);
+    if (filter18 != null) allFilters.add(filter18);
+    if (filter19 != null) allFilters.add(filter19);
+    if (filter20 != null) allFilters.add(filter20);
+    if (filter21 != null) allFilters.add(filter21);
+    if (filter22 != null) allFilters.add(filter22);
+    if (filter23 != null) allFilters.add(filter23);
+    if (filter24 != null) allFilters.add(filter24);
+    if (filter25 != null) allFilters.add(filter25);
+    if (filter26 != null) allFilters.add(filter26);
+    if (filter27 != null) allFilters.add(filter27);
+    if (filter28 != null) allFilters.add(filter28);
+    if (filter29 != null) allFilters.add(filter29);
+    if (filter30 != null) allFilters.add(filter30);
+    return FirestoreFilter<T>.or(allFilters);
+  }
+
+  /// Create AND filter with type safety (supports up to 30 filters)
+  FirestoreFilter<T> and(
+    FirestoreFilter<T> filter1,
+    FirestoreFilter<T> filter2, [
+    FirestoreFilter<T>? filter3,
+    FirestoreFilter<T>? filter4,
+    FirestoreFilter<T>? filter5,
+    FirestoreFilter<T>? filter6,
+    FirestoreFilter<T>? filter7,
+    FirestoreFilter<T>? filter8,
+    FirestoreFilter<T>? filter9,
+    FirestoreFilter<T>? filter10,
+    FirestoreFilter<T>? filter11,
+    FirestoreFilter<T>? filter12,
+    FirestoreFilter<T>? filter13,
+    FirestoreFilter<T>? filter14,
+    FirestoreFilter<T>? filter15,
+    FirestoreFilter<T>? filter16,
+    FirestoreFilter<T>? filter17,
+    FirestoreFilter<T>? filter18,
+    FirestoreFilter<T>? filter19,
+    FirestoreFilter<T>? filter20,
+    FirestoreFilter<T>? filter21,
+    FirestoreFilter<T>? filter22,
+    FirestoreFilter<T>? filter23,
+    FirestoreFilter<T>? filter24,
+    FirestoreFilter<T>? filter25,
+    FirestoreFilter<T>? filter26,
+    FirestoreFilter<T>? filter27,
+    FirestoreFilter<T>? filter28,
+    FirestoreFilter<T>? filter29,
+    FirestoreFilter<T>? filter30,
+  ]) {
+    final allFilters = <FirestoreFilter>[filter1, filter2];
+    if (filter3 != null) allFilters.add(filter3);
+    if (filter4 != null) allFilters.add(filter4);
+    if (filter5 != null) allFilters.add(filter5);
+    if (filter6 != null) allFilters.add(filter6);
+    if (filter7 != null) allFilters.add(filter7);
+    if (filter8 != null) allFilters.add(filter8);
+    if (filter9 != null) allFilters.add(filter9);
+    if (filter10 != null) allFilters.add(filter10);
+    if (filter11 != null) allFilters.add(filter11);
+    if (filter12 != null) allFilters.add(filter12);
+    if (filter13 != null) allFilters.add(filter13);
+    if (filter14 != null) allFilters.add(filter14);
+    if (filter15 != null) allFilters.add(filter15);
+    if (filter16 != null) allFilters.add(filter16);
+    if (filter17 != null) allFilters.add(filter17);
+    if (filter18 != null) allFilters.add(filter18);
+    if (filter19 != null) allFilters.add(filter19);
+    if (filter20 != null) allFilters.add(filter20);
+    if (filter21 != null) allFilters.add(filter21);
+    if (filter22 != null) allFilters.add(filter22);
+    if (filter23 != null) allFilters.add(filter23);
+    if (filter24 != null) allFilters.add(filter24);
+    if (filter25 != null) allFilters.add(filter25);
+    if (filter26 != null) allFilters.add(filter26);
+    if (filter27 != null) allFilters.add(filter27);
+    if (filter28 != null) allFilters.add(filter28);
+    if (filter29 != null) allFilters.add(filter29);
+    if (filter30 != null) allFilters.add(filter30);
+    return FirestoreFilter<T>.and(allFilters);
+  }
+
+}
+
 /// Base order by builder class
 /// Extended by generated OrderByBuilder classes that provide type-safe ordering methods
-abstract class OrderByBuilder {
+class OrderByBuilder<T> {
   /// Field prefix for nested object ordering
   final String prefix;
   
@@ -829,15 +830,54 @@ class LogicalFilterFactory {
   }
 }
 
-/// Extension for OrderBy operations
-extension OrderByBuilderExtensions on OrderByBuilder {
-  /// Generate OrderBy field method
-  OrderByField orderByField(dynamic fieldName, {bool descending = false}) {
-    // Handle FieldPath.documentId directly, or create prefixed field path for string fields
-    final fieldPath = fieldName is String
-        ? (prefix.isEmpty ? fieldName : '$prefix.$fieldName')
-        : fieldName;
-    return OrderByField(fieldPath, descending: descending);
+class FieldNameOrDocumentId {
+  final String? fieldName;
+  final FieldPathType documentId = FieldPathType.documentId;
+
+  const FieldNameOrDocumentId._({
+    this.fieldName,
+  });
+
+  /// Create a FieldNameOrDocumentId with a field name
+  const FieldNameOrDocumentId.field(String fieldName)
+      : this._(fieldName: fieldName);
+
+  /// Create a FieldNameOrDocumentId for document ID
+  const FieldNameOrDocumentId.documentId() : this._();
+
+  bool get isDocumentId => fieldName == null;
+  bool get isFieldName => fieldName != null;
+
+  dynamic get value => fieldName ?? documentId;
+
+  @override
+  String toString() => fieldName ?? documentId.toString();
+}
+
+class OrderByHelper {
+  /// Create OrderByField with prefix
+  static OrderByField<T> createOrderByField<T>(
+    String fieldName, {
+    String prefix = '',
+    bool descending = false,
+  }) {
+    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+    return OrderByField<T>(fieldPath, descending: descending);
+  }
+
+  /// Create OrderByField with prefix
+  static OrderByField<T> createOrderByDocumentId<T>({
+    bool descending = false,
+  }) {
+    return OrderByField<T>(FieldPathType.documentId, descending: descending);
+  }
+
+  static OrderByBuilder<T> createOrderByBuilder<T>(
+    String fieldName, {
+    String prefix = '',
+  }) {
+    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+    return OrderByBuilder<T>(prefix: fieldPath);
   }
 }
 

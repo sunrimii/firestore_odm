@@ -18,12 +18,12 @@ class QueryGenerator {
     // buffer.writeln('');
     
     // Generate new orderBy method using OrderByBuilder
-    buffer.writeln('  /// Order using an OrderBy Builder');
-    buffer.writeln('  FirestoreQuery<$className> orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
-    buffer.writeln('    final builder = ${className}OrderByBuilder();');
-    buffer.writeln('    final orderField = orderBuilder(builder);');
-    buffer.writeln('    return FirestoreQuery<$className>(query.orderBy(orderField.field, descending: orderField.descending), fromJson, toJson, specialTimestamp);');
-    buffer.writeln('  }');
+    // buffer.writeln('  /// Order using an OrderBy Builder');
+    // buffer.writeln('  FirestoreQuery<$className> orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
+    // buffer.writeln('    final builder = ${className}OrderByBuilder();');
+    // buffer.writeln('    final orderField = orderBuilder(builder);');
+    // buffer.writeln('    return FirestoreQuery<$className>(query.orderBy(orderField.field, descending: orderField.descending), fromJson, toJson, specialTimestamp);');
+    // buffer.writeln('  }');
 
     buffer.writeln('}');
   }

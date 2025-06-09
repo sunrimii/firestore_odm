@@ -13,14 +13,14 @@ class OrderByGenerator {
     String? documentIdField,
   ) {
     buffer.writeln('/// Generated OrderByBuilder for $className');
-    buffer.writeln('class ${className}OrderByBuilder extends OrderByBuilder {');
-    buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
-    buffer.writeln('');
+    buffer.writeln('extension ${className}OrderByBuilderExtension on OrderByBuilder<${className}> {');
+    // buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
+    // buffer.writeln('');
 
     // Add document ID order method if there's a document ID field
     if (documentIdField != null) {
       buffer.writeln('  /// Order by document ID (${documentIdField} field)');
-      buffer.writeln('  OrderByField $documentIdField({bool descending = false}) => orderByField(FieldPath.documentId, descending: descending);');
+      buffer.writeln('  OrderByField $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);');
       buffer.writeln('');
     }
 
@@ -33,7 +33,7 @@ class OrderByGenerator {
       if (fieldName == documentIdField) continue;
       
       if (TypeAnalyzer.isPrimitiveType(fieldType) || TypeAnalyzer.isComparableType(fieldType)) {
-        _generateOrderByFieldMethod(buffer, className, fieldName);
+        _generateOrderByFieldMethod(buffer, rootOrderByType, fieldName);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
         _generateOrderByNestedGetter(buffer, fieldName, fieldType);
@@ -44,19 +44,16 @@ class OrderByGenerator {
     buffer.writeln('');
   }
 
-  static void _generateOrderByFieldMethod(StringBuffer buffer, String className, String fieldName) {
+  static void _generateOrderByFieldMethod(StringBuffer buffer, String rootOrderByType, String fieldName) {
     buffer.writeln('  /// Order by $fieldName');
-    buffer.writeln('  OrderByField $fieldName({bool descending = false}) => orderByField(\'$fieldName\', descending: descending);');
+    buffer.writeln('  OrderByField<$rootOrderByType> $fieldName({bool descending = false}) => OrderByHelper.createOrderByField(\'$fieldName\', prefix: prefix, descending: descending);');
     buffer.writeln('');
   }
 
   static void _generateOrderByNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
     final nestedTypeName = fieldType.getDisplayString(withNullability: false);
     buffer.writeln('  /// Access nested $fieldName for ordering');
-    buffer.writeln('  ${nestedTypeName}OrderByBuilder get $fieldName {');
-    buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';');
-    buffer.writeln('    return ${nestedTypeName}OrderByBuilder(prefix: nestedPrefix);');
-    buffer.writeln('  }');
+    buffer.writeln('  OrderByBuilder<$nestedTypeName> get $fieldName => OrderByHelper.createOrderByBuilder(\'$fieldName\', prefix: prefix);');
     buffer.writeln('');
   }
 

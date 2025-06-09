@@ -75,12 +75,13 @@ class CollectionGenerator {
     }
     
     // Generate filter method
-    _generateFilterMethod(buffer, className);
+    // _generateFilterMethod(buffer, className);
     
     // Generate orderBy method
-    _generateOrderByMethod(buffer, className);
+    // _generateOrderByMethod(buffer, className);
 
     buffer.writeln('}');
+
   }
 
   static void _generateUpsertMethod(StringBuffer buffer, String className, String documentIdField) {

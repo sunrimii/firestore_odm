@@ -70,6 +70,22 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   Future<List<T>> get() async {
     return await _queryService.executeQuery();
   }
+  
+  @override
+  FirestoreQuery<T> where(FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder) {
+    final builder = RootFilterBuilder<T>();
+    final builtFilter = filterBuilder(builder);
+    final newQuery = applyFilterToQuery(query, builtFilter);
+    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+  }
+
+  @override
+  FirestoreQuery<T> orderBy(OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder) {
+    final builder = OrderByBuilder<T>();
+    final orderByField = orderBuilder(builder);
+    final newQuery = _queryService.applyOrderBy(orderByField);
+    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+  }
 }
 
 
