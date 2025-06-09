@@ -1,16 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:meta/meta.dart';
-import 'update_operations_mixin.dart';
+import 'interfaces/query_operations.dart';
+import 'interfaces/update_operations.dart';
+import 'services/query_operations_service.dart';
+import 'services/update_operations_service.dart';
 
 /// Abstract base class for type-safe Firestore queries
-abstract class FirestoreQuery<T> with UpdateOperationsMixin<T> {
+class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   /// The underlying Firestore query
-  @protected
   final Query<Map<String, dynamic>> query;
-
-  /// Get the underlying query for extensions
-  Query<Map<String, dynamic>> get underlyingQuery => query;
 
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
@@ -18,111 +17,61 @@ abstract class FirestoreQuery<T> with UpdateOperationsMixin<T> {
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
 
-  /// Creates a new FirestoreQuery instance
-  FirestoreQuery(this.query, this.fromJson, this.toJson);
+  /// Special timestamp for server timestamp operations
+  final DateTime specialTimestamp;
 
-  /// Bulk update all documents that match this query using array-style updates
-  Future<void> update(List<UpdateOperation> Function(dynamic updateBuilder) updateBuilder) async {
-    final snapshot = await query.get();
-    final batch = query.firestore.batch();
-    
-    // We need the actual update builder class, but for now we'll create operations manually
-    final operations = updateBuilder(null); // This will need to be improved with actual builder
-    final updateMap = _operationsToMap(operations);
-    final processedUpdateMap = processUpdateData(updateMap);
-    
-    for (final docSnapshot in snapshot.docs) {
-      batch.update(docSnapshot.reference, processedUpdateMap);
-    }
-    
-    await batch.commit();
+  /// Service for handling query operations
+  late final QueryOperationsService<T> _queryService;
+
+  /// Service for handling update operations
+  late final UpdateOperationsService<T> _updateService;
+
+  /// Creates a new FirestoreQuery instance
+  FirestoreQuery(this.query, this.fromJson, this.toJson, DateTime? specialTimestamp)
+    : specialTimestamp = specialTimestamp ?? DateTime.utc(1900, 1, 1, 0, 0, 10) {
+    _queryService = QueryOperationsService<T>(
+      query: query,
+      fromJson: fromJson,
+    );
+    _updateService = UpdateOperationsService<T>(
+      specialTimestamp: this.specialTimestamp,
+      toJson: toJson,
+      fromJson: fromJson,
+    );
   }
 
+
   /// Bulk modify all documents that match this query using diff-based updates
+  @override
   Future<void> modify(T Function(T docData) modifier) async {
-    final snapshot = await query.get();
-    final batch = query.firestore.batch();
-    
-    for (final docSnapshot in snapshot.docs) {
-      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
-      final newDoc = modifier(doc);
-      final oldData = toJson(doc);
-      final newData = toJson(newDoc);
-      final updateData = computeDiff(oldData, newData);
-      
-      if (updateData.isNotEmpty) {
-        final processedUpdateData = processUpdateData(updateData);
-        batch.update(docSnapshot.reference, processedUpdateData);
-      }
-    }
-    
-    await batch.commit();
+    await _updateService.executeBulkModify(query, modifier);
   }
 
   /// Bulk incremental modify all documents that match this query with automatic atomic operations
+  @override
   Future<void> incrementalModify(T Function(T docData) modifier) async {
-    final snapshot = await query.get();
-    final batch = query.firestore.batch();
-    
-    for (final docSnapshot in snapshot.docs) {
-      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
-      final newDoc = modifier(doc);
-      final oldData = toJson(doc);
-      final newData = toJson(newDoc);
-      final updateData = computeDiffWithAtomicOperations(oldData, newData);
-      
-      if (updateData.isNotEmpty) {
-        final processedUpdateData = processUpdateData(updateData);
-        batch.update(docSnapshot.reference, processedUpdateData);
-      }
-    }
-    
-    await batch.commit();
-  }
-
-  /// Extract collection path from query (this will need to be overridden in subclasses)
-  String getCollectionPath() {
-    // This is a simplified implementation - in real usage this would be provided by generated code
-    return 'collection'; // Placeholder
-  }
-
-  /// Extract document ID from a document instance (this will need to be overridden in subclasses)
-  String getDocumentId(T doc) {
-    // This is a simplified implementation - in real usage this would extract the ID field
-    final json = toJson(doc);
-    return json['id'] as String? ?? 'unknown';
-  }
-
-  /// Convert operations list to map (simplified implementation)
-  Map<String, dynamic> _operationsToMap(List<UpdateOperation> operations) {
-    // This is a placeholder - real implementation would be in generated code
-    return <String, dynamic>{};
+    await _updateService.executeBulkIncrementalModify(query, modifier);
   }
 
   /// Limits the number of results returned
+  @override
   FirestoreQuery<T> limit(int limit) {
-    return newInstance(query.limit(limit));
+    return FirestoreQuery<T>(_queryService.applyLimit(limit), fromJson, toJson, specialTimestamp);
   }
 
   /// Limits the number of results returned from the end
+  @override
   FirestoreQuery<T> limitToLast(int limit) {
-    return newInstance(query.limitToLast(limit));
+    return FirestoreQuery<T>(_queryService.applyLimitToLast(limit), fromJson, toJson, specialTimestamp);
   }
 
   /// Executes the query and returns the results
+  @override
   Future<List<T>> get() async {
-    final snapshot = await query.get();
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      // Pass both data and document ID to fromJson
-      return fromJson(data, doc.id);
-    }).toList();
+    return await _queryService.executeQuery();
   }
-
-  /// Creates a new instance of the query with the given Firestore query
-  @protected
-  FirestoreQuery<T> newInstance(Query<Map<String, dynamic>> query);
 }
+
 
 /// Applies a filter to the given Firestore query
 Query<Map<String, dynamic>> applyFilterToQuery(Query<Map<String, dynamic>> query, FirestoreFilter filter) {

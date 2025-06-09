@@ -96,21 +96,21 @@ class CollectionGenerator {
 
   static void _generateFilterMethod(StringBuffer buffer, String className) {
     buffer.writeln('  /// Filter using a Filter Builder');
-    buffer.writeln('  ${className}Query where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
+    buffer.writeln('   FirestoreQuery<$className> where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
     buffer.writeln('    final builder = ${className}FilterBuilder();');
     buffer.writeln('    final builtFilter = filterBuilder(builder);');
     buffer.writeln('    final newQuery = applyFilterToQuery(ref, builtFilter);');
-    buffer.writeln('    return ${className}Query(this, newQuery);');
+    buffer.writeln('    return FirestoreQuery<$className>(newQuery, fromJson, toJson, specialTimestamp);');
     buffer.writeln('  }');
     buffer.writeln('');
   }
 
   static void _generateOrderByMethod(StringBuffer buffer, String className) {
     buffer.writeln('  /// Order using an OrderBy Builder');
-    buffer.writeln('  ${className}Query orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
+    buffer.writeln('  FirestoreQuery<$className> orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
     buffer.writeln('    final builder = ${className}OrderByBuilder();');
     buffer.writeln('    final orderField = orderBuilder(builder);');
-    buffer.writeln('    return ${className}Query(this, ref.orderBy(orderField.field, descending: orderField.descending));');
+    buffer.writeln('    return FirestoreQuery<$className>(ref.orderBy(orderField.field, descending: orderField.descending), fromJson, toJson, specialTimestamp);');
     buffer.writeln('  }');
     buffer.writeln('');
   }
