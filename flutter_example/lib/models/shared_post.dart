@@ -1,5 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'user.dart'; // Required for generated extension
 
 part 'shared_post.freezed.dart';
 part 'shared_post.g.dart';

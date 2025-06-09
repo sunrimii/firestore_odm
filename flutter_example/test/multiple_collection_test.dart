@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
 import '../lib/models/shared_post.dart';
+import '../lib/models/user.dart'; // Required for odm.users extension
 
 void main() {
   group('Multiple Collection Tests', () {
@@ -15,10 +16,10 @@ void main() {
       odm = FirestoreODM(firestore: firestore);
     });
 
-    test('should generate two separate collection classes for SharedPost', () {
-      // Verify that we can access both collections
+    test('should generate unified collection class for SharedPost', () {
+      // Verify that we can access both collections using the same class
       expect(odm.posts, isA<SharedPostCollection>());
-      expect(odm.users('user123').posts, isA<SharedPostCollectionForUser>());
+      expect(odm.users('user123').posts, isA<SharedPostCollection>());
     });
 
     test('should access standalone posts collection', () async {

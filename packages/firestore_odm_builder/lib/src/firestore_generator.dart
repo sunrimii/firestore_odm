@@ -130,18 +130,27 @@ class FirestoreGenerator extends Generator {
       generatedClasses.add(className);
     }
 
-    // Generate collection-specific components for each path
+    // Generate only ONE collection class for this model
+    CollectionGenerator.generateCollectionClass(
+      buffer,
+      className,
+      collections.first.path, // Use first path, but this won't matter since we use generic constructor
+      constructor,
+      documentIdField,
+      false, // Not subcollection-specific anymore
+    );
+    buffer.writeln('');
+
+    // Generate ODM extensions for each collection path
     for (final collection in collections) {
-      _generateCollectionSpecificComponents(
+      ODMExtensionGenerator.generateODMExtension(
         buffer,
         className,
         collection.path,
-        collection.suffix,
-        constructor,
-        documentIdField,
         collection.isSubcollection,
         collectionTypeMap,
       );
+      buffer.writeln('');
     }
   }
 
