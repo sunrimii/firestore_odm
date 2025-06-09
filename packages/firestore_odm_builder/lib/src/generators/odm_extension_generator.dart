@@ -7,9 +7,9 @@ class ODMExtensionGenerator {
     StringBuffer buffer,
     String className,
     String collectionPath,
-    bool isSubcollection, {
-    String suffix = '',
-  }) {
+    bool isSubcollection,
+    Map<String, String> collectionTypeMap,
+  ) {
     final pathSegments = collectionPath.split('/');
     final wildcardParams = <String>[];
 
@@ -26,123 +26,71 @@ class ODMExtensionGenerator {
     }
 
     if (isSubcollection && wildcardParams.isNotEmpty) {
-      // For subcollections, generate document reference class first (outside extension)
-      _generateDocumentReferenceClass(
+      // For subcollections, generate document extension for subcollection access
+      _generateDocumentExtension(
         buffer,
         className,
         pathSegments,
         wildcardParams,
-        suffix: suffix,
+        collectionTypeMap,
       );
     }
 
-    buffer.writeln('/// Extension to add the collection to FirestoreODM');
-    buffer.writeln(
-      'extension FirestoreODM${className}${suffix}Extension on FirestoreODM {',
-    );
-
-    if (isSubcollection && wildcardParams.isNotEmpty) {
-      // Generate method to create document reference
-      _generateDocumentReferenceMethod(
-        buffer,
-        className,
-        pathSegments,
-        wildcardParams,
-        suffix,
+    // Only generate FirestoreODM extension for root collections, not subcollections
+    if (!isSubcollection || wildcardParams.isEmpty) {
+      buffer.writeln('/// Extension to add the collection to FirestoreODM');
+      buffer.writeln(
+        'extension FirestoreODM${className}Extension on FirestoreODM {',
       );
-    } else {
+
       // Generate getter for regular collection
       buffer.writeln(
-        '  ${className}Collection${suffix} get ${StringHelpers.camelCase(collectionPath)} => ${className}Collection${suffix}(firestore);',
+        '  ${className}Collection get ${StringHelpers.camelCase(collectionPath)} => ${className}Collection(firestore.collection(\'$collectionPath\'));',
       );
-    }
 
-    buffer.writeln('}');
-  }
-
-  /// Generate document reference class for fluent API
-  static void _generateDocumentReferenceClass(
-    StringBuffer buffer,
-    String className,
-    List<String> pathSegments,
-    List<String> wildcardParams, {
-    String suffix = '',
-  }) {
-    final collectionsOnly = pathSegments
-        .where((segment) => segment != '*')
-        .toList();
-    if (collectionsOnly.length >= 2) {
-      final parentCollection = collectionsOnly[collectionsOnly.length - 2];
-      final childCollection = collectionsOnly.last;
-      final parentClassName = StringHelpers.capitalize(
-        parentCollection.replaceAll(RegExp(r's$'), ''),
-      );
-      final childCollectionName = StringHelpers.camelCase(childCollection);
-      final parentDocClassName = '${parentClassName}DocumentReference';
-
-      buffer.writeln(
-        '/// Document reference for $parentClassName with subcollections',
-      );
-      buffer.writeln('class $parentDocClassName {');
-      buffer.writeln('  final FirebaseFirestore _firestore;');
-      for (final param in wildcardParams) {
-        buffer.writeln('  final String _$param;');
-      }
-      buffer.writeln('');
-      buffer.write('  $parentDocClassName(this._firestore');
-      for (final param in wildcardParams) {
-        buffer.write(', this._$param');
-      }
-      buffer.writeln(');');
-      buffer.writeln('');
-      buffer.writeln('  /// Access $childCollection subcollection');
-      buffer.write(
-        '  ${className}Collection${suffix} get $childCollectionName => ${className}Collection${suffix}(_firestore',
-      );
-      for (final param in wildcardParams) {
-        buffer.write(', ${param.replaceAll('_', '')}: _$param');
-      }
-      buffer.writeln(');');
       buffer.writeln('}');
-      buffer.writeln('');
     }
   }
 
-  /// Generate method to create document reference
-  static void _generateDocumentReferenceMethod(
+  /// Generate document extension for subcollection access
+  static void _generateDocumentExtension(
     StringBuffer buffer,
     String className,
     List<String> pathSegments,
     List<String> wildcardParams,
-    String suffix,
+    Map<String, String> collectionTypeMap,
   ) {
     final collectionsOnly = pathSegments
         .where((segment) => segment != '*')
         .toList();
     if (collectionsOnly.length >= 2) {
       final parentCollection = collectionsOnly[collectionsOnly.length - 2];
-      final parentClassName = StringHelpers.capitalize(
-        parentCollection.replaceAll(RegExp(r's$'), ''),
-      );
-      final parentDocClassName = '${parentClassName}DocumentReference';
+      final childCollection = collectionsOnly.last;
+      
+      // Use collectionTypeMap to get the correct parent type
+      final parentTypeName = collectionTypeMap[parentCollection] ??
+          StringHelpers.capitalize(parentCollection.replaceAll(RegExp(r's$'), ''));
+      
+      final childCollectionName = StringHelpers.camelCase(childCollection);
+      
+      // Use generic collection class name
+      final collectionClassName = '${className}Collection';
+
+      // Get the subcollection name (last segment that's not a wildcard)
+      final subcollectionName = collectionsOnly.last;
 
       buffer.writeln(
-        '  /// Get $parentClassName document reference for accessing subcollections',
+        '/// Extension to access $childCollection subcollection on $parentTypeName document',
       );
-      buffer.write(
-        '  $parentDocClassName ${StringHelpers.camelCase(parentCollection)}(',
+      buffer.writeln(
+        'extension ${className}Extension on FirestoreDocument<$parentTypeName> {',
       );
-      for (int i = 0; i < wildcardParams.length; i++) {
-        if (i > 0) buffer.write(', ');
-        buffer.write('String ${wildcardParams[i]}');
-      }
-      buffer.writeln(') {');
-      buffer.write('    return $parentDocClassName(firestore');
-      for (final param in wildcardParams) {
-        buffer.write(', $param');
-      }
-      buffer.writeln(');');
-      buffer.writeln('  }');
+      buffer.writeln('  /// Access $childCollection subcollection');
+      buffer.writeln(
+        '  $collectionClassName get $childCollectionName => $collectionClassName(ref.collection(\'$subcollectionName\'));',
+      );
+      buffer.writeln('}');
+      buffer.writeln('');
     }
   }
 }

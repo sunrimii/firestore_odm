@@ -29,37 +29,19 @@ class CollectionGenerator {
       }
     }
 
-    final collectionClassName = '${className}Collection$suffix';
+    // Use generic naming without suffix for subcollections
+    final collectionClassName = '${className}Collection';
 
     buffer.writeln('/// Generated Collection for $className');
-    if (isSubcollection) {
-      buffer.writeln('/// Subcollection path: $collectionPath');
-    }
     buffer.writeln(
       'class $collectionClassName extends FirestoreCollection<$className> {',
     );
 
-    // Generate constructor
-    if (isSubcollection && wildcardParams.isNotEmpty) {
-      buffer.writeln('  $collectionClassName(FirebaseFirestore firestore, {');
-      for (final param in wildcardParams) {
-        buffer.writeln('    required String $param,');
-      }
-      buffer.writeln('  }) : super(');
-
-      // Build dynamic collection path
-      final dynamicPath = _buildDynamicPath(collectionPath, wildcardParams);
-      buffer.writeln('    ref: firestore.collection($dynamicPath),');
-    } else {
-      buffer.writeln(
-        '  $collectionClassName(FirebaseFirestore firestore) : super(',
-      );
-      buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
-    }
-
+    // Generate generic constructor that accepts CollectionReference
+    buffer.writeln('  $collectionClassName(CollectionReference<Map<String, dynamic>> ref) : super(');
+    buffer.writeln('    ref: ref,');
     buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
     buffer.writeln('    toJson: (value) => value.toJson(),');
-
     buffer.writeln('  );');
     buffer.writeln('');
 
@@ -73,30 +55,4 @@ class CollectionGenerator {
     buffer.writeln('}');
   }
 
-  /// Build dynamic collection path for subcollections
-  static String _buildDynamicPath(
-    String collectionPath,
-    List<String> wildcardParams,
-  ) {
-    final pathSegments = collectionPath.split('/');
-    final pathParts = <String>[];
-    int paramIndex = 0;
-
-    for (int i = 0; i < pathSegments.length; i++) {
-      if (pathSegments[i] == '*') {
-        if (paramIndex < wildcardParams.length) {
-          pathParts.add('\${${wildcardParams[paramIndex]}}');
-          paramIndex++;
-        } else {
-          throw ArgumentError(
-            'Not enough parameters for wildcards in path: $collectionPath',
-          );
-        }
-      } else {
-        pathParts.add(pathSegments[i]);
-      }
-    }
-
-    return "'${pathParts.join('/')}'";
-  }
 }

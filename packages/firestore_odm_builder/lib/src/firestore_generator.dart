@@ -27,13 +27,24 @@ class FirestoreGenerator extends Generator {
   String? generate(LibraryReader library, BuildStep buildStep) {
     final buffer = StringBuffer();
     final generatedClasses = <String>{};
+    
+    // First pass: collect all collection path -> type mappings
+    final collectionTypeMap = <String, String>{};
+    for (final element in library.allElements) {
+      if (element is ClassElement) {
+        final collections = _getCollectionAnnotations(element);
+        for (final collection in collections) {
+          collectionTypeMap[collection.path] = element.name;
+        }
+      }
+    }
 
-    // Process all classes with @Collection annotations
+    // Second pass: generate code with collection type mapping
     for (final element in library.allElements) {
       if (element is ClassElement) {
         final collections = _getCollectionAnnotations(element);
         if (collections.isNotEmpty) {
-          _generateForClass(buffer, element, collections, generatedClasses);
+          _generateForClass(buffer, element, collections, generatedClasses, collectionTypeMap);
         }
       }
     }
@@ -93,6 +104,7 @@ class FirestoreGenerator extends Generator {
     ClassElement element,
     List<CollectionInfo> collections,
     Set<String> generatedClasses,
+    Map<String, String> collectionTypeMap,
   ) {
     final className = element.name;
     final constructor = element.unnamedConstructor;
@@ -128,6 +140,7 @@ class FirestoreGenerator extends Generator {
         constructor,
         documentIdField,
         collection.isSubcollection,
+        collectionTypeMap,
       );
     }
   }
@@ -211,6 +224,7 @@ class FirestoreGenerator extends Generator {
     ConstructorElement constructor,
     String? documentIdField,
     bool isSubcollection,
+    Map<String, String> collectionTypeMap,
   ) {
     // Generate Collection class with unique name
     CollectionGenerator.generateCollectionClass(
@@ -230,7 +244,7 @@ class FirestoreGenerator extends Generator {
       className,
       collectionPath,
       isSubcollection,
-      suffix: suffix,
+      collectionTypeMap,
     );
     buffer.writeln('');
   }
@@ -320,6 +334,7 @@ class FirestoreGenerator extends Generator {
       className,
       collectionPath,
       isSubcollection,
+      <String, String>{}, // Empty map for backwards compatibility
     );
   }
 }
