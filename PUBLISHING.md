@@ -1,218 +1,241 @@
-# 📦 Publishing Guide
+# Publishing Guide for Firestore ODM
 
-This document explains how to publish packages in the Firestore ODM monorepo using Melos and GitHub Actions.
+This guide explains how to publish new versions of the Firestore ODM packages.
 
-## 🚀 Quick Start
+## 🚀 Quick Release Process
 
-### Method 1: GitHub Actions (Recommended)
+### Automated Release (Recommended)
 
-1. **Manual Release**:
-   - Go to GitHub Actions → Release & Publish
-   - Click "Run workflow"
-   - Choose options:
-     - ✅ Run automatic versioning
-     - ✅ Actually publish to pub.dev
-   - Click "Run workflow"
-
-2. **Tag-based Release**:
+1. **Ensure all changes are merged to `main`**
    ```bash
-   git tag v1.0.1
-   git push origin v1.0.1
+   git checkout main
+   git pull origin main
    ```
 
-### Method 2: Local Commands
-
-```bash
-# 1. Preview version changes
-melos version --dry-run
-
-# 2. Update versions
-melos version
-
-# 3. Dry-run publish test
-melos run publish:dry-run
-
-# 4. Publish to pub.dev
-melos run publish:packages
-```
-
-## 🔧 Setup Requirements
-
-### GitHub Secrets
-
-Add these secrets to your GitHub repository:
-
-1. **PUB_CREDENTIALS** (Required for publishing)
+2. **Run quality checks**
    ```bash
-   # Generate credentials
-   dart pub login
+   # Windows
+   scripts\dev.bat check
    
-   # Copy credentials file content
-   cat ~/.pub-cache/credentials.json
-   
-   # Add to GitHub Secrets as PUB_CREDENTIALS
+   # Linux/macOS
+   ./scripts/dev.sh check
    ```
 
-### Repository Settings
+3. **Create release via GitHub Actions**
+   - Go to GitHub Actions > Release workflow
+   - Click "Run workflow"
+   - Choose version type (patch/minor/major)
+   - Run the workflow
 
-Enable in Settings → Actions → General:
-- ✅ "Allow GitHub Actions to create and approve pull requests"
-- ✅ "Allow GitHub Actions to create releases"
+4. **Packages will be automatically published** when the release is created
 
-## 📋 Publishing Process
+### Manual Release Process
 
-### 1. Pre-Publishing Checklist
+If you need to release manually:
 
-- [ ] All tests pass locally
-- [ ] Code follows formatting standards
-- [ ] Documentation is updated
-- [ ] CHANGELOG.md is current
-- [ ] No breaking changes without version bump
-
-### 2. Automated Workflow
-
-The GitHub Action automatically:
-
-1. **Quality Checks**
-   - Runs all tests
-   - Validates code formatting
-   - Performs static analysis
-   - Dry-run publish validation
-
-2. **Versioning**
-   - Uses conventional commits for automatic versioning
-   - Updates package versions
-   - Updates dependencies between packages
-   - Generates/updates CHANGELOG.md
-
-3. **Publishing**
-   - Publishes packages in dependency order:
-     1. `firestore_odm_annotation`
-     2. `firestore_odm` 
-     3. `firestore_odm_builder`
-   - Creates GitHub release
-   - Verifies packages are available on pub.dev
-
-### 3. Dependency Management
-
-During development:
-```yaml
-dependencies:
-  firestore_odm_annotation:
-    path: ../firestore_odm_annotation  # ✅ Local development
-```
-
-During publishing, Melos automatically:
-```yaml
-dependencies:
-  firestore_odm_annotation: ^1.0.0    # ✅ Published version
-```
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-1. **Publishing Fails**
+1. **Bootstrap workspace**
    ```bash
-   # Check credentials
-   dart pub login
+   melos bootstrap
+   ```
+
+2. **Run all checks**
+   ```bash
+   melos run check
+   ```
+
+3. **Preview version changes**
+   ```bash
+   melos run version:check
+   ```
+
+4. **Version packages**
+   ```bash
+   # Patch version (1.0.0 -> 1.0.1)
+   melos version --patch --yes
    
-   # Test dry-run locally
+   # Minor version (1.0.0 -> 1.1.0)
+   melos version --minor --yes
+   
+   # Major version (1.0.0 -> 2.0.0)
+   melos version --major --yes
+   ```
+
+5. **Dry run publish**
+   ```bash
    melos run publish:dry-run
    ```
 
-2. **Version Conflicts**
+6. **Publish packages**
    ```bash
-   # Manual version bump
-   melos version firestore_odm_annotation major
+   melos run publish
    ```
 
-3. **Path Dependencies in Published Package**
-   - This is automatically handled by Melos
-   - Ensure you're using the GitHub Actions workflow
+## 📦 Package Information
 
-### Validation Commands
+| Package | Description | pub.dev |
+|---------|-------------|---------|
+| `firestore_odm_annotation` | Pure annotations | [![pub package](https://img.shields.io/pub/v/firestore_odm_annotation.svg)](https://pub.dev/packages/firestore_odm_annotation) |
+| `firestore_odm` | Core ODM functionality | [![pub package](https://img.shields.io/pub/v/firestore_odm.svg)](https://pub.dev/packages/firestore_odm) |
+| `firestore_odm_builder` | Code generator | [![pub package](https://img.shields.io/pub/v/firestore_odm_builder.svg)](https://pub.dev/packages/firestore_odm_builder) |
 
-```bash
-# Check package health
-dart pub deps --style=tree
+## 🔒 Prerequisites for Publishing
 
-# Validate package
-dart pub publish --dry-run
+### Setup pub.dev Authentication
 
-# Check for issues
-dart analyze
+1. **Get pub.dev token**
+   - Go to [pub.dev](https://pub.dev)
+   - Sign in with your Google account
+   - Go to Account > Tokens
+   - Create a new token
 
-# Format code
-dart format .
-```
+2. **Configure local publishing (for manual releases)**
+   ```bash
+   dart pub token add https://pub.dev
+   ```
 
-## 📊 Release Strategy
+3. **Configure GitHub Secrets (for automated releases)**
+   - Go to repository Settings > Secrets and variables > Actions
+   - Add `PUB_TOKEN` secret with your pub.dev token
 
-### Version Numbers
+### Verify Publishing Rights
+
+Ensure you have publishing rights for all packages:
+- `firestore_odm_annotation`
+- `firestore_odm`
+- `firestore_odm_builder`
+
+## 🧪 Pre-Release Checklist
+
+Before releasing, ensure:
+
+- [ ] All tests pass (`melos run test:all`)
+- [ ] Code is properly formatted (`melos run format:check`)
+- [ ] Static analysis passes (`melos run analyze`)
+- [ ] Example builds successfully (`melos run build:example`)
+- [ ] CHANGELOG.md is updated
+- [ ] Breaking changes are documented
+- [ ] Version numbers are consistent
+
+## 📋 Version Strategy
 
 We follow [Semantic Versioning](https://semver.org/):
-- **Major** (1.0.0): Breaking changes
-- **Minor** (0.1.0): New features (backward compatible)
-- **Patch** (0.0.1): Bug fixes
 
-### Conventional Commits
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, no breaking changes
+- **MINOR** (1.0.0 → 1.1.0): New features, backward compatible
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes
 
-Use conventional commit messages for automatic versioning:
+### Pre-release Versions
+
+For beta/alpha releases:
 
 ```bash
-feat: add new query builder feature          # → Minor version bump
-fix: resolve null pointer exception          # → Patch version bump
-feat!: change API for better performance     # → Major version bump
-docs: update README examples                 # → No version bump
+# Create prerelease version
+melos version --prerelease --preid=beta --yes
+
+# Example: 1.0.0 -> 1.0.1-beta.0
 ```
 
-### Release Branches
+## 🔄 Release Workflow
 
-- `main`: Stable releases
-- `develop`: Development (optional)
-- `feature/*`: Feature branches
-- `hotfix/*`: Critical fixes
+### 1. Development Phase
+- Create feature branches
+- Make changes
+- Add tests
+- Update documentation
 
-## 🎯 Best Practices
+### 2. Pre-Release Phase
+- Merge to `develop` branch (if using gitflow)
+- Run comprehensive tests
+- Update CHANGELOG.md
+- Create release candidate
 
-### Development Workflow
+### 3. Release Phase
+- Merge to `main` branch
+- Create GitHub release
+- Packages auto-publish to pub.dev
+- Update documentation
 
-1. Work with path dependencies for local development
-2. Use `melos bootstrap` to link workspace packages
-3. Run `melos run check` before committing
-4. Use conventional commit messages
+### 4. Post-Release Phase
+- Monitor for issues
+- Update dependent projects
+- Plan next release
 
-### Release Workflow
+## 🚨 Troubleshooting
 
-1. Merge changes to main branch
-2. Use GitHub Actions for releasing
-3. Verify packages on pub.dev
-4. Update documentation if needed
+### Common Issues
 
-### Package Quality
+**Publishing fails with authentication error:**
+```bash
+# Re-authenticate
+dart pub token add https://pub.dev
+```
 
-- Keep packages focused and lightweight
-- Include comprehensive tests
-- Maintain good documentation
-- Follow Dart package conventions
+**Version conflicts:**
+```bash
+# Check current versions
+melos list --long
 
-## 🔗 Links
+# Reset to last published versions
+git checkout HEAD~1 -- packages/*/pubspec.yaml
+```
 
-- [Melos Documentation](https://melos.invertase.dev/)
-- [Pub.dev Publishing](https://dart.dev/tools/pub/publishing)
-- [Conventional Commits](https://www.conventionalcommits.org/)
-- [Semantic Versioning](https://semver.org/)
+**Tests fail:**
+```bash
+# Clean and rebuild
+melos run clean
+melos bootstrap
+melos run test:all
+```
+
+### Emergency Rollback
+
+If you need to rollback a release:
+
+1. **Yank the published version**
+   ```bash
+   dart pub uploader --add-uploader your-email@example.com firestore_odm
+   dart pub admin yank firestore_odm 1.0.1
+   ```
+
+2. **Create hotfix release**
+   ```bash
+   git revert <problematic-commit>
+   melos version --patch --yes
+   melos run publish
+   ```
 
 ## 📞 Support
 
-If you encounter issues:
+- **GitHub Issues**: [Report bugs](https://github.com/sylphxltd/firestore_odm/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/sylphxltd/firestore_odm/discussions)
+- **Email**: your-team@example.com
 
-1. Check this guide first
-2. Review the GitHub Actions logs
-3. Open an issue on GitHub
-4. Contact the maintainers
+## 📝 Release Notes Template
 
----
+When creating releases, use this template:
 
-**Happy Publishing! 🚀**
+```markdown
+## 🚀 What's New
+
+- New feature description
+- Another feature
+
+## 🐛 Bug Fixes
+
+- Fixed issue with X
+- Resolved problem with Y
+
+## 💥 Breaking Changes
+
+- Changed API for Z (migration guide: ...)
+
+## 📦 Dependencies
+
+- Updated dependency X to version Y
+- Added new dependency Z
+
+## 🔗 Links
+
+- [Migration Guide](link-to-migration-guide)
+- [Documentation](link-to-docs)
+- [Examples](link-to-examples)
