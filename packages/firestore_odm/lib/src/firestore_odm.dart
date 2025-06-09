@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'update_operations_mixin.dart';
 
 /// Internal variable to store the current server timestamp constant
 DateTime _currentServerTimestamp = DateTime.utc(1900, 1, 1, 0, 0, 10);

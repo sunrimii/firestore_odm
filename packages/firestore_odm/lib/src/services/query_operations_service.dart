@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/data_processor.dart';
 import '../filter_builder.dart';
 
 /// Service class that encapsulates all query operations logic
@@ -10,12 +11,15 @@ class QueryOperationsService<T> {
   final Query<Map<String, dynamic>> query;
   
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
+  final T Function(Map<String, dynamic> data) fromJson;
+
+  final String documentIdField;
 
   /// Creates a new QueryOperationsService instance
   const QueryOperationsService({
     required this.query,
     required this.fromJson,
+    required this.documentIdField
   });
 
   /// Execute the query and return the results
@@ -23,9 +27,8 @@ class QueryOperationsService<T> {
     log('Executing query: ${query.parameters}');
     final snapshot = await query.get();
     return snapshot.docs.map((doc) {
-      final data = doc.data();
+      return FirestoreDataProcessor.fromJson(fromJson, doc.data(), documentIdField: documentIdField, documentId: doc.id);
       // Pass both data and document ID to fromJson
-      return fromJson(data, doc.id);
     }).toList();
   }
 
@@ -54,6 +57,7 @@ class QueryOperationsService<T> {
     return QueryOperationsService<T>(
       query: newQuery,
       fromJson: fromJson,
+      documentIdField: documentIdField,
     );
   }
 

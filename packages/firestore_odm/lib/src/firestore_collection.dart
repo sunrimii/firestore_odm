@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/data_processor.dart';
 import 'firestore_document.dart';
 import 'firestore_query.dart';
 import 'services/query_operations_service.dart';
@@ -8,12 +9,13 @@ import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-class FirestoreCollection<T> implements QueryOperations<T>, UpdateOperations<T> {
+class FirestoreCollection<T>
+    implements QueryOperations<T>, UpdateOperations<T> {
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
+  final T Function(Map<String, dynamic> data) fromJson;
 
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
@@ -30,27 +32,23 @@ class FirestoreCollection<T> implements QueryOperations<T>, UpdateOperations<T> 
   /// Service for handling update operations
   late final UpdateOperationsService<T> _updateService;
 
+  String get documentIdField => 'id';
+
   /// Creates a new FirestoreCollection instance
   FirestoreCollection({
     required this.ref,
     required this.fromJson,
     required this.toJson,
     DateTime? specialTimestamp,
-  }) : specialTimestamp = specialTimestamp ?? DateTime.utc(1900, 1, 1, 0, 0, 10) {
-    _queryService = QueryOperationsService<T>(
-      query: ref,
-      fromJson: fromJson,
-    );
+  }) : specialTimestamp =
+           specialTimestamp ?? DateTime.utc(1900, 1, 1, 0, 0, 10) {
+    _queryService = QueryOperationsService<T>(query: ref, fromJson: fromJson, documentIdField: documentIdField);
     _updateService = UpdateOperationsService<T>(
       specialTimestamp: this.specialTimestamp,
       toJson: toJson,
       fromJson: fromJson,
+      documentIdField: documentIdField,
     );
-  }
-
-  /// Create a new query instance
-  FirestoreQuery<T> newInstance(Query<Map<String, dynamic>> query) {
-    return FirestoreQuery<T>(query, fromJson, toJson, specialTimestamp);
   }
 
   /// Executes the query and returns the results
@@ -62,15 +60,20 @@ class FirestoreCollection<T> implements QueryOperations<T>, UpdateOperations<T> 
   /// Limits the number of results returned
   @override
   FirestoreQuery<T> limit(int limit) {
-    return newInstance(_queryService.applyLimit(limit));
+    return FirestoreQuery(
+      this,
+      _queryService.applyLimit(limit),
+    );
   }
 
   /// Limits the number of results returned from the end
   @override
   FirestoreQuery<T> limitToLast(int limit) {
-    return newInstance(_queryService.applyLimitToLast(limit));
+    return FirestoreQuery(
+      this,
+      _queryService.applyLimitToLast(limit),
+    );
   }
-
 
   /// Bulk modify all documents that match this collection using diff-based updates
   @override
@@ -90,21 +93,38 @@ class FirestoreCollection<T> implements QueryOperations<T>, UpdateOperations<T> 
   FirestoreDocument<T> call(String id) {
     return _cache.putIfAbsent(id, () => FirestoreDocument(this, id));
   }
-  
+
   @override
-  FirestoreQuery<T> where(FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder) {
+  FirestoreQuery<T> where(
+    FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
+  ) {
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(ref, builtFilter);
-    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(this, newQuery);
   }
 
   @override
   FirestoreQuery<T> orderBy(
-      OrderByField Function(OrderByBuilder<T> order) orderBuilder) {
+    OrderByField Function(OrderByBuilder<T> order) orderBuilder,
+  ) {
     final builder = OrderByBuilder<T>();
     final orderByField = orderBuilder(builder);
     final newQuery = _queryService.applyOrderBy(orderByField);
-    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(this, newQuery);
+  }
+
+  /// Upsert a document using the id field as document ID
+  Future<void> upsert(T value) async {
+    final (json, documentId) = FirestoreDataProcessor.toJsonAndDocumentId(toJson, value, documentIdField: documentIdField);
+    await ref.doc(documentId!).set(json, SetOptions(merge: true));
+  }
+  
+  @override
+  Future<void> update(List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder) updateBuilder) {
+    final builder = UpdateBuilder<T>();
+    final operations = updateBuilder(builder);
+    final updateMap = UpdateBuilder.operationsToMap(operations);
+    return _updateService.executeBulkUpdate(ref, updateMap);
   }
 }

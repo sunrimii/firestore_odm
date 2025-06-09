@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/data_processor.dart';
 
 /// Service class that encapsulates all subscription/real-time operations logic
 /// Follows composition over inheritance pattern
@@ -9,7 +10,7 @@ class SubscriptionService<T> {
   final DocumentReference<Map<String, dynamic>>? documentRef;
   
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
+  final T Function(Map<String, dynamic> data) fromJson;
   
   /// Stream subscription for real-time updates
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
@@ -17,10 +18,13 @@ class SubscriptionService<T> {
   /// Stream controller for broadcasting document changes
   final StreamController<T?> _controller = StreamController.broadcast();
 
+  final String documentIdField;
+
   /// Creates a new SubscriptionService instance
   SubscriptionService({
     required this.documentRef,
     required this.fromJson,
+    required this.documentIdField,
   }) {
     _setupSubscription();
   }
@@ -58,8 +62,12 @@ class SubscriptionService<T> {
   T? _fromJson(Map<String, dynamic>? data) {
     if (data == null || documentRef == null) return null;
     // Add document ID to the data
-    data['id'] = documentRef!.id;
-    return fromJson(data);
+    final processedData = FirestoreDataProcessor.processFirestoreData(
+      data,
+      documentIdField: documentIdField,
+      documentId: documentRef!.id,
+    );
+    return fromJson(processedData);
   }
 
   /// Start listening to real-time updates manually
@@ -97,6 +105,7 @@ class SubscriptionService<T> {
     return SubscriptionService<T>(
       documentRef: newDocumentRef,
       fromJson: fromJson,
+      documentIdField: documentIdField,
     );
   }
 

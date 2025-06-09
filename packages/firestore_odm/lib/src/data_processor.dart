@@ -113,6 +113,30 @@ class FirestoreDataProcessor {
       }
     }
   }
+
+  static T fromJson<T>(T Function(Map<String, dynamic>) fromJsonFunction, Map<String, dynamic> json, {String? documentIdField, String? documentId}) {
+    // Process the JSON data
+    
+    final processedData = processFirestoreData(json, documentIdField: documentIdField, documentId: documentId);
+    return fromJsonFunction(processedData);
+  }
+
+  static Map<String, dynamic> toJson<T>(Map<String, dynamic> Function(T) toJsonFunction, T data, {String? documentIdField, String? documentId}) {
+    return serializeForFirestore(toJsonAndDocumentId(toJsonFunction, data, documentIdField: documentIdField).$1);
+  }
+
+  
+  static (Map<String, dynamic>, String?) toJsonAndDocumentId<T>(Map<String, dynamic> Function(T) toJsonFunction, T data, {String? documentIdField}) {
+    // Process the data to ensure it is ready for Firestore storage
+    final mapData = toJsonFunction(data);
+    final documentId = DocumentIdHandler.extractDocumentId(mapData, documentIdField);
+    DocumentIdHandler.validateDocumentId(documentId, documentIdField);
+
+    final processedData = DocumentIdHandler.removeDocumentIdField(mapData, documentIdField);
+
+    // Serialize the data for Firestore storage
+    return (serializeForFirestore(processedData), documentId);
+  }
 }
 
 /// Helper for handling Document ID fields

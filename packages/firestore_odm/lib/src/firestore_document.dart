@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/data_processor.dart';
 import 'firestore_collection.dart';
 import 'services/update_operations_service.dart';
 import 'services/subscription_service.dart';
@@ -40,10 +41,13 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
       specialTimestamp: collection.specialTimestamp,
       toJson: collection.toJson,
       fromJson: collection.fromJson,
+      documentIdField: collection.documentIdField,
     );
     _subscriptionService = SubscriptionService<T>(
-      documentRef: ref, 
-      fromJson: collection.fromJson
+      documentRef: ref,
+
+      fromJson: collection.fromJson,
+      documentIdField: collection.documentIdField,
     );
   }
 
@@ -60,7 +64,12 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
   /// Helper function to convert raw data to model instance
   T _fromJson(Map<String, dynamic> data) {
-    return collection.fromJson(data, id);
+    final processedData = FirestoreDataProcessor.processFirestoreData(
+      data,
+      documentIdField: collection.documentIdField,
+      documentId: id,
+    );
+    return collection.fromJson(processedData);
   }
 
   /// Checks if the document exists
@@ -107,11 +116,10 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   /// Sets the document data
   @override
   Future<void> set(T state) async {
-    final data = collection.toJson(state);
-    final serializedData = _updateService.deepSerialize(data);
-    log('setting without transaction: $serializedData');
-    await ref.set(serializedData);
-    _cache = serializedData;
+    final data = FirestoreDataProcessor.toJson(collection.toJson, state,
+        documentIdField: collection.documentIdField, documentId: id);
+    await ref.set(data);
+    _cache = data;
   }
 
 
@@ -128,7 +136,8 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
     // Update cache
     final newState = modifier(oldState);
-    _cache = collection.toJson(newState);
+    _cache = FirestoreDataProcessor.toJson(collection.toJson, newState,
+        documentIdField: collection.documentIdField, documentId: id);
   }
 
   /// Modify a document using diff-based updates
@@ -144,13 +153,13 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
     // Update cache
     final newState = modifier(oldState);
-    _cache = collection.toJson(newState);
+    _cache = FirestoreDataProcessor.toJson(collection.toJson, newState,
+        documentIdField: collection.documentIdField, documentId: id);
   }
 
   /// Internal helper for Firestore field updates using map
   /// Called by the update() and modify() methods
-  @override
-  Future<void> updateFields(Map<String, dynamic> fields) async {
+  Future<void> _updateFields(Map<String, dynamic> fields) async {
     // Execute the update
     await _updateService.executeUpdate(ref, fields);
 
@@ -168,11 +177,19 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
   /// Internal method for executing update operations
   /// Called by generated extensions with converted operations
-  Future<void> executeUpdate(List<UpdateOperation> operations) async {
+  Future<void> _executeUpdate(List<UpdateOperation> operations) async {
     final updateMap = UpdateBuilder.operationsToMap(operations);
     if (updateMap.isNotEmpty) {
-      await updateFields(updateMap);
+      await _updateFields(updateMap);
     }
+  }
+  
+  Future<void> update(
+      List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
+          updateBuilder) async {
+    final builder = UpdateBuilder<T>();
+    final operations = updateBuilder(builder);
+    await _executeUpdate(operations);
   }
 
   /// Dispose subscriptions when document is no longer needed

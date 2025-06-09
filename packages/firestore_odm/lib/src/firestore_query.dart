@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
+import 'package:firestore_odm/src/firestore_collection.dart';
 import 'package:meta/meta.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
@@ -8,17 +9,10 @@ import 'services/update_operations_service.dart';
 
 /// Abstract base class for type-safe Firestore queries
 class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
+  final FirestoreCollection<T> collection;
+
   /// The underlying Firestore query
   final Query<Map<String, dynamic>> query;
-
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
-
-  /// Function to convert model instance to JSON data
-  final Map<String, dynamic> Function(T value) toJson;
-
-  /// Special timestamp for server timestamp operations
-  final DateTime specialTimestamp;
 
   /// Service for handling query operations
   late final QueryOperationsService<T> _queryService;
@@ -27,19 +21,19 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   late final UpdateOperationsService<T> _updateService;
 
   /// Creates a new FirestoreQuery instance
-  FirestoreQuery(this.query, this.fromJson, this.toJson, DateTime? specialTimestamp)
-    : specialTimestamp = specialTimestamp ?? DateTime.utc(1900, 1, 1, 0, 0, 10) {
+  FirestoreQuery(this.collection, this.query) {
     _queryService = QueryOperationsService<T>(
       query: query,
-      fromJson: fromJson,
+      fromJson: (data) => collection.fromJson(data),
+      documentIdField: collection.documentIdField,
     );
     _updateService = UpdateOperationsService<T>(
-      specialTimestamp: this.specialTimestamp,
-      toJson: toJson,
-      fromJson: fromJson,
+      specialTimestamp: collection.specialTimestamp,
+      toJson: (value) => collection.toJson(value),
+      fromJson: (data) => collection.fromJson(data),
+      documentIdField: collection.documentIdField,
     );
   }
-
 
   /// Bulk modify all documents that match this query using diff-based updates
   @override
@@ -56,13 +50,16 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   /// Limits the number of results returned
   @override
   FirestoreQuery<T> limit(int limit) {
-    return FirestoreQuery<T>(_queryService.applyLimit(limit), fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(collection, _queryService.applyLimit(limit));
   }
 
   /// Limits the number of results returned from the end
   @override
   FirestoreQuery<T> limitToLast(int limit) {
-    return FirestoreQuery<T>(_queryService.applyLimitToLast(limit), fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(
+      collection,
+      _queryService.applyLimitToLast(limit),
+    );
   }
 
   /// Executes the query and returns the results
@@ -70,32 +67,49 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   Future<List<T>> get() async {
     return await _queryService.executeQuery();
   }
-  
+
   @override
-  FirestoreQuery<T> where(FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder) {
+  FirestoreQuery<T> where(
+    FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
+  ) {
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(query, builtFilter);
-    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(collection, newQuery);
   }
 
   @override
-  FirestoreQuery<T> orderBy(OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder) {
+  FirestoreQuery<T> orderBy(
+    OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
+  ) {
     final builder = OrderByBuilder<T>();
     final orderByField = orderBuilder(builder);
     final newQuery = _queryService.applyOrderBy(orderByField);
-    return FirestoreQuery<T>(newQuery, fromJson, toJson, specialTimestamp);
+    return FirestoreQuery<T>(collection, newQuery);
+  }
+
+  @override
+  Future<void> update(
+    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
+    updateBuilder,
+  ) {
+    final builder = UpdateBuilder<T>();
+    final operations = updateBuilder(builder);
+    final updateMap = UpdateBuilder.operationsToMap(operations);
+    return _updateService.executeBulkUpdate(query, updateMap);
   }
 }
 
-
 /// Applies a filter to the given Firestore query
-Query<Map<String, dynamic>> applyFilterToQuery(Query<Map<String, dynamic>> query, FirestoreFilter filter) {
+Query<Map<String, dynamic>> applyFilterToQuery(
+  Query<Map<String, dynamic>> query,
+  FirestoreFilter filter,
+) {
   if (filter.type == FilterType.field) {
     final field = filter.field!;
     final operator = filter.operator!;
     final value = filter.value;
-    
+
     switch (operator) {
       case FilterOperator.isEqualTo:
         return query.where(field, isEqualTo: value);
@@ -126,8 +140,11 @@ Query<Map<String, dynamic>> applyFilterToQuery(Query<Map<String, dynamic>> query
     return newQuery;
   } else if (filter.type == FilterType.or) {
     // Use Firestore's Filter.or() for proper OR logic
-    final filters = filter.filters!.map((f) => _buildFirestoreFilter(f)).toList();
-    if (filters.isEmpty) throw ArgumentError('OR filter must have at least one condition');
+    final filters = filter.filters!
+        .map((f) => _buildFirestoreFilter(f))
+        .toList();
+    if (filters.isEmpty)
+      throw ArgumentError('OR filter must have at least one condition');
     if (filters.length == 1) return query.where(filters.first);
     return query.where(_buildOrFilter(filters));
   }
@@ -141,12 +158,14 @@ Filter _buildFirestoreFilter(FirestoreFilter filter) {
       return _buildFieldFilter(filter);
     case FilterType.and:
       final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-      if (filters.isEmpty) throw ArgumentError('AND filter must have at least one condition');
+      if (filters.isEmpty)
+        throw ArgumentError('AND filter must have at least one condition');
       if (filters.length == 1) return filters.first;
       return _buildAndFilter(filters);
     case FilterType.or:
       final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-      if (filters.isEmpty) throw ArgumentError('OR filter must have at least one condition');
+      if (filters.isEmpty)
+        throw ArgumentError('OR filter must have at least one condition');
       if (filters.length == 1) return filters.first;
       return _buildOrFilter(filters);
   }
@@ -180,8 +199,9 @@ Filter _buildFieldFilter(FirestoreFilter filter) {
 
 /// Build Filter.or() with the correct API signature
 Filter _buildOrFilter(List<Filter> filters) {
-  if (filters.length < 2) throw ArgumentError('OR filter needs at least 2 filters');
-  
+  if (filters.length < 2)
+    throw ArgumentError('OR filter needs at least 2 filters');
+
   // Use the specific API signature for Filter.or()
   return Filter.or(
     filters[0],
@@ -219,8 +239,9 @@ Filter _buildOrFilter(List<Filter> filters) {
 
 /// Build Filter.and() with the correct API signature
 Filter _buildAndFilter(List<Filter> filters) {
-  if (filters.length < 2) throw ArgumentError('AND filter needs at least 2 filters');
-  
+  if (filters.length < 2)
+    throw ArgumentError('AND filter needs at least 2 filters');
+
   // Use the specific API signature for Filter.and()
   return Filter.and(
     filters[0],

@@ -477,7 +477,7 @@ class UpdateOperation {
 
 /// Base update builder class
 /// Extended by generated UpdateBuilder classes that provide type-safe update methods
-abstract class UpdateBuilder {
+class UpdateBuilder<T> {
   /// Field prefix for nested object updates
   final String prefix;
   

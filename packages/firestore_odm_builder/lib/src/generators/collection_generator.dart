@@ -52,68 +52,21 @@ class CollectionGenerator {
       buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
     }
     
-    buffer.writeln('    fromJson: (data, [documentId]) {');
-    buffer.writeln('      final processedData = FirestoreDataProcessor.processFirestoreData(');
-    buffer.writeln('        data,');
-    buffer.writeln('        documentIdField: ${documentIdField != null ? '\'$documentIdField\'' : 'null'},');
-    buffer.writeln('        documentId: documentId,');
-    buffer.writeln('      );');
-    buffer.writeln('      return $className.fromJson(processedData);');
-    buffer.writeln('    },');
-    buffer.writeln('    toJson: (value) {');
-    buffer.writeln('      final json = value.toJson();');
-    buffer.writeln('      final serialized = FirestoreDataProcessor.serializeForFirestore(json);');
-    buffer.writeln('      return DocumentIdHandler.removeDocumentIdField(serialized, ${documentIdField != null ? '\'$documentIdField\'' : 'null'});');
-    buffer.writeln('    },');
-    
+    buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
+    buffer.writeln('    toJson: (value) => value.toJson(),');
+
     buffer.writeln('  );');
     buffer.writeln('');
-    
-    // Add upsert method if there's a document ID field
+
+    // Generate document ID field if provided
     if (documentIdField != null) {
-      _generateUpsertMethod(buffer, className, documentIdField);
+      buffer.writeln('  @override');
+      buffer.writeln('  String get documentIdField => \'$documentIdField\';');
+      buffer.writeln('');
     }
-    
-    // Generate filter method
-    // _generateFilterMethod(buffer, className);
-    
-    // Generate orderBy method
-    // _generateOrderByMethod(buffer, className);
 
     buffer.writeln('}');
 
-  }
-
-  static void _generateUpsertMethod(StringBuffer buffer, String className, String documentIdField) {
-    buffer.writeln('  /// Upsert a document using the $documentIdField field as document ID');
-    buffer.writeln('  Future<void> upsert($className value) async {');
-    buffer.writeln('    final json = toJson(value);');
-    buffer.writeln('    final documentId = DocumentIdHandler.extractDocumentId(value.toJson(), \'$documentIdField\');');
-    buffer.writeln('    DocumentIdHandler.validateDocumentId(documentId, \'$documentIdField\');');
-    buffer.writeln('    await ref.doc(documentId!).set(json, SetOptions(merge: true));');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-  static void _generateFilterMethod(StringBuffer buffer, String className) {
-    buffer.writeln('  /// Filter using a Filter Builder');
-    buffer.writeln('   FirestoreQuery<$className> where(${className}Filter Function(${className}FilterBuilder filter) filterBuilder) {');
-    buffer.writeln('    final builder = ${className}FilterBuilder();');
-    buffer.writeln('    final builtFilter = filterBuilder(builder);');
-    buffer.writeln('    final newQuery = applyFilterToQuery(ref, builtFilter);');
-    buffer.writeln('    return FirestoreQuery<$className>(newQuery, fromJson, toJson, specialTimestamp);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-  }
-
-  static void _generateOrderByMethod(StringBuffer buffer, String className) {
-    buffer.writeln('  /// Order using an OrderBy Builder');
-    buffer.writeln('  FirestoreQuery<$className> orderBy(OrderByField Function(${className}OrderByBuilder order) orderBuilder) {');
-    buffer.writeln('    final builder = ${className}OrderByBuilder();');
-    buffer.writeln('    final orderField = orderBuilder(builder);');
-    buffer.writeln('    return FirestoreQuery<$className>(ref.orderBy(orderField.field, descending: orderField.descending), fromJson, toJson, specialTimestamp);');
-    buffer.writeln('  }');
-    buffer.writeln('');
   }
 
   /// Build dynamic collection path for subcollections

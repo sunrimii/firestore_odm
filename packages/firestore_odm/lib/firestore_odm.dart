@@ -10,8 +10,7 @@ export 'src/firestore_odm.dart';
 export 'src/firestore_query.dart';
 export 'src/filter_builder.dart';
 export 'src/data_processor.dart';
-export 'src/update_operations_mixin.dart';
-export 'src/update_builder.dart' hide NumericFieldBuilder, DateTimeFieldBuilder, ListFieldBuilder, OrderByField, UpdateBuilder;
+export 'src/update_builder.dart' hide NumericFieldBuilder, DateTimeFieldBuilder, ListFieldBuilder, OrderByField;
 
 // New interfaces
 export 'src/interfaces/query_operations.dart';

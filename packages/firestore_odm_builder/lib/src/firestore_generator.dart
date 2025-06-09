@@ -1,15 +1,10 @@
-import 'dart:async';
-
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 import 'utils/type_analyzer.dart';
-import 'utils/collection_validator.dart';
 import 'generators/collection_generator.dart';
-import 'generators/document_generator.dart';
-import 'generators/query_generator.dart';
 import 'generators/filter_generator.dart';
 import 'generators/order_by_generator.dart';
 import 'generators/update_generator.dart';
@@ -136,17 +131,6 @@ class FirestoreGenerator extends Generator {
     ConstructorElement constructor,
     String? documentIdField,
   ) {
-    // Generate Document class
-    DocumentGenerator.generateDocumentClass(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate Query class
-    QueryGenerator.generateQueryClass(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate Filter class first
-    // FilterGenerator.generateFilterClass(buffer, className);
-    // buffer.writeln('');
     
     // Generate FilterBuilder class
     FilterGenerator.generateFilterBuilderClass(
@@ -245,14 +229,6 @@ class FirestoreGenerator extends Generator {
     );
     buffer.writeln('');
 
-    // Generate Document class
-    DocumentGenerator.generateDocumentClass(buffer, className, constructor);
-    buffer.writeln('');
-
-    // Generate Query class
-    QueryGenerator.generateQueryClass(buffer, className, constructor);
-    buffer.writeln('');
-
     // Generate FilterBuilder class
     FilterGenerator.generateFilterBuilderClass(
       buffer,
@@ -312,14 +288,6 @@ class FirestoreGenerator extends Generator {
       constructor,
       <String>{className},
     );
-
-    // Generate Filter class
-    // FilterGenerator.generateFilterClass(buffer, className);
-    // buffer.writeln('');
-
-    // Generate Query Extension (for new where API)
-    QueryGenerator.generateQueryExtension(buffer, className, constructor);
-    buffer.writeln('');
 
     // Generate extension to add the collection to FirestoreODM
     ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection);

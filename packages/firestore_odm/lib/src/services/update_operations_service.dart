@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/data_processor.dart';
 
 /// Service class that encapsulates all update operations logic
 /// Extracted from UpdateOperationsMixin to follow composition over inheritance
@@ -12,13 +13,16 @@ class UpdateOperationsService<T> {
   final Map<String, dynamic> Function(T value) toJson;
   
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
+  final T Function(Map<String, dynamic> data) fromJson;
+
+  final String documentIdField;
 
   /// Creates a new UpdateOperationsService instance
   const UpdateOperationsService({
     required this.specialTimestamp,
     required this.toJson,
     required this.fromJson,
+    required this.documentIdField,
   });
 
   /// Process data for updates, replacing special timestamps with server timestamps
@@ -164,66 +168,20 @@ class UpdateOperationsService<T> {
     return null;
   }
 
-  /// Recursively serializes nested objects to ensure compatibility with fake_cloud_firestore
-  Map<String, dynamic> deepSerialize(Map<String, dynamic> data) {
-    final result = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final key = entry.key;
-      final value = entry.value;
-
-      if (value == null) {
-        result[key] = null;
-      } else if (value is Map<String, dynamic>) {
-        result[key] = deepSerialize(value);
-      } else if (value is List) {
-        result[key] = value.map((item) {
-          if (item is Map<String, dynamic>) {
-            return deepSerialize(item);
-          } else if (_isFreezedObject(item)) {
-            // This is a Freezed object, serialize it
-            return deepSerialize(
-                (item as dynamic).toJson() as Map<String, dynamic>);
-          }
-          return item;
-        }).toList();
-      } else if (_isFreezedObject(value)) {
-        // This is a Freezed object, serialize it
-        result[key] =
-            deepSerialize((value as dynamic).toJson() as Map<String, dynamic>);
-      } else {
-        result[key] = value;
-      }
-    }
-
-    return result;
-  }
-
-  /// Check if an object is a Freezed-generated object
-  bool _isFreezedObject(dynamic obj) {
-    if (obj == null) return false;
-    final typeName = obj.runtimeType.toString();
-    // Check for Freezed patterns: ends with 'Impl' or contains '$'
-    return typeName.contains('Impl') ||
-           typeName.contains('\$') ||
-           (obj is Object && obj.toString().startsWith('_\$'));
-  }
-
   /// Execute update operations on a document reference
   Future<void> executeUpdate(
     DocumentReference<Map<String, dynamic>> ref,
     Map<String, dynamic> updateData,
     {Transaction? transaction}
   ) async {
-    final processedUpdateData = processUpdateData(updateData);
-    final serializedUpdateData = deepSerialize(processedUpdateData);
+    final processedUpdateData = FirestoreDataProcessor.serializeForFirestore(updateData);
     
     if (transaction != null) {
-      log('executeUpdate with transaction: $serializedUpdateData');
-      transaction.update(ref, serializedUpdateData);
+      log('executeUpdate with transaction: $processedUpdateData');
+      transaction.update(ref, processedUpdateData);
     } else {
-      log('executeUpdate without transaction: $serializedUpdateData');
-      await ref.update(serializedUpdateData);
+      log('executeUpdate without transaction: $processedUpdateData');
+      await ref.update(processedUpdateData);
     }
   }
 
@@ -269,8 +227,8 @@ class UpdateOperationsService<T> {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
     final processedUpdateData = processUpdateData(updateData);
-    final serializedUpdateData = deepSerialize(processedUpdateData);
-    
+    final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
+
     for (final docSnapshot in snapshot.docs) {
       batch.update(docSnapshot.reference, serializedUpdateData);
     }
@@ -287,7 +245,9 @@ class UpdateOperationsService<T> {
     final batch = query.firestore.batch();
     
     for (final docSnapshot in snapshot.docs) {
-      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
+      final data = docSnapshot.data();
+      final processedData = FirestoreDataProcessor.processFirestoreData(data, documentIdField: documentIdField, documentId: docSnapshot.id);
+      final doc = fromJson(processedData);
       final newDoc = modifier(doc);
       final oldData = toJson(doc);
       final newData = toJson(newDoc);
@@ -295,7 +255,7 @@ class UpdateOperationsService<T> {
       
       if (updateData.isNotEmpty) {
         final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = deepSerialize(processedUpdateData);
+        final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
         batch.update(docSnapshot.reference, serializedUpdateData);
       }
     }
@@ -312,7 +272,9 @@ class UpdateOperationsService<T> {
     final batch = query.firestore.batch();
     
     for (final docSnapshot in snapshot.docs) {
-      final doc = fromJson(docSnapshot.data(), docSnapshot.id);
+      final data = docSnapshot.data();
+      final processedData = FirestoreDataProcessor.processFirestoreData(data, documentIdField: documentIdField, documentId: docSnapshot.id);
+      final doc = fromJson(processedData);
       final newDoc = modifier(doc);
       final oldData = toJson(doc);
       final newData = toJson(newDoc);
@@ -320,7 +282,7 @@ class UpdateOperationsService<T> {
       
       if (updateData.isNotEmpty) {
         final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = deepSerialize(processedUpdateData);
+        final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
         batch.update(docSnapshot.reference, serializedUpdateData);
       }
     }

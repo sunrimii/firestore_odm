@@ -14,8 +14,7 @@ class UpdateGenerator {
     String? documentIdField,
   ) {
     buffer.writeln('/// Generated UpdateBuilder for $className');
-    buffer.writeln('class ${className}UpdateBuilder extends UpdateBuilder {');
-    buffer.writeln('  ${className}UpdateBuilder({super.prefix = \'\'});');
+    buffer.writeln('extension ${className}UpdateBuilder on UpdateBuilder<${className}> {');
     buffer.writeln('');
 
     // Generate strongly-typed named parameter update method
