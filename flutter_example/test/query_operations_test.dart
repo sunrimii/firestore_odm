@@ -191,20 +191,24 @@ void main() {
 
         // Act & Assert - Age range query
         final middleAgedUsers = await odm.users
-            .where((filter) => filter.and(
-              filter.age(isGreaterThanOrEqualTo: 30),
-              filter.age(isLessThanOrEqualTo: 50),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.age(isGreaterThanOrEqualTo: 30),
+                filter.age(isLessThanOrEqualTo: 50),
+              ),
+            )
             .get();
 
         expect(middleAgedUsers.length, equals(5)); // Ages: 30, 35, 40, 45, 50
 
         // Act & Assert - Rating range query
         final goodRatedUsers = await odm.users
-            .where((filter) => filter.and(
-              filter.rating(isGreaterThan: 3.5),
-              filter.rating(isLessThan: 4.5),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.rating(isGreaterThan: 3.5),
+                filter.rating(isLessThan: 4.5),
+              ),
+            )
             .get();
 
         expect(goodRatedUsers.length, greaterThan(0));
@@ -266,7 +270,11 @@ void main() {
 
         // Act & Assert - Array contains any query on interests
         final techPeople = await odm.users
-            .where((filter) => filter.profile.interests(arrayContainsAny: ['coding', 'design']))
+            .where(
+              (filter) => filter.profile.interests(
+                arrayContainsAny: ['coding', 'design'],
+              ),
+            )
             .get();
         expect(techPeople.length, equals(2));
       });
@@ -410,12 +418,14 @@ void main() {
 
         // Act & Assert - Complex AND filter: Premium users under 30 with rating > 4.0
         final filteredUsers = await odm.users
-            .where((filter) => filter.and(
-              filter.isPremium(isEqualTo: true),
-              filter.age(isLessThan: 30),
-              filter.rating(isGreaterThan: 4.0),
-              filter.isActive(isEqualTo: true),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.isPremium(isEqualTo: true),
+                filter.age(isLessThan: 30),
+                filter.rating(isGreaterThan: 4.0),
+                filter.isActive(isEqualTo: true),
+              ),
+            )
             .get();
 
         expect(filteredUsers.length, equals(1));
@@ -487,10 +497,12 @@ void main() {
 
         // Act & Assert - OR filter: Premium users OR highly rated users
         final eligibleUsers = await odm.users
-            .where((filter) => filter.or(
-              filter.isPremium(isEqualTo: true),
-              filter.rating(isGreaterThanOrEqualTo: 4.5),
-            ))
+            .where(
+              (filter) => filter.or(
+                filter.isPremium(isEqualTo: true),
+                filter.rating(isGreaterThanOrEqualTo: 4.5),
+              ),
+            )
             .get();
 
         expect(eligibleUsers.length, equals(2));
@@ -577,16 +589,18 @@ void main() {
 
         // Act & Assert - Complex nested query: (active AND premium) OR (age < 25 AND rating > 4.0)
         final complexUsers = await odm.users
-            .where((filter) => filter.or(
-              filter.and(
-                filter.isActive(isEqualTo: true),
-                filter.isPremium(isEqualTo: true),
+            .where(
+              (filter) => filter.or(
+                filter.and(
+                  filter.isActive(isEqualTo: true),
+                  filter.isPremium(isEqualTo: true),
+                ),
+                filter.and(
+                  filter.age(isLessThan: 25),
+                  filter.rating(isGreaterThan: 4.0),
+                ),
               ),
-              filter.and(
-                filter.age(isLessThan: 25),
-                filter.rating(isGreaterThan: 4.0),
-              ),
-            ))
+            )
             .get();
 
         expect(complexUsers.length, equals(2));
@@ -755,7 +769,7 @@ void main() {
         // For age 25: Bob (150 followers) should come before Alice (100 followers)
         // Then Charlie (age 28)
         expect(orderedUsers[0].name, equals('Bob')); // age 25, 150 followers
-        expect(orderedUsers[1].name, equals('Alice')); // age 25, 100 followers  
+        expect(orderedUsers[1].name, equals('Alice')); // age 25, 100 followers
         expect(orderedUsers[2].name, equals('Charlie')); // age 28
       });
 
@@ -879,7 +893,9 @@ void main() {
       test('should handle empty query results', () async {
         // Act
         final noUsers = await odm.users
-            .where((filter) => filter.age(isGreaterThan: 1000)) // Impossible condition
+            .where(
+              (filter) => filter.age(isGreaterThan: 1000),
+            ) // Impossible condition
             .get();
 
         // Assert
@@ -945,11 +961,13 @@ void main() {
 
         // Act & Assert - Complex query with impossible conditions
         final impossibleUsers = await odm.users
-            .where((filter) => filter.and(
-              filter.isActive(isEqualTo: true), // User is not active
-              filter.isPremium(isEqualTo: true), // User is not premium
-              filter.rating(isGreaterThan: 4.0), // User rating is 3.0
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.isActive(isEqualTo: true), // User is not active
+                filter.isPremium(isEqualTo: true), // User is not premium
+                filter.rating(isGreaterThan: 4.0), // User rating is 3.0
+              ),
+            )
             .get();
 
         expect(impossibleUsers, isEmpty);

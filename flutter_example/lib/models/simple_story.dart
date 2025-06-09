@@ -20,5 +20,6 @@ abstract class SimpleStory with _$SimpleStory {
     DateTime? updatedAt,
   }) = _SimpleStory;
 
-  factory SimpleStory.fromJson(Map<String, dynamic> json) => _$SimpleStoryFromJson(json);
+  factory SimpleStory.fromJson(Map<String, dynamic> json) =>
+      _$SimpleStoryFromJson(json);
 }

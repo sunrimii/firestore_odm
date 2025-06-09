@@ -8,10 +8,10 @@ import 'package:firestore_odm/src/data_processor.dart';
 class SubscriptionService<T> {
   /// The document reference to subscribe to
   final DocumentReference<Map<String, dynamic>>? documentRef;
-  
+
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data) fromJson;
-  
+
   /// Stream subscription for real-time updates
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
 
@@ -38,19 +38,25 @@ class SubscriptionService<T> {
   /// Setup the subscription lifecycle
   void _setupSubscription() {
     if (documentRef == null) return;
-    
+
     _controller.onListen = () {
       log('Starting subscription to document changes');
-      _subscription = documentRef!.snapshots().skip(1).listen((event) {
-        log('Document data changed: ${event.data()}');
-        final data = event.data();
-        _controller.add(_fromJson(data));
-      }, onError: (error) {
-        log('Subscription error: $error');
-        _controller.addError(error);
-      });
+      _subscription = documentRef!
+          .snapshots()
+          .skip(1)
+          .listen(
+            (event) {
+              log('Document data changed: ${event.data()}');
+              final data = event.data();
+              _controller.add(_fromJson(data));
+            },
+            onError: (error) {
+              log('Subscription error: $error');
+              _controller.addError(error);
+            },
+          );
     };
-    
+
     _controller.onCancel = () {
       log('Cancelling subscription to document changes');
       _subscription?.cancel();
@@ -73,16 +79,19 @@ class SubscriptionService<T> {
   /// Start listening to real-time updates manually
   void startListening() {
     if (documentRef == null || _subscription != null) return;
-    
+
     log('Manually starting subscription to document changes');
-    _subscription = documentRef!.snapshots().listen((event) {
-      log('Document data changed: ${event.data()}');
-      final data = event.data();
-      _controller.add(_fromJson(data));
-    }, onError: (error) {
-      log('Subscription error: $error');
-      _controller.addError(error);
-    });
+    _subscription = documentRef!.snapshots().listen(
+      (event) {
+        log('Document data changed: ${event.data()}');
+        final data = event.data();
+        _controller.add(_fromJson(data));
+      },
+      onError: (error) {
+        log('Subscription error: $error');
+        _controller.addError(error);
+      },
+    );
   }
 
   /// Stop listening to real-time updates manually
@@ -101,7 +110,9 @@ class SubscriptionService<T> {
   }
 
   /// Create a new service instance for a different document
-  SubscriptionService<T> withDocumentRef(DocumentReference<Map<String, dynamic>> newDocumentRef) {
+  SubscriptionService<T> withDocumentRef(
+    DocumentReference<Map<String, dynamic>> newDocumentRef,
+  ) {
     return SubscriptionService<T>(
       documentRef: newDocumentRef,
       fromJson: fromJson,
@@ -112,12 +123,10 @@ class SubscriptionService<T> {
   /// Create a service instance for query-based subscriptions
   static QuerySubscriptionService<T> forQuery<T>({
     required Query<Map<String, dynamic>> query,
-    required T Function(Map<String, dynamic> data, [String? documentId]) fromJson,
+    required T Function(Map<String, dynamic> data, [String? documentId])
+    fromJson,
   }) {
-    return QuerySubscriptionService<T>(
-      query: query,
-      fromJson: fromJson,
-    );
+    return QuerySubscriptionService<T>(query: query, fromJson: fromJson);
   }
 }
 
@@ -125,7 +134,7 @@ class SubscriptionService<T> {
 class QuerySubscriptionService<T> {
   /// The query to subscribe to
   final Query<Map<String, dynamic>> query;
-  
+
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
 
@@ -133,12 +142,10 @@ class QuerySubscriptionService<T> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _querySubscription;
 
   /// Stream controller for broadcasting query changes
-  final StreamController<List<T>> _queryController = StreamController.broadcast();
+  final StreamController<List<T>> _queryController =
+      StreamController.broadcast();
 
-  QuerySubscriptionService({
-    required this.query,
-    required this.fromJson,
-  }) {
+  QuerySubscriptionService({required this.query, required this.fromJson}) {
     _setupQuerySubscription();
   }
 
@@ -150,19 +157,25 @@ class QuerySubscriptionService<T> {
   void _setupQuerySubscription() {
     _queryController.onListen = () {
       log('Starting subscription to query changes');
-      _querySubscription = query.snapshots().listen((snapshot) {
-        log('Query data changed: ${snapshot.docs.length} documents');
-        final results = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return fromJson(data, doc.id);
-        }).cast<T>().toList();
-        _queryController.add(results);
-      }, onError: (error) {
-        log('Query subscription error: $error');
-        _queryController.addError(error);
-      });
+      _querySubscription = query.snapshots().listen(
+        (snapshot) {
+          log('Query data changed: ${snapshot.docs.length} documents');
+          final results = snapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                return fromJson(data, doc.id);
+              })
+              .cast<T>()
+              .toList();
+          _queryController.add(results);
+        },
+        onError: (error) {
+          log('Query subscription error: $error');
+          _queryController.addError(error);
+        },
+      );
     };
-    
+
     _queryController.onCancel = () {
       log('Cancelling subscription to query changes');
       _querySubscription?.cancel();
@@ -172,19 +185,25 @@ class QuerySubscriptionService<T> {
 
   void startListening() {
     if (_querySubscription != null) return;
-    
+
     log('Manually starting subscription to query changes');
-    _querySubscription = query.snapshots().listen((snapshot) {
-      log('Query data changed: ${snapshot.docs.length} documents');
-      final results = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return fromJson(data, doc.id);
-      }).cast<T>().toList();
-      _queryController.add(results);
-    }, onError: (error) {
-      log('Query subscription error: $error');
-      _queryController.addError(error);
-    });
+    _querySubscription = query.snapshots().listen(
+      (snapshot) {
+        log('Query data changed: ${snapshot.docs.length} documents');
+        final results = snapshot.docs
+            .map((doc) {
+              final data = doc.data();
+              return fromJson(data, doc.id);
+            })
+            .cast<T>()
+            .toList();
+        _queryController.add(results);
+      },
+      onError: (error) {
+        log('Query subscription error: $error');
+        _queryController.addError(error);
+      },
+    );
   }
 
   void stopListening() {

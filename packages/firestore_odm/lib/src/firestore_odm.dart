@@ -3,7 +3,9 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Internal variable to store the current server timestamp constant
-DateTime _currentServerTimestamp = DateTime.fromMillisecondsSinceEpoch(-8640000000000000);
+DateTime _currentServerTimestamp = DateTime.fromMillisecondsSinceEpoch(
+  -8640000000000000,
+);
 
 /// Main ODM class for managing Firestore transactions and operations
 class FirestoreODM {
@@ -30,9 +32,8 @@ class FirestoreODM {
   /// ```dart
   /// final odm = FirestoreODM(firestore: firestore);
   /// ```
-  FirestoreODM({
-    FirebaseFirestore? firestore,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirestoreODM({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Default instance of FirestoreODM
   static FirestoreODM get instance => FirestoreODM();

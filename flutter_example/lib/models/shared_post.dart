@@ -9,8 +9,8 @@ part 'shared_post.odm.dart';
 /// - Standalone collection: @Collection('posts') -> odm.posts
 /// - User subcollection: @Collection('users/*/posts') -> odm.users('userId').posts
 @freezed
-@Collection('posts')          // Standalone collection
-@Collection('users/*/posts')  // User subcollection
+@Collection('posts') // Standalone collection
+@Collection('users/*/posts') // User subcollection
 abstract class SharedPost with _$SharedPost {
   const factory SharedPost({
     @DocumentIdField() required String id,
@@ -24,5 +24,6 @@ abstract class SharedPost with _$SharedPost {
     @Default([]) List<String> tags,
   }) = _SharedPost;
 
-  factory SharedPost.fromJson(Map<String, dynamic> json) => _$SharedPostFromJson(json);
+  factory SharedPost.fromJson(Map<String, dynamic> json) =>
+      _$SharedPostFromJson(json);
 }

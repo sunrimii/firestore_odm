@@ -1,6 +1,17 @@
 name: firestore_odm_annotation
-description: Pure annotations for Firestore ODM code generation
+description: Pure annotations for Firestore ODM code generation. Provides the core annotations used to generate type-safe Firestore ODM code.
 version: 1.0.0
+homepage: https://github.com/sylphxltd/firestore_odm
+repository: https://github.com/sylphxltd/firestore_odm
+issue_tracker: https://github.com/sylphxltd/firestore_odm/issues
+documentation: https://pub.dev/documentation/firestore_odm_annotation/latest/
+
+topics:
+  - firestore
+  - odm
+  - annotations
+  - code-generation
+  - flutter
 
 environment:
   sdk: '^3.8.1'
@@ -10,3 +21,6 @@ dependencies:
 
 dev_dependencies:
   very_good_analysis: ^6.0.0
+
+# Publishing configuration
+publish_to: https://pub.dev

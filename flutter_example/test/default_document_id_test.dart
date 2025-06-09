@@ -37,26 +37,32 @@ void main() {
 
       test('should filter by document ID using default id field', () async {
         // Add multiple stories
-        await odm.simpleStories.upsert(SimpleStory(
-          id: 'story1',
-          title: 'Story 1',
-          content: 'Content 1',
-          authorId: 'author1',
-          tags: ['tag1'],
-          createdAt: DateTime.now(),
-        ));
+        await odm.simpleStories.upsert(
+          SimpleStory(
+            id: 'story1',
+            title: 'Story 1',
+            content: 'Content 1',
+            authorId: 'author1',
+            tags: ['tag1'],
+            createdAt: DateTime.now(),
+          ),
+        );
 
-        await odm.simpleStories.upsert(SimpleStory(
-          id: 'story2',
-          title: 'Story 2',
-          content: 'Content 2',
-          authorId: 'author2',
-          tags: ['tag2'],
-          createdAt: DateTime.now(),
-        ));
+        await odm.simpleStories.upsert(
+          SimpleStory(
+            id: 'story2',
+            title: 'Story 2',
+            content: 'Content 2',
+            authorId: 'author2',
+            tags: ['tag2'],
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Filter by document ID
-        final query = odm.simpleStories.where((filter) => filter.id(isEqualTo: 'story2'));
+        final query = odm.simpleStories.where(
+          (filter) => filter.id(isEqualTo: 'story2'),
+        );
         final docs = await query.get();
 
         expect(docs.length, equals(1));
@@ -66,32 +72,38 @@ void main() {
 
       test('should order by document ID using default id field', () async {
         // Add stories with specific IDs for ordering
-        await odm.simpleStories.upsert(SimpleStory(
-          id: 'c_story',
-          title: 'C Story',
-          content: 'Content C',
-          authorId: 'author_c',
-          tags: ['c'],
-          createdAt: DateTime.now(),
-        ));
+        await odm.simpleStories.upsert(
+          SimpleStory(
+            id: 'c_story',
+            title: 'C Story',
+            content: 'Content C',
+            authorId: 'author_c',
+            tags: ['c'],
+            createdAt: DateTime.now(),
+          ),
+        );
 
-        await odm.simpleStories.upsert(SimpleStory(
-          id: 'a_story',
-          title: 'A Story',
-          content: 'Content A',
-          authorId: 'author_a',
-          tags: ['a'],
-          createdAt: DateTime.now(),
-        ));
+        await odm.simpleStories.upsert(
+          SimpleStory(
+            id: 'a_story',
+            title: 'A Story',
+            content: 'Content A',
+            authorId: 'author_a',
+            tags: ['a'],
+            createdAt: DateTime.now(),
+          ),
+        );
 
-        await odm.simpleStories.upsert(SimpleStory(
-          id: 'b_story',
-          title: 'B Story',
-          content: 'Content B',
-          authorId: 'author_b',
-          tags: ['b'],
-          createdAt: DateTime.now(),
-        ));
+        await odm.simpleStories.upsert(
+          SimpleStory(
+            id: 'b_story',
+            title: 'B Story',
+            content: 'Content B',
+            authorId: 'author_b',
+            tags: ['b'],
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Order by document ID ascending
         final ascendingQuery = odm.simpleStories.orderBy((order) => order.id());
@@ -100,7 +112,9 @@ void main() {
         expect(ascendingIds, equals(['a_story', 'b_story', 'c_story']));
 
         // Order by document ID descending
-        final descendingQuery = odm.simpleStories.orderBy((order) => order.id(descending: true));
+        final descendingQuery = odm.simpleStories.orderBy(
+          (order) => order.id(descending: true),
+        );
         final descendingDocs = await descendingQuery.get();
         final descendingIds = descendingDocs.map((doc) => doc.id).toList();
         expect(descendingIds, equals(['c_story', 'b_story', 'a_story']));
@@ -120,9 +134,11 @@ void main() {
         await odm.simpleStories.upsert(story);
 
         // Check the raw Firestore document
-        final docSnapshot = await firestore.doc('simple_stories/$testStoryId').get();
+        final docSnapshot = await firestore
+            .doc('simple_stories/$testStoryId')
+            .get();
         final rawData = docSnapshot.data()!;
-        
+
         // The id field should not be in the stored data
         expect(rawData.containsKey('id'), isFalse);
         expect(rawData['title'], equals('JSON Test Story'));
@@ -164,9 +180,11 @@ void main() {
         final retrievedStory = await odm.simpleStories('default_story').get();
         expect(retrievedStory, isNotNull);
         expect(retrievedStory!.id, equals('default_story'));
-        
+
         // Verify ID field not stored in document
-        final docSnapshot = await firestore.doc('simple_stories/default_story').get();
+        final docSnapshot = await firestore
+            .doc('simple_stories/default_story')
+            .get();
         expect(docSnapshot.data()!.containsKey('id'), isFalse);
       });
     });

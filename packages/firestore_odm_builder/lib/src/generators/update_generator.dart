@@ -14,41 +14,47 @@ class UpdateGenerator {
     String? documentIdField,
   ) {
     buffer.writeln('/// Generated UpdateBuilder for $className');
-    buffer.writeln('extension ${className}UpdateBuilder on UpdateBuilder<${className}> {');
+    buffer.writeln(
+      'extension ${className}UpdateBuilder on UpdateBuilder<${className}> {',
+    );
     buffer.writeln('');
 
     // Generate strongly-typed named parameter update method
     buffer.writeln('  /// Update with strongly-typed named parameters');
     buffer.writeln('  UpdateOperation call({');
-    
+
     // Generate named parameters for all fields except document ID
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
-      
+
       // Skip document ID field
       if (fieldName == documentIdField) continue;
-      
+
       // Make all parameters optional for object merge operations
       final baseType = fieldType.getDisplayString(withNullability: false);
       final optionalType = fieldType.isDartCoreNull ? baseType : '$baseType?';
       buffer.writeln('    $optionalType $fieldName,');
     }
-    
+
     buffer.writeln('  }) {');
     buffer.writeln('    final data = <String, dynamic>{};');
-    
+
     // Generate assignments for provided parameters
     for (final param in constructor.parameters) {
       final fieldName = param.name;
-      
+
       // Skip document ID field
       if (fieldName == documentIdField) continue;
-      
-      buffer.writeln('    if ($fieldName != null) data[\'$fieldName\'] = $fieldName;');
+
+      buffer.writeln(
+        '    if ($fieldName != null) data[\'$fieldName\'] = $fieldName;',
+      );
     }
-    
-    buffer.writeln('    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);');
+
+    buffer.writeln(
+      '    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);',
+    );
     buffer.writeln('  }');
     buffer.writeln('');
 
@@ -56,11 +62,12 @@ class UpdateGenerator {
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
-      
+
       // Skip document ID field
       if (fieldName == documentIdField) continue;
-      
-      if (TypeAnalyzer.isPrimitiveType(fieldType) || TypeAnalyzer.isComparableType(fieldType)) {
+
+      if (TypeAnalyzer.isPrimitiveType(fieldType) ||
+          TypeAnalyzer.isComparableType(fieldType)) {
         _generateUpdateFieldMethod(buffer, className, fieldName, fieldType);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -72,145 +79,199 @@ class UpdateGenerator {
     buffer.writeln('');
   }
 
-  static void _generateUpdateFieldMethod(StringBuffer buffer, String className, String fieldName, DartType fieldType) {
+  static void _generateUpdateFieldMethod(
+    StringBuffer buffer,
+    String className,
+    String fieldName,
+    DartType fieldType,
+  ) {
     final typeString = fieldType.getDisplayString(withNullability: false);
-    
+
     // Generate field method that can be called directly or provide field operations
     buffer.writeln('  /// Update $fieldName field');
-    
+
     if (TypeAnalyzer.isListType(fieldType)) {
       final elementType = TypeAnalyzer.getListElementType(fieldType);
-      buffer.writeln('  ListFieldBuilder<$elementType> get $fieldName => ListFieldBuilder<$elementType>(getFieldPath(\'$fieldName\'));');
+      buffer.writeln(
+        '  ListFieldBuilder<$elementType> get $fieldName => ListFieldBuilder<$elementType>(getFieldPath(\'$fieldName\'));',
+      );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      buffer.writeln('  NumericFieldBuilder<$typeString> get $fieldName => NumericFieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));');
+      buffer.writeln(
+        '  NumericFieldBuilder<$typeString> get $fieldName => NumericFieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));',
+      );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
-      buffer.writeln('  DateTimeFieldBuilder get $fieldName => DateTimeFieldBuilder(getFieldPath(\'$fieldName\'));');
+      buffer.writeln(
+        '  DateTimeFieldBuilder get $fieldName => DateTimeFieldBuilder(getFieldPath(\'$fieldName\'));',
+      );
     } else {
       buffer.writeln('  /// Set $fieldName value');
       buffer.writeln('  UpdateOperation $fieldName($typeString value) {');
-      buffer.writeln('    return UpdateOperation(getFieldPath(\'$fieldName\'), UpdateOperationType.set, value);');
+      buffer.writeln(
+        '    return UpdateOperation(getFieldPath(\'$fieldName\'), UpdateOperationType.set, value);',
+      );
       buffer.writeln('  }');
     }
     buffer.writeln('');
   }
 
-  static void _generateUpdateNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
+  static void _generateUpdateNestedGetter(
+    StringBuffer buffer,
+    String fieldName,
+    DartType fieldType,
+  ) {
     buffer.writeln('  /// Access nested $fieldName for updates');
-    buffer.writeln('  ${StringHelpers.capitalize(fieldName)}NestedUpdater get $fieldName => ${StringHelpers.capitalize(fieldName)}NestedUpdater(prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\');');
+    buffer.writeln(
+      '  ${StringHelpers.capitalize(fieldName)}NestedUpdater get $fieldName => ${StringHelpers.capitalize(fieldName)}NestedUpdater(prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\');',
+    );
     buffer.writeln('');
   }
 
   /// Generate nested updater class
-  static void generateNestedUpdaterClass(StringBuffer buffer, String fieldName, DartType fieldType) {
+  static void generateNestedUpdaterClass(
+    StringBuffer buffer,
+    String fieldName,
+    DartType fieldType,
+  ) {
     final capitalizedFieldName = StringHelpers.capitalize(fieldName);
-    
+
     // Get the constructor for this nested type
     final element = fieldType.element;
     if (element is! ClassElement) return;
-    
+
     final constructor = element.unnamedConstructor;
     if (constructor == null) return;
-    
+
     buffer.writeln('class ${capitalizedFieldName}NestedUpdater {');
     buffer.writeln('  final String prefix;');
     buffer.writeln('  ${capitalizedFieldName}NestedUpdater(this.prefix);');
     buffer.writeln('');
     buffer.writeln('  /// Update with strongly-typed named parameters');
     buffer.writeln('  UpdateOperation call({');
-    
+
     // Get document ID field for this nested type
     final nestedDocumentIdField = TypeAnalyzer.getDocumentIdField(constructor);
-    
+
     // Generate all field update methods directly on this nested updater
     for (final param in constructor.parameters) {
       final paramFieldName = param.name;
       final paramType = param.type;
-      
+
       // Skip document ID field
       if (paramFieldName == nestedDocumentIdField) continue;
-      
+
       // Make all parameters optional for object merge operations
       final baseType = paramType.getDisplayString(withNullability: false);
       final optionalType = paramType.isDartCoreNull ? baseType : '$baseType?';
       buffer.writeln('    $optionalType $paramFieldName,');
     }
-    
+
     buffer.writeln('  }) {');
     buffer.writeln('    final data = <String, dynamic>{};');
-    
+
     // Generate assignments for provided parameters
     for (final param in constructor.parameters) {
       final paramFieldName = param.name;
-      
+
       // Skip document ID field
       if (paramFieldName == nestedDocumentIdField) continue;
-      
-      buffer.writeln('    if ($paramFieldName != null) data[\'$paramFieldName\'] = $paramFieldName;');
+
+      buffer.writeln(
+        '    if ($paramFieldName != null) data[\'$paramFieldName\'] = $paramFieldName;',
+      );
     }
-    
-    buffer.writeln('    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);');
+
+    buffer.writeln(
+      '    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);',
+    );
     buffer.writeln('  }');
     buffer.writeln('');
-    
+
     // Generate all field update methods directly on this nested updater
     for (final param in constructor.parameters) {
       final paramFieldName = param.name;
       final paramType = param.type;
-      
+
       // Skip document ID field
       if (paramFieldName == nestedDocumentIdField) continue;
-      
+
       if (TypeAnalyzer.isStringType(paramType)) {
         buffer.writeln('  /// Update $paramFieldName field');
         buffer.writeln('  /// Set $paramFieldName value');
-        buffer.writeln('  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.set, value);');
+        buffer.writeln(
+          '  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {',
+        );
+        buffer.writeln(
+          '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
+        buffer.writeln(
+          '    return UpdateOperation(fieldPath, UpdateOperationType.set, value);',
+        );
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isNumericType(paramType)) {
         final numericType = paramType.getDisplayString(withNullability: false);
         buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  NumericFieldBuilder<$numericType> get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return NumericFieldBuilder<$numericType>(fieldPath);');
+        buffer.writeln(
+          '  NumericFieldBuilder<$numericType> get $paramFieldName {',
+        );
+        buffer.writeln(
+          '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
+        buffer.writeln(
+          '    return NumericFieldBuilder<$numericType>(fieldPath);',
+        );
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isBoolType(paramType)) {
         buffer.writeln('  /// Update $paramFieldName field');
         buffer.writeln('  /// Set $paramFieldName value');
-        buffer.writeln('  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
-        buffer.writeln('    return UpdateOperation(fieldPath, UpdateOperationType.set, value);');
+        buffer.writeln(
+          '  UpdateOperation $paramFieldName(${paramType.getDisplayString(withNullability: true)} value) {',
+        );
+        buffer.writeln(
+          '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
+        buffer.writeln(
+          '    return UpdateOperation(fieldPath, UpdateOperationType.set, value);',
+        );
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isDateTimeType(paramType)) {
         buffer.writeln('  /// Update $paramFieldName field');
         buffer.writeln('  DateTimeFieldBuilder get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
+        buffer.writeln(
+          '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
         buffer.writeln('    return DateTimeFieldBuilder(fieldPath);');
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isListType(paramType)) {
         final elementType = TypeAnalyzer.getListElementType(paramType);
         buffer.writeln('  /// Update $paramFieldName field');
-        buffer.writeln('  ListFieldBuilder<$elementType> get $paramFieldName {');
-        buffer.writeln('    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
+        buffer.writeln(
+          '  ListFieldBuilder<$elementType> get $paramFieldName {',
+        );
+        buffer.writeln(
+          '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
         buffer.writeln('    return ListFieldBuilder<$elementType>(fieldPath);');
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isCustomClass(paramType)) {
         // Nested custom class - create accessor
-        final nestedUpdaterClassName = '${StringHelpers.capitalize(paramFieldName)}NestedUpdater';
+        final nestedUpdaterClassName =
+            '${StringHelpers.capitalize(paramFieldName)}NestedUpdater';
         buffer.writeln('  /// Access nested $paramFieldName for updates');
         buffer.writeln('  $nestedUpdaterClassName get $paramFieldName {');
-        buffer.writeln('    final nestedPrefix = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';');
+        buffer.writeln(
+          '    final nestedPrefix = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
+        );
         buffer.writeln('    return $nestedUpdaterClassName(nestedPrefix);');
         buffer.writeln('  }');
         buffer.writeln('');
       }
     }
-    
+
     buffer.writeln('}');
     buffer.writeln('');
   }
@@ -224,12 +285,13 @@ class UpdateGenerator {
   ) {
     // Get document ID field for this constructor
     final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
-    
+
     for (final param in constructor.parameters) {
       final fieldType = param.type;
 
       // Skip the document ID field and built-in types
-      if (param.name == documentIdField || TypeAnalyzer.isBuiltInType(fieldType)) {
+      if (param.name == documentIdField ||
+          TypeAnalyzer.isBuiltInType(fieldType)) {
         continue;
       }
 
@@ -249,7 +311,13 @@ class UpdateGenerator {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          generateUpdateBuilderClass(buffer, nestedClassName, nestedConstructor, rootUpdateType, null);
+          generateUpdateBuilderClass(
+            buffer,
+            nestedClassName,
+            nestedConstructor,
+            rootUpdateType,
+            null,
+          );
 
           // Recursively generate builders for nested classes
           generateNestedUpdateBuilderClasses(
@@ -264,35 +332,46 @@ class UpdateGenerator {
   }
 
   /// Generate all nested updater classes
-  static void generateAllNestedUpdaterClasses(StringBuffer buffer, ConstructorElement constructor, Set<String> processedTypes) {
+  static void generateAllNestedUpdaterClasses(
+    StringBuffer buffer,
+    ConstructorElement constructor,
+    Set<String> processedTypes,
+  ) {
     // Get document ID field for this constructor
     final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
-    
+
     for (final param in constructor.parameters) {
       final fieldType = param.type;
       final fieldName = param.name;
-      
+
       // Skip the document ID field and built-in types
-      if (fieldName == documentIdField || TypeAnalyzer.isBuiltInType(fieldType)) {
+      if (fieldName == documentIdField ||
+          TypeAnalyzer.isBuiltInType(fieldType)) {
         continue;
       }
-      
+
       if (TypeAnalyzer.isCustomClass(fieldType)) {
-        final nestedTypeName = fieldType.getDisplayString(withNullability: false);
-        
+        final nestedTypeName = fieldType.getDisplayString(
+          withNullability: false,
+        );
+
         // Avoid processing the same type multiple times
         if (processedTypes.contains(nestedTypeName)) continue;
         processedTypes.add(nestedTypeName);
-        
+
         // Generate the nested updater class for this field
         generateNestedUpdaterClass(buffer, fieldName, fieldType);
-        
+
         // Recursively generate for deeper nested types
         if (fieldType.element is ClassElement) {
           final nestedClass = fieldType.element as ClassElement;
           final nestedConstructor = nestedClass.unnamedConstructor;
           if (nestedConstructor != null) {
-            generateAllNestedUpdaterClasses(buffer, nestedConstructor, processedTypes);
+            generateAllNestedUpdaterClasses(
+              buffer,
+              nestedConstructor,
+              processedTypes,
+            );
           }
         }
       }

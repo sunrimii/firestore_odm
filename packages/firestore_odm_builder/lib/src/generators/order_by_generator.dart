@@ -13,14 +13,18 @@ class OrderByGenerator {
     String? documentIdField,
   ) {
     buffer.writeln('/// Generated OrderByBuilder for $className');
-    buffer.writeln('extension ${className}OrderByBuilderExtension on OrderByBuilder<${className}> {');
+    buffer.writeln(
+      'extension ${className}OrderByBuilderExtension on OrderByBuilder<${className}> {',
+    );
     // buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
     // buffer.writeln('');
 
     // Add document ID order method if there's a document ID field
     if (documentIdField != null) {
       buffer.writeln('  /// Order by document ID (${documentIdField} field)');
-      buffer.writeln('  OrderByField $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);');
+      buffer.writeln(
+        '  OrderByField $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);',
+      );
       buffer.writeln('');
     }
 
@@ -28,11 +32,12 @@ class OrderByGenerator {
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
-      
+
       // Skip document ID field as it's handled separately above
       if (fieldName == documentIdField) continue;
-      
-      if (TypeAnalyzer.isPrimitiveType(fieldType) || TypeAnalyzer.isComparableType(fieldType)) {
+
+      if (TypeAnalyzer.isPrimitiveType(fieldType) ||
+          TypeAnalyzer.isComparableType(fieldType)) {
         _generateOrderByFieldMethod(buffer, rootOrderByType, fieldName);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -44,16 +49,28 @@ class OrderByGenerator {
     buffer.writeln('');
   }
 
-  static void _generateOrderByFieldMethod(StringBuffer buffer, String rootOrderByType, String fieldName) {
+  static void _generateOrderByFieldMethod(
+    StringBuffer buffer,
+    String rootOrderByType,
+    String fieldName,
+  ) {
     buffer.writeln('  /// Order by $fieldName');
-    buffer.writeln('  OrderByField<$rootOrderByType> $fieldName({bool descending = false}) => OrderByHelper.createOrderByField(\'$fieldName\', prefix: prefix, descending: descending);');
+    buffer.writeln(
+      '  OrderByField<$rootOrderByType> $fieldName({bool descending = false}) => OrderByHelper.createOrderByField(\'$fieldName\', prefix: prefix, descending: descending);',
+    );
     buffer.writeln('');
   }
 
-  static void _generateOrderByNestedGetter(StringBuffer buffer, String fieldName, DartType fieldType) {
+  static void _generateOrderByNestedGetter(
+    StringBuffer buffer,
+    String fieldName,
+    DartType fieldType,
+  ) {
     final nestedTypeName = fieldType.getDisplayString(withNullability: false);
     buffer.writeln('  /// Access nested $fieldName for ordering');
-    buffer.writeln('  OrderByBuilder<$nestedTypeName> get $fieldName => OrderByHelper.createOrderByBuilder(\'$fieldName\', prefix: prefix);');
+    buffer.writeln(
+      '  OrderByBuilder<$nestedTypeName> get $fieldName => OrderByHelper.createOrderByBuilder(\'$fieldName\', prefix: prefix);',
+    );
     buffer.writeln('');
   }
 
@@ -69,7 +86,8 @@ class OrderByGenerator {
       final fieldType = param.type;
 
       // Skip the document ID field and built-in types
-      if (param.name == documentIdField || TypeAnalyzer.isBuiltInType(fieldType)) {
+      if (param.name == documentIdField ||
+          TypeAnalyzer.isBuiltInType(fieldType)) {
         continue;
       }
 
@@ -89,7 +107,13 @@ class OrderByGenerator {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          generateOrderByBuilderClass(buffer, nestedClassName, nestedConstructor, rootOrderByType, null);
+          generateOrderByBuilderClass(
+            buffer,
+            nestedClassName,
+            nestedConstructor,
+            rootOrderByType,
+            null,
+          );
 
           // Recursively generate builders for nested classes
           generateNestedOrderByBuilderClasses(

@@ -40,17 +40,19 @@ void main() {
           metadata: {'version': 1},
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Update using array syntax
-        await userDoc.update(($) => [
-          $.name('John Smith'),
-          $.email('john@example.com'),
-          $.isActive(true),
-          $.rating(4.5),
-        ]);
+        await userDoc.update(
+          ($) => [
+            $.name('John Smith'),
+            $.email('john@example.com'),
+            $.isActive(true),
+            $.rating(4.5),
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -80,15 +82,17 @@ void main() {
           isPremium: false,
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Update nested profile fields
-        await userDoc.update(($) => [
-          $.profile.bio('Full-stack developer'),
-          $.profile.avatar('new-avatar.jpg'),
-        ]);
+        await userDoc.update(
+          ($) => [
+            $.profile.bio('Full-stack developer'),
+            $.profile.avatar('new-avatar.jpg'),
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -117,23 +121,26 @@ void main() {
           isPremium: false,
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Use increment operations
-        await userDoc.update((as) => [
-          as.age.increment(1), // age: 25 + 1 = 26
-          as.rating.increment(0.5), // rating: 3.0 + 0.5 = 3.5
-          as.profile.followers.increment(50), // followers: 100 + 50 = 150
-          as(
-            age: 21,
-            rating: 3.5, // This will override the previous rating increment
-          ),
-          as.profile(
-            followers: 150, // This will override the previous followers increment
-          ),
-        ]);
+        await userDoc.update(
+          (as) => [
+            as.age.increment(1), // age: 25 + 1 = 26
+            as.rating.increment(0.5), // rating: 3.0 + 0.5 = 3.5
+            as.profile.followers.increment(50), // followers: 100 + 50 = 150
+            as(
+              age: 21,
+              rating: 3.5, // This will override the previous rating increment
+            ),
+            as.profile(
+              followers:
+                  150, // This will override the previous followers increment
+            ),
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -162,21 +169,21 @@ void main() {
           tags: ['beginner'],
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Add array elements
-        await userDoc.update((as) => [
-          as.tags.add('expert'),
-          as.tags.add('verified'),
-          as.profile.interests.add('design'),
-        ]);
-        
+        await userDoc.update(
+          (as) => [
+            as.tags.add('expert'),
+            as.tags.add('verified'),
+            as.profile.interests.add('design'),
+          ],
+        );
+
         // Second update to remove from interests (can't combine add/remove on same field)
-        await userDoc.update((as) => [
-          as.profile.interests.remove('coding'),
-        ]);
+        await userDoc.update((as) => [as.profile.interests.remove('coding')]);
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -206,15 +213,17 @@ void main() {
           isPremium: false,
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Set server timestamp
-        await userDoc.update((as) => [
-          as.lastLogin.serverTimestamp(),
-          as.updatedAt.serverTimestamp(),
-        ]);
+        await userDoc.update(
+          (as) => [
+            as.lastLogin.serverTimestamp(),
+            as.updatedAt.serverTimestamp(),
+          ],
+        );
 
         // Assert - Since we're using fake_cloud_firestore, server timestamp becomes current time
         final updatedUser = await userDoc.get();
@@ -241,15 +250,17 @@ void main() {
           isPremium: false,
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Use strongly-typed named parameters
-        await userDoc.update((as) => [
-          as(name: 'Kyle', isPremium: true),
-          as.profile(bio: 'Good developer', followers: 200),
-        ]);
+        await userDoc.update(
+          (as) => [
+            as(name: 'Kyle', isPremium: true),
+            as.profile(bio: 'Good developer', followers: 200),
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -280,24 +291,28 @@ void main() {
           tags: ['beginner'],
           createdAt: DateTime(2023, 1, 1),
         );
-        
+
         final userDoc = odm.users('test_user');
         await userDoc.set(initialUser);
 
         // Act - Complex mixed update operations
-        await userDoc.update((as) => [
-          as.name('John Smith'),
-          as.profile.bio('Full-stack developer'),
-          as.profile.followers.increment(50),
-          as.tags.add('verified'),
-          as.lastLogin(DateTime.now()),
-          as.profile.followers.increment(1), // Another increment
-          as.rating.increment(0.1),
-          as.tags.add('popular'),
-          as.profile.lastActive(DateTime.now()),
-          as(name: 'Kyle'), // This will override the earlier name change
-          as.profile(bio: 'Good'), // This will override the earlier bio change
-        ]);
+        await userDoc.update(
+          (as) => [
+            as.name('John Smith'),
+            as.profile.bio('Full-stack developer'),
+            as.profile.followers.increment(50),
+            as.tags.add('verified'),
+            as.lastLogin(DateTime.now()),
+            as.profile.followers.increment(1), // Another increment
+            as.rating.increment(0.1),
+            as.tags.add('popular'),
+            as.profile.lastActive(DateTime.now()),
+            as(name: 'Kyle'), // This will override the earlier name change
+            as.profile(
+              bio: 'Good',
+            ), // This will override the earlier bio change
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
@@ -357,57 +372,71 @@ void main() {
         expect(updatedUser.profile.followers, equals(20));
       });
 
-      test('should perform incremental modify with atomic operations', () async {
-        // Arrange
-        final initialUser = User(
-          id: 'incremental_user',
-          name: 'Increment User',
-          email: 'increment@example.com',
-          age: 30,
-          profile: Profile(
-            bio: 'Increment test',
-            avatar: 'test.jpg',
-            socialLinks: {},
-            interests: ['coding', 'reading'],
-            followers: 100,
-          ),
-          rating: 4.0,
-          isActive: true,
-          isPremium: false,
-          tags: ['developer'],
-          scores: [85, 90],
-          createdAt: DateTime.now(),
-        );
-
-        final userDoc = odm.users('incremental_user');
-        await userDoc.set(initialUser);
-
-        // Act - Use incrementalModify() with automatic atomic operations
-        await userDoc.incrementalModify((currentUser) {
-          return currentUser.copyWith(
-            rating: currentUser.rating + 0.5, // FieldValue.increment(0.5)
-            profile: currentUser.profile.copyWith(
-              followers: currentUser.profile.followers + 50, // FieldValue.increment(50)
-              interests: [...currentUser.profile.interests, 'flutter'], // FieldValue.arrayUnion(['flutter'])
+      test(
+        'should perform incremental modify with atomic operations',
+        () async {
+          // Arrange
+          final initialUser = User(
+            id: 'incremental_user',
+            name: 'Increment User',
+            email: 'increment@example.com',
+            age: 30,
+            profile: Profile(
+              bio: 'Increment test',
+              avatar: 'test.jpg',
+              socialLinks: {},
+              interests: ['coding', 'reading'],
+              followers: 100,
             ),
-            tags: [...currentUser.tags, 'expert'], // FieldValue.arrayUnion(['expert'])
-            scores: [...currentUser.scores, 95], // FieldValue.arrayUnion([95])
+            rating: 4.0,
+            isActive: true,
+            isPremium: false,
+            tags: ['developer'],
+            scores: [85, 90],
+            createdAt: DateTime.now(),
           );
-        });
 
-        // Assert
-        final updatedUser = await userDoc.get();
-        expect(updatedUser!.rating, equals(4.5));
-        expect(updatedUser.profile.followers, equals(150));
-        expect(updatedUser.profile.interests, contains('coding'));
-        expect(updatedUser.profile.interests, contains('reading'));
-        expect(updatedUser.profile.interests, contains('flutter'));
-        expect(updatedUser.tags, contains('developer'));
-        expect(updatedUser.tags, contains('expert'));
-        expect(updatedUser.scores, contains(85));
-        expect(updatedUser.scores, contains(90));
-        expect(updatedUser.scores, contains(95));
-      });
+          final userDoc = odm.users('incremental_user');
+          await userDoc.set(initialUser);
+
+          // Act - Use incrementalModify() with automatic atomic operations
+          await userDoc.incrementalModify((currentUser) {
+            return currentUser.copyWith(
+              rating: currentUser.rating + 0.5, // FieldValue.increment(0.5)
+              profile: currentUser.profile.copyWith(
+                followers:
+                    currentUser.profile.followers +
+                    50, // FieldValue.increment(50)
+                interests: [
+                  ...currentUser.profile.interests,
+                  'flutter',
+                ], // FieldValue.arrayUnion(['flutter'])
+              ),
+              tags: [
+                ...currentUser.tags,
+                'expert',
+              ], // FieldValue.arrayUnion(['expert'])
+              scores: [
+                ...currentUser.scores,
+                95,
+              ], // FieldValue.arrayUnion([95])
+            );
+          });
+
+          // Assert
+          final updatedUser = await userDoc.get();
+          expect(updatedUser!.rating, equals(4.5));
+          expect(updatedUser.profile.followers, equals(150));
+          expect(updatedUser.profile.interests, contains('coding'));
+          expect(updatedUser.profile.interests, contains('reading'));
+          expect(updatedUser.profile.interests, contains('flutter'));
+          expect(updatedUser.tags, contains('developer'));
+          expect(updatedUser.tags, contains('expert'));
+          expect(updatedUser.scores, contains(85));
+          expect(updatedUser.scores, contains(90));
+          expect(updatedUser.scores, contains(95));
+        },
+      );
 
       test('should handle array removal with incremental modify', () async {
         // Arrange
@@ -441,7 +470,7 @@ void main() {
           final newTags = currentUser.tags
               .where((tag) => tag != 'gamer')
               .toList();
-          
+
           return currentUser.copyWith(
             profile: currentUser.profile.copyWith(interests: newInterests),
             tags: newTags,
@@ -491,7 +520,10 @@ void main() {
             isActive: true, // Boolean change
             profile: currentUser.profile.copyWith(
               followers: currentUser.profile.followers + 15, // Increment
-              interests: [...currentUser.profile.interests, 'ai'], // Array union
+              interests: [
+                ...currentUser.profile.interests,
+                'ai',
+              ], // Array union
               bio: 'Updated mixed bio', // String change
               socialLinks: {
                 ...currentUser.profile.socialLinks,
@@ -513,7 +545,10 @@ void main() {
         expect(updatedUser.profile.interests, equals(['tech', 'ai']));
         expect(updatedUser.profile.bio, equals('Updated mixed bio'));
         expect(updatedUser.profile.socialLinks['github'], equals('user123'));
-        expect(updatedUser.profile.socialLinks['twitter'], equals('@mixed_user'));
+        expect(
+          updatedUser.profile.socialLinks['twitter'],
+          equals('@mixed_user'),
+        );
         expect(updatedUser.tags, equals(['basic', 'advanced']));
         expect(updatedUser.scores, equals([80, 85, 92]));
       });
@@ -568,92 +603,117 @@ void main() {
         await userDoc.set(user);
 
         // Act - Test deep nested array-style updates
-        await userDoc.update(($) => [
-          $.profile.story(
-            name: 'Updated SF Adventure',
-            content: 'Even more amazing day in SF with array-style updates!',
-            tags: ['travel', 'technology', 'firestore-odm'],
-          ),
-        ]);
+        await userDoc.update(
+          ($) => [
+            $.profile.story(
+              name: 'Updated SF Adventure',
+              content: 'Even more amazing day in SF with array-style updates!',
+              tags: ['travel', 'technology', 'firestore-odm'],
+            ),
+          ],
+        );
 
         // Assert
         final updatedUser = await userDoc.get();
-        expect(updatedUser!.profile.story!.name, equals('Updated SF Adventure'));
-        expect(updatedUser.profile.story!.content, contains('array-style updates'));
+        expect(
+          updatedUser!.profile.story!.name,
+          equals('Updated SF Adventure'),
+        );
+        expect(
+          updatedUser.profile.story!.content,
+          contains('array-style updates'),
+        );
         expect(updatedUser.profile.story!.tags, contains('firestore-odm'));
-        expect(updatedUser.profile.bio, equals('Travel blogger')); // Profile unchanged
+        expect(
+          updatedUser.profile.bio,
+          equals('Travel blogger'),
+        ); // Profile unchanged
         expect(updatedUser.name, equals('Travel Blogger')); // User unchanged
       });
 
-      test('should update deepest nested coordinates (5 levels deep)', () async {
-        // Arrange
-        final coordinates = Coordinates(
-          latitude: 37.7749,
-          longitude: -122.4194,
-          altitude: 10.0,
-        );
+      test(
+        'should update deepest nested coordinates (5 levels deep)',
+        () async {
+          // Arrange
+          final coordinates = Coordinates(
+            latitude: 37.7749,
+            longitude: -122.4194,
+            altitude: 10.0,
+          );
 
-        final place = Place(
-          name: 'San Francisco',
-          address: '123 Market St',
-          coordinates: coordinates,
-          metadata: {'type': 'city'},
-        );
+          final place = Place(
+            name: 'San Francisco',
+            address: '123 Market St',
+            coordinates: coordinates,
+            metadata: {'type': 'city'},
+          );
 
-        final story = Story(
-          name: 'Location Test',
-          content: 'Testing deep nesting',
-          place: place,
-          tags: ['test'],
-          publishedAt: DateTime.now(),
-        );
+          final story = Story(
+            name: 'Location Test',
+            content: 'Testing deep nesting',
+            place: place,
+            tags: ['test'],
+            publishedAt: DateTime.now(),
+          );
 
-        final profile = Profile(
-          bio: 'Location tester',
-          avatar: 'tester.jpg',
-          socialLinks: {},
-          interests: ['testing'],
-          followers: 50,
-          story: story,
-        );
+          final profile = Profile(
+            bio: 'Location tester',
+            avatar: 'tester.jpg',
+            socialLinks: {},
+            interests: ['testing'],
+            followers: 50,
+            story: story,
+          );
 
-        final user = User(
-          id: 'coordinates_user',
-          name: 'Location Tester',
-          email: 'location@example.com',
-          age: 32,
-          profile: profile,
-          rating: 4.8,
-          isActive: true,
-          isPremium: true,
-          createdAt: DateTime.now(),
-        );
+          final user = User(
+            id: 'coordinates_user',
+            name: 'Location Tester',
+            email: 'location@example.com',
+            age: 32,
+            profile: profile,
+            rating: 4.8,
+            isActive: true,
+            isPremium: true,
+            createdAt: DateTime.now(),
+          );
 
-        final userDoc = odm.users('coordinates_user');
-        await userDoc.set(user);
+          final userDoc = odm.users('coordinates_user');
+          await userDoc.set(user);
 
-        // Act - Test 5-level deep array-style update
-        await userDoc.update(($) => [
-          $.profile.story.place.coordinates(
-            latitude: 40.7128, // New York
-            longitude: -74.0060,
-            altitude: 20.0,
-          ),
-        ]);
+          // Act - Test 5-level deep array-style update
+          await userDoc.update(
+            ($) => [
+              $.profile.story.place.coordinates(
+                latitude: 40.7128, // New York
+                longitude: -74.0060,
+                altitude: 20.0,
+              ),
+            ],
+          );
 
-        // Assert
-        final updatedUser = await userDoc.get();
-        final coords = updatedUser!.profile.story!.place.coordinates;
-        expect(coords.latitude, equals(40.7128));
-        expect(coords.longitude, equals(-74.0060));
-        expect(coords.altitude, equals(20.0));
+          // Assert
+          final updatedUser = await userDoc.get();
+          final coords = updatedUser!.profile.story!.place.coordinates;
+          expect(coords.latitude, equals(40.7128));
+          expect(coords.longitude, equals(-74.0060));
+          expect(coords.altitude, equals(20.0));
 
-        // Verify other levels unchanged
-        expect(updatedUser.profile.story!.place.name, equals('San Francisco')); // Place unchanged
-        expect(updatedUser.profile.story!.name, equals('Location Test')); // Story unchanged
-        expect(updatedUser.profile.bio, equals('Location tester')); // Profile unchanged
-        expect(updatedUser.name, equals('Location Tester')); // User unchanged
-      });
+          // Verify other levels unchanged
+          expect(
+            updatedUser.profile.story!.place.name,
+            equals('San Francisco'),
+          ); // Place unchanged
+          expect(
+            updatedUser.profile.story!.name,
+            equals('Location Test'),
+          ); // Story unchanged
+          expect(
+            updatedUser.profile.bio,
+            equals('Location tester'),
+          ); // Profile unchanged
+          expect(updatedUser.name, equals('Location Tester')); // User unchanged
+        },
+      );
     });
 
     group('⚡ Edge Cases & Error Handling', () {
@@ -760,7 +820,10 @@ void main() {
         await userDoc.incrementalModify((currentUser) {
           return currentUser.copyWith(
             profile: currentUser.profile.copyWith(
-              interests: [...currentUser.profile.interests, 'coding'], // Duplicate
+              interests: [
+                ...currentUser.profile.interests,
+                'coding',
+              ], // Duplicate
             ),
             tags: [...currentUser.tags, 'developer'], // Duplicate
           );
@@ -770,9 +833,15 @@ void main() {
         // So we'll actually get the duplicate in this case (not using arrayUnion)
         final updatedUser = await userDoc.get();
         expect(updatedUser!.profile.interests, contains('coding'));
-        expect(updatedUser.profile.interests.length, equals(3)); // ['coding', 'reading', 'coding']
+        expect(
+          updatedUser.profile.interests.length,
+          equals(3),
+        ); // ['coding', 'reading', 'coding']
         expect(updatedUser.tags, contains('developer'));
-        expect(updatedUser.tags.length, equals(2)); // ['developer', 'developer']
+        expect(
+          updatedUser.tags.length,
+          equals(2),
+        ); // ['developer', 'developer']
       });
 
       test('should handle empty map and list operations', () async {

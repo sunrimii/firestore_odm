@@ -33,7 +33,9 @@ void main() {
               interests: ['interest_$index'],
               followers: index * 10,
             ),
-            rating: 1.0 + index * 0.4, // 1.0, 1.4, 1.8, 2.2, 2.6, 3.0, 3.4, 3.8, 4.2, 4.6
+            rating:
+                1.0 +
+                index * 0.4, // 1.0, 1.4, 1.8, 2.2, 2.6, 3.0, 3.4, 3.8, 4.2, 4.6
             isActive: index % 2 == 0,
             isPremium: index % 3 == 0,
             tags: ['tag_$index'],
@@ -103,7 +105,9 @@ void main() {
 
         // Test arrayContainsAny
         final multipleTags = await odm.users
-            .where((filter) => filter.tags(arrayContainsAny: ['tag_2', 'tag_7']))
+            .where(
+              (filter) => filter.tags(arrayContainsAny: ['tag_2', 'tag_7']),
+            )
             .get();
         expect(multipleTags.length, equals(2));
       });
@@ -187,46 +191,61 @@ void main() {
 
         // Test: (active AND premium) OR (young AND high-rated)
         final complexQuery1 = await odm.users
-            .where((filter) => filter.or(
-              filter.and(
-                filter.isActive(isEqualTo: true),
-                filter.isPremium(isEqualTo: true),
+            .where(
+              (filter) => filter.or(
+                filter.and(
+                  filter.isActive(isEqualTo: true),
+                  filter.isPremium(isEqualTo: true),
+                ),
+                filter.and(
+                  filter.age(isLessThan: 25),
+                  filter.rating(isGreaterThan: 4.0),
+                ),
               ),
-              filter.and(
-                filter.age(isLessThan: 25),
-                filter.rating(isGreaterThan: 4.0),
-              ),
-            ))
+            )
             .get();
 
-        expect(complexQuery1.length, equals(2)); // Young Premium Active, Young Free Active High Rated
+        expect(
+          complexQuery1.length,
+          equals(2),
+        ); // Young Premium Active, Young Free Active High Rated
 
         // Test: premium AND (young OR high-followers)
         final complexQuery2 = await odm.users
-            .where((filter) => filter.and(
-              filter.isPremium(isEqualTo: true),
-              filter.or(
-                filter.age(isLessThan: 30),
-                filter.profile.followers(isGreaterThan: 300),
+            .where(
+              (filter) => filter.and(
+                filter.isPremium(isEqualTo: true),
+                filter.or(
+                  filter.age(isLessThan: 30),
+                  filter.profile.followers(isGreaterThan: 300),
+                ),
               ),
-            ))
+            )
             .get();
 
-        expect(complexQuery2.length, equals(2)); // Young Premium Active, Old Premium Inactive
+        expect(
+          complexQuery2.length,
+          equals(2),
+        ); // Young Premium Active, Old Premium Inactive
 
         // Test: active AND (premium OR high-rated) AND young
         final complexQuery3 = await odm.users
-            .where((filter) => filter.and(
-              filter.isActive(isEqualTo: true),
-              filter.or(
-                filter.isPremium(isEqualTo: true),
-                filter.rating(isGreaterThanOrEqualTo: 4.5),
+            .where(
+              (filter) => filter.and(
+                filter.isActive(isEqualTo: true),
+                filter.or(
+                  filter.isPremium(isEqualTo: true),
+                  filter.rating(isGreaterThanOrEqualTo: 4.5),
+                ),
+                filter.age(isLessThan: 30),
               ),
-              filter.age(isLessThan: 30),
-            ))
+            )
             .get();
 
-        expect(complexQuery3.length, equals(2)); // Young Premium Active, Young Free Active High Rated
+        expect(
+          complexQuery3.length,
+          equals(2),
+        ); // Young Premium Active, Young Free Active High Rated
       });
 
       test('should handle edge cases in filtering', () async {
@@ -260,7 +279,10 @@ void main() {
               bio: 'User with extreme values',
               avatar: 'extreme.jpg',
               socialLinks: {},
-              interests: List.generate(20, (i) => 'interest_$i'), // Many interests
+              interests: List.generate(
+                20,
+                (i) => 'interest_$i',
+              ), // Many interests
               followers: 999999, // Large number
             ),
             rating: 5.0, // Max rating
@@ -277,7 +299,9 @@ void main() {
 
         // Test null field handling (skip isNull filtering due to fake_cloud_firestore limitations)
         final allUsers = await odm.users.get();
-        final nullLoginUsers = allUsers.where((user) => user.lastLogin == null).toList();
+        final nullLoginUsers = allUsers
+            .where((user) => user.lastLogin == null)
+            .toList();
         expect(nullLoginUsers.length, equals(1));
         expect(nullLoginUsers.first.name, equals('Null Fields User'));
 
@@ -396,7 +420,8 @@ void main() {
           Post(
             id: 'flutter_post_1',
             title: 'Building Beautiful UIs with Flutter',
-            content: 'A comprehensive guide to creating stunning user interfaces...',
+            content:
+                'A comprehensive guide to creating stunning user interfaces...',
             authorId: 'developer',
             tags: ['flutter', 'ui', 'design', 'tutorial'],
             metadata: {
@@ -424,12 +449,14 @@ void main() {
 
         // Find verified tech influencers with high engagement
         final topInfluencers = await odm.users
-            .where((filter) => filter.and(
-              filter.tags(arrayContains: 'influencer'),
-              filter.rating(isGreaterThan: 4.5),
-              filter.profile.followers(isGreaterThan: 10000),
-              filter.isPremium(isEqualTo: true),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.tags(arrayContains: 'influencer'),
+                filter.rating(isGreaterThan: 4.5),
+                filter.profile.followers(isGreaterThan: 10000),
+                filter.isPremium(isEqualTo: true),
+              ),
+            )
             .orderBy(($) => $.profile.followers(descending: true))
             .get();
 
@@ -438,11 +465,13 @@ void main() {
 
         // Find recent popular posts
         final popularPosts = await odm.posts
-            .where((filter) => filter.and(
-              filter.published(isEqualTo: true),
-              filter.likes(isGreaterThan: 500),
-              filter.views(isGreaterThan: 3000),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.published(isEqualTo: true),
+                filter.likes(isGreaterThan: 500),
+                filter.views(isGreaterThan: 3000),
+              ),
+            )
             .orderBy(($) => $.publishedAt(descending: true))
             .get();
 
@@ -450,11 +479,13 @@ void main() {
 
         // Find Flutter developers for collaboration
         final flutterExperts = await odm.users
-            .where((filter) => filter.and(
-              filter.tags(arrayContains: 'flutter'),
-              filter.profile.interests(arrayContains: 'flutter'),
-              filter.isActive(isEqualTo: true),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.tags(arrayContains: 'flutter'),
+                filter.profile.interests(arrayContains: 'flutter'),
+                filter.isActive(isEqualTo: true),
+              ),
+            )
             .get();
 
         expect(flutterExperts.length, equals(1));
@@ -462,14 +493,19 @@ void main() {
 
         // Find content by category and engagement
         final techContent = await odm.posts
-            .where((filter) => filter.and(
-              filter.tags(arrayContainsAny: ['technology', 'mobile']),
-              filter.likes(isGreaterThan: 1000),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.tags(arrayContainsAny: ['technology', 'mobile']),
+                filter.likes(isGreaterThan: 1000),
+              ),
+            )
             .get();
 
         expect(techContent.length, equals(1));
-        expect(techContent.first.title, equals('The Future of Mobile Development'));
+        expect(
+          techContent.first.title,
+          equals('The Future of Mobile Development'),
+        );
       });
 
       test('should handle e-commerce platform scenario', () async {
@@ -575,11 +611,13 @@ void main() {
 
         // Find VIP customers for exclusive promotions
         final vipCustomers = await odm.users
-            .where((filter) => filter.and(
-              filter.isPremium(isEqualTo: true),
-              filter.tags(arrayContains: 'vip'),
-              filter.rating(isGreaterThan: 4.5),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.isPremium(isEqualTo: true),
+                filter.tags(arrayContains: 'vip'),
+                filter.rating(isGreaterThan: 4.5),
+              ),
+            )
             .get();
 
         expect(vipCustomers.length, equals(1));
@@ -595,15 +633,20 @@ void main() {
 
         // Find customers interested in electronics for targeted promotion
         final electronicsInterested = await odm.users
-            .where((filter) => filter.and(
-              filter.profile.interests(arrayContains: 'electronics'),
-              filter.isActive(isEqualTo: true),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.profile.interests(arrayContains: 'electronics'),
+                filter.isActive(isEqualTo: true),
+              ),
+            )
             .orderBy(($) => $.rating(descending: true))
             .get();
 
         expect(electronicsInterested.length, equals(2));
-        expect(electronicsInterested.first.name, equals('VIP Customer')); // Higher rating
+        expect(
+          electronicsInterested.first.name,
+          equals('VIP Customer'),
+        ); // Higher rating
 
         // Find customers by spending tier
         final highValueCustomers = await odm.users
@@ -623,56 +666,62 @@ void main() {
     });
 
     group('🔬 Edge Cases & Stress Testing', () {
-      test('should handle firestore specific data types and edge cases', () async {
-        // Arrange - Test Firestore-specific behaviors
-        final testDoc = fakeFirestore.collection('test').doc('firestore_test');
+      test(
+        'should handle firestore specific data types and edge cases',
+        () async {
+          // Arrange - Test Firestore-specific behaviors
+          final testDoc = fakeFirestore
+              .collection('test')
+              .doc('firestore_test');
 
-        // Test direct Firestore operations that ODM should handle
-        await testDoc.set({
-          'timestamp_field': FieldValue.serverTimestamp(),
-          'increment_field': 10,
-          'array_field': ['item1', 'item2'],
-          'nested_object': {
-            'inner_field': 'value',
-            'inner_array': [1, 2, 3],
-          },
-          'null_field': null,
-          'empty_string': '',
-          'zero_number': 0,
-          'false_boolean': false,
-        });
+          // Test direct Firestore operations that ODM should handle
+          await testDoc.set({
+            'timestamp_field': FieldValue.serverTimestamp(),
+            'increment_field': 10,
+            'array_field': ['item1', 'item2'],
+            'nested_object': {
+              'inner_field': 'value',
+              'inner_array': [1, 2, 3],
+            },
+            'null_field': null,
+            'empty_string': '',
+            'zero_number': 0,
+            'false_boolean': false,
+          });
 
-        // Test FieldValue operations
-        await testDoc.update({
-          'increment_field': FieldValue.increment(5),
-          'array_field': FieldValue.arrayUnion(['item3']),
-          'timestamp_field': FieldValue.serverTimestamp(),
-        });
+          // Test FieldValue operations
+          await testDoc.update({
+            'increment_field': FieldValue.increment(5),
+            'array_field': FieldValue.arrayUnion(['item3']),
+            'timestamp_field': FieldValue.serverTimestamp(),
+          });
 
-        // Test nested field updates
-        await testDoc.update({
-          'nested_object.inner_field': 'updated_value',
-          'nested_object.new_field': 'new_value',
-        });
+          // Test nested field updates
+          await testDoc.update({
+            'nested_object.inner_field': 'updated_value',
+            'nested_object.new_field': 'new_value',
+          });
 
-        // Verify the updates worked
-        final docSnapshot = await testDoc.get();
-        final data = docSnapshot.data()!;
+          // Verify the updates worked
+          final docSnapshot = await testDoc.get();
+          final data = docSnapshot.data()!;
 
-        expect(data['increment_field'], equals(15)); // 10 + 5
-        expect(data['array_field'], contains('item3'));
-        expect(data['nested_object']['inner_field'], equals('updated_value'));
-        expect(data['nested_object']['new_field'], equals('new_value'));
-        expect(data['null_field'], isNull);
-        expect(data['empty_string'], equals(''));
-        expect(data['zero_number'], equals(0));
-        expect(data['false_boolean'], isFalse);
-      });
+          expect(data['increment_field'], equals(15)); // 10 + 5
+          expect(data['array_field'], contains('item3'));
+          expect(data['nested_object']['inner_field'], equals('updated_value'));
+          expect(data['nested_object']['new_field'], equals('new_value'));
+          expect(data['null_field'], isNull);
+          expect(data['empty_string'], equals(''));
+          expect(data['zero_number'], equals(0));
+          expect(data['false_boolean'], isFalse);
+        },
+      );
 
       test('should handle large data structures and unicode content', () async {
         // Arrange - Test with large and complex data
         final largeContent = 'A' * 10000; // 10KB string
-        final unicodeContent = '🚀🔥💯🎯✨🌟⭐🎉🎊🎈 Unicode test with emojis 中文测试 العربية тест русский';
+        final unicodeContent =
+            '🚀🔥💯🎯✨🌟⭐🎉🎊🎈 Unicode test with emojis 中文测试 العربية тест русский';
         final largeArray = List.generate(1000, (i) => 'item_$i');
         final largeMap = <String, String>{};
         for (int i = 0; i < 100; i++) {
@@ -703,9 +752,7 @@ void main() {
             'nested_large_array': largeArray,
             'deeply_nested': {
               'level1': {
-                'level2': {
-                  'level3': largeArray.take(10).toList(),
-                },
+                'level2': {'level3': largeArray.take(10).toList()},
               },
             },
           },
@@ -732,74 +779,83 @@ void main() {
         expect(unicodeQuery.length, equals(1));
       });
 
-      test('should handle concurrent operations without data corruption', () async {
-        // Arrange
-        final baseUser = User(
-          id: 'concurrent_test_user',
-          name: 'Concurrent Test',
-          email: 'concurrent@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Concurrent operations test',
-            avatar: 'concurrent.jpg',
-            socialLinks: {},
-            interests: [],
-            followers: 0,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          tags: [],
-          scores: [],
-          createdAt: DateTime.now(),
-        );
-
-        await odm.users('concurrent_test_user').set(baseUser);
-
-        // Act - Simulate concurrent operations
-        final futures = <Future>[];
-
-        // Multiple increments
-        for (int i = 0; i < 10; i++) {
-          futures.add(
-            odm.users('concurrent_test_user').update(($) => [
-              $.profile.followers.increment(1),
-              $.rating.increment(0.01),
-            ]),
+      test(
+        'should handle concurrent operations without data corruption',
+        () async {
+          // Arrange
+          final baseUser = User(
+            id: 'concurrent_test_user',
+            name: 'Concurrent Test',
+            email: 'concurrent@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Concurrent operations test',
+              avatar: 'concurrent.jpg',
+              socialLinks: {},
+              interests: [],
+              followers: 0,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            tags: [],
+            scores: [],
+            createdAt: DateTime.now(),
           );
-        }
 
-        // Multiple array additions
-        for (int i = 0; i < 5; i++) {
-          futures.add(
-            odm.users('concurrent_test_user').update(($) => [
-              $.tags.add('tag_$i'),
-              $.scores.add(80 + i),
-            ]),
-          );
-        }
+          await odm.users('concurrent_test_user').set(baseUser);
 
-        // Multiple field updates
-        for (int i = 0; i < 3; i++) {
-          futures.add(
-            odm.users('concurrent_test_user').update(($) => [
-              $.name('Updated Name $i'),
-            ]),
-          );
-        }
+          // Act - Simulate concurrent operations
+          final futures = <Future>[];
 
-        await Future.wait(futures);
+          // Multiple increments
+          for (int i = 0; i < 10; i++) {
+            futures.add(
+              odm
+                  .users('concurrent_test_user')
+                  .update(
+                    ($) => [
+                      $.profile.followers.increment(1),
+                      $.rating.increment(0.01),
+                    ],
+                  ),
+            );
+          }
 
-        // Assert - Verify final state is consistent
-        final finalUser = await odm.users('concurrent_test_user').get();
-        expect(finalUser, isNotNull);
-        expect(finalUser!.profile.followers, equals(10)); // 10 increments
-        expect(finalUser.rating, closeTo(3.1, 0.01)); // 10 * 0.01 = 0.1 increment
-        expect(finalUser.tags.length, equals(5)); // 5 tag additions
-        expect(finalUser.scores.length, equals(5)); // 5 score additions
-        // Name should be one of the updated values
-        expect(finalUser.name, startsWith('Updated Name'));
-      });
+          // Multiple array additions
+          for (int i = 0; i < 5; i++) {
+            futures.add(
+              odm
+                  .users('concurrent_test_user')
+                  .update(($) => [$.tags.add('tag_$i'), $.scores.add(80 + i)]),
+            );
+          }
+
+          // Multiple field updates
+          for (int i = 0; i < 3; i++) {
+            futures.add(
+              odm
+                  .users('concurrent_test_user')
+                  .update(($) => [$.name('Updated Name $i')]),
+            );
+          }
+
+          await Future.wait(futures);
+
+          // Assert - Verify final state is consistent
+          final finalUser = await odm.users('concurrent_test_user').get();
+          expect(finalUser, isNotNull);
+          expect(finalUser!.profile.followers, equals(10)); // 10 increments
+          expect(
+            finalUser.rating,
+            closeTo(3.1, 0.01),
+          ); // 10 * 0.01 = 0.1 increment
+          expect(finalUser.tags.length, equals(5)); // 5 tag additions
+          expect(finalUser.scores.length, equals(5)); // 5 score additions
+          // Name should be one of the updated values
+          expect(finalUser.name, startsWith('Updated Name'));
+        },
+      );
     });
 
     group('🧪 Integration Testing', () {
@@ -831,14 +887,18 @@ void main() {
         await odm.users('lifecycle_user').set(initialUser);
 
         // Act 2 - Profile completion
-        await odm.users('lifecycle_user').update(($) => [
-          $.profile.bio('Flutter enthusiast and mobile developer'),
-          $.profile.avatar('custom_avatar.jpg'),
-          $.profile(socialLinks: {'github': 'flutter_dev'}),
-          $.profile.interests.add('flutter'),
-          $.profile.interests.add('mobile-development'),
-          $.tags.add('developer'),
-        ]);
+        await odm
+            .users('lifecycle_user')
+            .update(
+              ($) => [
+                $.profile.bio('Flutter enthusiast and mobile developer'),
+                $.profile.avatar('custom_avatar.jpg'),
+                $.profile(socialLinks: {'github': 'flutter_dev'}),
+                $.profile.interests.add('flutter'),
+                $.profile.interests.add('mobile-development'),
+                $.tags.add('developer'),
+              ],
+            );
 
         // Act 3 - Engagement and activity
         await odm.users('lifecycle_user').incrementalModify((user) {
@@ -852,12 +912,16 @@ void main() {
         });
 
         // Act 4 - Premium upgrade
-        await odm.users('lifecycle_user').update(($) => [
-          $.isPremium(true),
-          $.tags.add('premium'),
-          $.rating.increment(0.3),
-          $.lastLogin.serverTimestamp(),
-        ]);
+        await odm
+            .users('lifecycle_user')
+            .update(
+              ($) => [
+                $.isPremium(true),
+                $.tags.add('premium'),
+                $.rating.increment(0.3),
+                $.lastLogin.serverTimestamp(),
+              ],
+            );
 
         // Act 5 - Advanced user activities
         await odm.users('lifecycle_user').incrementalModify((user) {
@@ -865,7 +929,11 @@ void main() {
             name: 'Experienced Flutter Dev',
             profile: user.profile.copyWith(
               followers: user.profile.followers + 200,
-              interests: [...user.profile.interests, 'ui-design', 'state-management'],
+              interests: [
+                ...user.profile.interests,
+                'ui-design',
+                'state-management',
+              ],
               socialLinks: {
                 ...user.profile.socialLinks,
                 'twitter': '@flutter_expert',
@@ -894,21 +962,46 @@ void main() {
         expect(finalUser.profile.followers, equals(250)); // 0 + 50 + 200
         expect(finalUser.rating, closeTo(3.8, 0.01)); // 3.0 + 0.5 + 0.3
         expect(finalUser.isPremium, isTrue);
-        expect(finalUser.tags, containsAll(['newbie', 'developer', 'premium', 'expert', 'influencer']));
-        expect(finalUser.profile.interests, containsAll(['flutter', 'mobile-development', 'ui-design', 'state-management']));
+        expect(
+          finalUser.tags,
+          containsAll([
+            'newbie',
+            'developer',
+            'premium',
+            'expert',
+            'influencer',
+          ]),
+        );
+        expect(
+          finalUser.profile.interests,
+          containsAll([
+            'flutter',
+            'mobile-development',
+            'ui-design',
+            'state-management',
+          ]),
+        );
         expect(finalUser.scores.length, equals(6)); // 3 + 3 scores
-        expect(finalUser.profile.socialLinks.length, equals(3)); // github, twitter, linkedin
-        expect(finalUser.settings.length, equals(3)); // theme, notifications, privacy
+        expect(
+          finalUser.profile.socialLinks.length,
+          equals(3),
+        ); // github, twitter, linkedin
+        expect(
+          finalUser.settings.length,
+          equals(3),
+        ); // theme, notifications, privacy
         expect(finalUser.lastLogin, isNotNull);
 
         // Act 6 - Query the evolved user
         final expertUsers = await odm.users
-            .where((filter) => filter.and(
-              filter.tags(arrayContains: 'expert'),
-              filter.isPremium(isEqualTo: true),
-              filter.rating(isGreaterThan: 3.5),
-              filter.profile.followers(isGreaterThan: 100),
-            ))
+            .where(
+              (filter) => filter.and(
+                filter.tags(arrayContains: 'expert'),
+                filter.isPremium(isEqualTo: true),
+                filter.rating(isGreaterThan: 3.5),
+                filter.profile.followers(isGreaterThan: 100),
+              ),
+            )
             .get();
 
         expect(expertUsers.length, equals(1));
@@ -923,9 +1016,9 @@ void main() {
         await Future.delayed(Duration(milliseconds: 50));
 
         // Make final update
-        await odm.users('lifecycle_user').update(($) => [
-          $.name('Final Updated Name'),
-        ]);
+        await odm
+            .users('lifecycle_user')
+            .update(($) => [$.name('Final Updated Name')]);
 
         await Future.delayed(Duration(milliseconds: 100));
         await subscription.cancel();

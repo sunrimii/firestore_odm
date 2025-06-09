@@ -7,10 +7,9 @@ import 'package:firestore_odm/src/firestore_odm.dart';
 /// Service class that encapsulates all update operations logic
 /// Extracted from UpdateOperationsMixin to follow composition over inheritance
 class UpdateOperationsService<T> {
-  
   /// Function to convert model instance to JSON data
   final Map<String, dynamic> Function(T value) toJson;
-  
+
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data) fromJson;
 
@@ -31,11 +30,11 @@ class UpdateOperationsService<T> {
   /// Recursively replace special timestamps with FieldValue.serverTimestamp()
   Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
     final result = <String, dynamic>{};
-    
+
     for (final entry in data.entries) {
       final key = entry.key;
       final value = entry.value;
-      
+
       if (value is DateTime && value == FirestoreODM.serverTimestamp) {
         result[key] = FieldValue.serverTimestamp();
       } else if (value is Map<String, dynamic>) {
@@ -53,7 +52,7 @@ class UpdateOperationsService<T> {
         result[key] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -169,11 +168,13 @@ class UpdateOperationsService<T> {
   /// Execute update operations on a document reference
   Future<void> executeUpdate(
     DocumentReference<Map<String, dynamic>> ref,
-    Map<String, dynamic> updateData,
-    {Transaction? transaction}
-  ) async {
-    final processedUpdateData = FirestoreDataProcessor.serializeForFirestore(updateData);
-    
+    Map<String, dynamic> updateData, {
+    Transaction? transaction,
+  }) async {
+    final processedUpdateData = FirestoreDataProcessor.serializeForFirestore(
+      updateData,
+    );
+
     if (transaction != null) {
       log('executeUpdate with transaction: $processedUpdateData');
       transaction.update(ref, processedUpdateData);
@@ -187,9 +188,9 @@ class UpdateOperationsService<T> {
   Future<void> executeModify(
     DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
-    T currentData,
-    {Transaction? transaction}
-  ) async {
+    T currentData, {
+    Transaction? transaction,
+  }) async {
     final newData = modifier(currentData);
     final oldDataMap = toJson(currentData);
     final newDataMap = toJson(newData);
@@ -204,9 +205,9 @@ class UpdateOperationsService<T> {
   Future<void> executeIncrementalModify(
     DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
-    T currentData,
-    {Transaction? transaction}
-  ) async {
+    T currentData, {
+    Transaction? transaction,
+  }) async {
     final newData = modifier(currentData);
     final oldDataMap = toJson(currentData);
     final newDataMap = toJson(newData);
@@ -225,12 +226,14 @@ class UpdateOperationsService<T> {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
     final processedUpdateData = processUpdateData(updateData);
-    final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
+    final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(
+      processedUpdateData,
+    );
 
     for (final docSnapshot in snapshot.docs) {
       batch.update(docSnapshot.reference, serializedUpdateData);
     }
-    
+
     await batch.commit();
   }
 
@@ -241,23 +244,28 @@ class UpdateOperationsService<T> {
   ) async {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
-    
+
     for (final docSnapshot in snapshot.docs) {
       final data = docSnapshot.data();
-      final processedData = FirestoreDataProcessor.processFirestoreData(data, documentIdField: documentIdField, documentId: docSnapshot.id);
+      final processedData = FirestoreDataProcessor.processFirestoreData(
+        data,
+        documentIdField: documentIdField,
+        documentId: docSnapshot.id,
+      );
       final doc = fromJson(processedData);
       final newDoc = modifier(doc);
       final oldData = toJson(doc);
       final newData = toJson(newDoc);
       final updateData = computeDiff(oldData, newData);
-      
+
       if (updateData.isNotEmpty) {
         final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
+        final serializedUpdateData =
+            FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
         batch.update(docSnapshot.reference, serializedUpdateData);
       }
     }
-    
+
     await batch.commit();
   }
 
@@ -268,23 +276,28 @@ class UpdateOperationsService<T> {
   ) async {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
-    
+
     for (final docSnapshot in snapshot.docs) {
       final data = docSnapshot.data();
-      final processedData = FirestoreDataProcessor.processFirestoreData(data, documentIdField: documentIdField, documentId: docSnapshot.id);
+      final processedData = FirestoreDataProcessor.processFirestoreData(
+        data,
+        documentIdField: documentIdField,
+        documentId: docSnapshot.id,
+      );
       final doc = fromJson(processedData);
       final newDoc = modifier(doc);
       final oldData = toJson(doc);
       final newData = toJson(newDoc);
       final updateData = computeDiffWithAtomicOperations(oldData, newData);
-      
+
       if (updateData.isNotEmpty) {
         final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
+        final serializedUpdateData =
+            FirestoreDataProcessor.serializeForFirestore(processedUpdateData);
         batch.update(docSnapshot.reference, serializedUpdateData);
       }
     }
-    
+
     await batch.commit();
   }
 }

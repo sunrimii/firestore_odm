@@ -3,7 +3,7 @@
 abstract interface class SubscribeOperations<T> {
   /// Stream of document changes for real-time updates
   Stream<T?> get changes;
-  
+
   /// Whether this instance is currently subscribed to real-time updates
   bool get isSubscribing;
 }

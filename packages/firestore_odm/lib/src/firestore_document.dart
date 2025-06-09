@@ -14,7 +14,8 @@ class FirestoreDocumentNotFoundException implements Exception {
   final String documentId;
   FirestoreDocumentNotFoundException(this.documentId);
   @override
-  String toString() => 'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
+  String toString() =>
+      'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
 }
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
@@ -22,7 +23,7 @@ class FirestoreDocumentNotFoundException implements Exception {
 class FirestoreDocument<T> implements DocumentOperations<T> {
   /// The collection this document belongs to
   final FirestoreCollection<T> collection;
-  
+
   /// The document ID
   final String id;
 
@@ -115,12 +116,15 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   /// Sets the document data
   @override
   Future<void> set(T state) async {
-    final data = FirestoreDataProcessor.toJson(collection.toJson, state,
-        documentIdField: collection.documentIdField, documentId: id);
+    final data = FirestoreDataProcessor.toJson(
+      collection.toJson,
+      state,
+      documentIdField: collection.documentIdField,
+      documentId: id,
+    );
     await ref.set(data);
     _cache = data;
   }
-
 
   /// Incremental modify a document using diff-based updates (with automatic atomic operations)
   @override
@@ -135,8 +139,12 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
     // Update cache
     final newState = modifier(oldState);
-    _cache = FirestoreDataProcessor.toJson(collection.toJson, newState,
-        documentIdField: collection.documentIdField, documentId: id);
+    _cache = FirestoreDataProcessor.toJson(
+      collection.toJson,
+      newState,
+      documentIdField: collection.documentIdField,
+      documentId: id,
+    );
   }
 
   /// Modify a document using diff-based updates
@@ -152,8 +160,12 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
 
     // Update cache
     final newState = modifier(oldState);
-    _cache = FirestoreDataProcessor.toJson(collection.toJson, newState,
-        documentIdField: collection.documentIdField, documentId: id);
+    _cache = FirestoreDataProcessor.toJson(
+      collection.toJson,
+      newState,
+      documentIdField: collection.documentIdField,
+      documentId: id,
+    );
   }
 
   /// Internal helper for Firestore field updates using map
@@ -182,10 +194,11 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
       await _updateFields(updateMap);
     }
   }
-  
+
   Future<void> update(
-      List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
-          updateBuilder) async {
+    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
+    updateBuilder,
+  ) async {
     final builder = UpdateBuilder<T>();
     final operations = updateBuilder(builder);
     await _executeUpdate(operations);

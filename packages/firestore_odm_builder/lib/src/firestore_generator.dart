@@ -27,7 +27,7 @@ class FirestoreGenerator extends Generator {
   String? generate(LibraryReader library, BuildStep buildStep) {
     final buffer = StringBuffer();
     final generatedClasses = <String>{};
-    
+
     // Process all classes with @Collection annotations
     for (final element in library.allElements) {
       if (element is ClassElement) {
@@ -37,7 +37,7 @@ class FirestoreGenerator extends Generator {
         }
       }
     }
-    
+
     return buffer.isNotEmpty ? buffer.toString() : null;
   }
 
@@ -45,17 +45,18 @@ class FirestoreGenerator extends Generator {
   List<CollectionInfo> _getCollectionAnnotations(ClassElement element) {
     final collections = <CollectionInfo>[];
     final collectionChecker = TypeChecker.fromRuntime(Collection);
-    
+
     for (final annotation in element.metadata) {
       final annotationValue = annotation.computeConstantValue();
-      if (annotationValue != null && collectionChecker.isExactlyType(annotationValue.type!)) {
+      if (annotationValue != null &&
+          collectionChecker.isExactlyType(annotationValue.type!)) {
         final path = annotationValue.getField('path')!.toStringValue()!;
         final isSubcollection = path.contains('*');
         final suffix = _generateSuffix(path);
         collections.add(CollectionInfo(path, isSubcollection, suffix));
       }
     }
-    
+
     return collections;
   }
 
@@ -64,18 +65,20 @@ class FirestoreGenerator extends Generator {
     if (!path.contains('*')) {
       return ''; // No suffix for root collections
     }
-    
+
     // For subcollections, create a descriptive suffix
     // e.g., "users/*/posts" -> "ForUser"
     final parts = path.split('/');
     final parentParts = <String>[];
-    
+
     for (int i = 0; i < parts.length - 1; i += 2) {
       if (i + 1 < parts.length && parts[i + 1] == '*') {
-        parentParts.add(_capitalize(parts[i].replaceAll(RegExp(r's$'), ''))); // Remove plural 's'
+        parentParts.add(
+          _capitalize(parts[i].replaceAll(RegExp(r's$'), '')),
+        ); // Remove plural 's'
       }
     }
-    
+
     return parentParts.isNotEmpty ? 'For${parentParts.join('')}' : '';
   }
 
@@ -106,7 +109,12 @@ class FirestoreGenerator extends Generator {
 
     // Generate shared components once (Document, Query, FilterBuilder, etc.)
     if (!generatedClasses.contains(className)) {
-      _generateSharedComponents(buffer, className, constructor, documentIdField);
+      _generateSharedComponents(
+        buffer,
+        className,
+        constructor,
+        documentIdField,
+      );
       generatedClasses.add(className);
     }
 
@@ -131,7 +139,6 @@ class FirestoreGenerator extends Generator {
     ConstructorElement constructor,
     String? documentIdField,
   ) {
-    
     // Generate FilterBuilder class
     FilterGenerator.generateFilterBuilderClass(
       buffer,
@@ -140,7 +147,7 @@ class FirestoreGenerator extends Generator {
       className,
       documentIdField,
     );
-    
+
     // Generate FilterBuilder classes for all nested types
     FilterGenerator.generateNestedFilterBuilderClasses(
       buffer,
@@ -151,8 +158,14 @@ class FirestoreGenerator extends Generator {
     buffer.writeln('');
 
     // Generate OrderByBuilder class
-    OrderByGenerator.generateOrderByBuilderClass(buffer, className, constructor, className, documentIdField);
-    
+    OrderByGenerator.generateOrderByBuilderClass(
+      buffer,
+      className,
+      constructor,
+      className,
+      documentIdField,
+    );
+
     // Generate nested OrderByBuilder classes
     OrderByGenerator.generateNestedOrderByBuilderClasses(
       buffer,
@@ -164,8 +177,14 @@ class FirestoreGenerator extends Generator {
     buffer.writeln('');
 
     // Generate UpdateBuilder class
-    UpdateGenerator.generateUpdateBuilderClass(buffer, className, constructor, className, documentIdField);
-    
+    UpdateGenerator.generateUpdateBuilderClass(
+      buffer,
+      className,
+      constructor,
+      className,
+      documentIdField,
+    );
+
     // Generate nested UpdateBuilder classes
     UpdateGenerator.generateNestedUpdateBuilderClasses(
       buffer,
@@ -173,7 +192,7 @@ class FirestoreGenerator extends Generator {
       <String>{},
       className,
     );
-    
+
     // Generate nested updater classes (ProfileNestedUpdater, etc.)
     UpdateGenerator.generateAllNestedUpdaterClasses(
       buffer,
@@ -204,9 +223,15 @@ class FirestoreGenerator extends Generator {
       suffix: suffix,
     );
     buffer.writeln('');
-    
+
     // Generate ODM extension for this specific collection
-    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection, suffix: suffix);
+    ODMExtensionGenerator.generateODMExtension(
+      buffer,
+      className,
+      collectionPath,
+      isSubcollection,
+      suffix: suffix,
+    );
     buffer.writeln('');
   }
 
@@ -237,7 +262,7 @@ class FirestoreGenerator extends Generator {
       className,
       documentIdField,
     );
-    
+
     // Generate FilterBuilder classes for all nested types
     FilterGenerator.generateNestedFilterBuilderClasses(
       buffer,
@@ -254,7 +279,7 @@ class FirestoreGenerator extends Generator {
       className,
       documentIdField,
     );
-    
+
     // Generate OrderByBuilder classes for all nested types
     OrderByGenerator.generateNestedOrderByBuilderClasses(
       buffer,
@@ -281,7 +306,7 @@ class FirestoreGenerator extends Generator {
       <String>{className},
       className,
     );
-    
+
     // Generate nested updater classes
     UpdateGenerator.generateAllNestedUpdaterClasses(
       buffer,
@@ -290,6 +315,11 @@ class FirestoreGenerator extends Generator {
     );
 
     // Generate extension to add the collection to FirestoreODM
-    ODMExtensionGenerator.generateODMExtension(buffer, className, collectionPath, isSubcollection);
+    ODMExtensionGenerator.generateODMExtension(
+      buffer,
+      className,
+      collectionPath,
+      isSubcollection,
+    );
   }
 }

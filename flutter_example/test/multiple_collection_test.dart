@@ -70,7 +70,10 @@ void main() {
       expect(retrievedPost.authorId, equals('user123'));
 
       // Verify collection path
-      expect(odm.users('user123').posts.ref.path, equals('users/user123/posts'));
+      expect(
+        odm.users('user123').posts.ref.path,
+        equals('users/user123/posts'),
+      );
     });
 
     test('should handle different collections independently', () async {
@@ -109,144 +112,167 @@ void main() {
       expect(user!.title, equals('User Post'));
 
       // Verify they don't interfere with each other
-      final standaloneNotInUser = await odm.users('user123').posts('standalone1').get();
+      final standaloneNotInUser = await odm
+          .users('user123')
+          .posts('standalone1')
+          .get();
       final userNotInStandalone = await odm.posts('user1').get();
 
       expect(standaloneNotInUser, isNull);
       expect(userNotInStandalone, isNull);
     });
 
-    test('should support multiple users with independent subcollections', () async {
-      final user1Post = SharedPost(
-        id: 'post1',
-        title: 'User 1 Post',
-        content: 'Content for user 1',
-        authorId: 'user1',
-        likes: 3,
-        published: true,
-        createdAt: DateTime.now(),
-      );
+    test(
+      'should support multiple users with independent subcollections',
+      () async {
+        final user1Post = SharedPost(
+          id: 'post1',
+          title: 'User 1 Post',
+          content: 'Content for user 1',
+          authorId: 'user1',
+          likes: 3,
+          published: true,
+          createdAt: DateTime.now(),
+        );
 
-      final user2Post = SharedPost(
-        id: 'post1', // Same ID but different collection
-        title: 'User 2 Post',
-        content: 'Content for user 2',
-        authorId: 'user2',
-        likes: 7,
-        published: false,
-        createdAt: DateTime.now(),
-      );
+        final user2Post = SharedPost(
+          id: 'post1', // Same ID but different collection
+          title: 'User 2 Post',
+          content: 'Content for user 2',
+          authorId: 'user2',
+          likes: 7,
+          published: false,
+          createdAt: DateTime.now(),
+        );
 
-      // Add to different user subcollections
-      await odm.users('user1').posts.upsert(user1Post);
-      await odm.users('user2').posts.upsert(user2Post);
+        // Add to different user subcollections
+        await odm.users('user1').posts.upsert(user1Post);
+        await odm.users('user2').posts.upsert(user2Post);
 
-      // Verify both exist independently
-      final user1Retrieved = await odm.users('user1').posts('post1').get();
-      final user2Retrieved = await odm.users('user2').posts('post1').get();
+        // Verify both exist independently
+        final user1Retrieved = await odm.users('user1').posts('post1').get();
+        final user2Retrieved = await odm.users('user2').posts('post1').get();
 
-      expect(user1Retrieved, isNotNull);
-      expect(user2Retrieved, isNotNull);
-      expect(user1Retrieved!.title, equals('User 1 Post'));
-      expect(user2Retrieved!.title, equals('User 2 Post'));
-      expect(user1Retrieved.published, isTrue);
-      expect(user2Retrieved.published, isFalse);
+        expect(user1Retrieved, isNotNull);
+        expect(user2Retrieved, isNotNull);
+        expect(user1Retrieved!.title, equals('User 1 Post'));
+        expect(user2Retrieved!.title, equals('User 2 Post'));
+        expect(user1Retrieved.published, isTrue);
+        expect(user2Retrieved.published, isFalse);
 
-      // Verify correct paths
-      expect(odm.users('user1').posts.ref.path, equals('users/user1/posts'));
-      expect(odm.users('user2').posts.ref.path, equals('users/user2/posts'));
-    });
+        // Verify correct paths
+        expect(odm.users('user1').posts.ref.path, equals('users/user1/posts'));
+        expect(odm.users('user2').posts.ref.path, equals('users/user2/posts'));
+      },
+    );
 
     test('should support filtering and querying in both collections', () async {
       // Add multiple posts to standalone collection
-      await odm.posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'Tech Post',
-        content: 'Tech content',
-        authorId: 'author1',
-        likes: 10,
-        published: true,
-        createdAt: DateTime.now(),
-        tags: ['tech'],
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post1',
+          title: 'Tech Post',
+          content: 'Tech content',
+          authorId: 'author1',
+          likes: 10,
+          published: true,
+          createdAt: DateTime.now(),
+          tags: ['tech'],
+        ),
+      );
 
-      await odm.posts.upsert(SharedPost(
-        id: 'post2',
-        title: 'Personal Post',
-        content: 'Personal content',
-        authorId: 'author1',
-        likes: 5,
-        published: false,
-        createdAt: DateTime.now(),
-        tags: ['personal'],
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post2',
+          title: 'Personal Post',
+          content: 'Personal content',
+          authorId: 'author1',
+          likes: 5,
+          published: false,
+          createdAt: DateTime.now(),
+          tags: ['personal'],
+        ),
+      );
 
       // Add posts to user subcollection
-      await odm.users('user1').posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'User Tech',
-        content: 'User tech content',
-        authorId: 'user1',
-        likes: 15,
-        published: true,
-        createdAt: DateTime.now(),
-        tags: ['tech'],
-      ));
+      await odm
+          .users('user1')
+          .posts
+          .upsert(
+            SharedPost(
+              id: 'post1',
+              title: 'User Tech',
+              content: 'User tech content',
+              authorId: 'user1',
+              likes: 15,
+              published: true,
+              createdAt: DateTime.now(),
+              tags: ['tech'],
+            ),
+          );
 
       // Query published posts in standalone collection
       final publishedPosts = await odm.posts
-        .where((filter) => filter.published(isEqualTo: true))
-        .get();
+          .where((filter) => filter.published(isEqualTo: true))
+          .get();
       expect(publishedPosts.length, equals(1));
       expect(publishedPosts.first.title, equals('Tech Post'));
 
       // Query posts in user subcollection
-      final userPosts = await odm.users('user1').posts
-        .where((filter) => filter.likes(isGreaterThan: 10))
-        .get();
+      final userPosts = await odm
+          .users('user1')
+          .posts
+          .where((filter) => filter.likes(isGreaterThan: 10))
+          .get();
       expect(userPosts.length, equals(1));
       expect(userPosts.first.title, equals('User Tech'));
     });
 
     test('should support ordering and limiting in both collections', () async {
       final now = DateTime.now();
-      
+
       // Add posts with different creation times
-      await odm.posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'First Post',
-        content: 'First',
-        authorId: 'author1',
-        likes: 5,
-        published: true,
-        createdAt: now.subtract(Duration(hours: 2)),
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post1',
+          title: 'First Post',
+          content: 'First',
+          authorId: 'author1',
+          likes: 5,
+          published: true,
+          createdAt: now.subtract(Duration(hours: 2)),
+        ),
+      );
 
-      await odm.posts.upsert(SharedPost(
-        id: 'post2',
-        title: 'Second Post',
-        content: 'Second',
-        authorId: 'author1',
-        likes: 10,
-        published: true,
-        createdAt: now.subtract(Duration(hours: 1)),
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post2',
+          title: 'Second Post',
+          content: 'Second',
+          authorId: 'author1',
+          likes: 10,
+          published: true,
+          createdAt: now.subtract(Duration(hours: 1)),
+        ),
+      );
 
-      await odm.posts.upsert(SharedPost(
-        id: 'post3',
-        title: 'Third Post',
-        content: 'Third',
-        authorId: 'author1',
-        likes: 15,
-        published: true,
-        createdAt: now,
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post3',
+          title: 'Third Post',
+          content: 'Third',
+          authorId: 'author1',
+          likes: 15,
+          published: true,
+          createdAt: now,
+        ),
+      );
 
       // Order by creation date (newest first) and limit to 2
       final recentPosts = await odm.posts
-        .orderBy((order) => order.createdAt(descending: true))
-        .limit(2)
-        .get();
+          .orderBy((order) => order.createdAt(descending: true))
+          .limit(2)
+          .get();
 
       expect(recentPosts.length, equals(2));
       expect(recentPosts[0].title, equals('Third Post'));
@@ -254,8 +280,8 @@ void main() {
 
       // Order by likes (highest first)
       final popularPosts = await odm.posts
-        .orderBy((order) => order.likes(descending: true))
-        .get();
+          .orderBy((order) => order.likes(descending: true))
+          .get();
 
       expect(popularPosts.length, equals(3));
       expect(popularPosts[0].likes, equals(15));
@@ -273,45 +299,59 @@ void main() {
       });
 
       // Subscribe to user subcollection document changes
-      final userSubscription = odm.users('user1').posts('post1').changes.listen((post) {
-        userChanges.add(post);
-      });
+      final userSubscription = odm.users('user1').posts('post1').changes.listen(
+        (post) {
+          userChanges.add(post);
+        },
+      );
 
       // Wait for initial null snapshots
       await Future.delayed(Duration(milliseconds: 100));
 
       // Add posts to both collections
-      await odm.posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'Standalone Post',
-        content: 'Content',
-        authorId: 'author1',
-        likes: 1,
-        published: true,
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post1',
+          title: 'Standalone Post',
+          content: 'Content',
+          authorId: 'author1',
+          likes: 1,
+          published: true,
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await odm.users('user1').posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'User Post',
-        content: 'User Content',
-        authorId: 'user1',
-        likes: 2,
-        published: true,
-        createdAt: DateTime.now(),
-      ));
+      await odm
+          .users('user1')
+          .posts
+          .upsert(
+            SharedPost(
+              id: 'post1',
+              title: 'User Post',
+              content: 'User Content',
+              authorId: 'user1',
+              likes: 2,
+              published: true,
+              createdAt: DateTime.now(),
+            ),
+          );
 
       // Wait for updates
       await Future.delayed(Duration(milliseconds: 100));
 
       // Verify we received updates
-      expect(standaloneChanges.length, greaterThanOrEqualTo(1)); // At least one change
+      expect(
+        standaloneChanges.length,
+        greaterThanOrEqualTo(1),
+      ); // At least one change
       expect(userChanges.length, greaterThanOrEqualTo(1));
 
       // Verify latest updates have correct data (filter out null values)
-      final standaloneNonNull = standaloneChanges.where((p) => p != null).toList();
+      final standaloneNonNull = standaloneChanges
+          .where((p) => p != null)
+          .toList();
       final userNonNull = userChanges.where((p) => p != null).toList();
-      
+
       expect(standaloneNonNull.isNotEmpty, isTrue);
       expect(userNonNull.isNotEmpty, isTrue);
       expect(standaloneNonNull.last!.title, equals('Standalone Post'));
@@ -324,36 +364,42 @@ void main() {
 
     test('should support updates and deletes in both collections', () async {
       // Create initial posts
-      await odm.posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'Original Title',
-        content: 'Original content',
-        authorId: 'author1',
-        likes: 5,
-        published: false,
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        SharedPost(
+          id: 'post1',
+          title: 'Original Title',
+          content: 'Original content',
+          authorId: 'author1',
+          likes: 5,
+          published: false,
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await odm.users('user1').posts.upsert(SharedPost(
-        id: 'post1',
-        title: 'User Original',
-        content: 'User original content',
-        authorId: 'user1',
-        likes: 3,
-        published: false,
-        createdAt: DateTime.now(),
-      ));
+      await odm
+          .users('user1')
+          .posts
+          .upsert(
+            SharedPost(
+              id: 'post1',
+              title: 'User Original',
+              content: 'User original content',
+              authorId: 'user1',
+              likes: 3,
+              published: false,
+              createdAt: DateTime.now(),
+            ),
+          );
 
       // Update posts
-      await odm.posts('post1').update(($) => [
-        $.title('Updated Title'),
-        $.published(true),
-      ]);
+      await odm
+          .posts('post1')
+          .update(($) => [$.title('Updated Title'), $.published(true)]);
 
-      await odm.users('user1').posts('post1').update(($) => [
-        $.likes(10),
-        $.published(true),
-      ]);
+      await odm
+          .users('user1')
+          .posts('post1')
+          .update(($) => [$.likes(10), $.published(true)]);
 
       // Verify updates
       final updatedStandalone = await odm.posts('post1').get();

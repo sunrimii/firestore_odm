@@ -5,7 +5,9 @@ import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 /// Utility class for analyzing Dart types in Firestore ODM generation
 class TypeAnalyzer {
-  static final TypeChecker documentIdChecker = TypeChecker.fromRuntime(DocumentIdField);
+  static final TypeChecker documentIdChecker = TypeChecker.fromRuntime(
+    DocumentIdField,
+  );
 
   /// Find the document ID field in a constructor
   /// First looks for fields with @DocumentIdField() annotation.
@@ -22,14 +24,14 @@ class TypeAnalyzer {
         }
       }
     }
-    
+
     // Second pass: Look for a field named 'id' as default
     for (final param in constructor.parameters) {
       if (param.name == 'id' && isStringType(param.type)) {
         return param.name;
       }
     }
-    
+
     return null;
   }
 
@@ -37,8 +39,16 @@ class TypeAnalyzer {
   static bool isPrimitiveType(DartType type) {
     final typeName = type.getDisplayString(withNullability: false);
     return [
-      'String', 'int', 'double', 'bool', 'DateTime', 'Timestamp',
-      'List<String>', 'List<int>', 'List<double>', 'List<bool>',
+      'String',
+      'int',
+      'double',
+      'bool',
+      'DateTime',
+      'Timestamp',
+      'List<String>',
+      'List<int>',
+      'List<double>',
+      'List<bool>',
     ].contains(typeName);
   }
 
@@ -46,9 +56,9 @@ class TypeAnalyzer {
   static bool isCustomClass(DartType type) {
     final typeName = type.getDisplayString(withNullability: false);
     return !isPrimitiveType(type) &&
-           !isListType(type) &&
-           !typeName.startsWith('Map<') &&
-           !typeName.startsWith('Set<');
+        !isListType(type) &&
+        !typeName.startsWith('Map<') &&
+        !typeName.startsWith('Set<');
   }
 
   /// Check if a type is comparable (supports ordering operations)

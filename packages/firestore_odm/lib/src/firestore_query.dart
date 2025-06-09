@@ -55,10 +55,7 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   /// Limits the number of results returned from the end
   @override
   FirestoreQuery<T> limitToLast(int limit) {
-    return FirestoreQuery<T>(
-      collection,
-      _queryService.applyLimitToLast(limit),
-    );
+    return FirestoreQuery<T>(collection, _queryService.applyLimitToLast(limit));
   }
 
   /// Executes the query and returns the results

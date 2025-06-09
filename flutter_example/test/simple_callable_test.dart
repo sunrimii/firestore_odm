@@ -102,16 +102,16 @@ void main() {
 
       // Create with new syntax
       await odm.users('mixed_user').set(user);
-      
+
       // Read with old syntax
       final readWithOld = await odm.users('mixed_user').get();
       expect(readWithOld, isNotNull);
       expect(readWithOld!.name, equals('Mixed User'));
 
       // Update with old syntax
-      await odm.users('mixed_user').modify((user) => user.copyWith(
-        name: 'Updated Mixed User',
-      ));
+      await odm
+          .users('mixed_user')
+          .modify((user) => user.copyWith(name: 'Updated Mixed User'));
 
       // Read with new syntax
       final readWithNew = await odm.users('mixed_user').get();

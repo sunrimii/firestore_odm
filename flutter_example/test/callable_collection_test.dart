@@ -72,7 +72,10 @@ void main() {
         // Assert
         expect(retrievedPost, isNotNull);
         expect(retrievedPost!.title, equals('Callable Post Test'));
-        expect(retrievedPost.content, equals('Testing the new callable syntax'));
+        expect(
+          retrievedPost.content,
+          equals('Testing the new callable syntax'),
+        );
         expect(retrievedPost.tags, equals(['api', 'syntax']));
       });
 
@@ -100,17 +103,19 @@ void main() {
 
         // Create
         await odm.users('crud_callable').set(user);
-        
+
         // Read
         final createdUser = await odm.users('crud_callable').get();
         expect(createdUser, isNotNull);
         expect(createdUser!.name, equals('CRUD Callable'));
 
         // Update using modify
-        await odm.users('crud_callable').modify((user) => user.copyWith(
-          name: 'Updated CRUD Callable',
-          rating: 4.5,
-        ));
+        await odm
+            .users('crud_callable')
+            .modify(
+              (user) =>
+                  user.copyWith(name: 'Updated CRUD Callable', rating: 4.5),
+            );
 
         final updatedUser = await odm.users('crud_callable').get();
         expect(updatedUser!.name, equals('Updated CRUD Callable'));
@@ -180,16 +185,16 @@ void main() {
 
         // Create with new syntax
         await odm.users('mixed_syntax').set(user);
-        
+
         // Read with old syntax
         final readWithOld = await odm.users('mixed_syntax').get();
         expect(readWithOld, isNotNull);
         expect(readWithOld!.name, equals('Mixed Syntax User'));
 
         // Update with old syntax
-        await odm.users('mixed_syntax').modify((user) => user.copyWith(
-          name: 'Updated Mixed User',
-        ));
+        await odm
+            .users('mixed_syntax')
+            .modify((user) => user.copyWith(name: 'Updated Mixed User'));
 
         // Read with new syntax
         final readWithNew = await odm.users('mixed_syntax').get();
@@ -197,7 +202,7 @@ void main() {
 
         // Delete with new syntax
         await odm.users('mixed_syntax').delete();
-        
+
         // Verify deletion with old syntax
         final deletedCheck = await odm.users('mixed_syntax').get();
         expect(deletedCheck, isNull);
@@ -232,14 +237,18 @@ void main() {
         await odm.users('update_callable').set(user);
 
         // Act - Using update operations with callable syntax
-        await odm.users('update_callable').update(($) => [
-          $.name('Updated Name'),
-          $.rating.increment(1.5),
-          $.profile.followers.increment(50),
-          $.tags.add('updated'),
-          $.scores.add(95),
-          $.isPremium(true),
-        ]);
+        await odm
+            .users('update_callable')
+            .update(
+              ($) => [
+                $.name('Updated Name'),
+                $.rating.increment(1.5),
+                $.profile.followers.increment(50),
+                $.tags.add('updated'),
+                $.scores.add(95),
+                $.isPremium(true),
+              ],
+            );
 
         // Assert
         final updatedUser = await odm.users('update_callable').get();
@@ -326,11 +335,11 @@ void main() {
         );
 
         // Both syntaxes should work identically
-        
+
         // Old syntax (verbose)
         await odm.users('syntax_compare').set(user);
         final resultOld = await odm.users('syntax_compare').get();
-        
+
         // New syntax (concise)
         await odm.users('syntax_compare').set(user);
         final resultNew = await odm.users('syntax_compare').get();

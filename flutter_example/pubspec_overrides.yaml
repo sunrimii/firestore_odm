@@ -1,0 +1,8 @@
+# melos_managed_dependency_overrides: firestore_odm,firestore_odm_annotation,firestore_odm_builder
+dependency_overrides:
+  firestore_odm:
+    path: ..\\packages\\firestore_odm
+  firestore_odm_annotation:
+    path: ..\\packages\\firestore_odm_annotation
+  firestore_odm_builder:
+    path: ..\\packages\\firestore_odm_builder

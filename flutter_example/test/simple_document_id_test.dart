@@ -52,7 +52,7 @@ void main() {
       // Check the raw Firestore document
       final docSnapshot = await firestore.doc('posts/$testPostId').get();
       final rawData = docSnapshot.data()!;
-      
+
       // The id field should not be in the stored data
       expect(rawData.containsKey('id'), isFalse);
       expect(rawData['title'], equals('JSON Test Post'));
@@ -78,35 +78,41 @@ void main() {
 
     test('should add multiple posts and order by document ID', () async {
       // Add posts
-      await odm.posts.upsert(Post(
-        id: 'post_c',
-        title: 'Post C',
-        content: 'Content C',
-        authorId: 'author1',
-        tags: ['c'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        Post(
+          id: 'post_c',
+          title: 'Post C',
+          content: 'Content C',
+          authorId: 'author1',
+          tags: ['c'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await odm.posts.upsert(Post(
-        id: 'post_a',
-        title: 'Post A', 
-        content: 'Content A',
-        authorId: 'author2',
-        tags: ['a'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        Post(
+          id: 'post_a',
+          title: 'Post A',
+          content: 'Content A',
+          authorId: 'author2',
+          tags: ['a'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await odm.posts.upsert(Post(
-        id: 'post_b',
-        title: 'Post B',
-        content: 'Content B',
-        authorId: 'author3',
-        tags: ['b'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        Post(
+          id: 'post_b',
+          title: 'Post B',
+          content: 'Content B',
+          authorId: 'author3',
+          tags: ['b'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
+      );
 
       // Order by document ID
       final orderedQuery = odm.posts.orderBy((order) => order.id());

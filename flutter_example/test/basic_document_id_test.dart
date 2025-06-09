@@ -52,7 +52,7 @@ void main() {
       // Check the raw Firestore document
       final docSnapshot = await firestore.doc('posts/$testPostId').get();
       final rawData = docSnapshot.data()!;
-      
+
       // The id field should not be in the stored data
       expect(rawData.containsKey('id'), isFalse);
       expect(rawData['title'], equals('JSON Test Post'));
@@ -78,30 +78,34 @@ void main() {
 
     test('should retrieve multiple posts', () async {
       // Add posts
-      await odm.posts.upsert(Post(
-        id: 'post_a',
-        title: 'Post A',
-        content: 'Content A',
-        authorId: 'author1',
-        tags: ['a'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        Post(
+          id: 'post_a',
+          title: 'Post A',
+          content: 'Content A',
+          authorId: 'author1',
+          tags: ['a'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
+      );
 
-      await odm.posts.upsert(Post(
-        id: 'post_b',
-        title: 'Post B', 
-        content: 'Content B',
-        authorId: 'author2',
-        tags: ['b'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      ));
+      await odm.posts.upsert(
+        Post(
+          id: 'post_b',
+          title: 'Post B',
+          content: 'Content B',
+          authorId: 'author2',
+          tags: ['b'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        ),
+      );
 
       // Just get all posts to verify they exist
       final allPosts = await odm.posts.get();
       expect(allPosts.length, equals(2));
-      
+
       final postIds = allPosts.map((post) => post.id).toSet();
       expect(postIds, contains('post_a'));
       expect(postIds, contains('post_b'));

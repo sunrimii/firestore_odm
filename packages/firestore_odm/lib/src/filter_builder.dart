@@ -5,11 +5,7 @@ import 'package:firestore_odm/firestore_odm.dart';
 import 'package:meta/meta.dart';
 
 /// Filter types
-enum FilterType {
-  field,
-  and,
-  or,
-}
+enum FilterType { field, and, or }
 
 /// Firestore operators
 enum FilterOperator {
@@ -28,12 +24,12 @@ enum FilterOperator {
 /// Universal filter class that can represent any filter type
 class FirestoreFilter<T> {
   final FilterType type;
-  
+
   // For field filters
   final Object? field;
   final FilterOperator? operator;
   final dynamic value;
-  
+
   // For logical filters (AND/OR)
   final List<FirestoreFilter>? filters;
 
@@ -54,42 +50,36 @@ class FirestoreFilter<T> {
     required FilterOperator operator,
     required dynamic value,
   }) : this._(
-          type: FilterType.field,
-          field: field,
-          operator: operator,
-          value: value,
-        );
+         type: FilterType.field,
+         field: field,
+         operator: operator,
+         value: value,
+       );
 
   /// Create an AND filter
   const FirestoreFilter.and(List<FirestoreFilter> filters)
-      : this._(
-          type: FilterType.and,
-          filters: filters,
-        );
+    : this._(type: FilterType.and, filters: filters);
 
   /// Create an OR filter
   const FirestoreFilter.or(List<FirestoreFilter> filters)
-      : this._(
-          type: FilterType.or,
-          filters: filters,
-        );
+    : this._(type: FilterType.or, filters: filters);
 
   /// Create a filter from another FirestoreFilter (copy constructor)
   FirestoreFilter.fromFilter(FirestoreFilter other)
-      : this._(
-          type: other.type,
-          field: other.field,
-          operator: other.operator,
-          value: other.value,
-          filters: other.filters,
-        );
+    : this._(
+        type: other.type,
+        field: other.field,
+        operator: other.operator,
+        value: other.value,
+        filters: other.filters,
+      );
 }
 
 /// Represents an order by field with direction
 class OrderByField<T> {
   final dynamic field;
   final bool descending;
-  
+
   const OrderByField(this.field, {this.descending = false});
 }
 
@@ -98,7 +88,7 @@ class OrderByField<T> {
 class FilterBuilder<T> {
   /// Field prefix for nested object filtering
   final String prefix;
-  
+
   /// Create a FilterBuilder with optional field prefix for nested objects
   FilterBuilder({this.prefix = ''});
 
@@ -106,7 +96,7 @@ class FilterBuilder<T> {
   String getFieldPath(String fieldName) {
     return prefix.isEmpty ? fieldName : '$prefix.$fieldName';
   }
-  
+
   /// Create string field filter
   FirestoreFilter<R> stringFilter<R>(
     dynamic fieldName, {
@@ -122,31 +112,69 @@ class FilterBuilder<T> {
   }) {
     final fieldPath = fieldName is String ? getFieldPath(fieldName) : fieldName;
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (isLessThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
     }
     if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
     }
     if (isGreaterThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
     }
     if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -166,31 +194,69 @@ class FilterBuilder<T> {
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (isLessThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
     }
     if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
     }
     if (isGreaterThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
     }
     if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -206,19 +272,41 @@ class FilterBuilder<T> {
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -238,31 +326,69 @@ class FilterBuilder<T> {
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (isLessThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
     }
     if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
     }
     if (isGreaterThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
     }
     if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -280,25 +406,55 @@ class FilterBuilder<T> {
   }) {
     final fieldPath = getFieldPath(fieldName);
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (arrayContains != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContains,
+        value: arrayContains,
+      );
     }
     if (arrayContainsAny != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContainsAny,
+        value: arrayContainsAny,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -308,7 +464,6 @@ class FilterBuilder<T> {
 /// Extended by generated FilterBuilder classes for type-safe operations
 class RootFilterBuilder<T> extends FilterBuilder<T> {
   RootFilterBuilder({super.prefix});
-
 
   /// Create OR filter with type safety (supports up to 30 filters)
   FirestoreFilter<T> or(
@@ -439,7 +594,6 @@ class RootFilterBuilder<T> extends FilterBuilder<T> {
     if (filter30 != null) allFilters.add(filter30);
     return FirestoreFilter<T>.and(allFilters);
   }
-
 }
 
 /// Base order by builder class
@@ -447,20 +601,20 @@ class RootFilterBuilder<T> extends FilterBuilder<T> {
 class OrderByBuilder<T> {
   /// Field prefix for nested object ordering
   final String prefix;
-  
+
   /// Create an OrderByBuilder with optional field prefix for nested objects
   OrderByBuilder({this.prefix = ''});
 }
 
 /// Update operation types
 enum UpdateOperationType {
-  set,           // Direct field assignment
-  increment,     // Numeric increment/decrement
-  arrayAdd,      // Array add operation
-  arrayRemove,   // Array remove operation
-  delete,        // Delete field
+  set, // Direct field assignment
+  increment, // Numeric increment/decrement
+  arrayAdd, // Array add operation
+  arrayRemove, // Array remove operation
+  delete, // Delete field
   serverTimestamp, // Server timestamp
-  objectMerge,   // Object merge update
+  objectMerge, // Object merge update
 }
 
 /// Represents a single update operation
@@ -468,9 +622,9 @@ class UpdateOperation {
   final String field;
   final UpdateOperationType type;
   final dynamic value;
-  
+
   const UpdateOperation(this.field, this.type, this.value);
-  
+
   @override
   String toString() => 'UpdateOperation($field, $type, $value)';
 }
@@ -480,12 +634,14 @@ class UpdateOperation {
 class UpdateBuilder<T> {
   /// Field prefix for nested object updates
   final String prefix;
-  
+
   /// Create an UpdateBuilder with optional field prefix for nested objects
   UpdateBuilder({this.prefix = ''});
-  
+
   /// Convert operations to Firestore update map
-  static Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
+  static Map<String, dynamic> operationsToMap(
+    List<UpdateOperation> operations,
+  ) {
     final Map<String, dynamic> updateMap = {};
     final Map<String, List<dynamic>> arrayAdds = {};
     final Map<String, List<dynamic>> arrayRemoves = {};
@@ -528,11 +684,13 @@ class UpdateBuilder<T> {
     }
 
     // Handle fields with both add and remove operations by executing them sequentially
-    final fieldsWithBothOps =
-        arrayAdds.keys.toSet().intersection(arrayRemoves.keys.toSet());
+    final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(
+      arrayRemoves.keys.toSet(),
+    );
     if (fieldsWithBothOps.isNotEmpty) {
       throw ArgumentError(
-          'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $fieldsWithBothOps');
+        'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $fieldsWithBothOps',
+      );
     }
 
     // Apply accumulated increment operations
@@ -595,7 +753,10 @@ class DateTimeFieldBuilder extends FieldBuilder<DateTime> {
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
     return UpdateOperation(
-        fieldPath, UpdateOperationType.serverTimestamp, null);
+      fieldPath,
+      UpdateOperationType.serverTimestamp,
+      null,
+    );
   }
 }
 
@@ -612,21 +773,43 @@ class FilterFactory {
     bool? isNull,
   }) {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    
+
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -642,21 +825,43 @@ class FilterFactory {
     bool? isNull,
   }) {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    
+
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -676,33 +881,71 @@ class FilterFactory {
     bool? isNull,
   }) {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    
+
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (isLessThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThan, value: isLessThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
     }
     if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isLessThanOrEqualTo, value: isLessThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
     }
     if (isGreaterThan != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThan, value: isGreaterThan);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
     }
     if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isGreaterThanOrEqualTo, value: isGreaterThanOrEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -720,27 +963,57 @@ class FilterFactory {
     bool? isNull,
   }) {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    
+
     if (isEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isEqualTo, value: isEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
     }
     if (isNotEqualTo != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.isNotEqualTo, value: isNotEqualTo);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
     }
     if (arrayContains != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContains, value: arrayContains);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContains,
+        value: arrayContains,
+      );
     }
     if (arrayContainsAny != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.arrayContainsAny, value: arrayContainsAny);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContainsAny,
+        value: arrayContainsAny,
+      );
     }
     if (whereIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereIn, value: whereIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
     }
     if (whereNotIn != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: FilterOperator.whereNotIn, value: whereNotIn);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
     }
     if (isNull != null) {
-      return FirestoreFilter.field(field: fieldPath, operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo, value: null);
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -834,13 +1107,11 @@ class FieldNameOrDocumentId {
   final String? fieldName;
   final FieldPathType documentId = FieldPathType.documentId;
 
-  const FieldNameOrDocumentId._({
-    this.fieldName,
-  });
+  const FieldNameOrDocumentId._({this.fieldName});
 
   /// Create a FieldNameOrDocumentId with a field name
   const FieldNameOrDocumentId.field(String fieldName)
-      : this._(fieldName: fieldName);
+    : this._(fieldName: fieldName);
 
   /// Create a FieldNameOrDocumentId for document ID
   const FieldNameOrDocumentId.documentId() : this._();
@@ -866,9 +1137,7 @@ class OrderByHelper {
   }
 
   /// Create OrderByField with prefix
-  static OrderByField<T> createOrderByDocumentId<T>({
-    bool descending = false,
-  }) {
+  static OrderByField<T> createOrderByDocumentId<T>({bool descending = false}) {
     return OrderByField<T>(FieldPathType.documentId, descending: descending);
   }
 

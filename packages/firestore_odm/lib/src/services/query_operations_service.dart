@@ -9,7 +9,7 @@ import '../filter_builder.dart';
 class QueryOperationsService<T> {
   /// The underlying Firestore query
   final Query<Map<String, dynamic>> query;
-  
+
   /// Function to convert JSON data to model instance
   final T Function(Map<String, dynamic> data) fromJson;
 
@@ -19,7 +19,7 @@ class QueryOperationsService<T> {
   const QueryOperationsService({
     required this.query,
     required this.fromJson,
-    required this.documentIdField
+    required this.documentIdField,
   });
 
   /// Execute the query and return the results
@@ -27,7 +27,12 @@ class QueryOperationsService<T> {
     log('Executing query: ${query.parameters}');
     final snapshot = await query.get();
     return snapshot.docs.map((doc) {
-      return FirestoreDataProcessor.fromJson(fromJson, doc.data(), documentIdField: documentIdField, documentId: doc.id);
+      return FirestoreDataProcessor.fromJson(
+        fromJson,
+        doc.data(),
+        documentIdField: documentIdField,
+        documentId: doc.id,
+      );
       // Pass both data and document ID to fromJson
     }).toList();
   }
@@ -62,12 +67,15 @@ class QueryOperationsService<T> {
   }
 
   /// Helper method to apply filters to queries (extracted from firestore_query.dart)
-  Query<Map<String, dynamic>> _applyFilterToQuery(Query<Map<String, dynamic>> query, FirestoreFilter filter) {
+  Query<Map<String, dynamic>> _applyFilterToQuery(
+    Query<Map<String, dynamic>> query,
+    FirestoreFilter filter,
+  ) {
     if (filter.type == FilterType.field) {
       final field = filter.field!;
       final operator = filter.operator!;
       final value = filter.value;
-      
+
       switch (operator) {
         case FilterOperator.isEqualTo:
           return query.where(field, isEqualTo: value);
@@ -98,8 +106,11 @@ class QueryOperationsService<T> {
       return newQuery;
     } else if (filter.type == FilterType.or) {
       // Use Firestore's Filter.or() for proper OR logic
-      final filters = filter.filters!.map((f) => _buildFirestoreFilter(f)).toList();
-      if (filters.isEmpty) throw ArgumentError('OR filter must have at least one condition');
+      final filters = filter.filters!
+          .map((f) => _buildFirestoreFilter(f))
+          .toList();
+      if (filters.isEmpty)
+        throw ArgumentError('OR filter must have at least one condition');
       if (filters.length == 1) return query.where(filters.first);
       return query.where(_buildOrFilter(filters));
     }
@@ -113,12 +124,14 @@ class QueryOperationsService<T> {
         return _buildFieldFilter(filter);
       case FilterType.and:
         final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-        if (filters.isEmpty) throw ArgumentError('AND filter must have at least one condition');
+        if (filters.isEmpty)
+          throw ArgumentError('AND filter must have at least one condition');
         if (filters.length == 1) return filters.first;
         return _buildAndFilter(filters);
       case FilterType.or:
         final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-        if (filters.isEmpty) throw ArgumentError('OR filter must have at least one condition');
+        if (filters.isEmpty)
+          throw ArgumentError('OR filter must have at least one condition');
         if (filters.length == 1) return filters.first;
         return _buildOrFilter(filters);
     }
@@ -152,8 +165,9 @@ class QueryOperationsService<T> {
 
   /// Build Filter.or() with the correct API signature
   Filter _buildOrFilter(List<Filter> filters) {
-    if (filters.length < 2) throw ArgumentError('OR filter needs at least 2 filters');
-    
+    if (filters.length < 2)
+      throw ArgumentError('OR filter needs at least 2 filters');
+
     // Use the specific API signature for Filter.or()
     return Filter.or(
       filters[0],
@@ -191,8 +205,9 @@ class QueryOperationsService<T> {
 
   /// Build Filter.and() with the correct API signature
   Filter _buildAndFilter(List<Filter> filters) {
-    if (filters.length < 2) throw ArgumentError('AND filter needs at least 2 filters');
-    
+    if (filters.length < 2)
+      throw ArgumentError('AND filter needs at least 2 filters');
+
     // Use the specific API signature for Filter.and()
     return Filter.and(
       filters[0],

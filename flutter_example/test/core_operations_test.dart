@@ -99,7 +99,10 @@ void main() {
         expect(retrievedUser.email, equals('test@example.com'));
         expect(retrievedUser.profile.bio, equals('Test bio'));
         expect(retrievedUser.profile.story!.name, equals('SF Adventure'));
-        expect(retrievedUser.profile.story!.place.coordinates.latitude, equals(37.7749));
+        expect(
+          retrievedUser.profile.story!.place.coordinates.latitude,
+          equals(37.7749),
+        );
         expect(retrievedUser.tags, equals(['developer', 'tester']));
         expect(retrievedUser.scores, equals([95, 88, 92]));
         expect(retrievedUser.settings['theme'], equals('dark'));
@@ -268,14 +271,14 @@ void main() {
         // Act
         await odm.users('overwrite_test').set(user1);
         final firstVersion = await odm.users('overwrite_test').get();
-        
+
         await odm.users('overwrite_test').set(user2);
         final secondVersion = await odm.users('overwrite_test').get();
 
         // Assert
         expect(firstVersion!.name, equals('Original User'));
         expect(firstVersion.profile.followers, equals(50));
-        
+
         expect(secondVersion!.name, equals('Updated User'));
         expect(secondVersion.profile.followers, equals(100));
         expect(secondVersion.isActive, isTrue);
@@ -387,10 +390,13 @@ void main() {
         final profile = Profile(
           bio: 'Travel enthusiast with extensive experience',
           avatar: 'traveler.jpg',
-          socialLinks: Map.fromIterable(
-            ['github', 'twitter', 'linkedin', 'instagram', 'facebook'],
-            value: (platform) => '${platform}_handle',
-          ),
+          socialLinks: Map.fromIterable([
+            'github',
+            'twitter',
+            'linkedin',
+            'instagram',
+            'facebook',
+          ], value: (platform) => '${platform}_handle'),
           interests: List.generate(15, (i) => 'interest_$i'), // Many interests
           followers: 5000,
           story: story,
@@ -407,10 +413,12 @@ void main() {
           isPremium: true,
           tags: List.generate(10, (i) => 'user_tag_$i'),
           scores: List.generate(50, (i) => i + 50), // Many scores
-          settings: Map.fromIterable(
-            ['theme', 'language', 'notifications', 'privacy'],
-            value: (key) => 'value_$key',
-          ),
+          settings: Map.fromIterable([
+            'theme',
+            'language',
+            'notifications',
+            'privacy',
+          ], value: (key) => 'value_$key'),
           metadata: {
             'version': 2,
             'features': ['feature1', 'feature2', 'feature3'],

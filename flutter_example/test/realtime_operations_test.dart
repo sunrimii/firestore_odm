@@ -52,11 +52,9 @@ void main() {
         await odm.users('stream_user').incrementalModify((user) {
           return user.copyWith(name: 'Updated Stream User');
         });
-        
+
         await odm.users('stream_user').incrementalModify((user) {
-          return user.copyWith(
-            profile: user.profile.copyWith(followers: 20),
-          );
+          return user.copyWith(profile: user.profile.copyWith(followers: 20));
         });
 
         // Wait for changes to propagate
@@ -181,13 +179,13 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make changes to both users
-        await odm.users('multi_user_1').update(($) => [
-          $.name('Updated Multi User 1'),
-        ]);
+        await odm
+            .users('multi_user_1')
+            .update(($) => [$.name('Updated Multi User 1')]);
 
-        await odm.users('multi_user_2').update(($) => [
-          $.rating.increment(0.5),
-        ]);
+        await odm
+            .users('multi_user_2')
+            .update(($) => [$.rating.increment(0.5)]);
 
         // Wait for changes
         await Future.delayed(Duration(milliseconds: 200));
@@ -227,7 +225,9 @@ void main() {
 
         // Act - Listen to changes including deletion
         final changes = <User?>[];
-        final subscription = odm.users('delete_stream_user').changes.listen((user) {
+        final subscription = odm.users('delete_stream_user').changes.listen((
+          user,
+        ) {
           changes.add(user);
         });
 
@@ -235,9 +235,9 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Update the user
-        await odm.users('delete_stream_user').update(($) => [
-          $.name('Updated Before Delete'),
-        ]);
+        await odm
+            .users('delete_stream_user')
+            .update(($) => [$.name('Updated Before Delete')]);
 
         await Future.delayed(Duration(milliseconds: 100));
 
@@ -248,7 +248,7 @@ void main() {
 
         // Assert
         expect(changes.length, greaterThan(0));
-        
+
         // The last change should be null (document deleted)
         final finalUser = await odm.users('delete_stream_user').get();
         expect(finalUser, isNull);
@@ -286,25 +286,28 @@ void main() {
         final errors = <dynamic>[];
         var streamCompleted = false;
 
-        final subscription = odm.users('error_user').changes.listen(
-          (user) {
-            changes.add(user);
-          },
-          onError: (error) {
-            errors.add(error);
-          },
-          onDone: () {
-            streamCompleted = true;
-          },
-        );
+        final subscription = odm
+            .users('error_user')
+            .changes
+            .listen(
+              (user) {
+                changes.add(user);
+              },
+              onError: (error) {
+                errors.add(error);
+              },
+              onDone: () {
+                streamCompleted = true;
+              },
+            );
 
         // Wait for initial state
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make normal changes
-        await odm.users('error_user').update(($) => [
-          $.name('Updated Error User'),
-        ]);
+        await odm
+            .users('error_user')
+            .update(($) => [$.name('Updated Error User')]);
 
         await Future.delayed(Duration(milliseconds: 100));
 
@@ -436,25 +439,27 @@ void main() {
         // Act - Mixed operations: create, update, delete
         final operations = [
           // Create new user
-          odm.users('new_mixed').set(
-            User(
-              id: 'new_mixed',
-              name: 'New User',
-              email: 'new@example.com',
-              age: 28,
-              profile: Profile(
-                bio: 'New user',
-                avatar: 'new.jpg',
-                socialLinks: {},
-                interests: [],
-                followers: 0,
+          odm
+              .users('new_mixed')
+              .set(
+                User(
+                  id: 'new_mixed',
+                  name: 'New User',
+                  email: 'new@example.com',
+                  age: 28,
+                  profile: Profile(
+                    bio: 'New user',
+                    avatar: 'new.jpg',
+                    socialLinks: {},
+                    interests: [],
+                    followers: 0,
+                  ),
+                  rating: 4.0,
+                  isActive: true,
+                  isPremium: false,
+                  createdAt: DateTime.now(),
+                ),
               ),
-              rating: 4.0,
-              isActive: true,
-              isPremium: false,
-              createdAt: DateTime.now(),
-            ),
-          ),
 
           // Update existing user
           odm.users('existing_mixed').incrementalModify((user) {
@@ -465,25 +470,27 @@ void main() {
           }),
 
           // Create another user to delete
-          odm.users('to_delete_mixed').set(
-            User(
-              id: 'to_delete_mixed',
-              name: 'To Delete',
-              email: 'delete@example.com',
-              age: 30,
-              profile: Profile(
-                bio: 'Will be deleted',
-                avatar: 'delete.jpg',
-                socialLinks: {},
-                interests: [],
-                followers: 0,
+          odm
+              .users('to_delete_mixed')
+              .set(
+                User(
+                  id: 'to_delete_mixed',
+                  name: 'To Delete',
+                  email: 'delete@example.com',
+                  age: 30,
+                  profile: Profile(
+                    bio: 'Will be deleted',
+                    avatar: 'delete.jpg',
+                    socialLinks: {},
+                    interests: [],
+                    followers: 0,
+                  ),
+                  rating: 3.0,
+                  isActive: true,
+                  isPremium: false,
+                  createdAt: DateTime.now(),
+                ),
               ),
-              rating: 3.0,
-              isActive: true,
-              isPremium: false,
-              createdAt: DateTime.now(),
-            ),
-          ),
         ];
 
         await Future.wait(operations);
@@ -582,7 +589,8 @@ void main() {
         expect(finalUser2!.profile.followers, equals(75));
 
         // Total followers should be conserved
-        final totalFollowers = finalUser1.profile.followers + finalUser2.profile.followers;
+        final totalFollowers =
+            finalUser1.profile.followers + finalUser2.profile.followers;
         expect(totalFollowers, equals(150));
       });
 
@@ -660,9 +668,7 @@ void main() {
 
         // Update all users
         final updateFutures = users.map((user) {
-          return odm.users(user.id).update(($) => [
-            $.rating.increment(0.1),
-          ]);
+          return odm.users(user.id).update(($) => [$.rating.increment(0.1)]);
         }).toList();
 
         await Future.wait(updateFutures);
@@ -725,7 +731,9 @@ void main() {
         expect(subscriptions.length, equals(10));
 
         // Create one more subscription to verify everything still works
-        final finalSubscription = odm.users('memory_user').changes.listen((user) {
+        final finalSubscription = odm.users('memory_user').changes.listen((
+          user,
+        ) {
           // Verify user data
           expect(user, isNotNull);
         });

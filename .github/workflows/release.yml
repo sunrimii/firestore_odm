@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+          - premajor
+          - preminor
+          - prepatch
+      prerelease_type:
+        description: 'Prerelease identifier (for prerelease versions)'
+        required: false
+        default: 'dev'
+        type: string
+      dry_run:
+        description: 'Dry run (preview changes without applying)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: stable
+          channel: stable
+          cache: true
+
+      - name: 📦 Install Melos
+        run: dart pub global activate melos
+
+      - name: 🔧 Bootstrap Workspace
+        run: melos bootstrap
+
+      - name: 🔍 Run Quality Checks
+        run: melos run check
+
+      - name: 📋 Preview Version Changes
+        if: inputs.dry_run == true
+        run: |
+          echo "🔍 Previewing version changes..."
+          melos version --${{ inputs.version_type }} --dry-run
+          echo "✅ Dry run completed. No changes were applied."
+
+      - name: 🏷️ Version Packages
+        if: inputs.dry_run == false
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Version packages
+          if [[ "${{ inputs.version_type }}" == "prerelease" || "${{ inputs.version_type }}" == "premajor" || "${{ inputs.version_type }}" == "preminor" || "${{ inputs.version_type }}" == "prepatch" ]]; then
+            melos version --${{ inputs.version_type }} --preid=${{ inputs.prerelease_type }} --yes
+          else
+            melos version --${{ inputs.version_type }} --yes
+          fi
+
+      - name: 📤 Push Changes
+        if: inputs.dry_run == false
+        run: |
+          git push origin main --follow-tags
+
+      - name: 📝 Generate Changelog
+        if: inputs.dry_run == false
+        id: changelog
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Generate changelog
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD~1)..HEAD || git log --pretty=format:"- %s (%h)" HEAD)
+          
+          # Save changelog to output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Create GitHub Release
+        if: inputs.dry_run == false
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          release_name: Release ${{ steps.changelog.outputs.tag }}
+          body: |
+            ## Changes in this release
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## 📦 Packages
+            
+            This release includes updates to the following packages:
+            
+            - firestore_odm_annotation
+            - firestore_odm  
+            - firestore_odm_builder
+            
+            ## 📋 Installation
+            
+            Add the packages to your `pubspec.yaml`:
+            
+            ```yaml
+            dependencies:
+              firestore_odm: ^${{ steps.changelog.outputs.tag }}
+              
+            dev_dependencies:
+              firestore_odm_builder: ^${{ steps.changelog.outputs.tag }}
+            ```
+            
+            ## 🔗 Documentation
+            
+            - [Package Documentation](https://pub.dev/packages/firestore_odm)
+            - [API Reference](https://pub.dev/documentation/firestore_odm/latest/)
+            
+            ---
+            
+            *This release was automatically created by GitHub Actions.*
+          draft: false
+          prerelease: ${{ contains(steps.changelog.outputs.tag, 'dev') || contains(steps.changelog.outputs.tag, 'alpha') || contains(steps.changelog.outputs.tag, 'beta') || contains(steps.changelog.outputs.tag, 'rc') }}

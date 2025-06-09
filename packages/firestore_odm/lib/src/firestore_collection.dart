@@ -12,7 +12,6 @@ import 'interfaces/update_operations.dart';
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<T>
     implements QueryOperations<T>, UpdateOperations<T> {
-
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
@@ -39,7 +38,11 @@ class FirestoreCollection<T>
     required this.fromJson,
     required this.toJson,
   }) {
-    _queryService = QueryOperationsService<T>(query: ref, fromJson: fromJson, documentIdField: documentIdField);
+    _queryService = QueryOperationsService<T>(
+      query: ref,
+      fromJson: fromJson,
+      documentIdField: documentIdField,
+    );
     _updateService = UpdateOperationsService<T>(
       toJson: toJson,
       fromJson: fromJson,
@@ -56,19 +59,13 @@ class FirestoreCollection<T>
   /// Limits the number of results returned
   @override
   FirestoreQuery<T> limit(int limit) {
-    return FirestoreQuery(
-      this,
-      _queryService.applyLimit(limit),
-    );
+    return FirestoreQuery(this, _queryService.applyLimit(limit));
   }
 
   /// Limits the number of results returned from the end
   @override
   FirestoreQuery<T> limitToLast(int limit) {
-    return FirestoreQuery(
-      this,
-      _queryService.applyLimitToLast(limit),
-    );
+    return FirestoreQuery(this, _queryService.applyLimitToLast(limit));
   }
 
   /// Bulk modify all documents that match this collection using diff-based updates
@@ -112,12 +109,19 @@ class FirestoreCollection<T>
 
   /// Upsert a document using the id field as document ID
   Future<void> upsert(T value) async {
-    final (json, documentId) = FirestoreDataProcessor.toJsonAndDocumentId(toJson, value, documentIdField: documentIdField);
+    final (json, documentId) = FirestoreDataProcessor.toJsonAndDocumentId(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
     await ref.doc(documentId!).set(json, SetOptions(merge: true));
   }
-  
+
   @override
-  Future<void> update(List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder) updateBuilder) {
+  Future<void> update(
+    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
+    updateBuilder,
+  ) {
     final builder = UpdateBuilder<T>();
     final operations = updateBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);

@@ -1,7 +1,8 @@
 /// Utility functions for string manipulation in code generation
 class StringHelpers {
   /// Capitalize the first letter of a string
-  static String capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  static String capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   /// Convert underscore_case to camelCase
   static String camelCase(String text) {
