@@ -22,5 +22,4 @@ dependencies:
 dev_dependencies:
   very_good_analysis: ^6.0.0
 
-# Publishing configuration
-publish_to: https://pub.dev
+# Publishing to pub.dev (default when omitted)
