@@ -1,0 +1,335 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
+import '../../lib/models/user.dart';
+import '../../lib/models/profile.dart';
+import '../../lib/test_schema.dart';
+
+void main() {
+  group('🔄 Core Update Operations', () {
+    late FakeFirebaseFirestore fakeFirestore;
+    late FirestoreODM<$TestSchemaImpl> odm;
+
+    setUp(() {
+      fakeFirestore = FakeFirebaseFirestore();
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
+    });
+
+    group('📝 Array-Style Updates', () {
+      test('should perform basic field updates', () async {
+        final user = User(
+          id: 'array_update_user',
+          name: 'Original Name',
+          email: 'original@example.com',
+          age: 25,
+          profile: Profile(
+            bio: 'Original bio',
+            avatar: 'original.jpg',
+            socialLinks: {'github': 'original'},
+            interests: ['original'],
+            followers: 100,
+          ),
+          rating: 3.0,
+          isActive: false,
+          isPremium: false,
+          tags: ['original'],
+          scores: [80, 85],
+          settings: {'theme': 'light'},
+          metadata: {'version': 1},
+          createdAt: DateTime.now(),
+        );
+        
+        await odm.users('array_update_user').set(user);
+
+        await odm.users('array_update_user').update(($) => [
+          $.name('Updated Name'),
+          $.age.increment(1),
+          $.rating.increment(0.5),
+          $.isActive(true),
+          $.tags.add('updated'),
+          $.profile.followers.increment(50),
+        ]);
+
+        final updated = await odm.users('array_update_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.name, equals('Updated Name'));
+        expect(updated.age, equals(26));
+        expect(updated.rating, equals(3.5));
+        expect(updated.isActive, isTrue);
+        expect(updated.tags, contains('updated'));
+        expect(updated.profile.followers, equals(150));
+      });
+
+      test('should handle server timestamps in array updates', () async {
+        final user = User(
+          id: 'timestamp_user',
+          name: 'Timestamp User',
+          email: 'timestamp@example.com',
+          age: 30,
+          profile: Profile(
+            bio: 'Timestamp test',
+            avatar: 'timestamp.jpg',
+            socialLinks: {},
+            interests: ['timestamps'],
+            followers: 100,
+          ),
+          rating: 4.0,
+          isActive: true,
+          isPremium: false,
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('timestamp_user').set(user);
+
+        await odm.users('timestamp_user').update(($) => [
+          $.lastLogin.serverTimestamp(),
+          $.updatedAt.serverTimestamp(),
+        ]);
+
+        final updated = await odm.users('timestamp_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.lastLogin, isNotNull);
+        expect(updated.updatedAt, isNotNull);
+      });
+    });
+
+    group('🔄 Modify Operations', () {
+      test('should perform diff-based updates', () async {
+        final user = User(
+          id: 'modify_user',
+          name: 'Modify User',
+          email: 'modify@example.com',
+          age: 28,
+          profile: Profile(
+            bio: 'Original bio',
+            avatar: 'modify.jpg',
+            socialLinks: {},
+            interests: ['modify'],
+            followers: 200,
+          ),
+          rating: 3.5,
+          isActive: false,
+          isPremium: false,
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('modify_user').set(user);
+
+        await odm.users('modify_user').modify((user) => user.copyWith(
+          name: 'Modified Name',
+          isActive: true,
+          profile: user.profile.copyWith(
+            bio: 'Modified bio',
+            followers: 250,
+          ),
+          lastLogin: FirestoreODM.serverTimestamp,
+        ));
+
+        final updated = await odm.users('modify_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.name, equals('Modified Name'));
+        expect(updated.isActive, isTrue);
+        expect(updated.profile.bio, equals('Modified bio'));
+        expect(updated.profile.followers, equals(250));
+        expect(updated.lastLogin, isNotNull);
+      });
+    });
+
+    group('⚡ Incremental Modify Operations', () {
+      test('should auto-detect atomic operations', () async {
+        final user = User(
+          id: 'incremental_user',
+          name: 'Incremental User',
+          email: 'incremental@example.com',
+          age: 25,
+          profile: Profile(
+            bio: 'Incremental test',
+            avatar: 'incremental.jpg',
+            socialLinks: {},
+            interests: ['incremental'],
+            followers: 100,
+          ),
+          rating: 3.0,
+          isActive: true,
+          isPremium: false,
+          tags: ['original'],
+          scores: [90, 85],
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('incremental_user').set(user);
+
+        await odm.users('incremental_user').incrementalModify((user) => user.copyWith(
+          age: user.age + 1, // Auto-increment
+          rating: user.rating + 0.5, // Auto-increment
+          profile: user.profile.copyWith(
+            followers: user.profile.followers + 25, // Auto-increment
+            interests: [...user.profile.interests, 'atomic'], // Auto-arrayUnion
+          ),
+          tags: [...user.tags, 'incremented'], // Auto-arrayUnion
+          lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
+        ));
+
+        final updated = await odm.users('incremental_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.age, equals(26));
+        expect(updated.rating, equals(3.5));
+        expect(updated.profile.followers, equals(125));
+        expect(updated.profile.interests, contains('atomic'));
+        expect(updated.tags, contains('incremented'));
+        expect(updated.lastLogin, isNotNull);
+      });
+
+      test('should handle array removals in incremental modify', () async {
+        final user = User(
+          id: 'array_removal_user',
+          name: 'Array Removal User',
+          email: 'removal@example.com',
+          age: 30,
+          profile: Profile(
+            bio: 'Array removal test',
+            avatar: 'removal.jpg',
+            socialLinks: {},
+            interests: ['keep', 'remove', 'also_keep'],
+            followers: 150,
+          ),
+          rating: 4.0,
+          isActive: true,
+          isPremium: false,
+          tags: ['tag1', 'tag2', 'tag3'],
+          scores: [95, 88, 92],
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('array_removal_user').set(user);
+
+        await odm.users('array_removal_user').incrementalModify((user) => user.copyWith(
+          profile: user.profile.copyWith(
+            interests: user.profile.interests.where((interest) => interest != 'remove').toList(),
+          ),
+          tags: user.tags.where((tag) => tag != 'tag2').toList(),
+          scores: user.scores.where((score) => score >= 90).toList(),
+        ));
+
+        final updated = await odm.users('array_removal_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.profile.interests, isNot(contains('remove')));
+        expect(updated.profile.interests, contains('keep'));
+        expect(updated.profile.interests, contains('also_keep'));
+        expect(updated.tags, isNot(contains('tag2')));
+        expect(updated.tags, contains('tag1'));
+        expect(updated.tags, contains('tag3'));
+        expect(updated.scores, equals([95, 92]));
+      });
+    });
+
+    group('🔗 Nested Object Updates', () {
+      test('should update nested profile fields', () async {
+        final user = User(
+          id: 'nested_update_user',
+          name: 'Nested Update User',
+          email: 'nested@example.com',
+          age: 32,
+          profile: Profile(
+            bio: 'Original nested bio',
+            avatar: 'nested.jpg',
+            socialLinks: {
+              'github': 'https://github.com/original',
+              'twitter': 'https://twitter.com/original',
+            },
+            interests: ['nested', 'updates'],
+            followers: 300,
+          ),
+          rating: 4.2,
+          isActive: true,
+          isPremium: true,
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('nested_update_user').set(user);
+
+        await odm.users('nested_update_user').update(($) => [
+          $.profile.bio('Updated nested bio'),
+          $.profile.avatar('updated_nested.jpg'),
+          $.profile.followers.increment(100),
+        ]);
+
+        final updated = await odm.users('nested_update_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.profile.bio, equals('Updated nested bio'));
+        expect(updated.profile.avatar, equals('updated_nested.jpg'));
+        expect(updated.profile.followers, equals(400));
+        // Other fields should remain unchanged
+        expect(updated.profile.socialLinks['github'], equals('https://github.com/original'));
+      });
+
+      test('should handle complex nested updates with modify', () async {
+        final user = User(
+          id: 'complex_nested_user',
+          name: 'Complex Nested User',
+          email: 'complex@example.com',
+          age: 35,
+          profile: Profile(
+            bio: 'Complex nested test',
+            avatar: 'complex.jpg',
+            socialLinks: {
+              'github': 'https://github.com/complex',
+              'linkedin': 'https://linkedin.com/in/complex',
+            },
+            interests: ['complex', 'nested'],
+            followers: 500,
+          ),
+          rating: 4.8,
+          isActive: true,
+          isPremium: true,
+          settings: {
+            'theme': 'dark',
+            'notifications': 'enabled',
+          },
+          metadata: {
+            'level': 'expert',
+            'badge_count': 15,
+          },
+          createdAt: DateTime.now(),
+        );
+
+        await odm.users('complex_nested_user').set(user);
+
+        await odm.users('complex_nested_user').modify((user) => user.copyWith(
+          profile: user.profile.copyWith(
+            socialLinks: {
+              ...user.profile.socialLinks,
+              'youtube': 'https://youtube.com/complex',
+              'github': 'https://github.com/updated_complex', // Update existing
+            },
+            interests: [...user.profile.interests, 'youtube'],
+          ),
+          settings: {
+            ...user.settings,
+            'new_feature': 'enabled',
+          },
+          metadata: {
+            ...user.metadata,
+            'badge_count': 20,
+          },
+        ));
+
+        final updated = await odm.users('complex_nested_user').get();
+        
+        expect(updated, isNotNull);
+        expect(updated!.profile.socialLinks['youtube'], equals('https://youtube.com/complex'));
+        expect(updated.profile.socialLinks['github'], equals('https://github.com/updated_complex'));
+        expect(updated.profile.socialLinks['linkedin'], equals('https://linkedin.com/in/complex'));
+        expect(updated.profile.interests, contains('youtube'));
+        expect(updated.settings['new_feature'], equals('enabled'));
+        expect(updated.metadata['badge_count'], equals(20));
+      });
+    });
+  });
+}
