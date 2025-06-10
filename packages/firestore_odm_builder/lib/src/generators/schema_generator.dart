@@ -56,9 +56,14 @@ class SchemaGenerator {
     Map<String, ClassElement> modelTypes,
   ) {
     final buffer = StringBuffer();
+    
+    // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
-    final schemaClassName = '\$${StringHelpers.capitalize(variableName)}Impl';
-    final schemaConstName = '_\$${StringHelpers.capitalize(variableName)}';
+    final schemaClassName = StringHelpers.capitalize(variableName);
+    
+    // Extract the assigned value (e.g., "_$TestSchema") for the const name
+    final assignedValue = _extractAssignedValue(variableElement);
+    final schemaConstName = assignedValue;
     
     // Generate the schema class
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
@@ -363,6 +368,41 @@ class SchemaGenerator {
       );
       buffer.writeln('');
     }
+  }
+  
+  /// Extract the assigned value from a variable element (e.g., "_$TestSchema" from "final testSchema = _$TestSchema;")
+  static String _extractAssignedValue(TopLevelVariableElement variableElement) {
+    try {
+      // Try to get the source location and extract the assigned value
+      final source = variableElement.source;
+      if (source != null) {
+        final contents = source.contents.data;
+        final name = variableElement.name;
+        
+        // Find the variable declaration line
+        final lines = contents.split('\n');
+        for (final line in lines) {
+          if (line.contains('$name =') && line.contains('_\$')) {
+            // Extract the assigned value (everything after '=' and before ';')
+            final equalIndex = line.indexOf('$name =');
+            if (equalIndex != -1) {
+              final afterEqual = line.substring(equalIndex + '$name ='.length).trim();
+              final assignedValue = afterEqual.replaceAll(RegExp(r';.*$'), '').trim();
+              
+              // Validate that it looks like a proper assigned value
+              if (assignedValue.isNotEmpty && assignedValue.startsWith('_\$')) {
+                return assignedValue;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore parsing errors and fall back to convention
+    }
+    
+    // Fallback: generate from variable name following the convention
+    return '_\$${StringHelpers.capitalize(variableElement.name)}';
   }
   
 }
