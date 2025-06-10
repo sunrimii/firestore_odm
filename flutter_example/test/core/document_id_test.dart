@@ -231,7 +231,7 @@ void main() {
 
         final orderedUsers = await odm.users
             .where(($) => $.id(whereIn: ['a_user', 'b_user', 'c_user']))
-            .orderBy(($) => $.id())
+            .orderBy(($) => ($.id(),))
             .get();
 
         expect(orderedUsers.length, equals(3));

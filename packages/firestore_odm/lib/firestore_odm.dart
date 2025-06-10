@@ -14,6 +14,9 @@ export 'src/model_converter.dart';
 export 'src/schema.dart';
 export 'src/count_query.dart';
 export 'src/tuple_aggregate.dart' hide AggregateField;
+export 'src/pagination.dart' hide OrderByHelper, OrderByFieldInfo, OrderByConfiguration;
+export 'src/order_by_selector.dart';
+export 'src/interfaces/pagination_operations.dart';
 export 'src/update_builder.dart'
     hide
         NumericFieldBuilder,

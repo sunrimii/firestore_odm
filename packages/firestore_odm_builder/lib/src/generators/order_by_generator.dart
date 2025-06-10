@@ -12,12 +12,11 @@ class OrderByGenerator {
     String rootOrderByType,
     String? documentIdField,
   ) {
+    // Generate both old OrderByBuilder extensions (for backward compatibility)
     buffer.writeln('/// Generated OrderByBuilder for $className');
     buffer.writeln(
       'extension ${className}OrderByBuilderExtension on OrderByBuilder<${className}> {',
     );
-    // buffer.writeln('  ${className}OrderByBuilder({super.prefix = \'\'});');
-    // buffer.writeln('');
 
     // Add document ID order method if there's a document ID field
     if (documentIdField != null) {
@@ -28,7 +27,7 @@ class OrderByGenerator {
       buffer.writeln('');
     }
 
-    // Generate field getters
+    // Generate field getters for old pattern
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
@@ -42,6 +41,41 @@ class OrderByGenerator {
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
         _generateOrderByNestedGetter(buffer, fieldName, fieldType);
+      }
+    }
+
+    buffer.writeln('}');
+    buffer.writeln('');
+
+    // Generate new OrderByFieldSelector extensions (for new tuple syntax)
+    buffer.writeln('/// Generated OrderByFieldSelector for $className');
+    buffer.writeln(
+      'extension ${className}OrderByFieldSelectorExtension on OrderByFieldSelector<${className}> {',
+    );
+
+    // Add document ID order method if there's a document ID field
+    if (documentIdField != null) {
+      buffer.writeln('  /// Order by document ID (${documentIdField} field)');
+      buffer.writeln(
+        '  String $documentIdField([bool descending = false]) => addField(FieldPath.documentId, descending, String);',
+      );
+      buffer.writeln('');
+    }
+
+    // Generate field methods for new pattern
+    for (final param in constructor.parameters) {
+      final fieldName = param.name;
+      final fieldType = param.type;
+
+      // Skip document ID field as it's handled separately above
+      if (fieldName == documentIdField) continue;
+
+      if (TypeAnalyzer.isPrimitiveType(fieldType) ||
+          TypeAnalyzer.isComparableType(fieldType)) {
+        _generateOrderByFieldSelectorMethod(buffer, fieldName, fieldType);
+      } else if (TypeAnalyzer.isCustomClass(fieldType)) {
+        // Generate nested object getter for custom classes
+        _generateOrderByFieldSelectorNestedGetter(buffer, fieldName, fieldType);
       }
     }
 
@@ -72,6 +106,46 @@ class OrderByGenerator {
       '  OrderByBuilder<$nestedTypeName> get $fieldName => OrderByHelper.createOrderByBuilder(\'$fieldName\', prefix: prefix);',
     );
     buffer.writeln('');
+  }
+
+  static void _generateOrderByFieldSelectorMethod(
+    StringBuffer buffer,
+    String fieldName,
+    DartType fieldType,
+  ) {
+    final dartTypeName = _getDartTypeName(fieldType);
+    buffer.writeln('  /// Order by $fieldName');
+    buffer.writeln(
+      '  $dartTypeName $fieldName([bool descending = false]) => addField(\'$fieldName\', descending, $dartTypeName);',
+    );
+    buffer.writeln('');
+  }
+
+  static void _generateOrderByFieldSelectorNestedGetter(
+    StringBuffer buffer,
+    String fieldName,
+    DartType fieldType,
+  ) {
+    final nestedTypeName = fieldType.getDisplayString(withNullability: false);
+    buffer.writeln('  /// Access nested $fieldName for ordering');
+    buffer.writeln(
+      '  OrderByFieldSelector<$nestedTypeName> get $fieldName => OrderByFieldSelector<$nestedTypeName>(prefix: \'$fieldName.\', parentFields: fields, isExtractionMode: isExtractionMode, sourceObject: sourceObject);',
+    );
+    buffer.writeln('');
+  }
+
+  static String _getDartTypeName(DartType type) {
+    final typeName = type.getDisplayString(withNullability: false);
+    switch (typeName) {
+      case 'int':
+      case 'double':
+      case 'String':
+      case 'bool':
+      case 'DateTime':
+        return typeName;
+      default:
+        return 'dynamic'; // For custom types, we'll use dynamic for now
+    }
   }
 
   /// Generate nested order by builder classes

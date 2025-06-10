@@ -13,6 +13,8 @@ import 'schema.dart';
 import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
 import 'model_converter.dart';
+import 'order_by_selector.dart' as obs;
+import 'pagination.dart' as pg;
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
@@ -72,13 +74,13 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Limits the number of results returned
   @override
   QueryOperations<T> limit(int limit) {
-    return FirestoreQuery<S, T>(this, _queryService.applyLimit(limit));
+    return FirestoreQuery<S, T, void>(this, _queryService.applyLimit(limit));
   }
 
   /// Limits the number of results returned from the end
   @override
   QueryOperations<T> limitToLast(int limit) {
-    return FirestoreQuery<S, T>(this, _queryService.applyLimitToLast(limit));
+    return FirestoreQuery<S, T, void>(this, _queryService.applyLimitToLast(limit));
   }
 
   /// Bulk modify all documents that match this collection using diff-based updates
@@ -101,24 +103,37 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   }
 
   @override
-  FirestoreQuery<S, T> where(
+  FirestoreQuery<S, T, void> where(
     FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
   ) {
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(ref, builtFilter);
-    return FirestoreQuery<S, T>(this, newQuery);
+    return FirestoreQuery<S, T, void>(this, newQuery);
   }
 
   @override
-  FirestoreQuery<S, T> orderBy(
-    OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
+  FirestoreQuery<S, T, R> orderBy<R extends Record>(
+    R Function(obs.OrderByFieldSelector<T> selector) orderBuilder,
   ) {
-    final builder = OrderByBuilder<T>();
-    final orderByField = orderBuilder(builder);
-    final newQuery = _queryService.applyOrderBy(orderByField);
-    return FirestoreQuery<S, T>(this, newQuery);
+    final selector = obs.OrderByFieldSelector<T>();
+    final tupleSpec = orderBuilder(selector);
+    
+    // Build the actual Firestore query from the collected fields
+    Query<Map<String, dynamic>> newQuery = ref;
+    for (final field in selector.fields) {
+      newQuery = newQuery.orderBy(field.fieldPath, descending: field.descending);
+    }
+    
+    // Create configuration from the collected fields - convert to pagination format
+    final pgFields = selector.fields.map((f) =>
+      pg.OrderByFieldInfo(f.fieldPath, f.descending, f.fieldType)
+    ).toList();
+    final config = pg.OrderByConfiguration(pgFields);
+    
+    return FirestoreQuery<S, T, R>(this, newQuery, config);
   }
+
 
   /// Upsert a document using the id field as document ID
   Future<void> upsert(T value) async {

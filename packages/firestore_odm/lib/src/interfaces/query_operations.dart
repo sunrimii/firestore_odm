@@ -2,6 +2,8 @@
 import '../filter_builder.dart';
 import '../count_query.dart' show FirestoreCountQuery;
 import '../tuple_aggregate.dart';
+import '../order_by_selector.dart';
+import '../schema.dart';
 
 /// Interface defining query operation capabilities
 /// Part of the Interface + Composition architecture
@@ -10,8 +12,8 @@ abstract interface class QueryOperations<T> {
     FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
   );
 
-  QueryOperations<T> orderBy(
-    OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
+  dynamic orderBy<R extends Record>(
+    R Function(OrderByFieldSelector<T> selector) orderBuilder,
   );
 
   /// Execute the query and return the results

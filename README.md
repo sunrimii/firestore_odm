@@ -64,6 +64,7 @@ await userDoc.update(($) => [
 - **⚡ 10x Faster Development** - Autocomplete, type safety, and intuitive APIs
 - **🛡️ Runtime Error Prevention** - Catch mistakes at compile-time, not in production
 - **🎯 Intuitive Queries** - Write complex filters that read like natural language
+- **🧠 Smart Builder Pagination** - Revolutionary pagination with zero inconsistency risk
 - **🔄 Smart Updates** - Three different update patterns for every use case
 - **🔗 Unified Collections** - Single models work across multiple collection paths
 - **🏗️ Schema-Based Architecture** - Multiple ODM instances with different structures
@@ -84,6 +85,7 @@ await userDoc.update(($) => [
 ### 🔍 Query & Filter APIs
 - [Type-Safe Querying](#-type-safe-querying) - Complex filters with logical operations
 - [Query Operations](#query-operations) - [`where()`](#query-operations), [`orderBy()`](#query-operations), [`limit()`](#query-operations)
+- [Smart Builder Pagination](#-smart-builder-pagination-system) - Revolutionary strongly-typed pagination with zero inconsistency risk
 - [Aggregate Operations](#-type-safe-aggregate-operations) - [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart)
 
 ### ✏️ Update Methods
@@ -429,6 +431,75 @@ StreamBuilder<({int count, int totalAge, double avgRating})>(
 - ✅ **Query Integration** - Works with all filtering and ordering operations
 - ✅ **Nested Object Support** - Generated selectors for nested fields
 
+### 🧠 Smart Builder Pagination System
+
+Our revolutionary Smart Builder approach provides strongly-typed pagination with perfect consistency guarantees:
+
+```dart
+// ✨ SAME builder function for orderBy AND object extraction
+final builderPattern = ($) => (
+  $.profile.followers(true),  // int (descending)
+  $.rating(),                 // double (ascending)
+  $.name(),                   // String (ascending)
+  $.age(true),               // int (descending)
+);
+
+// 1. Use builder for orderBy (creates tuple types)
+final query = odm.users
+  .orderBy(builderPattern)
+  .limit(10);
+
+// 2. Use SAME builder for object-based pagination (extracts values)
+final paginatedQuery = query
+  .startAtObject(userObject)    // Auto-extracts: (1500, 4.7, "Eve", 32)
+  .endBeforeObject(otherUser);  // Auto-extracts: (500, 4.2, "David", 28)
+```
+
+**🎯 Key Benefits:**
+- **Zero Inconsistency Risk** - Same builder ensures perfect field order/type matching
+- **Complete Type Safety** - Generic type parameter `O` captures full orderBy tuple
+- **Smart Value Extraction** - Automatic object value extraction according to orderBy fields
+- **Document ID Support** - Proper handling of `FieldPath.documentId` for document ID ordering
+
+**📋 Complete Pagination API:**
+```dart
+// Strongly-typed cursor pagination
+.startAt(O cursorValues)     // Start at cursor values
+.startAfter(O cursorValues)  // Start after cursor values
+.endAt(O cursorValues)       // End at cursor values
+.endBefore(O cursorValues)   // End before cursor values
+
+// Smart object-based pagination
+.startAtObject(T object)     // Auto-extract cursor from object
+.startAfterObject(T object)  // Auto-extract cursor from object
+.endAtObject(T object)       // Auto-extract cursor from object
+.endBeforeObject(T object)   // Auto-extract cursor from object
+```
+
+**🔧 Practical Usage:**
+```dart
+// Multi-field ordering with pagination
+final firstPage = await odm.users
+  .orderBy(($) => ($.followers(true), $.rating(), $.name()))
+  .limit(10)
+  .get();
+
+// Next page using object-based pagination
+final nextPage = await odm.users
+  .orderBy(($) => ($.followers(true), $.rating(), $.name()))
+  .startAfterObject(firstPage.last)  // Uses last user object as cursor
+  .limit(10)
+  .get();
+
+// Or use cursor-based pagination for maximum performance
+final cursorValues = (1200, 4.5, "John"); // (followers, rating, name)
+final cursorPage = await odm.users
+  .orderBy(($) => ($.followers(true), $.rating(), $.name()))
+  .startAfter(cursorValues)
+  .limit(10)
+  .get();
+```
+
 ###  Real-time Data Streams
 
 ```dart
@@ -577,7 +648,7 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | | Array Operations | ✅ Complete | [`arrayContains`](packages/firestore_odm/lib/src/filter_builder.dart), [`arrayContainsAny`](packages/firestore_odm/lib/src/filter_builder.dart), array updates |
 | | Logical Operations | ✅ Complete | [`and()`](packages/firestore_odm/lib/src/filter_builder.dart), [`or()`](packages/firestore_odm/lib/src/filter_builder.dart) query combinators |
 | | Order By & Limits | ✅ Complete | [`orderBy()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart), [`limit()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart) operations |
-| | Pagination | ❌ Incomplete | [`startAfter()`](packages/firestore_odm/lib/src/firestore_query.dart), [`endBefore()`](packages/firestore_odm/lib/src/firestore_query.dart) need enhancement |
+| | Pagination | ✅ Complete | Smart Builder Pagination with [`startAt()`](packages/firestore_odm/lib/src/pagination.dart), [`startAfter()`](packages/firestore_odm/lib/src/pagination.dart), [`endAt()`](packages/firestore_odm/lib/src/pagination.dart), [`endBefore()`](packages/firestore_odm/lib/src/pagination.dart) |
 | **Updates** | Array-style Updates | ✅ Complete | Explicit atomic operations with [`update()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart) |
 | | Modify Updates | ✅ Complete | Immutable diff-based updates with [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
 | | Incremental Modify | ✅ Complete | Automatic atomic detection with [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
@@ -600,11 +671,6 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 
 ### 🚧 Pending Features
 
-**Pagination Enhancement**
-- Current [`startAfter()`](packages/firestore_odm/lib/src/firestore_query.dart)/[`endBefore()`](packages/firestore_odm/lib/src/firestore_query.dart) implementation needs improvement
-- Missing cursor-based pagination helpers
-- No built-in page size management
-
 **Map Field Access**
 ```dart
 // ❌ NOT SUPPORTED YET
@@ -617,6 +683,7 @@ await odm.users.where(($) => $.profile.socialLinks(isNotEqualTo: null)).get();
 ### 🎯 Fully Implemented Core Features
 
 ✅ **Complete Type Safety** - Compile-time validation throughout entire data layer
+✅ **Smart Builder Pagination** - Revolutionary pagination system with zero inconsistency risk
 ✅ **Three Update Patterns** - Array-style, modify, and incremental modify methods
 ✅ **Advanced Querying** - Complex logical operations with nested object support
 ✅ **Real-time Operations** - Automatic subscription management and live updates

@@ -556,7 +556,7 @@ void main() {
 
         final orderedByName = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'sorting'))
-            .orderBy(($) => $.name())
+            .orderBy(($) => ($.name(),))
             .get();
 
         expect(orderedByName.length, equals(3));
@@ -566,7 +566,7 @@ void main() {
 
         final orderedByRatingDesc = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'sorting'))
-            .orderBy(($) => $.rating(descending: true))
+            .orderBy(($) => ($.rating(true),))
             .get();
 
         expect(orderedByRatingDesc.length, equals(3));
@@ -609,7 +609,7 @@ void main() {
 
         final limitedAndOrdered = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'limiting'))
-            .orderBy(($) => $.age(descending: true))
+            .orderBy(($) => ($.age(true),))
             .limit(3)
             .get();
 
