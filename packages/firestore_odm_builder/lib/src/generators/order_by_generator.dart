@@ -23,12 +23,12 @@ class OrderByGenerator {
     if (documentIdField != null) {
       buffer.writeln('  /// Order by document ID (${documentIdField} field)');
       buffer.writeln(
-        '  OrderByField<$rootOrderByType> $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);',
+        '  DocumentIdOrderBy<$rootOrderByType> get $documentIdField => DocumentIdOrderBy<$rootOrderByType>(\'$documentIdField\', prefix);',
       );
       buffer.writeln('');
     }
 
-    // Generate field methods
+    // Generate field getters
     for (final param in constructor.parameters) {
       final fieldName = param.name;
       final fieldType = param.type;
@@ -56,7 +56,7 @@ class OrderByGenerator {
   ) {
     buffer.writeln('  /// Order by $fieldName');
     buffer.writeln(
-      '  OrderByField<$rootOrderByType> $fieldName({bool descending = false}) => OrderByHelper.createOrderByField(\'$fieldName\', prefix: prefix, descending: descending);',
+      '  FieldOrderBy<$rootOrderByType> get $fieldName => FieldOrderBy<$rootOrderByType>(\'$fieldName\', prefix);',
     );
     buffer.writeln('');
   }

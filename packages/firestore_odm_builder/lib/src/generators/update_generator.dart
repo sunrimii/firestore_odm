@@ -87,29 +87,35 @@ class UpdateGenerator {
   ) {
     final typeString = fieldType.getDisplayString(withNullability: false);
 
-    // Generate field method that can be called directly or provide field operations
+    // Generate field getter that returns a callable update instance
     buffer.writeln('  /// Update $fieldName field');
 
     if (TypeAnalyzer.isListType(fieldType)) {
       final elementType = TypeAnalyzer.getListElementType(fieldType);
       buffer.writeln(
-        '  ListFieldBuilder<$elementType> get $fieldName => ListFieldBuilder<$elementType>(getFieldPath(\'$fieldName\'));',
+        '  ListFieldUpdate<$className, $elementType> get $fieldName => ListFieldUpdate<$className, $elementType>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
       buffer.writeln(
-        '  NumericFieldBuilder<$typeString> get $fieldName => NumericFieldBuilder<$typeString>(getFieldPath(\'$fieldName\'));',
+        '  NumericFieldUpdate<$className, $typeString> get $fieldName => NumericFieldUpdate<$className, $typeString>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
-        '  DateTimeFieldBuilder get $fieldName => DateTimeFieldBuilder(getFieldPath(\'$fieldName\'));',
+        '  DateTimeFieldUpdate<$className> get $fieldName => DateTimeFieldUpdate<$className>(\'$fieldName\', prefix);',
+      );
+    } else if (typeString == 'bool') {
+      buffer.writeln(
+        '  BoolFieldUpdate<$className> get $fieldName => BoolFieldUpdate<$className>(\'$fieldName\', prefix);',
+      );
+    } else if (typeString == 'String') {
+      buffer.writeln(
+        '  StringFieldUpdate<$className> get $fieldName => StringFieldUpdate<$className>(\'$fieldName\', prefix);',
       );
     } else {
-      buffer.writeln('  /// Set $fieldName value');
-      buffer.writeln('  UpdateOperation $fieldName($typeString value) {');
+      // Other types - generic updater
       buffer.writeln(
-        '    return UpdateOperation(getFieldPath(\'$fieldName\'), UpdateOperationType.set, value);',
+        '  GenericFieldUpdate<$className, $typeString> get $fieldName => GenericFieldUpdate<$className, $typeString>(\'$fieldName\', prefix);',
       );
-      buffer.writeln('  }');
     }
     buffer.writeln('');
   }

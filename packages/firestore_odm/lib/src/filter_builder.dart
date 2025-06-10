@@ -1625,3 +1625,129 @@ class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
     throw ArgumentError('At least one filter condition must be provided');
   }
 }
+
+/// Callable update instances - reduce generated update code
+/// Base callable update class
+abstract class CallableUpdate<T> {
+  final String fieldName;
+  final String prefix;
+  
+  const CallableUpdate(this.fieldName, this.prefix);
+  
+  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+}
+
+/// Boolean field callable updater
+class BoolFieldUpdate<T> extends CallableUpdate<T> {
+  const BoolFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set boolean value
+  UpdateOperation call(bool value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+}
+
+/// String field callable updater
+class StringFieldUpdate<T> extends CallableUpdate<T> {
+  const StringFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set string value
+  UpdateOperation call(String value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+}
+
+/// Numeric field callable updater
+class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
+  const NumericFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set numeric value
+  UpdateOperation call(N value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+  
+  /// Increment field value
+  UpdateOperation increment(N value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.increment, value);
+  }
+}
+
+/// List field callable updater
+class ListFieldUpdate<T, E> extends CallableUpdate<T> {
+  const ListFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set list value
+  UpdateOperation call(List<E> value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+  
+  /// Add element to array
+  UpdateOperation add(E value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
+  }
+  
+  /// Remove element from array
+  UpdateOperation remove(E value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
+  }
+}
+
+/// DateTime field callable updater
+class DateTimeFieldUpdate<T> extends CallableUpdate<T> {
+  const DateTimeFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set DateTime value
+  UpdateOperation call(DateTime value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+  
+  /// Set field to server timestamp
+  UpdateOperation serverTimestamp() {
+    return UpdateOperation(fieldPath, UpdateOperationType.serverTimestamp, null);
+  }
+}
+
+/// Generic field callable updater (fallback)
+class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
+  const GenericFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set value
+  UpdateOperation call(V value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+}
+
+/// Callable order by instances - reduce generated order by code
+/// Base callable order by class
+abstract class CallableOrderBy<T> {
+  final String fieldName;
+  final String prefix;
+  
+  const CallableOrderBy(this.fieldName, this.prefix);
+  
+  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+}
+
+/// Generic field callable order by
+class FieldOrderBy<T> extends CallableOrderBy<T> {
+  const FieldOrderBy(super.fieldName, super.prefix);
+  
+  /// Create order by field
+  OrderByField<T> call({bool descending = false}) {
+    return OrderByHelper.createOrderByField<T>(
+      fieldName,
+      prefix: prefix,
+      descending: descending,
+    );
+  }
+}
+
+/// Document ID callable order by
+class DocumentIdOrderBy<T> extends CallableOrderBy<T> {
+  const DocumentIdOrderBy(super.fieldName, super.prefix);
+  
+  /// Create order by document ID
+  OrderByField<T> call({bool descending = false}) {
+    return OrderByHelper.createOrderByDocumentId<T>(descending: descending);
+  }
+}
