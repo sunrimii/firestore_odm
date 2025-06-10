@@ -136,7 +136,7 @@ class QuerySubscriptionService<T> {
   final Query<Map<String, dynamic>> query;
 
   /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data, [String? documentId]) fromJson;
+  final T Function(Map<String, dynamic> data) fromJson;
 
   /// Stream subscription for real-time query updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _querySubscription;
@@ -149,7 +149,7 @@ class QuerySubscriptionService<T> {
     _setupQuerySubscription();
   }
 
-  Stream<List<T>> get changes => _queryController.stream;
+  Stream<List<T>> get stream => _queryController.stream;
 
   bool get isSubscribing => _querySubscription != null;
 
@@ -163,7 +163,7 @@ class QuerySubscriptionService<T> {
           final results = snapshot.docs
               .map((doc) {
                 final data = doc.data();
-                return fromJson(data, doc.id);
+                return fromJson(data);
               })
               .cast<T>()
               .toList();
@@ -193,7 +193,7 @@ class QuerySubscriptionService<T> {
         final results = snapshot.docs
             .map((doc) {
               final data = doc.data();
-              return fromJson(data, doc.id);
+              return fromJson(data);
             })
             .cast<T>()
             .toList();

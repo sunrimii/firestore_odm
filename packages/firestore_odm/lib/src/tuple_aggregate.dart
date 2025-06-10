@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/interfaces/subscribe_operations.dart';
+import 'package:firestore_odm/src/services/subscription_service.dart';
 
 /// Typed aggregate query that returns strongly-typed records
-class TupleAggregateQuery<T, R extends Record> {
+class TupleAggregateQuery<T, R extends Record>
+    implements SubscribeOperations<R> {
   final Query<Map<String, dynamic>> _query;
   final T Function(Map<String, dynamic> data) _fromJson;
   final Map<String, dynamic> Function(T value) _toJson;
   final R Function(AggregateFieldSelector<T> selector) _builder;
-  
+
+  /// Service for handling real-time subscriptions
+  late final QuerySubscriptionService<T> _subscriptionService;
+
   AggregateQuery? _aggregateQuery;
   List<AggregateOperation>? _operations;
 
@@ -15,12 +21,18 @@ class TupleAggregateQuery<T, R extends Record> {
     this._fromJson,
     this._toJson,
     this._builder,
-  );
+  ) {
+    // Initialize the subscription service with the query
+    _subscriptionService = QuerySubscriptionService<T>(
+      query: _query,
+      fromJson: _fromJson,
+    );
+  }
 
   /// Execute the aggregate query and return strongly-typed record
   Future<R> get() async {
     await _prepareAggregateQuery();
-    
+
     if (_aggregateQuery != null) {
       // Use native Firestore aggregate API
       final snapshot = await _aggregateQuery!.get();
@@ -33,53 +45,56 @@ class TupleAggregateQuery<T, R extends Record> {
     }
   }
 
-
   /// Stream of aggregate results that updates when data changes
-  Stream<R> snapshots() {
-    return _query.snapshots().asyncMap((snapshot) async {
-      await _prepareAggregateQuery();
-      final results = _calculateAggregationsFromSnapshot(snapshot, _operations!);
-      return _buildResultRecordFromSnapshot(null, manualResults: results);
-    });
-  }
+  Stream<R> get stream => _subscriptionService.stream.asyncMap((snapshot) async {
+    // Convert snapshot to aggregate results
+    await _prepareAggregateQuery();
+    final results = _calculateAggregationsFromSnapshot(snapshot, _operations!);
+    return _buildResultRecordFromSnapshot(null, manualResults: results);
+  });
+
+  @override
+  bool get isSubscribing => _subscriptionService.isSubscribing;
 
   /// Prepare the aggregate query for execution
   Future<void> _prepareAggregateQuery() async {
     if (_aggregateQuery != null) return;
-    
+
     // Create the selector and build the aggregate specification
     final selector = AggregateFieldSelector<T>();
     _builder(selector); // Call builder to populate operations
-    
+
     // Extract aggregate operations from the record
     _operations = selector._operations;
-    
+
     if (_operations!.isEmpty) return;
-    
+
     // Build list of AggregateField objects for Firestore native API
-    final aggregateFields = <AggregateField>[];
-    
-    for (final op in _operations!) {
+    final aggregateFields = _operations!.map((op) {
       if (op is CountOperation) {
-        aggregateFields.add(count());
+        return count();
       } else if (op is SumOperation) {
-        aggregateFields.add(sum(op.fieldPath));
+        return sum(op.fieldPath);
       } else if (op is AverageOperation) {
-        aggregateFields.add(average(op.fieldPath));
+        return average(op.fieldPath);
+      } else {
+        throw UnsupportedError('Unsupported aggregate operation: $op');
       }
-    }
-    
-    // Create the aggregate query using native Firestore API
-    // Firestore supports up to 30 aggregate fields
-    if (aggregateFields.length > 30) {
-      throw ArgumentError('Firestore supports a maximum of 30 aggregate fields, but ${aggregateFields.length} were provided.');
-    }
-    
+    }).toList();
+
     _aggregateQuery = _buildAggregateQuery(aggregateFields);
   }
 
   /// Build aggregate query with support for up to 30 fields
   AggregateQuery _buildAggregateQuery(List<AggregateField> fields) {
+    // Create the aggregate query using native Firestore API
+    // Firestore supports up to 30 aggregate fields
+    if (fields.length > 30) {
+      throw ArgumentError(
+        'Firestore supports a maximum of 30 aggregate fields, but ${fields.length} were provided.',
+      );
+    }
+
     return _query.aggregate(
       fields[0],
       fields.length > 1 ? fields[1] : null,
@@ -116,40 +131,34 @@ class TupleAggregateQuery<T, R extends Record> {
 
   /// Calculate aggregations from snapshot for streaming
   Map<String, dynamic> _calculateAggregationsFromSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
+    List<T> snapshot,
     List<AggregateOperation> operations,
   ) {
     final results = <String, dynamic>{};
-    
+
     // Count operations - can use snapshot length
     final countOps = operations.whereType<CountOperation>().toList();
-    final count = snapshot.docs.length;
+    final count = snapshot.length;
     for (final op in countOps) {
       results[op.key] = count;
     }
-    
+
     // For sum/average, parse documents manually
     final sumOps = operations.whereType<SumOperation>().toList();
     final avgOps = operations.whereType<AverageOperation>().toList();
-    
+
     if (sumOps.isNotEmpty || avgOps.isNotEmpty) {
-      final documents = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return _fromJson(data);
-      }).toList();
-      
       // Calculate sums
       for (final op in sumOps) {
-        results[op.key] = _calculateSum(documents, op.fieldPath);
+        results[op.key] = _calculateSum(snapshot, op.fieldPath);
       }
-      
+
       // Calculate averages
       for (final op in avgOps) {
-        results[op.key] = _calculateAverage(documents, op.fieldPath);
+        results[op.key] = _calculateAverage(snapshot, op.fieldPath);
       }
     }
-    
+
     return results;
   }
 
@@ -196,9 +205,12 @@ class TupleAggregateQuery<T, R extends Record> {
   }
 
   /// Build result record from aggregate snapshot
-  R _buildResultRecordFromSnapshot(AggregateQuerySnapshot? snapshot, {Map<String, dynamic>? manualResults}) {
+  R _buildResultRecordFromSnapshot(
+    AggregateQuerySnapshot? snapshot, {
+    Map<String, dynamic>? manualResults,
+  }) {
     final results = <String, dynamic>{};
-    
+
     if (snapshot != null) {
       // Use results from native aggregate query
       for (final op in _operations!) {
@@ -214,23 +226,24 @@ class TupleAggregateQuery<T, R extends Record> {
       // Use manual calculation results for streaming
       results.addAll(manualResults);
     }
-    
+
     // Create a dummy record spec to get the structure
     final selector = AggregateFieldSelector<T>();
     final recordSpec = _builder(selector);
-    
+
     return _buildResultRecord(recordSpec, results, _operations!);
   }
 
-
-
-
   /// Build result record with computed values
   /// Uses dynamic record construction by re-calling the builder function with actual values
-  R _buildResultRecord(R template, Map<String, dynamic> results, List<AggregateOperation> operations) {
+  R _buildResultRecord(
+    R template,
+    Map<String, dynamic> results,
+    List<AggregateOperation> operations,
+  ) {
     // Create a value selector that returns actual computed results
     final valueSelector = _AggregateValueSelector<T>(results, operations);
-    
+
     // Re-call the builder function with the value selector to get the final record
     return _builder(valueSelector);
   }
@@ -239,14 +252,14 @@ class TupleAggregateQuery<T, R extends Record> {
 /// Selector that provides strongly-typed field access for aggregations
 class AggregateFieldSelector<T> {
   final List<AggregateOperation> _operations = [];
-  
+
   /// Get count of documents
   int count() {
     final key = 'count_${_operations.length}';
     _operations.add(CountOperation(key));
     return 0; // Placeholder return value
   }
-  
+
   // All field accessors are now code-generated by AggregateGenerator
   // No hardcoded field access needed here
 }
@@ -271,7 +284,7 @@ class SumOperation extends AggregateOperation {
   const SumOperation(String key, this.fieldPath) : super(key);
 }
 
-/// Average operation  
+/// Average operation
 class AverageOperation extends AggregateOperation {
   final String fieldPath;
   const AverageOperation(String key, this.fieldPath) : super(key);
@@ -281,16 +294,19 @@ class AverageOperation extends AggregateOperation {
 class TupleAggregateField<T extends num> {
   final String _fieldPath;
   final AggregateFieldSelector _selector;
-  
+
   const TupleAggregateField(this._fieldPath, this._selector);
-  
+
   /// Create sum aggregation - returns the correct field type
   T sum() {
     // Check if this is a value selector (second pass) or operation collector (first pass)
     if (_selector is _AggregateValueSelector<dynamic>) {
       final valueSelector = _selector;
       // Find the sum operation for this field and return its result
-      final sumOp = valueSelector._operations.whereType<SumOperation>().where((op) => op.fieldPath == _fieldPath).firstOrNull;
+      final sumOp = valueSelector._operations
+          .whereType<SumOperation>()
+          .where((op) => op.fieldPath == _fieldPath)
+          .firstOrNull;
       if (sumOp != null) {
         final value = valueSelector._results[sumOp.key];
         if (value != null) {
@@ -312,14 +328,17 @@ class TupleAggregateField<T extends num> {
       return _getDefaultValue();
     }
   }
-  
+
   /// Create average aggregation - always returns double
   double average() {
     // Check if this is a value selector (second pass) or operation collector (first pass)
     if (_selector is _AggregateValueSelector<dynamic>) {
       final valueSelector = _selector as _AggregateValueSelector<dynamic>;
       // Find the average operation for this field and return its result
-      final avgOp = valueSelector._operations.whereType<AverageOperation>().where((op) => op.fieldPath == _fieldPath).firstOrNull;
+      final avgOp = valueSelector._operations
+          .whereType<AverageOperation>()
+          .where((op) => op.fieldPath == _fieldPath)
+          .firstOrNull;
       if (avgOp != null) {
         final value = valueSelector._results[avgOp.key];
         if (value != null) {
@@ -334,7 +353,7 @@ class TupleAggregateField<T extends num> {
       return 0.0; // Placeholder
     }
   }
-  
+
   /// Get default value for the specific numeric type
   T _getDefaultValue() {
     if (T == int) return 0 as T;
@@ -349,7 +368,7 @@ class TupleAggregateField<T extends num> {
 class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
   final Map<String, dynamic> _results;
   final List<AggregateOperation> _operations;
-  
+
   _AggregateValueSelector(this._results, this._operations);
 
   @override
@@ -362,5 +381,4 @@ class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
     }
     return 0;
   }
-  
 }

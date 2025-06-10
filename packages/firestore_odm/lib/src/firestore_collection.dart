@@ -5,10 +5,12 @@ import 'firestore_document.dart';
 import 'firestore_query.dart';
 import 'services/query_operations_service.dart';
 import 'services/update_operations_service.dart';
+import 'services/subscription_service.dart';
 import 'filter_builder.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
 import 'interfaces/collection_operations.dart';
+import 'interfaces/subscribe_operations.dart';
 import 'schema.dart';
 import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
@@ -34,6 +36,9 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Service for handling update operations
   late final UpdateOperationsService<T> _updateService;
 
+  /// Service for handling real-time subscriptions
+  late final QuerySubscriptionService<T> _subscriptionService;
+
   String get documentIdField => 'id';
 
   /// Creates a new FirestoreCollection instance
@@ -51,6 +56,10 @@ class FirestoreCollection<S extends FirestoreSchema, T>
       toJson: toJson,
       fromJson: fromJson,
       documentIdField: documentIdField,
+    );
+    _subscriptionService = QuerySubscriptionService<T>(
+      query: ref,
+      fromJson: (data, [documentId]) => fromJson(data),
     );
   }
 
@@ -223,4 +232,6 @@ class FirestoreCollection<S extends FirestoreSchema, T>
     );
   }
 
+  /// Stream of collection changes for real-time updates
+  Stream<List<T>> get stream => _subscriptionService.stream;
 }

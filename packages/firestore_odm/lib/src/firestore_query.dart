@@ -4,8 +4,10 @@ import 'package:firestore_odm/src/firestore_collection.dart';
 import 'package:meta/meta.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
+import 'interfaces/subscribe_operations.dart';
 import 'services/query_operations_service.dart';
 import 'services/update_operations_service.dart';
+import 'services/subscription_service.dart';
 import 'schema.dart';
 import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
@@ -23,6 +25,9 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
   /// Service for handling update operations
   late final UpdateOperationsService<T> _updateService;
 
+  /// Service for handling real-time subscriptions
+  late final QuerySubscriptionService<T> _subscriptionService;
+
   /// Creates a new FirestoreQuery instance
   FirestoreQuery(this.collection, this.query) {
     _queryService = QueryOperationsService<T>(
@@ -34,6 +39,10 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
       toJson: (value) => collection.toJson(value),
       fromJson: (data) => collection.fromJson(data),
       documentIdField: collection.documentIdField,
+    );
+    _subscriptionService = QuerySubscriptionService<T>(
+      query: query,
+      fromJson: (data, [documentId]) => collection.fromJson(data),
     );
   }
 
@@ -125,6 +134,12 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
       builder,
     );
   }
+
+  /// Stream of query result changes for real-time updates
+  Stream<List<T>> get stream => _subscriptionService.stream;
+
+  /// Whether this query is currently subscribed to real-time updates
+  bool get isSubscribing => _subscriptionService.isSubscribing;
 
 }
 

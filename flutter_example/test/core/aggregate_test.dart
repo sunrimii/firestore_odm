@@ -262,7 +262,7 @@ void main() {
       // Test streaming strongly-typed aggregate
       final aggregateStream = odm.users.aggregate(($) => (
         count: $.count(),
-      )).snapshots();
+      )).stream;
       final firstResult = await aggregateStream.first;
       expect(firstResult.count, equals(0));
 
