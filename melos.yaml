@@ -15,6 +15,8 @@ command:
     includeScopes: false
     updateGitTagRefs: true
     workspaceChangelog: true
+  publish:
+    dryRun: false
 
 scripts:
   # Development scripts
@@ -98,24 +100,3 @@ scripts:
     run: dart pub outdated
     description: Check for outdated dependencies.
 
-  # Publishing scripts
-  version:check:
-    run: echo "Run 'melos version' to update package versions using conventional commits"
-    description: Info about versioning - melos will handle dependency updates automatically.
-
-  publish:dry-run:
-    run: dart pub publish --dry-run
-    description: Validate packages before publishing.
-    exec:
-      concurrency: 1
-    packageFilters:
-      noPrivate: true
-
-  publish:packages:
-    run: dart pub publish --force
-    description: Publish packages to pub.dev using melos order.
-    exec:
-      concurrency: 1
-      orderDependents: true
-    packageFilters:
-      noPrivate: true
