@@ -8,11 +8,12 @@ import 'services/update_operations_service.dart';
 import 'filter_builder.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
+import 'interfaces/collection_operations.dart';
 import 'schema.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
-    implements QueryOperations<T>, UpdateOperations<T> {
+    implements QueryOperations<T>, UpdateOperations<T>, CollectionOperations<T> {
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
@@ -116,6 +117,78 @@ class FirestoreCollection<S extends FirestoreSchema, T>
       documentIdField: documentIdField,
     );
     await ref.doc(documentId!).set(json, SetOptions(merge: true));
+  }
+
+  /// Insert a new document using the id field as document ID
+  /// If ID is empty string, server will generate a unique ID
+  /// Fails if document already exists (when ID is specified)
+  Future<void> insert(T value) async {
+    // First extract the document ID without validation
+    final mapData = toJson(value);
+    final documentId = DocumentIdHandler.extractDocumentId(
+      mapData,
+      documentIdField,
+    );
+    
+    if (documentId == null) {
+      throw ArgumentError(
+        'Document ID field \'$documentIdField\' must not be null for insert operation',
+      );
+    }
+    
+    // If ID is empty string, let Firestore generate a unique ID
+    if (documentId.isEmpty) {
+      final processedData = DocumentIdHandler.removeDocumentIdField(
+        mapData,
+        documentIdField,
+      );
+      final serializedData = FirestoreDataProcessor.serializeForFirestore(processedData);
+      await ref.add(serializedData);
+      return;
+    }
+    
+    // For non-empty IDs, use the normal validation path
+    final (json, validatedDocumentId) = FirestoreDataProcessor.toJsonAndDocumentId(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
+    
+    // Check if document already exists
+    final docRef = ref.doc(validatedDocumentId!);
+    final docSnapshot = await docRef.get();
+    
+    if (docSnapshot.exists) {
+      throw StateError('Document with ID \'$validatedDocumentId\' already exists. Use upsert() to update existing documents.');
+    }
+    
+    await docRef.set(json);
+  }
+
+  /// Update an existing document using the id field as document ID
+  /// Fails if document doesn't exist
+  Future<void> updateDocument(T value) async {
+    final (json, documentId) = FirestoreDataProcessor.toJsonAndDocumentId(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
+    
+    if (documentId == null) {
+      throw ArgumentError(
+        'Document ID field \'$documentIdField\' must not be null for update operation',
+      );
+    }
+    
+    // Check if document exists
+    final docRef = ref.doc(documentId);
+    final docSnapshot = await docRef.get();
+    
+    if (!docSnapshot.exists) {
+      throw StateError('Document with ID \'$documentId\' does not exist. Use insert() or upsert() to create new documents.');
+    }
+    
+    await docRef.set(json);
   }
 
   @override

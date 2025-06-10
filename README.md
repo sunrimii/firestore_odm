@@ -606,15 +606,64 @@ await odm.users
 ```dart
 final users = odm.users;
 
-// Basic CRUD
+// Document-level operations
 await users.doc('id').set(user);
 await users.doc('id').delete();
 final user = await users.doc('id').get();
 
-// Advanced operations
+// Collection-level operations (using model's ID field)
+await users.insert(user);        // Create new (fails if exists)
+await users.updateDocument(user); // Update existing (fails if not exists)
+await users.upsert(user);        // Create or update
+
+// Advanced document operations
 await users.doc('id').modify((user) => user.copyWith(age: 26));
 await users.doc('id').incrementalModify((user) => user.copyWith(age: user.age + 1));
-await users.upsert(user); // Uses document ID field
+```
+
+#### Insert vs Update vs Upsert
+
+**`insert(T value)`** - Type-safe document creation
+- ✅ Creates new document using model's ID field
+- ✅ Auto-generates unique ID when model ID is empty string
+- ❌ Fails if document already exists (when ID is specified)
+- 🎯 Perfect for preventing accidental overwrites
+
+**`updateDocument(T value)`** - Type-safe document updates
+- ✅ Updates existing document using model's ID field
+- ❌ Fails if document doesn't exist
+- 🎯 Perfect for ensuring you're updating existing data
+
+**`upsert(T value)`** - Flexible create-or-update
+- ✅ Creates new document if it doesn't exist
+- ✅ Updates document if it already exists
+- 🎯 Perfect for idempotent operations
+
+```dart
+// Example workflow
+final user = User(id: 'alice', name: 'Alice', email: 'alice@example.com');
+
+// First time - create new user with specific ID
+await odm.users.insert(user);     // ✅ Success
+
+// Try to insert again
+await odm.users.insert(user);     // ❌ Throws StateError: already exists
+
+// Insert with server-generated ID
+final autoUser = User(id: '', name: 'Auto User', email: 'auto@example.com');
+await odm.users.insert(autoUser); // ✅ Success, Firestore generates unique ID
+
+// Update existing user
+final updatedUser = user.copyWith(name: 'Alice Smith');
+await odm.users.updateDocument(updatedUser); // ✅ Success
+
+// Try to update non-existent user
+final newUser = User(id: 'bob', name: 'Bob', email: 'bob@example.com');
+await odm.users.updateDocument(newUser);     // ❌ Throws StateError: doesn't exist
+
+// Upsert works in both cases
+await odm.users.upsert(user);     // ✅ Updates existing
+await odm.users.upsert(newUser);  // ✅ Creates new
 ```
 
 ### Query Operations

@@ -39,8 +39,14 @@ dart run build_runner build
 3. Use type-safe operations:
 
 ```dart
-// Create
-await usersCollection.add(User(name: 'John', email: 'john@example.com'));
+// Insert (create new document, fails if exists)
+await usersCollection.insert(User(id: 'user1', name: 'John', email: 'john@example.com'));
+
+// Update (fails if document doesn't exist)
+await usersCollection.updateDocument(User(id: 'user1', name: 'John Doe', email: 'john.doe@example.com'));
+
+// Upsert (create or update)
+await usersCollection.upsert(User(id: 'user3', name: 'Bob', email: 'bob@example.com'));
 
 // Query
 final users = await usersCollection.where((user) => user.name.isEqualTo('John')).get();
@@ -51,6 +57,45 @@ usersCollection.snapshots().listen((snapshot) {
     print('User: ${user.data.name}');
   }
 });
+```
+
+## Collection Operations
+
+### Insert Operations
+
+**`insert(T value)`** - Creates a new document using the model's ID field
+- Fails if document already exists (when ID is specified)
+- If ID is empty string, server generates a unique ID automatically
+- Requires the model to have a non-null ID field
+
+```dart
+// Insert with specific ID
+final user = User(id: 'user123', name: 'John', email: 'john@example.com');
+await usersCollection.insert(user);
+
+// Insert with server-generated ID
+final user2 = User(id: '', name: 'Jane', email: 'jane@example.com');
+await usersCollection.insert(user2); // Firestore generates unique ID
+```
+
+### Update Operations
+
+**`updateDocument(T value)`** - Updates an existing document using the model's ID field
+- Fails if document doesn't exist
+- Completely replaces the document data
+
+```dart
+final updatedUser = User(id: 'user123', name: 'John Doe', email: 'john.doe@example.com');
+await usersCollection.updateDocument(updatedUser);
+```
+
+**`upsert(T value)`** - Creates or updates a document
+- Uses the model's ID field as document ID
+- Creates if document doesn't exist, updates if it does
+
+```dart
+final user = User(id: 'user123', name: 'John', email: 'john@example.com');
+await usersCollection.upsert(user); // Works whether user123 exists or not
 ```
 
 ## Features

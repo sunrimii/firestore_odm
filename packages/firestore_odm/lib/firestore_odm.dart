@@ -24,6 +24,7 @@ export 'src/interfaces/query_operations.dart';
 export 'src/interfaces/update_operations.dart';
 export 'src/interfaces/subscribe_operations.dart';
 export 'src/interfaces/document_operations.dart';
+export 'src/interfaces/collection_operations.dart';
 
 // New services
 export 'src/services/update_operations_service.dart';
