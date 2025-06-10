@@ -108,16 +108,6 @@ class SchemaGenerator {
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');
       buffer.writeln('');
-      
-      // Generate document access method
-      final singularName = _getSingularName(collection.path);
-      buffer.writeln('  /// Access a specific document in ${collection.path}');
-      buffer.writeln('  FirestoreDocument<$schemaClassName, ${collection.modelTypeName}> $singularName(String id) =>');
-      buffer.writeln('    FirestoreDocument.fromRef(');
-      buffer.writeln('      firestore.collection(\'${collection.path}\').doc(id),');
-      buffer.writeln('      converter: $converterName,');
-      buffer.writeln('    );');
-      buffer.writeln('');
     }
     
     buffer.writeln('}');
