@@ -1,3 +1,7 @@
+## 1.1.1
+
+ - **REFACTOR**: improve schema class name generation and add assigned value extraction. ([997aa36a](https://github.com/sylphxltd/firestore_odm/commit/997aa36a53c6c740532ccb3923be9f11e7420aed))
+
 ## 1.1.0
 
  - **REFACTOR**: transform monolithic FirestoreGenerator into modular architecture. ([a3d79960](https://github.com/sylphxltd/firestore_odm/commit/a3d7996001948b1e9f85396b3451c36139b8cbf7))

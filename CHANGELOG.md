@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_builder` - `v1.1.1`](#firestore_odm_builder---v111)
+
+---
+
+#### `firestore_odm_builder` - `v1.1.1`
+
+ - **REFACTOR**: improve schema class name generation and add assigned value extraction. ([997aa36a](https://github.com/sylphxltd/firestore_odm/commit/997aa36a53c6c740532ccb3923be9f11e7420aed))
+
+
+## 2025-06-10
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v1.1.0`](#firestore_odm---v110)
  - [`firestore_odm_annotation` - `v1.1.0`](#firestore_odm_annotation---v110)
  - [`firestore_odm_builder` - `v1.1.0`](#firestore_odm_builder---v110)
