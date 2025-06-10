@@ -12,6 +12,8 @@ export 'src/filter_builder.dart';
 export 'src/data_processor.dart';
 export 'src/model_converter.dart';
 export 'src/schema.dart';
+export 'src/count_query.dart';
+export 'src/tuple_aggregate.dart' hide AggregateField;
 export 'src/update_builder.dart'
     hide
         NumericFieldBuilder,

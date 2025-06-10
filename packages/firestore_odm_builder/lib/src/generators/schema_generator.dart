@@ -6,6 +6,7 @@ import '../utils/type_analyzer.dart';
 import 'filter_generator.dart';
 import 'order_by_generator.dart';
 import 'update_generator.dart';
+import 'aggregate_generator.dart';
 
 /// Information about a collection annotation extracted from a schema variable
 class SchemaCollectionInfo {
@@ -334,6 +335,31 @@ class SchemaGenerator {
         buffer,
         constructor,
         <String>{},
+      );
+      buffer.writeln('');
+
+      // Generate AggregateFieldSelector class
+      AggregateGenerator.generateAggregateFieldSelectorClass(
+        buffer,
+        modelTypeName,
+        constructor,
+        documentIdField,
+      );
+
+      // Generate nested aggregate selector classes
+      AggregateGenerator.generateNestedAggregateSelector(
+        buffer,
+        modelTypeName,
+        constructor,
+        documentIdField,
+      );
+
+      // Generate nested aggregate selectors for all nested types
+      AggregateGenerator.generateNestedAggregateSelectors(
+        buffer,
+        constructor,
+        <String>{},
+        documentIdField,
       );
       buffer.writeln('');
     }

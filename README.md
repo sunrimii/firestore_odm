@@ -326,7 +326,77 @@ await odm.posts.upsert(Post(
 ));
 ```
 
-### 🔄 Real-time Data Streams
+### 📊 Type-Safe Aggregate Operations
+
+Perform powerful analytics queries with complete type safety and generated field selectors:
+
+```dart
+// Simple count operations
+final activeUserCount = await odm.users
+  .where(($) => $.isActive(isEqualTo: true))
+  .count()
+  .get();
+
+print('Active users: ${activeUserCount.count}');
+
+// Strongly-typed aggregate operations with generated field selectors
+final result = await odm.users
+  .where(($) => $.isActive(isEqualTo: true))
+  .aggregate(($) => (
+    count: $.count(),                    // Returns: int
+    totalAge: $.age.sum(),              // Returns: int (age field is int)
+    avgAge: $.age.average(),            // Returns: double (average always double)
+    totalRating: $.rating.sum(),        // Returns: double (rating field is double)
+    avgRating: $.rating.average(),      // Returns: double (average always double)
+  ))
+  .get();
+
+// Perfect type safety - no casting needed!
+print('Count: ${result.count}');           // result.count is int
+print('Total age: ${result.totalAge}');    // result.totalAge is int
+print('Avg age: ${result.avgAge}');        // result.avgAge is double
+print('Total rating: ${result.totalRating}'); // result.totalRating is double
+print('Avg rating: ${result.avgRating}');  // result.avgRating is double
+
+// Works with nested objects using generated selectors
+final nestedStats = await odm.users.aggregate(($) => (
+  count: $.count(),
+  totalFollowers: $.profile.followers.sum(),  // Generated nested field selector
+  avgFollowers: $.profile.followers.average(),
+)).get();
+
+// Real-time aggregate streams
+StreamBuilder<({int count, int totalAge, double avgRating})>(
+  stream: odm.users
+    .where(($) => $.isActive(isEqualTo: true))
+    .aggregate(($) => (
+      count: $.count(),
+      totalAge: $.age.sum(),
+      avgRating: $.rating.average(),
+    ))
+    .snapshots(),
+  builder: (context, snapshot) {
+    final stats = snapshot.data;
+    if (stats == null) return Text('Loading stats...');
+    
+    return Column(children: [
+      Text('Active Users: ${stats.count}'),
+      Text('Total Age: ${stats.totalAge}'),
+      Text('Avg Rating: ${stats.avgRating.toStringAsFixed(1)}'),
+    ]);
+  },
+);
+```
+
+**Key Benefits:**
+- ✅ **Generated Field Selectors** - No hardcoded field names, full autocomplete
+- ✅ **Perfect Type Safety** - `age.sum()` returns `int`, `rating.sum()` returns `double`
+- ✅ **Compile-time Validation** - Catch field name typos before runtime
+- ✅ **Real-time Streams** - Live aggregate updates in your UI
+- ✅ **Query Integration** - Works with all filtering and ordering operations
+- ✅ **Nested Object Support** - Generated selectors for nested fields
+
+###  Real-time Data Streams
 
 ```dart
 // Live updates in your Flutter UI

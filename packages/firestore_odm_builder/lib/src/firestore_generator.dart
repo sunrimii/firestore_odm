@@ -9,6 +9,7 @@ import 'generators/collection_generator.dart';
 import 'generators/filter_generator.dart';
 import 'generators/order_by_generator.dart';
 import 'generators/update_generator.dart';
+import 'generators/aggregate_generator.dart';
 import 'generators/odm_extension_generator.dart';
 import 'generators/schema_generator.dart';
 

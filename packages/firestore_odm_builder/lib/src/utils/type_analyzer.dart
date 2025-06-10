@@ -85,10 +85,10 @@ class TypeAnalyzer {
         typeString == 'String';
   }
 
-  /// Check if a type is numeric (int or double)
+  /// Check if a type is numeric (int, double, or num)
   static bool isNumericType(DartType type) {
     final typeName = type.getDisplayString(withNullability: false);
-    return ['int', 'double'].contains(typeName);
+    return ['int', 'double', 'num'].contains(typeName);
   }
 
   /// Check if a type is String

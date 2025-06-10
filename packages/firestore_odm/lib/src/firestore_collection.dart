@@ -10,6 +10,8 @@ import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
 import 'interfaces/collection_operations.dart';
 import 'schema.dart';
+import 'count_query.dart' show FirestoreCountQuery;
+import 'tuple_aggregate.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
@@ -201,4 +203,24 @@ class FirestoreCollection<S extends FirestoreSchema, T>
     final updateMap = UpdateBuilder.operationsToMap(operations);
     return _updateService.executeBulkUpdate(ref, updateMap);
   }
+
+  /// Get the count of documents in this collection
+  @override
+  FirestoreCountQuery count() {
+    return FirestoreCountQuery(ref);
+  }
+
+  /// Perform strongly-typed aggregate operations using records/tuples
+  @override
+  TupleAggregateQuery<T, R> aggregate<R extends Record>(
+    R Function(AggregateFieldSelector<T> selector) builder,
+  ) {
+    return TupleAggregateQuery<T, R>(
+      ref,
+      fromJson,
+      toJson,
+      builder,
+    );
+  }
+
 }

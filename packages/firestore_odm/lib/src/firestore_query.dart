@@ -7,6 +7,8 @@ import 'interfaces/update_operations.dart';
 import 'services/query_operations_service.dart';
 import 'services/update_operations_service.dart';
 import 'schema.dart';
+import 'count_query.dart' show FirestoreCountQuery;
+import 'tuple_aggregate.dart';
 
 /// Abstract base class for type-safe Firestore queries
 class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>, UpdateOperations<T> {
@@ -104,6 +106,26 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
     final updateMap = UpdateBuilder.operationsToMap(operations);
     return _updateService.executeBulkUpdate(query, updateMap);
   }
+
+  /// Get the count of documents matching this query
+  @override
+  FirestoreCountQuery count() {
+    return FirestoreCountQuery(query);
+  }
+
+  /// Perform strongly-typed aggregate operations using records/tuples
+  @override
+  TupleAggregateQuery<T, R> aggregate<R extends Record>(
+    R Function(AggregateFieldSelector<T> selector) builder,
+  ) {
+    return TupleAggregateQuery<T, R>(
+      query,
+      (data) => collection.fromJson(data),
+      (value) => collection.toJson(value),
+      builder,
+    );
+  }
+
 }
 
 /// Applies a filter to the given Firestore query
