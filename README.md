@@ -69,6 +69,39 @@ await userDoc.update(($) => [
 - **🏗️ Schema-Based Architecture** - Multiple ODM instances with different structures
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
+## 📚 Documentation Index
+
+### 🚀 Getting Started
+- [Quick Start](#quick-start) - Installation and basic usage
+- [Schema-Based Architecture](#schema-based-architecture) - Multiple ODM instances and collections
+- [Installation & Setup](#installation--setup) - Dependencies and code generation
+
+### 🔧 Core Operations
+- [Collection Operations](#collection-operations) - [`insert()`](#insert-vs-update-vs-upsert), [`updateDocument()`](#insert-vs-update-vs-upsert), [`upsert()`](#insert-vs-update-vs-upsert)
+- [Document ID Fields](#-document-id-fields) - Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) usage
+- [Real-time Streams](#-real-time-data-streams) - Live data updates in Flutter UI
+
+### 🔍 Query & Filter APIs
+- [Type-Safe Querying](#-type-safe-querying) - Complex filters with logical operations
+- [Query Operations](#query-operations) - [`where()`](#query-operations), [`orderBy()`](#query-operations), [`limit()`](#query-operations)
+- [Aggregate Operations](#-type-safe-aggregate-operations) - [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart)
+
+### ✏️ Update Methods
+- [Three Update Patterns](#-three-powerful-update-methods) - Array-style, Modify, Incremental Modify
+- [Update Operations](#update-operations) - [`update()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart), [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart), [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart)
+- [Smart Server Timestamps](#-smart-server-timestamps) - [`FirestoreODM.serverTimestamp`](packages/firestore_odm/lib/src/firestore_odm.dart)
+
+### 🏗️ Advanced Features
+- [Multiple Collections & Subcollections](#-multiple-collections--subcollections) - Schema-based collection management
+- [Safe Transactions](#-safe-transactions) - ACID guarantees with [`runTransaction()`](packages/firestore_odm/lib/src/firestore_odm.dart)
+- [Feature Completion Status](#feature-completion-status) - What's implemented vs pending
+
+### 📖 Reference & Examples
+- [API Reference](#api-reference) - Complete method documentation
+- [Testing](#testing) - Integration with [`fake_cloud_firestore`](packages/firestore_odm/lib/firestore_odm.dart)
+- [Migration Guide](#migration-from-raw-firestore) - From raw Firestore to ODM
+- [Complete Example App](flutter_example/) - Working Flutter application
+
 ## Quick Start
 
 ### 1. Add Dependencies
@@ -530,46 +563,65 @@ await userDoc.incrementalModify((user) => user.copyWith(
 ));
 ```
 
-## Current Limitations
+## Feature Completion Status
 
-While Firestore ODM provides powerful type-safe operations, some advanced features are not yet implemented:
+Below is a comprehensive overview of all Firestore ODM features and their current implementation status:
 
-### 🚧 Not Yet Supported
+| Category | Feature | Status | Description |
+|----------|---------|--------|-------------|
+| **Core Operations** | Document CRUD | ✅ Complete | Create, read, update, delete documents |
+| | Collection Operations | ✅ Complete | [`insert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`updateDocument()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`upsert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart) |
+| | Document ID Fields | ✅ Complete | Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) with automatic detection |
+| **Querying** | Type-safe Filtering | ✅ Complete | All Firestore operators on primitive and custom types |
+| | Nested Object Queries | ✅ Complete | Deep filtering on custom class fields |
+| | Array Operations | ✅ Complete | [`arrayContains`](packages/firestore_odm/lib/src/filter_builder.dart), [`arrayContainsAny`](packages/firestore_odm/lib/src/filter_builder.dart), array updates |
+| | Logical Operations | ✅ Complete | [`and()`](packages/firestore_odm/lib/src/filter_builder.dart), [`or()`](packages/firestore_odm/lib/src/filter_builder.dart) query combinators |
+| | Order By & Limits | ✅ Complete | [`orderBy()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart), [`limit()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart) operations |
+| | Pagination | ❌ Incomplete | [`startAfter()`](packages/firestore_odm/lib/src/firestore_query.dart), [`endBefore()`](packages/firestore_odm/lib/src/firestore_query.dart) need enhancement |
+| **Updates** | Array-style Updates | ✅ Complete | Explicit atomic operations with [`update()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart) |
+| | Modify Updates | ✅ Complete | Immutable diff-based updates with [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
+| | Incremental Modify | ✅ Complete | Automatic atomic detection with [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
+| | Atomic Operations | ✅ Complete | Increments, server timestamps, mixed operations |
+| | Bulk Updates | ✅ Complete | Query-based bulk operations |
+| **Advanced Features** | Aggregate Operations | ✅ Complete | [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart) with type safety |
+| | Real-time Streams | ✅ Complete | Automatic subscription management |
+| | Transactions | ✅ Complete | Full transaction support with automatic context detection |
+| | Server Timestamps | ✅ Complete | [`FirestoreODM.serverTimestamp`](packages/firestore_odm/lib/src/firestore_odm.dart) constant |
+| **Collections** | Multiple Collections | ✅ Complete | Schema-based multiple collection support |
+| | Subcollections | ✅ Complete | Fluent API for nested collections |
+| | Collection Groups | ✅ Complete | Cross-collection queries |
+| **Schema & Architecture** | Schema-based Architecture | ✅ Complete | Multiple ODM instances with different schemas |
+| | Code Generation | ✅ Complete | Automatic ODM class generation |
+| | Type Safety | ✅ Complete | Compile-time validation throughout |
+| **Testing & Dev** | Testing Support | ✅ Complete | Full compatibility with [`fake_cloud_firestore`](packages/firestore_odm/lib/firestore_odm.dart) |
+| | Development Tools | ✅ Complete | Build runner integration and error reporting |
+| **Limitations** | Map Field Access | ❌ Not Supported | Direct access to map fields like `profile.socialLinks.github` |
+| | Complex Map Updates | ❌ Not Supported | Individual map key updates need full map replacement |
 
-- **Map Field Access**: Direct access to map fields like `profile.socialLinks.github`
-  ```dart
-  // ❌ NOT SUPPORTED YET
-  await odm.users.where(($) => $.profile.socialLinks.github(isEqualTo: 'username')).get();
-  
-  // ✅ WORKAROUND: Use map-level filtering
-  await odm.users.where(($) => $.profile.socialLinks(isNotEqualTo: null)).get();
-  ```
+### 🚧 Pending Features
 
-- **Complex Nested Map Updates**: Individual map key updates need full map replacement
-  ```dart
-  // ❌ NOT SUPPORTED YET
-  await userDoc.update(($) => [$.profile.socialLinks.github('new_username')]);
-  
-  // ✅ WORKAROUND: Update entire map
-  await userDoc.update(($) => [$.profile.socialLinks({'github': 'new_username', 'twitter': 'handle'})]);
-  ```
+**Pagination Enhancement**
+- Current [`startAfter()`](packages/firestore_odm/lib/src/firestore_query.dart)/[`endBefore()`](packages/firestore_odm/lib/src/firestore_query.dart) implementation needs improvement
+- Missing cursor-based pagination helpers
+- No built-in page size management
 
-- **GeoPoint Queries**: Geospatial queries and GeoPoint field filtering
-- **Reference Field Operations**: Direct DocumentReference field filtering and updates
+**Map Field Access**
+```dart
+// ❌ NOT SUPPORTED YET
+await odm.users.where(($) => $.profile.socialLinks.github(isEqualTo: 'username')).get();
 
-### 🎯 Fully Supported Features
+// ✅ WORKAROUND: Use map-level filtering
+await odm.users.where(($) => $.profile.socialLinks(isNotEqualTo: null)).get();
+```
 
-✅ **Document ID Fields** - Virtual `@DocumentIdField()` with automatic detection  
-✅ **Type-safe Filtering** - All Firestore operators on primitive and custom types  
-✅ **Nested Object Queries** - Deep filtering on custom class fields  
-✅ **Array Operations** - Complete support for array operations  
-✅ **Atomic Updates** - Increments, server timestamps, and mixed operations  
-✅ **Real-time Streams** - Automatic subscription management  
-✅ **Transactions** - Full transaction support with automatic context detection  
-✅ **Three Update Methods** - Array-style, modify, and incremental modify  
-✅ **Upsert Operations** - Document creation/updates using Document ID fields  
-✅ **Subcollection Support** - Fluent API for nested collections  
-✅ **Testing Support** - Full compatibility with `fake_cloud_firestore`
+### 🎯 Fully Implemented Core Features
+
+✅ **Complete Type Safety** - Compile-time validation throughout entire data layer
+✅ **Three Update Patterns** - Array-style, modify, and incremental modify methods
+✅ **Advanced Querying** - Complex logical operations with nested object support
+✅ **Real-time Operations** - Automatic subscription management and live updates
+✅ **Schema Architecture** - Multiple ODM instances with different collection structures
+✅ **Production Ready** - Full transaction support and testing compatibility
 
 ## Installation & Setup
 
