@@ -253,7 +253,7 @@ void main() {
 
     test('should support streaming aggregate results', () async {
       // Test streaming count
-      final countStream = odm.users.count().snapshots();
+      final countStream = odm.users.count().stream;
       
       // Listen to the first emission (should be 0)
       final firstCount = await countStream.first;
