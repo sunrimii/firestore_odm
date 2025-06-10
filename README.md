@@ -374,7 +374,7 @@ StreamBuilder<({int count, int totalAge, double avgRating})>(
       totalAge: $.age.sum(),
       avgRating: $.rating.average(),
     ))
-    .snapshots(),
+    .stream,
   builder: (context, snapshot) {
     final stats = snapshot.data;
     if (stats == null) return Text('Loading stats...');
