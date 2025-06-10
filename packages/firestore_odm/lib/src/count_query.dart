@@ -1,10 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
+import 'package:firestore_odm/src/interfaces/subscribe_operations.dart';
 
 /// Query for count operations that can be executed with get() or watched for changes
-class FirestoreCountQuery {
+class FirestoreCountQuery implements SubscribeOperations<int> {
   final Query<Map<String, dynamic>> _query;
 
-  FirestoreCountQuery(this._query);
+  late final QuerySubscriptionService<int> _subscriptionService;
+
+  FirestoreCountQuery(this._query) {
+    // Initialize the subscription service if needed
+    _subscriptionService = QuerySubscriptionService<int>(
+      query: _query,
+      fromJson: (data) => 0
+    );
+  }
 
   /// Execute the count query and return the result
   Future<int> get() async {
@@ -14,7 +24,9 @@ class FirestoreCountQuery {
 
   /// Stream of count results that updates when the underlying data changes
   /// Note: Firestore doesn't support real-time count aggregation, so we watch the underlying data
-  Stream<int> snapshots() {
-    return _query.snapshots().map((snapshot) => snapshot.docs.length);
-  }
+  @override
+  Stream<int> get stream => _subscriptionService.stream.map((data) => data.length);
+  
+  @override
+  bool get isSubscribing => _subscriptionService.isSubscribing;
 }
