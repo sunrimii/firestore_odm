@@ -2,15 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import '../lib/models/post.dart';
+import '../lib/test_schema.dart';
 
 void main() {
   group('Basic DocumentIdField Tests', () {
     late FakeFirebaseFirestore firestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: firestore);
+      odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
     test('should upsert post with document ID - core functionality', () async {

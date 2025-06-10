@@ -4,14 +4,11 @@ import 'user.dart'; // Required for generated extension
 
 part 'shared_post.freezed.dart';
 part 'shared_post.g.dart';
-part 'shared_post.odm.dart';
 
 /// A Post model that can be used in multiple collections
 /// - Standalone collection: @Collection('posts') -> odm.posts
 /// - User subcollection: @Collection('users/*/posts') -> odm.users('userId').posts
 @freezed
-@Collection('posts') // Standalone collection
-@Collection('users/*/posts') // User subcollection
 abstract class SharedPost with _$SharedPost {
   const factory SharedPost({
     @DocumentIdField() required String id,

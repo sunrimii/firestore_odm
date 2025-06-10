@@ -4,10 +4,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user_data.freezed.dart';
 part 'user_data.g.dart';
-part 'user_data.odm.dart';
 
 @freezed
-@Collection('users')
 abstract class UserData with _$UserData {
   const factory UserData({
     @DocumentIdField() @Default('') String userId,
@@ -55,7 +53,6 @@ abstract class DailyMission with _$DailyMission {
 }
 
 @freezed
-@Collection('users/*/dailyMissions')
 abstract class DailyMissionsDocument with _$DailyMissionsDocument {
   const factory DailyMissionsDocument({
     required String date,

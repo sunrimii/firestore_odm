@@ -8,9 +8,10 @@ import 'services/update_operations_service.dart';
 import 'filter_builder.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
+import 'schema.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-class FirestoreCollection<T>
+class FirestoreCollection<S extends FirestoreSchema, T>
     implements QueryOperations<T>, UpdateOperations<T> {
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
@@ -22,7 +23,7 @@ class FirestoreCollection<T>
   final Map<String, dynamic> Function(T value) toJson;
 
   /// Cache for document instances
-  final Map<String, FirestoreDocument<T>> _cache = {};
+  final Map<String, FirestoreDocument<S, T>> _cache = {};
 
   /// Service for handling query operations
   late final QueryOperationsService<T> _queryService;
@@ -58,14 +59,14 @@ class FirestoreCollection<T>
 
   /// Limits the number of results returned
   @override
-  FirestoreQuery<T> limit(int limit) {
-    return FirestoreQuery(this, _queryService.applyLimit(limit));
+  QueryOperations<T> limit(int limit) {
+    return FirestoreQuery<S, T>(this, _queryService.applyLimit(limit));
   }
 
   /// Limits the number of results returned from the end
   @override
-  FirestoreQuery<T> limitToLast(int limit) {
-    return FirestoreQuery(this, _queryService.applyLimitToLast(limit));
+  QueryOperations<T> limitToLast(int limit) {
+    return FirestoreQuery<S, T>(this, _queryService.applyLimitToLast(limit));
   }
 
   /// Bulk modify all documents that match this collection using diff-based updates
@@ -83,28 +84,28 @@ class FirestoreCollection<T>
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<T> call(String id) {
+  FirestoreDocument<S, T> call(String id) {
     return _cache.putIfAbsent(id, () => FirestoreDocument(this, id));
   }
 
   @override
-  FirestoreQuery<T> where(
+  FirestoreQuery<S, T> where(
     FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
   ) {
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(ref, builtFilter);
-    return FirestoreQuery<T>(this, newQuery);
+    return FirestoreQuery<S, T>(this, newQuery);
   }
 
   @override
-  FirestoreQuery<T> orderBy(
-    OrderByField Function(OrderByBuilder<T> order) orderBuilder,
+  FirestoreQuery<S, T> orderBy(
+    OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
   ) {
     final builder = OrderByBuilder<T>();
     final orderByField = orderBuilder(builder);
     final newQuery = _queryService.applyOrderBy(orderByField);
-    return FirestoreQuery<T>(this, newQuery);
+    return FirestoreQuery<S, T>(this, newQuery);
   }
 
   /// Upsert a document using the id field as document ID

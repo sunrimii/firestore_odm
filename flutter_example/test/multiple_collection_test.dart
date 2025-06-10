@@ -3,36 +3,38 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
-import '../lib/models/shared_post.dart';
+import '../lib/models/post.dart';
 import '../lib/models/user.dart'; // Required for odm.users extension
+import '../lib/test_schema.dart';
 
 void main() {
   group('Multiple Collection Tests', () {
     late FirebaseFirestore firestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: firestore);
+      odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
-    test('should generate unified collection class for SharedPost', () {
+    test('should generate unified collection class for Post', () {
       // Verify that we can access both collections using the same class
-      expect(odm.posts, isA<SharedPostCollection>());
-      expect(odm.users('user123').posts, isA<SharedPostCollection>());
+      expect(odm.posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
+      expect(odm.users('user123').posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
     });
 
     test('should access standalone posts collection', () async {
       // Create a post in standalone collection
-      final post = SharedPost(
+      final post = Post(
         id: 'post1',
         title: 'Standalone Post',
         content: 'This is a standalone post',
         authorId: 'author1',
+        tags: ['tech', 'flutter'],
+        metadata: {'source': 'test'},
         likes: 10,
         published: true,
         createdAt: DateTime.now(),
-        tags: ['tech', 'flutter'],
       );
 
       // Add to standalone collection
@@ -50,15 +52,16 @@ void main() {
 
     test('should access user subcollection posts', () async {
       // Create a post in user subcollection
-      final userPost = SharedPost(
+      final userPost = Post(
         id: 'post2',
         title: 'User Post',
         content: 'This is a user subcollection post',
         authorId: 'user123',
+        tags: ['personal'],
+        metadata: {},
         likes: 5,
         published: true,
         createdAt: DateTime.now(),
-        tags: ['personal'],
       );
 
       // Add to user subcollection
@@ -79,21 +82,25 @@ void main() {
 
     test('should handle different collections independently', () async {
       // Create posts in both collections
-      final standalonePost = SharedPost(
+      final standalonePost = Post(
         id: 'standalone1',
         title: 'Standalone',
         content: 'Standalone content',
         authorId: 'author1',
+        tags: [],
+        metadata: {},
         likes: 10,
         published: true,
         createdAt: DateTime.now(),
       );
 
-      final userPost = SharedPost(
+      final userPost = Post(
         id: 'user1',
         title: 'User Post',
         content: 'User content',
         authorId: 'user123',
+        tags: [],
+        metadata: {},
         likes: 5,
         published: true,
         createdAt: DateTime.now(),
@@ -126,21 +133,25 @@ void main() {
     test(
       'should support multiple users with independent subcollections',
       () async {
-        final user1Post = SharedPost(
+        final user1Post = Post(
           id: 'post1',
           title: 'User 1 Post',
           content: 'Content for user 1',
           authorId: 'user1',
+          tags: [],
+          metadata: {},
           likes: 3,
           published: true,
           createdAt: DateTime.now(),
         );
 
-        final user2Post = SharedPost(
+        final user2Post = Post(
           id: 'post1', // Same ID but different collection
           title: 'User 2 Post',
           content: 'Content for user 2',
           authorId: 'user2',
+          tags: [],
+          metadata: {},
           likes: 7,
           published: false,
           createdAt: DateTime.now(),
@@ -170,28 +181,30 @@ void main() {
     test('should support filtering and querying in both collections', () async {
       // Add multiple posts to standalone collection
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post1',
           title: 'Tech Post',
           content: 'Tech content',
           authorId: 'author1',
+          tags: ['tech'],
+          metadata: {},
           likes: 10,
           published: true,
           createdAt: DateTime.now(),
-          tags: ['tech'],
         ),
       );
 
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post2',
           title: 'Personal Post',
           content: 'Personal content',
           authorId: 'author1',
+          tags: ['personal'],
+          metadata: {},
           likes: 5,
           published: false,
           createdAt: DateTime.now(),
-          tags: ['personal'],
         ),
       );
 
@@ -200,15 +213,16 @@ void main() {
           .users('user1')
           .posts
           .upsert(
-            SharedPost(
+            Post(
               id: 'post1',
               title: 'User Tech',
               content: 'User tech content',
               authorId: 'user1',
+              tags: ['tech'],
+              metadata: {},
               likes: 15,
               published: true,
               createdAt: DateTime.now(),
-              tags: ['tech'],
             ),
           );
 
@@ -234,11 +248,13 @@ void main() {
 
       // Add posts with different creation times
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post1',
           title: 'First Post',
           content: 'First',
           authorId: 'author1',
+          tags: [],
+          metadata: {},
           likes: 5,
           published: true,
           createdAt: now.subtract(Duration(hours: 2)),
@@ -246,11 +262,13 @@ void main() {
       );
 
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post2',
           title: 'Second Post',
           content: 'Second',
           authorId: 'author1',
+          tags: [],
+          metadata: {},
           likes: 10,
           published: true,
           createdAt: now.subtract(Duration(hours: 1)),
@@ -258,11 +276,13 @@ void main() {
       );
 
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post3',
           title: 'Third Post',
           content: 'Third',
           authorId: 'author1',
+          tags: [],
+          metadata: {},
           likes: 15,
           published: true,
           createdAt: now,
@@ -291,8 +311,8 @@ void main() {
     });
 
     test('should support real-time updates in both collections', () async {
-      final standaloneChanges = <SharedPost?>[];
-      final userChanges = <SharedPost?>[];
+      final standaloneChanges = <Post?>[];
+      final userChanges = <Post?>[];
 
       // Subscribe to standalone collection document changes
       final standaloneSubscription = odm.posts('post1').changes.listen((post) {
@@ -311,11 +331,13 @@ void main() {
 
       // Add posts to both collections
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post1',
           title: 'Standalone Post',
           content: 'Content',
           authorId: 'author1',
+          tags: [],
+          metadata: {},
           likes: 1,
           published: true,
           createdAt: DateTime.now(),
@@ -326,11 +348,13 @@ void main() {
           .users('user1')
           .posts
           .upsert(
-            SharedPost(
+            Post(
               id: 'post1',
               title: 'User Post',
               content: 'User Content',
               authorId: 'user1',
+              tags: [],
+              metadata: {},
               likes: 2,
               published: true,
               createdAt: DateTime.now(),
@@ -366,11 +390,13 @@ void main() {
     test('should support updates and deletes in both collections', () async {
       // Create initial posts
       await odm.posts.upsert(
-        SharedPost(
+        Post(
           id: 'post1',
           title: 'Original Title',
           content: 'Original content',
           authorId: 'author1',
+          tags: [],
+          metadata: {},
           likes: 5,
           published: false,
           createdAt: DateTime.now(),
@@ -381,11 +407,13 @@ void main() {
           .users('user1')
           .posts
           .upsert(
-            SharedPost(
+            Post(
               id: 'post1',
               title: 'User Original',
               content: 'User original content',
               authorId: 'user1',
+              tags: [],
+              metadata: {},
               likes: 3,
               published: false,
               createdAt: DateTime.now(),

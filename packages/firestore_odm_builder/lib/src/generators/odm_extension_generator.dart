@@ -40,13 +40,17 @@ class ODMExtensionGenerator {
     if (!isSubcollection || wildcardParams.isEmpty) {
       buffer.writeln('/// Extension to add the collection to FirestoreODM');
       buffer.writeln(
-        'extension FirestoreODM${className}Extension on FirestoreODM {',
+        'extension FirestoreODM${className}Extension<S extends FirestoreSchema> on FirestoreODM<S> {',
       );
 
       // Generate getter for regular collection
       buffer.writeln(
-        '  ${className}Collection get ${StringHelpers.camelCase(collectionPath)} => ${className}Collection(firestore.collection(\'$collectionPath\'));',
+        '  FirestoreCollection<S, $className> get ${StringHelpers.camelCase(collectionPath)} => FirestoreCollection<S, $className>(',
       );
+      buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
+      buffer.writeln('    fromJson: ${StringHelpers.camelCase(className)}FromJson,');
+      buffer.writeln('    toJson: ${StringHelpers.camelCase(className)}ToJson,');
+      buffer.writeln('  );');
 
       buffer.writeln('}');
     }
@@ -83,12 +87,16 @@ class ODMExtensionGenerator {
         '/// Extension to access $childCollection subcollection on $parentTypeName document',
       );
       buffer.writeln(
-        'extension ${className}Extension on FirestoreDocument<$parentTypeName> {',
+        'extension ${className}Extension<S extends FirestoreSchema> on FirestoreDocument<S, $parentTypeName> {',
       );
       buffer.writeln('  /// Access $childCollection subcollection');
       buffer.writeln(
-        '  $collectionClassName get $childCollectionName => $collectionClassName(ref.collection(\'$subcollectionName\'));',
+        '  FirestoreCollection<S, $className> get $childCollectionName => FirestoreCollection<S, $className>(',
       );
+      buffer.writeln('    ref: ref.collection(\'$subcollectionName\'),');
+      buffer.writeln('    fromJson: ${StringHelpers.camelCase(className)}FromJson,');
+      buffer.writeln('    toJson: ${StringHelpers.camelCase(className)}ToJson,');
+      buffer.writeln('  );');
       buffer.writeln('}');
       buffer.writeln('');
     }

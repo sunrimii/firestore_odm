@@ -5,11 +5,11 @@ import '../filter_builder.dart';
 /// Interface defining query operation capabilities
 /// Part of the Interface + Composition architecture
 abstract interface class QueryOperations<T> {
-  FirestoreQuery<T> where(
+  QueryOperations<T> where(
     FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
   );
 
-  FirestoreQuery<T> orderBy(
+  QueryOperations<T> orderBy(
     OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
   );
 

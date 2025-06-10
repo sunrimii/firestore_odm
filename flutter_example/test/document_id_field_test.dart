@@ -4,15 +4,16 @@ import 'package:firestore_odm/firestore_odm.dart';
 import '../lib/models/user.dart';
 import '../lib/models/post.dart';
 import '../lib/models/profile.dart';
+import '../lib/test_schema.dart';
 
 void main() {
   group('DocumentIdField Tests', () {
     late FakeFirebaseFirestore firestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: firestore);
+      odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
     group('User DocumentIdField', () {

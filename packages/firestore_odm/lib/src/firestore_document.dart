@@ -8,6 +8,7 @@ import 'services/update_operations_service.dart';
 import 'services/subscription_service.dart';
 import 'interfaces/document_operations.dart';
 import 'filter_builder.dart';
+import 'schema.dart';
 
 /// Exception thrown when a document is not found
 class FirestoreDocumentNotFoundException implements Exception {
@@ -20,12 +21,15 @@ class FirestoreDocumentNotFoundException implements Exception {
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-class FirestoreDocument<T> implements DocumentOperations<T> {
-  /// The collection this document belongs to
-  final FirestoreCollection<T> collection;
+class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperations<T> {
+  /// The collection this document belongs to (nullable for fromRef constructor)
+  final FirestoreCollection<S, T>? collection;
 
   /// The document ID
   final String id;
+
+  /// Direct document reference (used when created via fromRef)
+  DocumentReference<Map<String, dynamic>>? _documentRef;
 
   /// Service for handling update operations
   late final UpdateOperationsService<T> _updateService;
@@ -36,23 +40,44 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   /// Cached document data
   Map<String, dynamic>? _cache;
 
-  /// Creates a new FirestoreDocument instance
+  /// Creates a new FirestoreDocument instance from a collection and document ID
   FirestoreDocument(this.collection, this.id) {
     _updateService = UpdateOperationsService<T>(
-      toJson: collection.toJson,
-      fromJson: collection.fromJson,
-      documentIdField: collection.documentIdField,
+      toJson: collection!.toJson,
+      fromJson: collection!.fromJson,
+      documentIdField: collection!.documentIdField,
     );
     _subscriptionService = SubscriptionService<T>(
       documentRef: ref,
-
-      fromJson: collection.fromJson,
-      documentIdField: collection.documentIdField,
+      fromJson: collection!.fromJson,
+      documentIdField: collection!.documentIdField,
     );
   }
 
+  /// Creates a new FirestoreDocument instance from a DocumentReference
+  /// This constructor is used when creating documents directly from schema extensions
+  FirestoreDocument.fromRef(
+    DocumentReference<Map<String, dynamic>> documentRef,
+    T Function(Map<String, dynamic>) fromJson,
+    Map<String, dynamic> Function(T) toJson,
+    {String? documentIdField}
+  ) : collection = null, id = documentRef.id {
+    _updateService = UpdateOperationsService<T>(
+      toJson: toJson,
+      fromJson: fromJson,
+      documentIdField: documentIdField ?? 'id',
+    );
+    _subscriptionService = SubscriptionService<T>(
+      documentRef: documentRef,
+      fromJson: fromJson,
+      documentIdField: documentIdField ?? 'id',
+    );
+    _documentRef = documentRef;
+  }
+
   /// The underlying Firestore document reference
-  DocumentReference<Map<String, dynamic>> get ref => collection.ref.doc(id);
+  DocumentReference<Map<String, dynamic>> get ref =>
+      _documentRef ?? collection!.ref.doc(id);
 
   /// Stream of document changes
   @override
@@ -66,10 +91,10 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   T _fromJson(Map<String, dynamic> data) {
     final processedData = FirestoreDataProcessor.processFirestoreData(
       data,
-      documentIdField: collection.documentIdField,
+      documentIdField: collection!.documentIdField,
       documentId: id,
     );
-    return collection.fromJson(processedData);
+    return collection!.fromJson(processedData);
   }
 
   /// Checks if the document exists
@@ -117,9 +142,9 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
   @override
   Future<void> set(T state) async {
     final data = FirestoreDataProcessor.toJson(
-      collection.toJson,
+      collection!.toJson,
       state,
-      documentIdField: collection.documentIdField,
+      documentIdField: collection!.documentIdField,
       documentId: id,
     );
     await ref.set(data);
@@ -140,9 +165,9 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
     // Update cache
     final newState = modifier(oldState);
     _cache = FirestoreDataProcessor.toJson(
-      collection.toJson,
+      collection!.toJson,
       newState,
-      documentIdField: collection.documentIdField,
+      documentIdField: collection!.documentIdField,
       documentId: id,
     );
   }
@@ -161,9 +186,9 @@ class FirestoreDocument<T> implements DocumentOperations<T> {
     // Update cache
     final newState = modifier(oldState);
     _cache = FirestoreDataProcessor.toJson(
-      collection.toJson,
+      collection!.toJson,
       newState,
-      documentIdField: collection.documentIdField,
+      documentIdField: collection!.documentIdField,
       documentId: id,
     );
   }

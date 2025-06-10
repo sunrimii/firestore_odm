@@ -66,6 +66,7 @@ await userDoc.update(($) => [
 - **🎯 Intuitive Queries** - Write complex filters that read like natural language
 - **🔄 Smart Updates** - Three different update patterns for every use case
 - **🔗 Unified Collections** - Single models work across multiple collection paths
+- **🏗️ Schema-Based Architecture** - Multiple ODM instances with different structures
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
 ## Quick Start
@@ -86,10 +87,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
-part 'user.odm.dart'; // This will be generated
 
 @freezed
-@Collection('users')
 class User with _$User {
   const factory User({
     @DocumentIdField() required String id,
@@ -104,7 +103,20 @@ class User with _$User {
 }
 ```
 
-### 3. Generate Code & Start Using
+### 3. Define Your Schema
+
+```dart
+// lib/schema.dart
+import 'package:firestore_odm/firestore_odm.dart';
+import 'models/user.dart';
+
+part 'schema.odm.dart';
+
+@Collection<User>("users")
+final appSchema = _$AppSchema;
+```
+
+### 4. Generate Code & Start Using
 
 ```bash
 # Generate the ODM code
@@ -114,11 +126,11 @@ dart run build_runner build
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'models/user.dart';
+import 'schema.dart';
 
 void main() async {
   final firestore = FirebaseFirestore.instance;
-  final odm = FirestoreODM(firestore: firestore);
+  final odm = FirestoreODM(appSchema, firestore: firestore);
 
   // Create users effortlessly
   await odm.users.upsert(User(
@@ -141,6 +153,45 @@ void main() async {
   print('Found ${activeDevs.length} active developers');
 }
 ```
+
+## Schema-Based Architecture
+
+The new schema-based approach solves major limitations of traditional ODM patterns:
+
+### **Multiple ODM Instances**
+```dart
+// Different schemas for different parts of your app
+@Collection<User>("main_users")
+@Collection<Post>("main_posts")
+final mainSchema = _$MainSchema;
+
+@Collection<User>("analytics_users")
+@Collection<Post>("analytics_posts")
+final analyticsSchema = _$AnalyticsSchema;
+
+// Multiple ODM instances can coexist
+final mainODM = FirestoreODM(mainSchema, firestore: mainFirestore);
+final analyticsODM = FirestoreODM(analyticsSchema, firestore: analyticsFirestore);
+```
+
+### **No Manual Imports**
+```dart
+// ❌ OLD: Manual imports required in each model
+@Collection("users/*/posts")
+class Post with _$Post {
+  // Had to manually import User model
+}
+
+// ✅ NEW: Schema-level definitions eliminate manual imports
+@Collection<User>("users")
+@Collection<Post>("users/*/posts")  // Parent-child relationships auto-detected
+final schema = _$Schema;
+```
+
+### **Type-Safe Schema Compilation**
+- **Compile-time validation** of collection paths and model relationships
+- **Automatic parent-child detection** from collection path patterns
+- **Schema-specific typing** with `FirestoreODM<T>` for better IDE support
 
 ## Core Features
 
@@ -322,51 +373,69 @@ await odm.runTransaction(() async {
 
 ### 🏗️ Multiple Collections & Subcollections
 
-Use a single model for multiple collection paths:
+Use a single model for multiple collection paths with schema-based configuration:
 
 ```dart
-// Single model for multiple collection paths
+// lib/models/post.dart
 @freezed
-@Collection('posts')           // Top-level posts collection
-@Collection('users/*/posts')   // User subcollection posts
-abstract class SharedPost with _$SharedPost {
-  const factory SharedPost({
+class Post with _$Post {
+  const factory Post({
     @DocumentIdField() required String id,
     required String title,
     required String content,
-    required int likes,
+    required List<String> tags,
+    required Map<String, dynamic> metadata,
+    @Default(0) int likes,
     required DateTime createdAt,
-  }) = _SharedPost;
+  }) = _Post;
   
-  factory SharedPost.fromJson(Map<String, dynamic> json) => _$SharedPostFromJson(json);
+  factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
 }
 
-// Access both collections with the same model:
+// lib/app_schema.dart
+import 'package:firestore_odm/firestore_odm.dart';
+import 'models/user.dart';
+import 'models/post.dart';
+
+part 'app_schema.odm.dart';
+
+// Schema-based collection definitions
+@Collection<User>("users")
+@Collection<Post>("posts")           // Top-level posts collection
+@Collection<Post>("users/*/posts")   // User subcollection posts
+final appSchema = _$AppSchema;
+
+// Usage with the same model:
+final odm = FirestoreODM(appSchema);
 
 // 1. Top-level posts collection
-await odm.posts.upsert(SharedPost(
+await odm.posts.upsert(Post(
   id: 'global1',
   title: 'Global Post',
   content: 'Visible to everyone!',
+  tags: ['announcement'],
+  metadata: {'featured': true},
   likes: 42,
   createdAt: DateTime.now(),
 ));
 
 // 2. User-specific subcollection
-await odm.users('alice').posts.upsert(SharedPost(
+await odm.users('alice').posts.upsert(Post(
   id: 'personal1',
   title: 'Alice\'s Personal Post',
   content: 'Just for me!',
+  tags: ['personal'],
+  metadata: {},
   likes: 5,
   createdAt: DateTime.now(),
 ));
 
-// Supports unlimited nesting levels
-@Collection('organizations/*/departments/*/teams/*/projects')
-class Project with _$Project { /* ... */ }
+// Multiple schemas for different parts of your app
+@Collection<Project>("organizations/*/departments/*/teams/*/projects")
+final projectSchema = _$ProjectSchema;
 
-// Access deeply nested collections
-final teamProjects = odm.organizations('acme')
+final projectODM = FirestoreODM(projectSchema);
+final teamProjects = projectODM.organizations('acme')
   .departments('engineering')
   .teams('mobile')
   .projects;
@@ -473,11 +542,12 @@ Perfect testing support with `fake_cloud_firestore`:
 ```dart
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
+import 'schema.dart'; // Your schema file
 
 void main() {
   test('user queries work perfectly', () async {
     final firestore = FakeFirebaseFirestore();
-    final odm = FirestoreODM(firestore: firestore);
+    final odm = FirestoreODM(appSchema, firestore: firestore);
     
     // Test your queries with confidence
     final results = await odm.users

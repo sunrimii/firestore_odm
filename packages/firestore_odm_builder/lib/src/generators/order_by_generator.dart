@@ -23,7 +23,7 @@ class OrderByGenerator {
     if (documentIdField != null) {
       buffer.writeln('  /// Order by document ID (${documentIdField} field)');
       buffer.writeln(
-        '  OrderByField $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);',
+        '  OrderByField<$rootOrderByType> $documentIdField({bool descending = false}) => OrderByHelper.createOrderByDocumentId(descending: descending);',
       );
       buffer.writeln('');
     }

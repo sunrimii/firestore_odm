@@ -1,58 +1,37 @@
 import 'package:analyzer/dart/element/element.dart';
-import '../utils/type_analyzer.dart';
 import '../utils/string_helpers.dart';
 
-/// Generator for Firestore collection classes
+/// Generator for collection converter functions and related utilities
 class CollectionGenerator {
-  /// Generate the collection class code
-  static void generateCollectionClass(
-    StringBuffer buffer,
-    String className,
-    String collectionPath,
-    ConstructorElement constructor,
-    String? documentIdField,
-    bool isSubcollection, {
-    String suffix = '',
-  }) {
-    final pathSegments = collectionPath.split('/');
-    final wildcardParams = <String>[];
-
-    // Find wildcard parameters
-    for (int i = 0; i < pathSegments.length; i++) {
-      if (pathSegments[i] == '*') {
-        if (i == 0) {
-          throw ArgumentError('First path segment cannot be a wildcard');
-        }
-        final paramName =
-            '${pathSegments[i - 1].replaceAll(RegExp(r's$'), '')}Id';
-        wildcardParams.add(paramName);
-      }
-    }
-
-    // Use generic naming without suffix for subcollections
-    final collectionClassName = '${className}Collection';
-
-    buffer.writeln('/// Generated Collection for $className');
-    buffer.writeln(
-      'class $collectionClassName extends FirestoreCollection<$className> {',
-    );
-
-    // Generate generic constructor that accepts CollectionReference
-    buffer.writeln('  $collectionClassName(CollectionReference<Map<String, dynamic>> ref) : super(');
-    buffer.writeln('    ref: ref,');
-    buffer.writeln('    fromJson: (data) => $className.fromJson(data),');
-    buffer.writeln('    toJson: (value) => value.toJson(),');
-    buffer.writeln('  );');
-    buffer.writeln('');
-
-    // Generate document ID field if provided
-    if (documentIdField != null) {
-      buffer.writeln('  @override');
-      buffer.writeln('  String get documentIdField => \'$documentIdField\';');
-      buffer.writeln('');
-    }
-
+  /// Generate converter functions for a model class
+  static String generateConverters(ClassElement element) {
+    final buffer = StringBuffer();
+    final className = element.name;
+    
+    // Generate fromJson converter function
+    buffer.writeln('/// Generated fromJson converter for $className');
+    buffer.writeln('$className ${StringHelpers.camelCase(className)}FromJson(Map<String, dynamic> json) {');
+    buffer.writeln('  return $className.fromJson(json);');
     buffer.writeln('}');
+    buffer.writeln('');
+    
+    // Generate toJson converter function
+    buffer.writeln('/// Generated toJson converter for $className');
+    buffer.writeln('Map<String, dynamic> ${StringHelpers.camelCase(className)}ToJson($className instance) {');
+    buffer.writeln('  return instance.toJson();');
+    buffer.writeln('}');
+    buffer.writeln('');
+    
+    return buffer.toString();
   }
-
+  
+  /// Get the fromJson function name for a model
+  static String getFromJsonFunctionName(String className) {
+    return '${StringHelpers.camelCase(className)}FromJson';
+  }
+  
+  /// Get the toJson function name for a model
+  static String getToJsonFunctionName(String className) {
+    return '${StringHelpers.camelCase(className)}ToJson';
+  }
 }

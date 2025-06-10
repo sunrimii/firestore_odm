@@ -10,6 +10,8 @@ export 'src/firestore_odm.dart';
 export 'src/firestore_query.dart';
 export 'src/filter_builder.dart';
 export 'src/data_processor.dart';
+export 'src/model_converter.dart';
+export 'src/schema.dart';
 export 'src/update_builder.dart'
     hide
         NumericFieldBuilder,

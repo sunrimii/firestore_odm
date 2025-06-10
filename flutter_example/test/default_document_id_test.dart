@@ -2,15 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import '../lib/models/simple_story.dart';
+import '../lib/test_schema.dart';
 
 void main() {
   group('Default Document ID Field Tests', () {
     late FakeFirebaseFirestore firestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: firestore);
+      odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
     group('SimpleStory without @DocumentIdField annotation', () {
@@ -135,7 +136,8 @@ void main() {
 
         // Check the raw Firestore document
         final docSnapshot = await firestore
-            .doc('simple_stories/$testStoryId')
+            .collection('simpleStories')
+            .doc(testStoryId)
             .get();
         final rawData = docSnapshot.data()!;
 
@@ -183,7 +185,8 @@ void main() {
 
         // Verify ID field not stored in document
         final docSnapshot = await firestore
-            .doc('simple_stories/default_story')
+            .collection('simpleStories')
+            .doc('default_story')
             .get();
         expect(docSnapshot.data()!.containsKey('id'), isFalse);
       });

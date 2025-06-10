@@ -5,10 +5,8 @@ import 'story.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
-part 'user.odm.dart'; // Generated ODM code
 
 @freezed
-@Collection('users')
 abstract class User with _$User {
   const factory User({
     @DocumentIdField() required String id,

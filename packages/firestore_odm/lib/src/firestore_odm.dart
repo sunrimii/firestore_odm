@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'schema.dart';
 
 /// Internal variable to store the current server timestamp constant
 DateTime _currentServerTimestamp = DateTime.fromMillisecondsSinceEpoch(
@@ -8,7 +9,7 @@ DateTime _currentServerTimestamp = DateTime.fromMillisecondsSinceEpoch(
 );
 
 /// Main ODM class for managing Firestore transactions and operations
-class FirestoreODM {
+class FirestoreODM<T extends FirestoreSchema> {
   final FirebaseFirestore _firestore;
 
   /// **Special constant for server timestamps**
@@ -26,17 +27,18 @@ class FirestoreODM {
   /// ```
   static DateTime get serverTimestamp => _currentServerTimestamp;
 
-  /// Create ODM instance
+  /// The schema instance for type safety
+  final T schema;
+
+  /// Create ODM instance with schema
   ///
   /// Example:
   /// ```dart
-  /// final odm = FirestoreODM(firestore: firestore);
+  /// final odm = FirestoreODM(schema, firestore: firestore);
   /// ```
-  FirestoreODM({FirebaseFirestore? firestore})
+  FirestoreODM(this.schema, {FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Default instance of FirestoreODM
-  static FirestoreODM get instance => FirestoreODM();
 
   /// Get the Firestore instance
   FirebaseFirestore get firestore => _firestore;

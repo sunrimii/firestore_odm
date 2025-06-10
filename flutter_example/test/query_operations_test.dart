@@ -4,15 +4,16 @@ import 'package:firestore_odm/firestore_odm.dart';
 import '../lib/models/user.dart';
 import '../lib/models/profile.dart';
 import '../lib/models/post.dart';
+import '../lib/test_schema.dart';
 
 void main() {
   group('Query Operations Tests', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: fakeFirestore);
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
     });
 
     group('🔍 Basic Filtering', () {

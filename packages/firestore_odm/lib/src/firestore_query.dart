@@ -6,10 +6,11 @@ import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
 import 'services/query_operations_service.dart';
 import 'services/update_operations_service.dart';
+import 'schema.dart';
 
 /// Abstract base class for type-safe Firestore queries
-class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
-  final FirestoreCollection<T> collection;
+class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>, UpdateOperations<T> {
+  final FirestoreCollection<S, T> collection;
 
   /// The underlying Firestore query
   final Query<Map<String, dynamic>> query;
@@ -48,14 +49,14 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
 
   /// Limits the number of results returned
   @override
-  FirestoreQuery<T> limit(int limit) {
-    return FirestoreQuery<T>(collection, _queryService.applyLimit(limit));
+  QueryOperations<T> limit(int limit) {
+    return FirestoreQuery<S, T>(collection, _queryService.applyLimit(limit));
   }
 
   /// Limits the number of results returned from the end
   @override
-  FirestoreQuery<T> limitToLast(int limit) {
-    return FirestoreQuery<T>(collection, _queryService.applyLimitToLast(limit));
+  QueryOperations<T> limitToLast(int limit) {
+    return FirestoreQuery<S, T>(collection, _queryService.applyLimitToLast(limit));
   }
 
   /// Executes the query and returns the results
@@ -65,23 +66,23 @@ class FirestoreQuery<T> implements QueryOperations<T>, UpdateOperations<T> {
   }
 
   @override
-  FirestoreQuery<T> where(
+  QueryOperations<T> where(
     FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
   ) {
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(query, builtFilter);
-    return FirestoreQuery<T>(collection, newQuery);
+    return FirestoreQuery<S, T>(collection, newQuery);
   }
 
   @override
-  FirestoreQuery<T> orderBy(
+  QueryOperations<T> orderBy(
     OrderByField<T> Function(OrderByBuilder<T> order) orderBuilder,
   ) {
     final builder = OrderByBuilder<T>();
     final orderByField = orderBuilder(builder);
     final newQuery = _queryService.applyOrderBy(orderByField);
-    return FirestoreQuery<T>(collection, newQuery);
+    return FirestoreQuery<S, T>(collection, newQuery);
   }
 
   @override

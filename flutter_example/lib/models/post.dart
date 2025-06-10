@@ -3,10 +3,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'post.freezed.dart';
 part 'post.g.dart';
-part 'post.odm.dart';
 
 @freezed
-@Collection('posts')
 abstract class Post with _$Post {
   const factory Post({
     @DocumentIdField() required String id,

@@ -3,12 +3,10 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'simple_story.freezed.dart';
 part 'simple_story.g.dart';
-part 'simple_story.odm.dart'; // This will be generated
 
 /// Test model without explicit @DocumentIdField() annotation
 /// Should automatically use 'id' field as document ID
 @freezed
-@Collection('simple_stories')
 abstract class SimpleStory with _$SimpleStory {
   const factory SimpleStory({
     required String id, // Should be used as document ID automatically

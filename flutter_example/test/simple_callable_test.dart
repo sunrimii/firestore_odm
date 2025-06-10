@@ -3,15 +3,16 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import '../lib/models/user.dart';
 import '../lib/models/profile.dart';
+import '../lib/test_schema.dart';
 
 void main() {
   group('Callable Collection API Tests', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM odm;
+    late FirestoreODM<$TestSchemaImpl> odm;
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(firestore: fakeFirestore);
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
     });
 
     test('should support callable syntax users(id)', () async {
