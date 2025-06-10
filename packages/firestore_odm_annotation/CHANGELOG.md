@@ -1,3 +1,15 @@
+## 1.1.0
+
+ - **REFACTOR**: Remove all hardcoded field names and simplify generator. ([8afa7ecd](https://github.com/sylphxltd/firestore_odm/commit/8afa7ecd03141a8f19aeeecf30cfdfd767009daf))
+ - **FEAT**: Introduce schema-based architecture for Firestore ODM. ([de939d90](https://github.com/sylphxltd/firestore_odm/commit/de939d903821a94c962f0d354e982c3b062dfc30))
+ - **FEAT**: Successfully publish all packages to pub.dev. ([9e10b6c6](https://github.com/sylphxltd/firestore_odm/commit/9e10b6c61897fc4c876c8d30a3b9f2ff3302edb7))
+ - **FEAT**: Complete CI/CD pipeline setup with melos for publishing. ([5f3e440c](https://github.com/sylphxltd/firestore_odm/commit/5f3e440ca1b177a9fa3361792bda02949b3743fe))
+ - **FEAT**: add comprehensive @Collection validation system. ([12659528](https://github.com/sylphxltd/firestore_odm/commit/126595284c0e21d8ffb4cb5f6a46e75e1e17660d))
+ - **FEAT**: refactor to unified @Collection annotation with subcollection support. ([c4330d39](https://github.com/sylphxltd/firestore_odm/commit/c4330d39a898bb6c8caaffffcfa7b2ff6e88cfdc))
+ - **FEAT**: add @DocumentIdField annotation support. ([9cfb884d](https://github.com/sylphxltd/firestore_odm/commit/9cfb884d59d8922ff2b64e819c05f404575c365e))
+ - **FEAT**: restructure as monorepo with strong-typed Firestore ODM. ([b9e6ced0](https://github.com/sylphxltd/firestore_odm/commit/b9e6ced07c38c798ec594a0c96292c86888422f7))
+ - **FEAT**: Convert Firestore ODM to monorepo library. ([279e3547](https://github.com/sylphxltd/firestore_odm/commit/279e35473d592307bec352a9af359a798f2cc224))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
