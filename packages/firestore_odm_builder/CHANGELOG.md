@@ -1,3 +1,13 @@
+## 1.1.2
+
+ - **REFACTOR**: remove unused _getSingularName method. ([8020f9e1](https://github.com/sylphxltd/firestore_odm/commit/8020f9e1dfbca4635ebc964468003fd500239134))
+ - **REFACTOR**: remove obsolete document access method generation. ([09a25af4](https://github.com/sylphxltd/firestore_odm/commit/09a25af416f918108c076777f408943b31aabaf9))
+ - **REFACTOR**: implement callable filter instances to reduce generated code. ([a19b2f11](https://github.com/sylphxltd/firestore_odm/commit/a19b2f11708ff2a74ccc0cfa0c7055e6bf5beb81))
+ - **REFACTOR**: integrate ModelConverter for data transformation across services. ([90979671](https://github.com/sylphxltd/firestore_odm/commit/90979671500403715b910e436ba2108264efc1d3))
+ - **REFACTOR**: remove local path references to firestore_odm_annotation. ([48b84db7](https://github.com/sylphxltd/firestore_odm/commit/48b84db75f4947c122bc57a7090d716b9127dedd))
+ - **REFACTOR**: remove unused imports and obsolete schema generation method. ([86c0525a](https://github.com/sylphxltd/firestore_odm/commit/86c0525acdd3b91125fdec12d1b1007b02dd2bbb))
+ - **REFACTOR**: simplify CollectionInfo and remove unused suffix generation. ([9087b3d1](https://github.com/sylphxltd/firestore_odm/commit/9087b3d1adee124ff461271a13cf5f24d652ea9f))
+
 ## 1.1.1
 
  - **REFACTOR**: improve schema class name generation and add assigned value extraction. ([997aa36a](https://github.com/sylphxltd/firestore_odm/commit/997aa36a53c6c740532ccb3923be9f11e7420aed))

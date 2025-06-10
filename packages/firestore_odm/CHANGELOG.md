@@ -1,3 +1,9 @@
+## 1.1.1
+
+ - **REFACTOR**: implement callable filter instances to reduce generated code. ([a19b2f11](https://github.com/sylphxltd/firestore_odm/commit/a19b2f11708ff2a74ccc0cfa0c7055e6bf5beb81))
+ - **REFACTOR**: integrate ModelConverter for data transformation across services. ([90979671](https://github.com/sylphxltd/firestore_odm/commit/90979671500403715b910e436ba2108264efc1d3))
+ - **REFACTOR**: remove local path references to firestore_odm_annotation. ([48b84db7](https://github.com/sylphxltd/firestore_odm/commit/48b84db75f4947c122bc57a7090d716b9127dedd))
+
 ## 1.1.0
 
  - **REFACTOR**: enhance documentation structure with quick navigation and feature overview. ([8c21f3c6](https://github.com/sylphxltd/firestore_odm/commit/8c21f3c63adf47079d53afa47faaf7e00cef132f))
