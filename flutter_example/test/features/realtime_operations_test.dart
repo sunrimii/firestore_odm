@@ -16,7 +16,7 @@ void main() {
     });
 
     group('🔄 Document Streams', () {
-      test('should listen to document changes', () async {
+      test('should listen to document stream', () async {
         final user = User(
           id: 'stream_user',
           name: 'Stream User',
@@ -37,15 +37,15 @@ void main() {
 
         await odm.users('stream_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('stream_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('stream_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
         await Future.delayed(Duration(milliseconds: 100));
 
-        // Make changes
+        // Make stream
         await odm.users('stream_user').modify((user) => user.copyWith(
           name: 'Updated Stream User',
         ));
@@ -54,24 +54,24 @@ void main() {
           profile: user.profile.copyWith(followers: user.profile.followers + 50),
         ));
 
-        // Wait for changes to propagate
+        // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
 
         await subscription.cancel();
 
-        expect(changes.length, greaterThan(0));
+        expect(stream.length, greaterThan(0));
         
         // The last change should have the updated data
-        final lastUser = changes.last;
+        final lastUser = stream.last;
         expect(lastUser, isNotNull);
         expect(lastUser!.name, equals('Updated Stream User'));
         expect(lastUser.profile.followers, equals(150));
       });
 
       test('should handle null document in stream', () async {
-        final changes = <User?>[];
-        final subscription = odm.users('non_existent_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('non_existent_user').stream.listen((user) {
+          stream.add(user);
         });
 
         await Future.delayed(Duration(milliseconds: 100));
@@ -80,7 +80,7 @@ void main() {
 
         // In fake_cloud_firestore, non-existent documents may not emit initial null
         // This is a limitation of the test environment
-        expect(changes.length, greaterThanOrEqualTo(0));
+        expect(stream.length, greaterThanOrEqualTo(0));
       });
 
       test('should handle document deletion in stream', () async {
@@ -104,9 +104,9 @@ void main() {
 
         await odm.users('delete_stream_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('delete_stream_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('delete_stream_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
@@ -121,17 +121,17 @@ void main() {
         await subscription.cancel();
 
         // In fake_cloud_firestore, deletion streams may behave differently
-        expect(changes.length, greaterThanOrEqualTo(1));
+        expect(stream.length, greaterThanOrEqualTo(1));
         // Find the first non-null change if any
-        final nonNullChanges = changes.where((c) => c != null).toList();
-        if (nonNullChanges.isNotEmpty) {
-          expect(nonNullChanges.first, isNotNull); // Initial state
+        final nonNullstream = stream.where((c) => c != null).toList();
+        if (nonNullstream.isNotEmpty) {
+          expect(nonNullstream.first, isNotNull); // Initial state
         }
       });
     });
 
     group('📊 Collection Streams', () {
-      test('should listen to collection query changes', () async {
+      test('should listen to collection query stream', () async {
         final users = [
           User(
             id: 'collection_user_1',
@@ -250,9 +250,9 @@ void main() {
 
         await odm.users('realtime_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('realtime_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('realtime_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
@@ -274,15 +274,15 @@ void main() {
           ),
         ));
 
-        // Wait for all changes to propagate
+        // Wait for all stream to propagate
         await Future.delayed(Duration(milliseconds: 300));
 
         await subscription.cancel();
 
-        expect(changes.length, greaterThan(1));
+        expect(stream.length, greaterThan(1));
         
         // Verify final state
-        final finalUser = changes.last!;
+        final finalUser = stream.last!;
         expect(finalUser.rating, greaterThan(4.2));
         expect(finalUser.isPremium, isTrue);
         expect(finalUser.profile.followers, equals(300));
@@ -310,9 +310,9 @@ void main() {
 
         await odm.users('concurrent_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('concurrent_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('concurrent_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
@@ -336,15 +336,15 @@ void main() {
 
         await Future.wait(updateFutures);
 
-        // Wait for all changes to propagate
+        // Wait for all stream to propagate
         await Future.delayed(Duration(milliseconds: 400));
 
         await subscription.cancel();
 
-        expect(changes.length, greaterThan(1));
+        expect(stream.length, greaterThan(1));
         
         // Verify that some updates were applied (concurrent updates may vary)
-        final finalUser = changes.last!;
+        final finalUser = stream.last!;
         expect(finalUser.isPremium, isTrue);
         // Note: In fake_cloud_firestore, concurrent updates may not all be applied
         expect(finalUser.rating, greaterThanOrEqualTo(3.8));
@@ -374,20 +374,20 @@ void main() {
 
         await odm.users('multi_sub_user').set(user);
 
-        final changes1 = <User?>[];
-        final changes2 = <User?>[];
-        final changes3 = <User?>[];
+        final stream1 = <User?>[];
+        final stream2 = <User?>[];
+        final stream3 = <User?>[];
 
-        final subscription1 = odm.users('multi_sub_user').changes.listen((user) {
-          changes1.add(user);
+        final subscription1 = odm.users('multi_sub_user').stream.listen((user) {
+          stream1.add(user);
         });
 
-        final subscription2 = odm.users('multi_sub_user').changes.listen((user) {
-          changes2.add(user);
+        final subscription2 = odm.users('multi_sub_user').stream.listen((user) {
+          stream2.add(user);
         });
 
-        final subscription3 = odm.users('multi_sub_user').changes.listen((user) {
-          changes3.add(user);
+        final subscription3 = odm.users('multi_sub_user').stream.listen((user) {
+          stream3.add(user);
         });
 
         // Wait for initial state
@@ -398,21 +398,21 @@ void main() {
           name: 'Updated Multi Subscriber User',
         ));
 
-        // Wait for changes to propagate
+        // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
 
         await subscription1.cancel();
         await subscription2.cancel();
         await subscription3.cancel();
 
-        // All subscribers should have received the changes
-        expect(changes1.length, greaterThan(0));
-        expect(changes2.length, greaterThan(0));
-        expect(changes3.length, greaterThan(0));
+        // All subscribers should have received the stream
+        expect(stream1.length, greaterThan(0));
+        expect(stream2.length, greaterThan(0));
+        expect(stream3.length, greaterThan(0));
 
-        expect(changes1.last!.name, equals('Updated Multi Subscriber User'));
-        expect(changes2.last!.name, equals('Updated Multi Subscriber User'));
-        expect(changes3.last!.name, equals('Updated Multi Subscriber User'));
+        expect(stream1.last!.name, equals('Updated Multi Subscriber User'));
+        expect(stream2.last!.name, equals('Updated Multi Subscriber User'));
+        expect(stream3.last!.name, equals('Updated Multi Subscriber User'));
       });
 
       test('should handle subscription cancellation gracefully', () async {
@@ -436,9 +436,9 @@ void main() {
 
         await odm.users('cancel_sub_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('cancel_sub_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('cancel_sub_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
@@ -447,18 +447,18 @@ void main() {
         // Cancel subscription early
         await subscription.cancel();
 
-        // Make changes after cancellation
+        // Make stream after cancellation
         await odm.users('cancel_sub_user').modify((user) => user.copyWith(
           name: 'Should Not Be Received',
         ));
 
-        // Wait to ensure no new changes are received
+        // Wait to ensure no new stream are received
         await Future.delayed(Duration(milliseconds: 200));
 
         // Should have received initial state, and possibly not the update after cancellation
-        expect(changes.length, greaterThanOrEqualTo(0));
-        if (changes.isNotEmpty) {
-          expect(changes.first!.name, equals('Cancel Subscription User'));
+        expect(stream.length, greaterThanOrEqualTo(0));
+        if (stream.isNotEmpty) {
+          expect(stream.first!.name, equals('Cancel Subscription User'));
         }
       });
     });
@@ -485,9 +485,9 @@ void main() {
 
         await odm.users('high_freq_user').set(user);
 
-        final changes = <User?>[];
-        final subscription = odm.users('high_freq_user').changes.listen((user) {
-          changes.add(user);
+        final stream = <User?>[];
+        final subscription = odm.users('high_freq_user').stream.listen((user) {
+          stream.add(user);
         });
 
         // Wait for initial state
@@ -504,7 +504,7 @@ void main() {
 
         stopwatch.stop();
 
-        // Wait for all changes to propagate
+        // Wait for all stream to propagate
         await Future.delayed(Duration(milliseconds: 300));
 
         await subscription.cancel();
@@ -513,10 +513,10 @@ void main() {
         expect(stopwatch.elapsedMilliseconds, lessThan(5000));
         
         // Should have received multiple updates
-        expect(changes.length, greaterThan(1));
+        expect(stream.length, greaterThan(1));
         
         // Final state should reflect all updates
-        final finalUser = changes.last!;
+        final finalUser = stream.last!;
         expect(finalUser.profile.followers, greaterThanOrEqualTo(300));
       });
     });
