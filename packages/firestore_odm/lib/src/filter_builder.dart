@@ -1,8 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:cloud_firestore_platform_interface/src/field_path_type.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:meta/meta.dart';
 
 /// Filter types
 enum FilterType { field, and, or }
@@ -1163,16 +1161,16 @@ extension UpdateBuilderExtensions on UpdateBuilder {
 abstract class CallableFilter<T, V> {
   final String fieldName;
   final String prefix;
-  
+
   const CallableFilter(this.fieldName, this.prefix);
-  
+
   dynamic get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
 }
 
 /// String field callable filter
 class StringFieldFilter<T> extends CallableFilter<T, String> {
   const StringFieldFilter(super.fieldName, super.prefix);
-  
+
   FirestoreFilter<T> call({
     String? isEqualTo,
     String? isNotEqualTo,
@@ -1256,7 +1254,7 @@ class StringFieldFilter<T> extends CallableFilter<T, String> {
 /// Numeric field callable filter
 class NumericFieldFilter<T, N extends num> extends CallableFilter<T, N> {
   const NumericFieldFilter(super.fieldName, super.prefix);
-  
+
   FirestoreFilter<T> call({
     N? isEqualTo,
     N? isNotEqualTo,
@@ -1340,7 +1338,7 @@ class NumericFieldFilter<T, N extends num> extends CallableFilter<T, N> {
 /// Boolean field callable filter
 class BoolFieldFilter<T> extends CallableFilter<T, bool> {
   const BoolFieldFilter(super.fieldName, super.prefix);
-  
+
   FirestoreFilter<T> call({
     bool? isEqualTo,
     bool? isNotEqualTo,
@@ -1392,7 +1390,7 @@ class BoolFieldFilter<T> extends CallableFilter<T, bool> {
 /// DateTime field callable filter
 class DateTimeFieldFilter<T> extends CallableFilter<T, DateTime> {
   const DateTimeFieldFilter(super.fieldName, super.prefix);
-  
+
   FirestoreFilter<T> call({
     DateTime? isEqualTo,
     DateTime? isNotEqualTo,
@@ -1476,7 +1474,7 @@ class DateTimeFieldFilter<T> extends CallableFilter<T, DateTime> {
 /// Array field callable filter
 class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
   const ArrayFieldFilter(super.fieldName, super.prefix);
-  
+
   FirestoreFilter<T> call({
     List<E>? isEqualTo,
     List<E>? isNotEqualTo,
@@ -1544,10 +1542,10 @@ class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
 /// Document ID callable filter (special case)
 class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
   const DocumentIdFieldFilter(super.fieldName, super.prefix);
-  
+
   @override
   get fieldPath => FieldPathType.documentId;
-  
+
   FirestoreFilter<T> call({
     String? isEqualTo,
     String? isNotEqualTo,

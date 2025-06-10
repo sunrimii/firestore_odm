@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('❌ Advanced Error Handling', () {
@@ -46,9 +46,9 @@ void main() {
 
         // Test updating with null values
         await odm.users('null_test_user').modify((user) => user.copyWith(
-          lastLogin: null,
-          updatedAt: null,
-        ));
+              lastLogin: null,
+              updatedAt: null,
+            ));
 
         final updated = await odm.users('null_test_user').get();
         expect(updated, isNotNull);
@@ -81,7 +81,7 @@ void main() {
 
         await odm.users('extreme_user').set(user);
         final retrieved = await odm.users('extreme_user').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.age, equals(0));
         expect(retrieved.rating, equals(0.0));
@@ -95,8 +95,7 @@ void main() {
           bio: 'x' * 5000, // Large bio
           avatar: 'large.jpg',
           socialLinks: Map.fromEntries(
-            List.generate(100, (i) => MapEntry('platform_$i', 'link_$i'))
-          ),
+              List.generate(100, (i) => MapEntry('platform_$i', 'link_$i'))),
           interests: List.generate(500, (i) => 'interest_$i'),
           followers: 1000000,
         );
@@ -113,17 +112,15 @@ void main() {
           tags: List.generate(100, (i) => 'tag_$i'),
           scores: List.generate(200, (i) => i),
           settings: Map.fromEntries(
-            List.generate(50, (i) => MapEntry('setting_$i', 'value_$i'))
-          ),
-          metadata: Map.fromEntries(
-            List.generate(30, (i) => MapEntry('meta_$i', i))
-          ),
+              List.generate(50, (i) => MapEntry('setting_$i', 'value_$i'))),
+          metadata:
+              Map.fromEntries(List.generate(30, (i) => MapEntry('meta_$i', i))),
           createdAt: DateTime.now(),
         );
 
         await odm.users('large_user').set(largeUser);
         final retrieved = await odm.users('large_user').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.profile.interests.length, equals(500));
         expect(retrieved.tags.length, equals(100));
@@ -152,16 +149,15 @@ void main() {
         await odm.users('concurrent_user').set(user);
 
         // Perform concurrent updates
-        final futures = List.generate(10, (i) => 
-          odm.users('concurrent_user').incrementalModify((user) => 
-            user.copyWith(
-              profile: user.profile.copyWith(followers: user.profile.followers + 1)
-            )
-          )
-        );
+        final futures = List.generate(
+            10,
+            (i) => odm.users('concurrent_user').incrementalModify((user) =>
+                user.copyWith(
+                    profile: user.profile
+                        .copyWith(followers: user.profile.followers + 1))));
 
         await Future.wait(futures);
-        
+
         final updated = await odm.users('concurrent_user').get();
         expect(updated, isNotNull);
         expect(updated!.profile.followers, greaterThan(100));
@@ -176,22 +172,20 @@ void main() {
         // Should throw when updating non-existent document
         expect(
           () => odm.users('non_existent').modify((user) => user.copyWith(
-            name: 'Updated Name',
-          )),
+                name: 'Updated Name',
+              )),
           throwsA(isA<Exception>()),
         );
       });
 
       test('should handle malformed query filters gracefully', () async {
         // These should not throw exceptions, just return empty results
-        final negativeAge = await odm.users
-            .where(($) => $.age(isEqualTo: -1))
-            .get();
+        final negativeAge =
+            await odm.users.where(($) => $.age(isEqualTo: -1)).get();
         expect(negativeAge, isEmpty);
 
-        final impossibleRating = await odm.users
-            .where(($) => $.rating(isGreaterThan: 10.0))
-            .get();
+        final impossibleRating =
+            await odm.users.where(($) => $.rating(isGreaterThan: 10.0)).get();
         expect(impossibleRating, isEmpty);
       });
 
@@ -218,14 +212,14 @@ void main() {
 
         try {
           await odm.runTransaction(() async {
-            await odm.users('transaction_user').modify((user) => 
-              user.copyWith(isPremium: true)
-            );
-            
+            await odm
+                .users('transaction_user')
+                .modify((user) => user.copyWith(isPremium: true));
+
             // Simulate an error that would cause rollback
             throw Exception('Simulated error');
           });
-          
+
           fail('Transaction should have thrown an exception');
         } catch (e) {
           expect(e.toString(), contains('Simulated error'));
@@ -264,39 +258,41 @@ void main() {
 
         // Perform rapid operations
         for (int i = 0; i < 50; i++) {
-          await odm.users('rapid_user').incrementalModify((user) => 
-            user.copyWith(
-              profile: user.profile.copyWith(followers: user.profile.followers + 1)
-            )
-          );
+          await odm.users('rapid_user').incrementalModify((user) =>
+              user.copyWith(
+                  profile: user.profile
+                      .copyWith(followers: user.profile.followers + 1)));
         }
 
         stopwatch.stop();
 
         final finalUser = await odm.users('rapid_user').get();
         expect(finalUser!.profile.followers, equals(100));
-        expect(stopwatch.elapsedMilliseconds, lessThan(30000)); // Should complete within 30 seconds
+        expect(stopwatch.elapsedMilliseconds,
+            lessThan(30000)); // Should complete within 30 seconds
       });
 
       test('should handle bulk operations on large datasets', () async {
         // Create many users
-        final users = List.generate(100, (index) => User(
-          id: 'bulk_user_$index',
-          name: 'Bulk User $index',
-          email: 'bulk$index@example.com',
-          age: 20 + (index % 50),
-          profile: Profile(
-            bio: 'Bulk user $index',
-            avatar: 'bulk$index.jpg',
-            socialLinks: {},
-            interests: ['bulk_testing'],
-            followers: index * 2,
-          ),
-          rating: 1.0 + (index % 5),
-          isActive: index % 2 == 0,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        ));
+        final users = List.generate(
+            100,
+            (index) => User(
+                  id: 'bulk_user_$index',
+                  name: 'Bulk User $index',
+                  email: 'bulk$index@example.com',
+                  age: 20 + (index % 50),
+                  profile: Profile(
+                    bio: 'Bulk user $index',
+                    avatar: 'bulk$index.jpg',
+                    socialLinks: {},
+                    interests: ['bulk_testing'],
+                    followers: index * 2,
+                  ),
+                  rating: 1.0 + (index % 5),
+                  isActive: index % 2 == 0,
+                  isPremium: false,
+                  createdAt: DateTime.now(),
+                ));
 
         // Create all users
         final createFutures = users.map((user) => odm.users(user.id).set(user));
@@ -308,16 +304,16 @@ void main() {
             .modify((user) => user.copyWith(isPremium: true));
 
         // Verify updates
-        final updatedUsers = await odm.users
-            .where(($) => $.isPremium(isEqualTo: true))
-            .get();
+        final updatedUsers =
+            await odm.users.where(($) => $.isPremium(isEqualTo: true)).get();
 
         expect(updatedUsers.length, equals(100));
       });
     });
 
     group('🔒 Data Integrity', () {
-      test('should maintain data consistency during complex operations', () async {
+      test('should maintain data consistency during complex operations',
+          () async {
         final user = User(
           id: 'integrity_user',
           name: 'Integrity User',
@@ -347,29 +343,30 @@ void main() {
 
         // Perform complex nested updates
         await odm.users('integrity_user').modify((user) => user.copyWith(
-          profile: user.profile.copyWith(
-            socialLinks: {
-              ...user.profile.socialLinks,
-              'linkedin': 'https://linkedin.com/in/integrity',
-            },
-            interests: [...user.profile.interests, 'linkedin'],
-          ),
-          tags: [...user.tags, 'updated'],
-          settings: {
-            ...user.settings,
-            'new_feature': 'enabled',
-          },
-          metadata: {
-            ...user.metadata,
-            'version': 3,
-          },
-        ));
+              profile: user.profile.copyWith(
+                socialLinks: {
+                  ...user.profile.socialLinks,
+                  'linkedin': 'https://linkedin.com/in/integrity',
+                },
+                interests: [...user.profile.interests, 'linkedin'],
+              ),
+              tags: [...user.tags, 'updated'],
+              settings: {
+                ...user.settings,
+                'new_feature': 'enabled',
+              },
+              metadata: {
+                ...user.metadata,
+                'version': 3,
+              },
+            ));
 
         final updated = await odm.users('integrity_user').get();
-        
+
         expect(updated, isNotNull);
         expect(updated!.profile.socialLinks.length, equals(3));
-        expect(updated.profile.socialLinks['linkedin'], equals('https://linkedin.com/in/integrity'));
+        expect(updated.profile.socialLinks['linkedin'],
+            equals('https://linkedin.com/in/integrity'));
         expect(updated.profile.interests, contains('linkedin'));
         expect(updated.tags, contains('updated'));
         expect(updated.settings['new_feature'], equals('enabled'));
@@ -400,7 +397,7 @@ void main() {
 
         await odm.users('special_user_äöü').set(specialUser);
         final retrieved = await odm.users('special_user_äöü').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.name, equals('Special User äöü 中文 🚀'));
         expect(retrieved.profile.bio, equals('Special chars: äöü中文🚀"\'<>&'));

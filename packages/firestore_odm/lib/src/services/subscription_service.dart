@@ -50,11 +50,12 @@ class SubscriptionService<T> {
               log('Document data changed: ${event.data()}');
               final data = event.data();
               if (data != null) {
-                final processedData = FirestoreDataProcessor.processFirestoreData(
-                  data,
-                  documentIdField: documentIdField,
-                  documentId: event.id,
-                );
+                final processedData =
+                    FirestoreDataProcessor.processFirestoreData(
+                      data,
+                      documentIdField: documentIdField,
+                      documentId: event.id,
+                    );
                 final model = converter.fromJson(processedData);
                 _controller.add(model);
               } else {
@@ -74,7 +75,6 @@ class SubscriptionService<T> {
       _subscription = null;
     };
   }
-
 
   /// Start listening to real-time updates manually
   void startListening() {
@@ -135,10 +135,7 @@ class SubscriptionService<T> {
     required Query<Map<String, dynamic>> query,
     required ModelConverter<T> converter,
   }) {
-    return QuerySubscriptionService<T>(
-      query: query,
-      converter: converter,
-    );
+    return QuerySubscriptionService<T>(query: query, converter: converter);
   }
 }
 
@@ -157,10 +154,7 @@ class QuerySubscriptionService<T> {
   final StreamController<List<T>> _queryController =
       StreamController.broadcast();
 
-  QuerySubscriptionService({
-    required this.query,
-    required this.converter,
-  }) {
+  QuerySubscriptionService({required this.query, required this.converter}) {
     _setupQuerySubscription();
   }
 

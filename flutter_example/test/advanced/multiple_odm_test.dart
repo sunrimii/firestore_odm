@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/post.dart';
-import '../../lib/models/simple_story.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🏢 Multiple ODM Instance Tests', () {
@@ -17,14 +17,15 @@ void main() {
     setUp(() {
       mainFirestore = FakeFirebaseFirestore();
       analyticsFirestore = FakeFirebaseFirestore();
-      
+
       // Create multiple ODM instances with different Firestore instances
       mainODM = FirestoreODM(testSchema, firestore: mainFirestore);
       analyticsODM = FirestoreODM(testSchema, firestore: analyticsFirestore);
     });
 
     group('🔗 Independent ODM Instances', () {
-      test('should maintain separate data across different ODM instances', () async {
+      test('should maintain separate data across different ODM instances',
+          () async {
         final mainUser = User(
           id: 'main_user',
           name: 'Main User',
@@ -67,7 +68,8 @@ void main() {
 
         // Verify data isolation
         final mainRetrieved = await mainODM.users('main_user').get();
-        final analyticsRetrieved = await analyticsODM.users('analytics_user').get();
+        final analyticsRetrieved =
+            await analyticsODM.users('analytics_user').get();
 
         expect(mainRetrieved, isNotNull);
         expect(mainRetrieved!.name, equals('Main User'));
@@ -85,9 +87,10 @@ void main() {
         expect(crossAnalyticsUser, isNull);
       });
 
-      test('should handle same user ID across different ODM instances', () async {
+      test('should handle same user ID across different ODM instances',
+          () async {
         final sameId = 'shared_user_id';
-        
+
         final mainUserData = User(
           id: sameId,
           name: 'Main Version',
@@ -147,7 +150,7 @@ void main() {
     group('🔄 Independent Operations', () {
       test('should perform independent updates across ODM instances', () async {
         final userId = 'update_test_user';
-        
+
         final initialUser = User(
           id: userId,
           name: 'Update Test User',
@@ -173,19 +176,21 @@ void main() {
 
         // Perform different updates in each ODM instance
         await mainODM.users(userId).update(($) => [
-          $.name('Main Updated User'),
-          $.rating.increment(1.0),
-          $.isPremium(true),
-        ]);
+              $.name('Main Updated User'),
+              $.rating.increment(1.0),
+              $.isPremium(true),
+            ]);
 
-        await analyticsODM.users(userId).incrementalModify((user) => user.copyWith(
-          name: 'Analytics Updated User',
-          age: user.age + 5,
-          profile: user.profile.copyWith(
-            followers: user.profile.followers + 50,
-          ),
-          scores: [user.scores.first + 200],
-        ));
+        await analyticsODM
+            .users(userId)
+            .incrementalModify((user) => user.copyWith(
+                  name: 'Analytics Updated User',
+                  age: user.age + 5,
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 50,
+                  ),
+                  scores: [user.scores.first + 200],
+                ));
 
         // Verify independent updates
         final mainUpdated = await mainODM.users(userId).get();
@@ -373,8 +378,10 @@ void main() {
         await mainODM.users(user.id).posts(userPost.id).set(userPost);
 
         // Verify subcollection access
-        final mainSubPost = await mainODM.users(user.id).posts(userPost.id).get();
-        final analyticsSubPost = await analyticsODM.users(user.id).posts(userPost.id).get();
+        final mainSubPost =
+            await mainODM.users(user.id).posts(userPost.id).get();
+        final analyticsSubPost =
+            await analyticsODM.users(user.id).posts(userPost.id).get();
 
         expect(mainSubPost, isNotNull);
         expect(mainSubPost!.title, equals('Subcollection Post'));
@@ -384,9 +391,10 @@ void main() {
     });
 
     group('🔄 Transaction Independence', () {
-      test('should handle independent transactions across ODM instances', () async {
+      test('should handle independent transactions across ODM instances',
+          () async {
         final userId = 'tx_independence_user';
-        
+
         final initialUser = User(
           id: userId,
           name: 'TX Independence User',
@@ -415,16 +423,18 @@ void main() {
           mainODM.runTransaction(() async {
             final user = await mainODM.users(userId).get();
             await mainODM.users(userId).update(($) => [
-              $.name('Main TX User'),
-              $.rating.increment(1.0),
-            ]);
+                  $.name('Main TX User'),
+                  $.rating.increment(1.0),
+                ]);
           }),
           analyticsODM.runTransaction(() async {
             final user = await analyticsODM.users(userId).get();
-            await analyticsODM.users(userId).incrementalModify((user) => user.copyWith(
-              name: 'Analytics TX User',
-              scores: [user.scores.first + 500],
-            ));
+            await analyticsODM
+                .users(userId)
+                .incrementalModify((user) => user.copyWith(
+                      name: 'Analytics TX User',
+                      scores: [user.scores.first + 500],
+                    ));
           }),
         ]);
 
@@ -481,15 +491,17 @@ void main() {
 
         // Main app performs regular operations
         await mainODM.users(user.id).update(($) => [
-          $.lastLogin.serverTimestamp(),
-          $.profile.followers.increment(10),
-        ]);
+              $.lastLogin.serverTimestamp(),
+              $.profile.followers.increment(10),
+            ]);
 
         // Analytics performs aggregation operations
-        await analyticsODM.users(user.id).incrementalModify((user) => user.copyWith(
-          scores: [user.scores.first + 50], // Track engagement score
-          tags: [...user.tags, 'analytics_processed'],
-        ));
+        await analyticsODM
+            .users(user.id)
+            .incrementalModify((user) => user.copyWith(
+                  scores: [user.scores.first + 50], // Track engagement score
+                  tags: [...user.tags, 'analytics_processed'],
+                ));
 
         // Verify data separation
         final mainFinal = await mainODM.users(user.id).get();

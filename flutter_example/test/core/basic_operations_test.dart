@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🔥 Core Basic Operations', () {
@@ -51,7 +51,7 @@ void main() {
 
         await odm.users('test_user').set(user);
         final retrieved = await odm.users('test_user').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('test_user'));
         expect(retrieved.name, equals('Test User'));
@@ -80,9 +80,9 @@ void main() {
         await odm.users('update_user').set(user);
 
         await odm.users('update_user').modify((user) => user.copyWith(
-          name: 'Updated Name',
-          isActive: true,
-        ));
+              name: 'Updated Name',
+              isActive: true,
+            ));
 
         final updated = await odm.users('update_user').get();
         expect(updated!.name, equals('Updated Name'));
@@ -110,7 +110,7 @@ void main() {
 
         await odm.users('delete_user').set(user);
         await odm.users('delete_user').delete();
-        
+
         final deleted = await odm.users('delete_user').get();
         expect(deleted, isNull);
       });
@@ -159,9 +159,8 @@ void main() {
           await odm.users(user.id).set(user);
         }
 
-        final activeUsers = await odm.users
-            .where(($) => $.isActive(isEqualTo: true))
-            .get();
+        final activeUsers =
+            await odm.users.where(($) => $.isActive(isEqualTo: true)).get();
 
         expect(activeUsers.length, equals(1));
         expect(activeUsers.first.name, equals('Active User'));

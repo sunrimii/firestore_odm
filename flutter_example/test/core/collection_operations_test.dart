@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🔥 Collection Insert & Update Operations', () {
@@ -106,7 +106,9 @@ void main() {
         );
       });
 
-      test('should fail to insert when document already exists with same model ID', () async {
+      test(
+          'should fail to insert when document already exists with same model ID',
+          () async {
         final user1 = User(
           id: 'conflict_user',
           name: 'User 1',
@@ -182,7 +184,7 @@ void main() {
         // Verify at least one document was created
         final allUsers = await odm.users.get();
         expect(allUsers.length, greaterThan(0));
-        
+
         // Find the user we just inserted
         final insertedUser = allUsers.firstWhere(
           (u) => u.name == 'Auto ID User',

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'filter_builder.dart';
 
 /// Field builder for numeric operations

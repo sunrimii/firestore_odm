@@ -48,8 +48,12 @@ class ODMExtensionGenerator {
         '  FirestoreCollection<S, $className> get ${StringHelpers.camelCase(collectionPath)} => FirestoreCollection<S, $className>(',
       );
       buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
-      buffer.writeln('    fromJson: ${StringHelpers.camelCase(className)}FromJson,');
-      buffer.writeln('    toJson: ${StringHelpers.camelCase(className)}ToJson,');
+      buffer.writeln(
+        '    fromJson: ${StringHelpers.camelCase(className)}FromJson,',
+      );
+      buffer.writeln(
+        '    toJson: ${StringHelpers.camelCase(className)}ToJson,',
+      );
       buffer.writeln('  );');
 
       buffer.writeln('}');
@@ -70,13 +74,16 @@ class ODMExtensionGenerator {
     if (collectionsOnly.length >= 2) {
       final parentCollection = collectionsOnly[collectionsOnly.length - 2];
       final childCollection = collectionsOnly.last;
-      
+
       // Use collectionTypeMap to get the correct parent type
-      final parentTypeName = collectionTypeMap[parentCollection] ??
-          StringHelpers.capitalize(parentCollection.replaceAll(RegExp(r's$'), ''));
-      
+      final parentTypeName =
+          collectionTypeMap[parentCollection] ??
+          StringHelpers.capitalize(
+            parentCollection.replaceAll(RegExp(r's$'), ''),
+          );
+
       final childCollectionName = StringHelpers.camelCase(childCollection);
-      
+
       // Use generic collection class name
       final collectionClassName = '${className}Collection';
 
@@ -94,8 +101,12 @@ class ODMExtensionGenerator {
         '  FirestoreCollection<S, $className> get $childCollectionName => FirestoreCollection<S, $className>(',
       );
       buffer.writeln('    ref: ref.collection(\'$subcollectionName\'),');
-      buffer.writeln('    fromJson: ${StringHelpers.camelCase(className)}FromJson,');
-      buffer.writeln('    toJson: ${StringHelpers.camelCase(className)}ToJson,');
+      buffer.writeln(
+        '    fromJson: ${StringHelpers.camelCase(className)}FromJson,',
+      );
+      buffer.writeln(
+        '    toJson: ${StringHelpers.camelCase(className)}ToJson,',
+      );
       buffer.writeln('  );');
       buffer.writeln('}');
       buffer.writeln('');

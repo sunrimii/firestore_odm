@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
-import 'package:firestore_odm/src/firestore_odm.dart';
 import 'firestore_document.dart';
 import 'firestore_query.dart';
 import 'services/query_operations_service.dart';
@@ -10,7 +9,6 @@ import 'filter_builder.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
 import 'interfaces/collection_operations.dart';
-import 'interfaces/subscribe_operations.dart';
 import 'schema.dart';
 import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
@@ -18,7 +16,10 @@ import 'model_converter.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
-    implements QueryOperations<T>, UpdateOperations<T>, CollectionOperations<T> {
+    implements
+        QueryOperations<T>,
+        UpdateOperations<T>,
+        CollectionOperations<T> {
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
@@ -40,10 +41,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   String get documentIdField => 'id';
 
   /// Creates a new FirestoreCollection instance
-  FirestoreCollection({
-    required this.ref,
-    required this.converter,
-  }) {
+  FirestoreCollection({required this.ref, required this.converter}) {
     _queryService = QueryOperationsService<T>(
       query: ref,
       converter: converter,
@@ -142,39 +140,46 @@ class FirestoreCollection<S extends FirestoreSchema, T>
       mapData,
       documentIdField,
     );
-    
+
     if (documentId == null) {
       throw ArgumentError(
         'Document ID field \'$documentIdField\' must not be null for insert operation',
       );
     }
-    
+
     // If ID is empty string, let Firestore generate a unique ID
     if (documentId.isEmpty) {
       final processedData = DocumentIdHandler.removeDocumentIdField(
         mapData,
         documentIdField,
       );
-      final serializedData = FirestoreDataProcessor.serializeForFirestore(processedData);
+      final serializedData = FirestoreDataProcessor.serializeForFirestore(
+        processedData,
+      );
       await ref.add(serializedData);
       return;
     }
-    
+
     // For non-empty IDs, use the normal validation path
-    final (json, validatedDocumentId) = FirestoreDataProcessor.toJsonAndDocumentId(
+    final (
+      json,
+      validatedDocumentId,
+    ) = FirestoreDataProcessor.toJsonAndDocumentId(
       toJson,
       value,
       documentIdField: documentIdField,
     );
-    
+
     // Check if document already exists
     final docRef = ref.doc(validatedDocumentId!);
     final docSnapshot = await docRef.get();
-    
+
     if (docSnapshot.exists) {
-      throw StateError('Document with ID \'$validatedDocumentId\' already exists. Use upsert() to update existing documents.');
+      throw StateError(
+        'Document with ID \'$validatedDocumentId\' already exists. Use upsert() to update existing documents.',
+      );
     }
-    
+
     await docRef.set(json);
   }
 
@@ -186,21 +191,23 @@ class FirestoreCollection<S extends FirestoreSchema, T>
       value,
       documentIdField: documentIdField,
     );
-    
+
     if (documentId == null) {
       throw ArgumentError(
         'Document ID field \'$documentIdField\' must not be null for update operation',
       );
     }
-    
+
     // Check if document exists
     final docRef = ref.doc(documentId);
     final docSnapshot = await docRef.get();
-    
+
     if (!docSnapshot.exists) {
-      throw StateError('Document with ID \'$documentId\' does not exist. Use insert() or upsert() to create new documents.');
+      throw StateError(
+        'Document with ID \'$documentId\' does not exist. Use insert() or upsert() to create new documents.',
+      );
     }
-    
+
     await docRef.set(json);
   }
 
@@ -226,11 +233,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   TupleAggregateQuery<T, R> aggregate<R extends Record>(
     R Function(AggregateFieldSelector<T> selector) builder,
   ) {
-    return TupleAggregateQuery<T, R>(
-      ref,
-      converter,
-      builder,
-    );
+    return TupleAggregateQuery<T, R>(ref, converter, builder);
   }
 
   /// Stream of collection changes for real-time updates

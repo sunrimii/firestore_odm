@@ -39,7 +39,7 @@ abstract class DailyMission with _$DailyMission {
   const factory DailyMission({
     required String id,
     required String
-    type, // complete_puzzles, solve_without_hints, learn_words, etc.
+        type, // complete_puzzles, solve_without_hints, learn_words, etc.
     required String description,
     required int targetCount,
     required int rewardTokens,

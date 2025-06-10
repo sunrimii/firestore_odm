@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Core data processing utilities for Firestore ODM
 class FirestoreDataProcessor {

@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/models/post.dart';
-import '../../lib/models/simple_story.dart';
-import '../../lib/models/shared_post.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/shared_post.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🏗️ Architecture Validation', () {
@@ -25,39 +25,47 @@ void main() {
         expect(() => odm.posts, returnsNormally);
         expect(() => odm.simpleStories, returnsNormally);
         expect(() => odm.sharedPosts, returnsNormally);
-        
+
         // Verify schema type
         expect(odm.schema, isA<TestSchema>());
       });
 
-      test('should validate collection relationships are correctly processed', () {
+      test('should validate collection relationships are correctly processed',
+          () {
         // Root collections should have correct paths
         expect(odm.users.ref.path, equals('users'));
         expect(odm.posts.ref.path, equals('posts'));
         expect(odm.simpleStories.ref.path, equals('simpleStories'));
         expect(odm.sharedPosts.ref.path, equals('sharedPosts'));
-        
+
         // Subcollections should be accessible through parent documents
         final userDoc = odm.users('test_user');
         expect(userDoc.posts.ref.path, equals('users/test_user/posts'));
-        expect(userDoc.sharedPosts.ref.path, equals('users/test_user/sharedPosts'));
+        expect(userDoc.sharedPosts.ref.path,
+            equals('users/test_user/sharedPosts'));
       });
 
-      test('should validate unified validation completed before generation', () {
+      test('should validate unified validation completed before generation',
+          () {
         // All model types should be properly typed
         expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
         expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
-        expect(odm.simpleStories, isA<FirestoreCollection<TestSchema, SimpleStory>>());
-        expect(odm.sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
-        
+        expect(odm.simpleStories,
+            isA<FirestoreCollection<TestSchema, SimpleStory>>());
+        expect(odm.sharedPosts,
+            isA<FirestoreCollection<TestSchema, SharedPost>>());
+
         // Subcollections should also be properly typed
-        expect(odm.users('test').posts, isA<FirestoreCollection<TestSchema, Post>>());
-        expect(odm.users('test').sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
+        expect(odm.users('test').posts,
+            isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.users('test').sharedPosts,
+            isA<FirestoreCollection<TestSchema, SharedPost>>());
       });
     });
 
     group('⚡ High-Efficiency Generation Validation', () {
-      test('should validate converters work efficiently across all models', () async {
+      test('should validate converters work efficiently across all models',
+          () async {
         // Test all model types to ensure converters are generated correctly
         final user = User(
           id: 'converter_test_user',
@@ -118,78 +126,83 @@ void main() {
         // Verify all conversions work correctly
         final retrievedUser = await odm.users('converter_test_user').get();
         final retrievedPost = await odm.posts('converter_test_post').get();
-        final retrievedStory = await odm.simpleStories('converter_test_story').get();
-        final retrievedShared = await odm.sharedPosts('converter_test_shared').get();
+        final retrievedStory =
+            await odm.simpleStories('converter_test_story').get();
+        final retrievedShared =
+            await odm.sharedPosts('converter_test_shared').get();
 
         expect(retrievedUser, isNotNull);
         expect(retrievedPost, isNotNull);
         expect(retrievedStory, isNotNull);
         expect(retrievedShared, isNotNull);
-        
+
         expect(retrievedUser!.name, equals('Converter Test'));
         expect(retrievedPost!.title, equals('Converter Test Post'));
         expect(retrievedStory!.title, equals('Converter Test Story'));
         expect(retrievedShared!.title, equals('Converter Test Shared'));
       });
 
-      test('should validate no runtime data collection during operations', () async {
+      test('should validate no runtime data collection during operations',
+          () async {
         final stopwatch = Stopwatch()..start();
-        
+
         // Perform operations that should be fast due to pre-analysis
         final operations = <Future>[];
-        
+
         for (int i = 0; i < 20; i++) {
           operations.addAll([
             odm.users('perf_user_$i').set(User(
-              id: 'perf_user_$i',
-              name: 'Performance User $i',
-              email: 'perf$i@example.com',
-              age: 20 + i,
-              profile: Profile(
-                bio: 'Performance test $i',
-                avatar: 'perf$i.jpg',
-                socialLinks: {},
-                interests: ['performance'],
-                followers: i * 10,
-              ),
-              rating: 1.0 + i * 0.1,
-              isActive: true,
-              isPremium: false,
-              createdAt: DateTime.now(),
-            )),
+                  id: 'perf_user_$i',
+                  name: 'Performance User $i',
+                  email: 'perf$i@example.com',
+                  age: 20 + i,
+                  profile: Profile(
+                    bio: 'Performance test $i',
+                    avatar: 'perf$i.jpg',
+                    socialLinks: {},
+                    interests: ['performance'],
+                    followers: i * 10,
+                  ),
+                  rating: 1.0 + i * 0.1,
+                  isActive: true,
+                  isPremium: false,
+                  createdAt: DateTime.now(),
+                )),
             odm.posts('perf_post_$i').set(Post(
-              id: 'perf_post_$i',
-              title: 'Performance Post $i',
-              content: 'Performance test content $i',
-              authorId: 'perf_user_$i',
-              tags: ['performance'],
-              metadata: {},
-              likes: i,
-              published: true,
-              createdAt: DateTime.now(),
-            )),
+                  id: 'perf_post_$i',
+                  title: 'Performance Post $i',
+                  content: 'Performance test content $i',
+                  authorId: 'perf_user_$i',
+                  tags: ['performance'],
+                  metadata: {},
+                  likes: i,
+                  published: true,
+                  createdAt: DateTime.now(),
+                )),
           ]);
         }
-        
+
         await Future.wait(operations);
-        
+
         final operationTime = stopwatch.elapsedMilliseconds;
         stopwatch.stop();
-        
+
         // Operations should be fast due to efficient pre-generation
-        expect(operationTime, lessThan(15000)); // 15 seconds max for 40 operations
-        
+        expect(
+            operationTime, lessThan(15000)); // 15 seconds max for 40 operations
+
         // Verify all operations completed successfully
         final users = await odm.users.limit(25).get();
         final posts = await odm.posts.limit(25).get();
-        
+
         expect(users.length, greaterThanOrEqualTo(20));
         expect(posts.length, greaterThanOrEqualTo(20));
       });
     });
 
     group('🔗 Collection Type Mapping & Schema Integration', () {
-      test('should validate consistent type mapping across collections', () async {
+      test('should validate consistent type mapping across collections',
+          () async {
         // Test that the same model works consistently across different collection paths
         final sharedPost1 = SharedPost(
           id: 'shared_1',
@@ -219,14 +232,15 @@ void main() {
 
         // Retrieve from both paths
         final rootSharedPost = await odm.sharedPosts('shared_1').get();
-        final subSharedPost = await odm.users('author1').sharedPosts('shared_2').get();
+        final subSharedPost =
+            await odm.users('author1').sharedPosts('shared_2').get();
 
         expect(rootSharedPost, isNotNull);
         expect(subSharedPost, isNotNull);
-        
+
         expect(rootSharedPost!.title, equals('Shared Post 1'));
         expect(subSharedPost!.title, equals('Shared Post 2'));
-        
+
         // Both should be the same type despite different collection paths
         expect(rootSharedPost, isA<SharedPost>());
         expect(subSharedPost, isA<SharedPost>());
@@ -237,11 +251,12 @@ void main() {
         expect(odm.posts.ref.path, equals('posts'));
         expect(odm.sharedPosts.ref.path, equals('sharedPosts'));
         expect(odm.simpleStories.ref.path, equals('simpleStories'));
-        
+
         // Subcollections should also have different paths
         expect(odm.users('test').posts.ref.path, equals('users/test/posts'));
-        expect(odm.users('test').sharedPosts.ref.path, equals('users/test/sharedPosts'));
-        
+        expect(odm.users('test').sharedPosts.ref.path,
+            equals('users/test/sharedPosts'));
+
         // No path conflicts should exist
         final paths = {
           odm.users.ref.path,
@@ -249,7 +264,7 @@ void main() {
           odm.sharedPosts.ref.path,
           odm.simpleStories.ref.path,
         };
-        
+
         expect(paths.length, equals(4)); // All paths should be unique
       });
     });
@@ -259,12 +274,14 @@ void main() {
         // Each collection should have clear, focused functionality
         expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
         expect(() => odm.users('test_id'), returnsNormally);
-        expect(() => odm.users.where(($) => $.name(isEqualTo: 'test')), returnsNormally);
-        
+        expect(() => odm.users.where(($) => $.name(isEqualTo: 'test')),
+            returnsNormally);
+
         expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
         expect(() => odm.posts('test_id'), returnsNormally);
-        expect(() => odm.posts.where(($) => $.title(isEqualTo: 'test')), returnsNormally);
-        
+        expect(() => odm.posts.where(($) => $.title(isEqualTo: 'test')),
+            returnsNormally);
+
         // Each should be independently functional
         expect(odm.users.ref.path, isNot(equals(odm.posts.ref.path)));
       });
@@ -301,17 +318,18 @@ void main() {
         expect(filtered.length, equals(1));
 
         // Updates should work independently
-        await odm.users('separation_user').modify((user) => 
-          user.copyWith(age: 26)
-        );
-        
+        await odm
+            .users('separation_user')
+            .modify((user) => user.copyWith(age: 26));
+
         final updated = await odm.users('separation_user').get();
         expect(updated!.age, equals(26));
       });
     });
 
     group('🚀 Scalability & Extensibility', () {
-      test('should validate system handles all model types efficiently', () async {
+      test('should validate system handles all model types efficiently',
+          () async {
         // Test that the architecture can handle all defined model types
         final user = User(
           id: 'scalability_user',
@@ -372,8 +390,10 @@ void main() {
         // Verify all types work correctly
         final retrievedUser = await odm.users('scalability_user').get();
         final retrievedPost = await odm.posts('scalability_post').get();
-        final retrievedStory = await odm.simpleStories('scalability_story').get();
-        final retrievedShared = await odm.sharedPosts('scalability_shared').get();
+        final retrievedStory =
+            await odm.simpleStories('scalability_story').get();
+        final retrievedShared =
+            await odm.sharedPosts('scalability_shared').get();
 
         expect(retrievedUser, isNotNull);
         expect(retrievedPost, isNotNull);
@@ -388,64 +408,64 @@ void main() {
 
       test('should validate performance remains consistent', () async {
         final stopwatch = Stopwatch()..start();
-        
+
         // Perform operations across all model types
         final operations = <Future>[];
-        
+
         for (int i = 0; i < 10; i++) {
           operations.addAll([
             odm.users('perf_test_user_$i').set(User(
-              id: 'perf_test_user_$i',
-              name: 'Performance User $i',
-              email: 'perf$i@test.com',
-              age: 20 + i,
-              profile: Profile(
-                bio: 'Performance test',
-                avatar: 'perf.jpg',
-                socialLinks: {},
-                interests: ['performance'],
-                followers: i * 10,
-              ),
-              rating: 1.0 + i * 0.1,
-              isActive: true,
-              isPremium: false,
-              createdAt: DateTime.now(),
-            )),
+                  id: 'perf_test_user_$i',
+                  name: 'Performance User $i',
+                  email: 'perf$i@test.com',
+                  age: 20 + i,
+                  profile: Profile(
+                    bio: 'Performance test',
+                    avatar: 'perf.jpg',
+                    socialLinks: {},
+                    interests: ['performance'],
+                    followers: i * 10,
+                  ),
+                  rating: 1.0 + i * 0.1,
+                  isActive: true,
+                  isPremium: false,
+                  createdAt: DateTime.now(),
+                )),
             odm.posts('perf_test_post_$i').set(Post(
-              id: 'perf_test_post_$i',
-              title: 'Performance Post $i',
-              content: 'Performance content $i',
-              authorId: 'perf_test_user_$i',
-              tags: ['performance'],
-              metadata: {},
-              likes: i,
-              published: true,
-              createdAt: DateTime.now(),
-            )),
+                  id: 'perf_test_post_$i',
+                  title: 'Performance Post $i',
+                  content: 'Performance content $i',
+                  authorId: 'perf_test_user_$i',
+                  tags: ['performance'],
+                  metadata: {},
+                  likes: i,
+                  published: true,
+                  createdAt: DateTime.now(),
+                )),
             odm.simpleStories('perf_test_story_$i').set(SimpleStory(
-              id: 'perf_test_story_$i',
-              title: 'Performance Story $i',
-              content: 'Performance story $i',
-              authorId: 'perf_test_user_$i',
-              tags: ['performance'],
-              createdAt: DateTime.now(),
-            )),
+                  id: 'perf_test_story_$i',
+                  title: 'Performance Story $i',
+                  content: 'Performance story $i',
+                  authorId: 'perf_test_user_$i',
+                  tags: ['performance'],
+                  createdAt: DateTime.now(),
+                )),
           ]);
         }
-        
+
         await Future.wait(operations);
-        
+
         final totalTime = stopwatch.elapsedMilliseconds;
         stopwatch.stop();
-        
+
         // Performance should remain reasonable
         expect(totalTime, lessThan(20000)); // 20 seconds max for 30 operations
-        
+
         // Verify all operations completed
         final userCount = (await odm.users.limit(15).get()).length;
         final postCount = (await odm.posts.limit(15).get()).length;
         final storyCount = (await odm.simpleStories.limit(15).get()).length;
-        
+
         expect(userCount, greaterThanOrEqualTo(10));
         expect(postCount, greaterThanOrEqualTo(10));
         expect(storyCount, greaterThanOrEqualTo(10));

@@ -22,7 +22,8 @@ class FirestoreDocumentNotFoundException implements Exception {
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperations<T> {
+class FirestoreDocument<S extends FirestoreSchema, T>
+    implements DocumentOperations<T> {
   /// The collection this document belongs to (nullable for fromRef constructor)
   final FirestoreCollection<S, T>? collection;
 
@@ -57,10 +58,11 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
   /// Creates a new FirestoreDocument instance from a DocumentReference
   /// This constructor is used when creating documents directly from schema extensions
   FirestoreDocument.fromRef(
-    DocumentReference<Map<String, dynamic>> documentRef,
-    {required ModelConverter<T> converter,
-    String? documentIdField}
-  ) : collection = null, id = documentRef.id {
+    DocumentReference<Map<String, dynamic>> documentRef, {
+    required ModelConverter<T> converter,
+    String? documentIdField,
+  }) : collection = null,
+       id = documentRef.id {
     _updateService = UpdateOperationsService<T>(
       converter: converter,
       documentIdField: documentIdField ?? 'id',

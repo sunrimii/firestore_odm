@@ -39,7 +39,6 @@ class FirestoreODM<T extends FirestoreSchema> {
   FirestoreODM(this.schema, {FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
-
   /// Get the Firestore instance
   FirebaseFirestore get firestore => _firestore;
 

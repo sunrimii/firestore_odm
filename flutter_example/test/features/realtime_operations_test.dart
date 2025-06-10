@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('📡 Real-time Operations Features', () {
@@ -47,12 +47,15 @@ void main() {
 
         // Make stream
         await odm.users('stream_user').modify((user) => user.copyWith(
-          name: 'Updated Stream User',
-        ));
+              name: 'Updated Stream User',
+            ));
 
-        await odm.users('stream_user').incrementalModify((user) => user.copyWith(
-          profile: user.profile.copyWith(followers: user.profile.followers + 50),
-        ));
+        await odm
+            .users('stream_user')
+            .incrementalModify((user) => user.copyWith(
+                  profile: user.profile
+                      .copyWith(followers: user.profile.followers + 50),
+                ));
 
         // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
@@ -60,7 +63,7 @@ void main() {
         await subscription.cancel();
 
         expect(stream.length, greaterThan(0));
-        
+
         // The last change should have the updated data
         final lastUser = stream.last;
         expect(lastUser, isNotNull);
@@ -70,7 +73,8 @@ void main() {
 
       test('should handle null document in stream', () async {
         final stream = <User?>[];
-        final subscription = odm.users('non_existent_user').stream.listen((user) {
+        final subscription =
+            odm.users('non_existent_user').stream.listen((user) {
           stream.add(user);
         });
 
@@ -105,7 +109,8 @@ void main() {
         await odm.users('delete_stream_user').set(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('delete_stream_user').stream.listen((user) {
+        final subscription =
+            odm.users('delete_stream_user').stream.listen((user) {
           stream.add(user);
         });
 
@@ -176,42 +181,44 @@ void main() {
         // Note: Collection query streams not yet implemented in current ODM
         // This test demonstrates the expected API once implemented
         final initialUsers = await odm.users
-            .where(($) => $.profile.interests(arrayContains: 'collection_streaming'))
+            .where(($) =>
+                $.profile.interests(arrayContains: 'collection_streaming'))
             .get();
-        
+
         expect(initialUsers.length, equals(2));
 
         // Activate one user
         await odm.users('collection_user_1').modify((user) => user.copyWith(
-          isActive: true,
-        ));
+              isActive: true,
+            ));
 
         // Add a new user that matches the query
         await odm.users('collection_user_3').set(User(
-          id: 'collection_user_3',
-          name: 'Collection User 3',
-          email: 'collection3@example.com',
-          age: 28,
-          profile: Profile(
-            bio: 'Collection test 3',
-            avatar: 'collection3.jpg',
-            socialLinks: {},
-            interests: ['collection_streaming'],
-            followers: 125,
-          ),
-          rating: 3.5,
-          isActive: true,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        ));
+              id: 'collection_user_3',
+              name: 'Collection User 3',
+              email: 'collection3@example.com',
+              age: 28,
+              profile: Profile(
+                bio: 'Collection test 3',
+                avatar: 'collection3.jpg',
+                socialLinks: {},
+                interests: ['collection_streaming'],
+                followers: 125,
+              ),
+              rating: 3.5,
+              isActive: true,
+              isPremium: false,
+              createdAt: DateTime.now(),
+            ));
 
         // Verify the updates
         final updatedResults = await odm.users
-            .where(($) => $.profile.interests(arrayContains: 'collection_streaming'))
+            .where(($) =>
+                $.profile.interests(arrayContains: 'collection_streaming'))
             .get();
-        
+
         expect(updatedResults.length, equals(3));
-        
+
         final userIds = updatedResults.map((u) => u.id).toSet();
         expect(userIds, contains('collection_user_1'));
         expect(userIds, contains('collection_user_2'));
@@ -260,19 +267,21 @@ void main() {
 
         // Perform multiple rapid updates
         await odm.users('realtime_user').update(($) => [
-          $.rating.increment(0.3),
-        ]);
+              $.rating.increment(0.3),
+            ]);
 
         await odm.users('realtime_user').modify((user) => user.copyWith(
-          isPremium: true,
-        ));
+              isPremium: true,
+            ));
 
-        await odm.users('realtime_user').incrementalModify((user) => user.copyWith(
-          profile: user.profile.copyWith(
-            followers: user.profile.followers + 100,
-            interests: [...user.profile.interests, 'premium'],
-          ),
-        ));
+        await odm
+            .users('realtime_user')
+            .incrementalModify((user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 100,
+                    interests: [...user.profile.interests, 'premium'],
+                  ),
+                ));
 
         // Wait for all stream to propagate
         await Future.delayed(Duration(milliseconds: 300));
@@ -280,7 +289,7 @@ void main() {
         await subscription.cancel();
 
         expect(stream.length, greaterThan(1));
-        
+
         // Verify final state
         final finalUser = stream.last!;
         expect(finalUser.rating, greaterThan(4.2));
@@ -320,18 +329,23 @@ void main() {
 
         // Perform concurrent updates
         final updateFutures = [
-          odm.users('concurrent_user').incrementalModify((user) => user.copyWith(
-            rating: user.rating + 0.1,
-          )),
-          odm.users('concurrent_user').incrementalModify((user) => user.copyWith(
-            profile: user.profile.copyWith(followers: user.profile.followers + 25),
-          )),
+          odm
+              .users('concurrent_user')
+              .incrementalModify((user) => user.copyWith(
+                    rating: user.rating + 0.1,
+                  )),
+          odm
+              .users('concurrent_user')
+              .incrementalModify((user) => user.copyWith(
+                    profile: user.profile
+                        .copyWith(followers: user.profile.followers + 25),
+                  )),
           odm.users('concurrent_user').modify((user) => user.copyWith(
-            isPremium: true,
-          )),
+                isPremium: true,
+              )),
           odm.users('concurrent_user').update(($) => [
-            $.profile.interests.add('updated'),
-          ]),
+                $.profile.interests.add('updated'),
+              ]),
         ];
 
         await Future.wait(updateFutures);
@@ -342,7 +356,7 @@ void main() {
         await subscription.cancel();
 
         expect(stream.length, greaterThan(1));
-        
+
         // Verify that some updates were applied (concurrent updates may vary)
         final finalUser = stream.last!;
         expect(finalUser.isPremium, isTrue);
@@ -395,8 +409,8 @@ void main() {
 
         // Make a change
         await odm.users('multi_sub_user').modify((user) => user.copyWith(
-          name: 'Updated Multi Subscriber User',
-        ));
+              name: 'Updated Multi Subscriber User',
+            ));
 
         // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
@@ -449,8 +463,8 @@ void main() {
 
         // Make stream after cancellation
         await odm.users('cancel_sub_user').modify((user) => user.copyWith(
-          name: 'Should Not Be Received',
-        ));
+              name: 'Should Not Be Received',
+            ));
 
         // Wait to ensure no new stream are received
         await Future.delayed(Duration(milliseconds: 200));
@@ -497,9 +511,12 @@ void main() {
 
         // Perform many rapid updates
         for (int i = 0; i < 10; i++) {
-          await odm.users('high_freq_user').incrementalModify((user) => user.copyWith(
-            profile: user.profile.copyWith(followers: user.profile.followers + 1),
-          ));
+          await odm
+              .users('high_freq_user')
+              .incrementalModify((user) => user.copyWith(
+                    profile: user.profile
+                        .copyWith(followers: user.profile.followers + 1),
+                  ));
         }
 
         stopwatch.stop();
@@ -511,10 +528,10 @@ void main() {
 
         // Should complete in reasonable time
         expect(stopwatch.elapsedMilliseconds, lessThan(5000));
-        
+
         // Should have received multiple updates
         expect(stream.length, greaterThan(1));
-        
+
         // Final state should reflect all updates
         final finalUser = stream.last!;
         expect(finalUser.profile.followers, greaterThanOrEqualTo(300));

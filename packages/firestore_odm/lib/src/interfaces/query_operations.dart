@@ -1,4 +1,3 @@
-import 'package:firestore_odm/src/firestore_query.dart';
 
 import '../filter_builder.dart';
 import '../count_query.dart' show FirestoreCountQuery;

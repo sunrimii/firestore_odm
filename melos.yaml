@@ -32,9 +32,9 @@ scripts:
       ignore:
         - flutter_example
 
-  format:
-    run: dart format .
-    description: Format all Dart files.
+  fix:
+    run: dart fix --apply
+    description: Apply automated fixes to all packages.
 
   format:check:
     run: dart format --output=none --set-exit-if-changed .

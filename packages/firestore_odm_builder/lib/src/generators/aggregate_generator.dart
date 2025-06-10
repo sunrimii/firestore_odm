@@ -45,7 +45,7 @@ class AggregateGenerator {
   ) {
     // Determine the Dart type for the field
     final dartType = _getDartTypeForAggregateField(fieldType);
-    
+
     buffer.writeln('  /// $fieldName field for aggregation');
     buffer.writeln(
       '  TupleAggregateField<$dartType> get $fieldName => TupleAggregateField<$dartType>(\'$fieldName\', this);',
@@ -79,7 +79,9 @@ class AggregateGenerator {
     buffer.writeln('  final String _basePath;');
     buffer.writeln('  final AggregateFieldSelector _parent;');
     buffer.writeln('');
-    buffer.writeln('  const ${className}NestedAggregateSelector(this._basePath, this._parent);');
+    buffer.writeln(
+      '  const ${className}NestedAggregateSelector(this._basePath, this._parent);',
+    );
     buffer.writeln('');
 
     // Generate nested field accessors
@@ -110,7 +112,7 @@ class AggregateGenerator {
   ) {
     // Determine the Dart type for the field
     final dartType = _getDartTypeForAggregateField(fieldType);
-    
+
     buffer.writeln('  /// $fieldName field for aggregation');
     buffer.writeln(
       '  TupleAggregateField<$dartType> get $fieldName => TupleAggregateField<$dartType>(\'\$_basePath.$fieldName\', _parent);',
@@ -135,11 +137,11 @@ class AggregateGenerator {
   /// Get the appropriate Dart type for aggregate field
   static String _getDartTypeForAggregateField(DartType fieldType) {
     final typeStr = fieldType.getDisplayString(withNullability: false);
-    
+
     if (typeStr == 'int') return 'int';
     if (typeStr == 'double') return 'double';
     if (typeStr == 'num') return 'num';
-    
+
     // Default to num for other numeric types
     return 'num';
   }

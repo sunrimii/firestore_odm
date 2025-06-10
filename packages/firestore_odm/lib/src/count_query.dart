@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:firestore_odm/src/interfaces/subscribe_operations.dart';
 
 /// Query for count operations that can be executed with get() or watched for changes
 class FirestoreCountQuery implements SubscribeOperations<int> {
@@ -28,8 +26,9 @@ class FirestoreCountQuery implements SubscribeOperations<int> {
   /// Stream of count results that updates when the underlying data changes
   /// Note: Firestore doesn't support real-time count aggregation, so we watch the underlying data
   @override
-  Stream<int> get stream => _subscriptionService.stream.map((data) => data.length);
-  
+  Stream<int> get stream =>
+      _subscriptionService.stream.map((data) => data.length);
+
   @override
   bool get isSubscribing => _subscriptionService.isSubscribing;
 }

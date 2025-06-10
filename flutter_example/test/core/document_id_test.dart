@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/models/simple_story.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🆔 Document ID Field Tests', () {
@@ -38,7 +38,7 @@ void main() {
 
         await odm.users('explicit_id_user').set(user);
         final retrieved = await odm.users('explicit_id_user').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('explicit_id_user'));
       });
@@ -65,7 +65,7 @@ void main() {
         // Upsert should use the id field as document ID
         await odm.users.upsert(user);
         final retrieved = await odm.users('upsert_user').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('upsert_user'));
         expect(retrieved.name, equals('Upsert User'));
@@ -73,7 +73,8 @@ void main() {
     });
 
     group('🔍 Automatic Document ID Detection', () {
-      test('should automatically detect id field as document ID in SimpleStory', () async {
+      test('should automatically detect id field as document ID in SimpleStory',
+          () async {
         final story = SimpleStory(
           id: 'auto_id_story',
           title: 'Auto ID Story',
@@ -85,7 +86,7 @@ void main() {
 
         await odm.simpleStories('auto_id_story').set(story);
         final retrieved = await odm.simpleStories('auto_id_story').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('auto_id_story'));
         expect(retrieved.title, equals('Auto ID Story'));
@@ -103,10 +104,11 @@ void main() {
 
         await odm.simpleStories.upsert(story);
         final retrieved = await odm.simpleStories('auto_upsert_story').get();
-        
+
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('auto_upsert_story'));
-        expect(retrieved.content, equals('Testing automatic ID detection with upsert'));
+        expect(retrieved.content,
+            equals('Testing automatic ID detection with upsert'));
       });
     });
 
@@ -159,11 +161,11 @@ void main() {
             .get();
 
         expect(specificUsers.length, equals(2));
-        
+
         final singleUser = await odm.users
             .where(($) => $.id(isEqualTo: 'filter_user_1'))
             .get();
-        
+
         expect(singleUser.length, equals(1));
         expect(singleUser.first.name, equals('Filter User 1'));
       });
@@ -247,7 +249,8 @@ void main() {
         // The error would occur during actual operations like get/set
       });
 
-      test('should validate document ID field is not null for upsert', () async {
+      test('should validate document ID field is not null for upsert',
+          () async {
         // This should work fine since all our models have valid IDs
         final user = User(
           id: 'valid_id',

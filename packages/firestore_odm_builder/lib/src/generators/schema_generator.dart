@@ -13,7 +13,7 @@ class SchemaCollectionInfo {
   final String path;
   final String modelTypeName;
   final bool isSubcollection;
-  
+
   SchemaCollectionInfo({
     required this.path,
     required this.modelTypeName,
@@ -30,30 +30,30 @@ class SchemaGenerator {
     Map<String, ClassElement> modelTypes,
   ) {
     final buffer = StringBuffer();
-    
+
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
     final schemaClassName = StringHelpers.capitalize(variableName);
-    
+
     // Extract the assigned value (e.g., "_$TestSchema") for the const name
     final assignedValue = _extractAssignedValue(variableElement);
     final schemaConstName = assignedValue;
-    
+
     // Generate the schema class
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
-    
+
     // Generate filter and order by builders for each model type
     _generateFilterAndOrderByBuilders(buffer, modelTypes);
-    
+
     // Generate ODM extensions
     _generateODMExtensions(buffer, schemaClassName, collections);
-    
+
     // Generate document extensions for subcollections
     _generateDocumentExtensions(buffer, schemaClassName, collections);
-    
+
     return buffer.toString();
   }
-  
+
   /// Generate converter instances globally for all model types
   static void generateGlobalConverterInstances(
     StringBuffer buffer,
@@ -70,58 +70,79 @@ class SchemaGenerator {
       buffer.writeln('');
     }
   }
-  
+
   /// Generate the schema class and const instance
-  static void _generateSchemaClass(StringBuffer buffer, String schemaClassName, String originalVariableName) {
+  static void _generateSchemaClass(
+    StringBuffer buffer,
+    String schemaClassName,
+    String originalVariableName,
+  ) {
     // Generate the schema class
-    buffer.writeln('/// Generated schema class - dummy class that only serves as type marker');
+    buffer.writeln(
+      '/// Generated schema class - dummy class that only serves as type marker',
+    );
     buffer.writeln('class $schemaClassName extends FirestoreSchema {');
     buffer.writeln('  const $schemaClassName();');
     buffer.writeln('}');
     buffer.writeln('');
-    
+
     // Generate the const instance that can be assigned to _$VariableName
     buffer.writeln('/// Generated schema instance');
-    buffer.writeln('const $schemaClassName $originalVariableName = $schemaClassName();');
+    buffer.writeln(
+      'const $schemaClassName $originalVariableName = $schemaClassName();',
+    );
     buffer.writeln('');
   }
-  
+
   /// Generate ODM extensions for the schema
   static void _generateODMExtensions(
-    StringBuffer buffer, 
-    String schemaClassName, 
+    StringBuffer buffer,
+    String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
-    final rootCollections = collections.where((c) => !c.isSubcollection).toList();
+    final rootCollections = collections
+        .where((c) => !c.isSubcollection)
+        .toList();
     if (rootCollections.isEmpty) return;
-    
-    buffer.writeln('/// Extension to add collections to FirestoreODM<$schemaClassName>');
-    buffer.writeln('extension ${schemaClassName}ODMExtensions on FirestoreODM<$schemaClassName> {');
-    
+
+    buffer.writeln(
+      '/// Extension to add collections to FirestoreODM<$schemaClassName>',
+    );
+    buffer.writeln(
+      'extension ${schemaClassName}ODMExtensions on FirestoreODM<$schemaClassName> {',
+    );
+
     for (final collection in rootCollections) {
       final collectionName = StringHelpers.camelCase(collection.path);
-      final converterName = '${_toLowerCamelCase(collection.modelTypeName)}Converter';
+      final converterName =
+          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
       buffer.writeln('  /// Access ${collection.path} collection');
-      buffer.writeln('  FirestoreCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>');
-      buffer.writeln('    FirestoreCollection<$schemaClassName, ${collection.modelTypeName}>(');
-      buffer.writeln('      ref: firestore.collection(\'${collection.path}\'),');
+      buffer.writeln(
+        '  FirestoreCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
+      );
+      buffer.writeln(
+        '    FirestoreCollection<$schemaClassName, ${collection.modelTypeName}>(',
+      );
+      buffer.writeln(
+        '      ref: firestore.collection(\'${collection.path}\'),',
+      );
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');
       buffer.writeln('');
     }
-    
+
     buffer.writeln('}');
     buffer.writeln('');
   }
-  
+
   /// Generate document extensions for subcollections
   static void _generateDocumentExtensions(
-    StringBuffer buffer, 
-    String schemaClassName, 
+    StringBuffer buffer,
+    String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
     final subcollections = collections.where((c) => c.isSubcollection).toList();
-    
+
     // Group subcollections by parent type
     final parentGroups = <String, List<SchemaCollectionInfo>>{};
     for (final subcol in subcollections) {
@@ -130,58 +151,70 @@ class SchemaGenerator {
         parentGroups.putIfAbsent(parentType, () => []).add(subcol);
       }
     }
-    
+
     for (final entry in parentGroups.entries) {
       final parentType = entry.key;
       final subcolsForParent = entry.value;
-      
-      buffer.writeln('/// Extension to access subcollections on $parentType document');
-      buffer.writeln('extension ${schemaClassName}${parentType}DocumentExtensions on FirestoreDocument<$schemaClassName, $parentType> {');
-      
+
+      buffer.writeln(
+        '/// Extension to access subcollections on $parentType document',
+      );
+      buffer.writeln(
+        'extension ${schemaClassName}${parentType}DocumentExtensions on FirestoreDocument<$schemaClassName, $parentType> {',
+      );
+
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = StringHelpers.camelCase(subcollectionName);
-        final converterName = '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
-        
+        final converterName =
+            '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
+
         buffer.writeln('  /// Access $subcollectionName subcollection');
-        buffer.writeln('  FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}> get $getterName =>');
-        buffer.writeln('    FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}>(');
+        buffer.writeln(
+          '  FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}> get $getterName =>',
+        );
+        buffer.writeln(
+          '    FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}>(',
+        );
         buffer.writeln('      ref: ref.collection(\'$subcollectionName\'),');
         buffer.writeln('      converter: $converterName,');
         buffer.writeln('    );');
         buffer.writeln('');
       }
-      
+
       buffer.writeln('}');
       buffer.writeln('');
     }
   }
-  
+
   /// Extract collection annotations from a variable element
-  static List<SchemaCollectionInfo> extractCollectionAnnotations(TopLevelVariableElement element) {
+  static List<SchemaCollectionInfo> extractCollectionAnnotations(
+    TopLevelVariableElement element,
+  ) {
     final collections = <SchemaCollectionInfo>[];
     final collectionChecker = TypeChecker.fromRuntime(Collection);
-    
+
     for (final annotation in element.metadata) {
       final annotationValue = annotation.computeConstantValue();
-      if (annotationValue != null && 
+      if (annotationValue != null &&
           collectionChecker.isExactlyType(annotationValue.type!)) {
-        
         final path = annotationValue.getField('path')!.toStringValue()!;
         final modelTypeName = _extractModelTypeFromAnnotation(annotation);
         final isSubcollection = path.contains('*');
-        
-        collections.add(SchemaCollectionInfo(
-          path: path,
-          modelTypeName: modelTypeName,
-          isSubcollection: isSubcollection,
-        ));
+
+        collections.add(
+          SchemaCollectionInfo(
+            path: path,
+            modelTypeName: modelTypeName,
+            isSubcollection: isSubcollection,
+          ),
+        );
       }
     }
-    
+
     return collections;
   }
-  
+
   /// Extract the model type name from a Collection annotation
   static String _extractModelTypeFromAnnotation(ElementAnnotation annotation) {
     // Try to extract from annotation source
@@ -190,16 +223,19 @@ class SchemaGenerator {
     if (match != null) {
       return match.group(1)!;
     }
-    
+
     // Default fallback
     return 'dynamic';
   }
-  
+
   /// Get parent type name from subcollection path
-  static String? _getParentTypeFromPath(String path, List<SchemaCollectionInfo> allCollections) {
+  static String? _getParentTypeFromPath(
+    String path,
+    List<SchemaCollectionInfo> allCollections,
+  ) {
     final segments = path.split('/');
     if (segments.length < 3) return null;
-    
+
     // Find the parent collection that matches the pattern
     final parentPath = segments[0];
     for (final collection in allCollections) {
@@ -207,15 +243,15 @@ class SchemaGenerator {
         return collection.modelTypeName;
       }
     }
-    
+
     return null;
   }
-  
+
   /// Get subcollection name from full path (last segment)
   static String _getSubcollectionName(String path) {
     return path.split('/').last;
   }
-  
+
   /// Generate filter and order by builders for all model types
   static void _generateFilterAndOrderByBuilders(
     StringBuffer buffer,
@@ -225,12 +261,12 @@ class SchemaGenerator {
       final modelTypeName = entry.key;
       final classElement = entry.value;
       final constructor = classElement.unnamedConstructor;
-      
+
       if (constructor == null) continue;
-      
+
       // Find document ID field using the TypeAnalyzer utility
       final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
-      
+
       // Generate FilterBuilder class
       FilterGenerator.generateFilterBuilderClass(
         buffer,
@@ -319,7 +355,7 @@ class SchemaGenerator {
       buffer.writeln('');
     }
   }
-  
+
   /// Extract the assigned value from a variable element (e.g., "_$TestSchema" from "final testSchema = _$TestSchema;")
   static String _extractAssignedValue(TopLevelVariableElement variableElement) {
     try {
@@ -328,7 +364,7 @@ class SchemaGenerator {
       if (source != null) {
         final contents = source.contents.data;
         final name = variableElement.name;
-        
+
         // Find the variable declaration line
         final lines = contents.split('\n');
         for (final line in lines) {
@@ -336,9 +372,13 @@ class SchemaGenerator {
             // Extract the assigned value (everything after '=' and before ';')
             final equalIndex = line.indexOf('$name =');
             if (equalIndex != -1) {
-              final afterEqual = line.substring(equalIndex + '$name ='.length).trim();
-              final assignedValue = afterEqual.replaceAll(RegExp(r';.*$'), '').trim();
-              
+              final afterEqual = line
+                  .substring(equalIndex + '$name ='.length)
+                  .trim();
+              final assignedValue = afterEqual
+                  .replaceAll(RegExp(r';.*$'), '')
+                  .trim();
+
               // Validate that it looks like a proper assigned value
               if (assignedValue.isNotEmpty && assignedValue.startsWith('_\$')) {
                 return assignedValue;
@@ -350,7 +390,7 @@ class SchemaGenerator {
     } catch (e) {
       // Ignore parsing errors and fall back to convention
     }
-    
+
     // Fallback: generate from variable name following the convention
     return '_\$${StringHelpers.capitalize(variableElement.name)}';
   }
@@ -360,5 +400,4 @@ class SchemaGenerator {
     if (text.isEmpty) return text;
     return text[0].toLowerCase() + text.substring(1);
   }
-
 }

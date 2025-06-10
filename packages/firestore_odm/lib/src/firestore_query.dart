@@ -1,10 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_collection.dart';
-import 'package:meta/meta.dart';
 import 'interfaces/query_operations.dart';
 import 'interfaces/update_operations.dart';
-import 'interfaces/subscribe_operations.dart';
 import 'services/query_operations_service.dart';
 import 'services/update_operations_service.dart';
 import 'services/subscription_service.dart';
@@ -13,7 +11,8 @@ import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
 
 /// Abstract base class for type-safe Firestore queries
-class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>, UpdateOperations<T> {
+class FirestoreQuery<S extends FirestoreSchema, T>
+    implements QueryOperations<T>, UpdateOperations<T> {
   final FirestoreCollection<S, T> collection;
 
   /// The underlying Firestore query
@@ -75,7 +74,10 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
   /// // limitation: May have performance implications for large datasets
   @override
   QueryOperations<T> limitToLast(int limit) {
-    return FirestoreQuery<S, T>(collection, _queryService.applyLimitToLast(limit));
+    return FirestoreQuery<S, T>(
+      collection,
+      _queryService.applyLimitToLast(limit),
+    );
   }
 
   /// Executes the query and returns the results
@@ -126,11 +128,7 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
   TupleAggregateQuery<T, R> aggregate<R extends Record>(
     R Function(AggregateFieldSelector<T> selector) builder,
   ) {
-    return TupleAggregateQuery<T, R>(
-      query,
-      collection.converter,
-      builder,
-    );
+    return TupleAggregateQuery<T, R>(query, collection.converter, builder);
   }
 
   /// Stream of query result changes for real-time updates
@@ -138,7 +136,6 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
 
   /// Whether this query is currently subscribed to real-time updates
   bool get isSubscribing => _subscriptionService.isSubscribing;
-
 }
 
 /// Applies a filter to the given Firestore query

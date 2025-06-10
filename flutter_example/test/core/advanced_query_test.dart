@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🔍 Advanced Query Operations', () {
@@ -83,7 +83,7 @@ void main() {
             .get();
 
         expect(results.length, equals(3));
-        
+
         // Should be ordered by age first (25, 25, 30), then by rating descending within same age
         expect(results[0].age, equals(25));
         expect(results[0].rating, equals(4.0)); // Alice (higher rating)
@@ -163,7 +163,7 @@ void main() {
         expect(results.length, equals(3));
         expect(results[0].profile.followers, equals(200)); // User 2
         expect(results[1].profile.followers, equals(100)); // User 3
-        expect(results[2].profile.followers, equals(50));  // User 1
+        expect(results[2].profile.followers, equals(50)); // User 1
       });
     });
 
@@ -312,9 +312,9 @@ void main() {
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'query_updates'))
             .update(($) => [
-              $.isActive(true),
-              $.rating.increment(0.5),
-            ]);
+                  $.isActive(true),
+                  $.rating.increment(0.5),
+                ]);
 
         // Verify all matching users were updated
         final updatedUsers = await odm.users
@@ -374,11 +374,11 @@ void main() {
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'query_modify'))
             .modify((user) => user.copyWith(
-              isPremium: true,
-              profile: user.profile.copyWith(
-                bio: '${user.profile.bio} - Modified',
-              ),
-            ));
+                  isPremium: true,
+                  profile: user.profile.copyWith(
+                    bio: '${user.profile.bio} - Modified',
+                  ),
+                ));
 
         // Verify all matching users were modified
         final modifiedUsers = await odm.users
@@ -392,7 +392,8 @@ void main() {
         }
       });
 
-      test('should perform incremental modify operations on query results', () async {
+      test('should perform incremental modify operations on query results',
+          () async {
         final users = [
           User(
             id: 'query_inc_mod_1',
@@ -440,19 +441,25 @@ void main() {
 
         // Incremental modify all users matching the query
         await odm.users
-            .where(($) => $.profile.interests(arrayContains: 'query_incremental'))
+            .where(
+                ($) => $.profile.interests(arrayContains: 'query_incremental'))
             .incrementalModify((user) => user.copyWith(
-              rating: user.rating + 0.5, // Should auto-detect as increment
-              profile: user.profile.copyWith(
-                followers: user.profile.followers + 50, // Should auto-detect as increment
-              ),
-              tags: [...user.tags, 'incremented'], // Should auto-detect as arrayUnion
-              lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
-            ));
+                  rating: user.rating + 0.5, // Should auto-detect as increment
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers +
+                        50, // Should auto-detect as increment
+                  ),
+                  tags: [
+                    ...user.tags,
+                    'incremented'
+                  ], // Should auto-detect as arrayUnion
+                  lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
+                ));
 
         // Verify all matching users were incrementally modified
         final modifiedUsers = await odm.users
-            .where(($) => $.profile.interests(arrayContains: 'query_incremental'))
+            .where(
+                ($) => $.profile.interests(arrayContains: 'query_incremental'))
             .get();
 
         expect(modifiedUsers.length, equals(2));

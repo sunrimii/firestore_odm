@@ -16,11 +16,7 @@ class TupleAggregateQuery<T, R extends Record>
   AggregateQuery? _aggregateQuery;
   List<AggregateOperation>? _operations;
 
-  TupleAggregateQuery(
-    this._query,
-    this._converter,
-    this._builder,
-  ) {
+  TupleAggregateQuery(this._query, this._converter, this._builder) {
     // Initialize the subscription service with the query
     _subscriptionService = QuerySubscriptionService<T>(
       query: _query,
@@ -49,7 +45,9 @@ class TupleAggregateQuery<T, R extends Record>
   }
 
   /// Stream of aggregate results that updates when data changes
-  Stream<R> get stream => _subscriptionService.stream.asyncMap((snapshot) async {
+  Stream<R> get stream => _subscriptionService.stream.asyncMap((
+    snapshot,
+  ) async {
     // Convert snapshot to aggregate results
     await _prepareAggregateQuery();
     final results = _calculateAggregationsFromSnapshot(snapshot, _operations!);
@@ -336,7 +334,7 @@ class TupleAggregateField<T extends num> {
   double average() {
     // Check if this is a value selector (second pass) or operation collector (first pass)
     if (_selector is _AggregateValueSelector<dynamic>) {
-      final valueSelector = _selector as _AggregateValueSelector<dynamic>;
+      final valueSelector = _selector;
       // Find the average operation for this field and return its result
       final avgOp = valueSelector._operations
           .whereType<AverageOperation>()

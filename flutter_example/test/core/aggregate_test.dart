@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import '../../lib/models/user.dart';
-import '../../lib/models/profile.dart';
-import '../../lib/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/test_schema.dart';
 
 void main() {
   group('🔥 Aggregate Operations Tests', () {
@@ -145,11 +145,13 @@ void main() {
       await odm.users.insert(user3);
 
       // Test strongly-typed aggregate with generated field selectors
-      final result = await odm.users.aggregate(($) => (
-        count: $.count(),
-        totalAge: $.age.sum(),
-        avgRating: $.rating.average(),
-      )).get();
+      final result = await odm.users
+          .aggregate(($) => (
+                count: $.count(),
+                totalAge: $.age.sum(),
+                avgRating: $.rating.average(),
+              ))
+          .get();
 
       expect(result.count, equals(3));
       expect(result.totalAge, equals(90)); // 25 + 30 + 35
@@ -219,17 +221,19 @@ void main() {
       // Test count with filter for active users
       final activeUsersCount = await odm.users
           .where(($) => $.isActive(isEqualTo: true))
-          .count().get();
+          .count()
+          .get();
       expect(activeUsersCount, equals(2));
 
       // Test strongly-typed aggregate with filter and generated field selectors
       final result = await odm.users
           .where(($) => $.isActive(isEqualTo: true))
           .aggregate(($) => (
-            activeCount: $.count(),
-            totalAge: $.age.sum(),
-            avgRating: $.rating.average(),
-          )).get();
+                activeCount: $.count(),
+                totalAge: $.age.sum(),
+                avgRating: $.rating.average(),
+              ))
+          .get();
 
       expect(result.activeCount, equals(2));
       expect(result.totalAge, equals(55)); // 25 + 30
@@ -240,11 +244,13 @@ void main() {
       final count = await odm.users.count().get();
       expect(count, equals(0));
 
-      final result = await odm.users.aggregate(($) => (
-        count: $.count(),
-        totalAge: $.age.sum(),
-        avgRating: $.rating.average(),
-      )).get();
+      final result = await odm.users
+          .aggregate(($) => (
+                count: $.count(),
+                totalAge: $.age.sum(),
+                avgRating: $.rating.average(),
+              ))
+          .get();
 
       expect(result.count, equals(0));
       expect(result.totalAge, equals(0));
@@ -254,15 +260,14 @@ void main() {
     test('should support streaming aggregate results', () async {
       // Test streaming count
       final countStream = odm.users.count().stream;
-      
+
       // Listen to the first emission (should be 0)
       final firstCount = await countStream.first;
       expect(firstCount, equals(0));
 
       // Test streaming strongly-typed aggregate
-      final aggregateStream = odm.users.aggregate(($) => (
-        count: $.count(),
-      )).stream;
+      final aggregateStream =
+          odm.users.aggregate(($) => (count: $.count(),)).stream;
       final firstResult = await aggregateStream.first;
       expect(firstResult.count, equals(0));
 
