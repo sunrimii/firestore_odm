@@ -6,6 +6,9 @@ class TupleAggregateQuery<T, R extends Record> {
   final T Function(Map<String, dynamic> data) _fromJson;
   final Map<String, dynamic> Function(T value) _toJson;
   final R Function(AggregateFieldSelector<T> selector) _builder;
+  
+  AggregateQuery? _aggregateQuery;
+  List<AggregateOperation>? _operations;
 
   TupleAggregateQuery(
     this._query,
@@ -16,52 +19,120 @@ class TupleAggregateQuery<T, R extends Record> {
 
   /// Execute the aggregate query and return strongly-typed record
   Future<R> get() async {
-    // Create the selector and build the aggregate specification
-    final selector = AggregateFieldSelector<T>();
-    final recordSpec = _builder(selector);
+    await _prepareAggregateQuery();
     
-    // Extract aggregate operations from the record
-    final operations = selector._operations;
-    
-    // Execute aggregations
-    final results = await _executeAggregations(operations);
-    
-    // Build the result record with actual values
-    return _buildResultRecord(recordSpec, results, operations);
+    if (_aggregateQuery != null) {
+      // Use native Firestore aggregate API
+      final snapshot = await _aggregateQuery!.get();
+      return _buildResultRecordFromSnapshot(snapshot);
+    } else {
+      // Fallback for empty operations
+      final selector = AggregateFieldSelector<T>();
+      final recordSpec = _builder(selector);
+      return _buildResultRecord(recordSpec, {}, []);
+    }
   }
+
 
   /// Stream of aggregate results that updates when data changes
   Stream<R> snapshots() {
     return _query.snapshots().asyncMap((snapshot) async {
-      final selector = AggregateFieldSelector<T>();
-      final recordSpec = _builder(selector);
-      final operations = selector._operations;
-      
-      final results = _calculateAggregationsFromSnapshot(snapshot, operations);
-      return _buildResultRecord(recordSpec, results, operations);
+      await _prepareAggregateQuery();
+      final results = _calculateAggregationsFromSnapshot(snapshot, _operations!);
+      return _buildResultRecordFromSnapshot(null, manualResults: results);
     });
   }
 
-  /// Execute native Firestore aggregations where possible
-  Future<Map<String, dynamic>> _executeAggregations(List<AggregateOperation> operations) async {
-    final results = <String, dynamic>{};
+  /// Prepare the aggregate query for execution
+  Future<void> _prepareAggregateQuery() async {
+    if (_aggregateQuery != null) return;
     
-    // Handle count aggregation natively
-    final countOps = operations.whereType<CountOperation>().toList();
-    if (countOps.isNotEmpty) {
-      final countSnapshot = await _query.count().get();
-      final count = countSnapshot.count ?? 0;
-      for (final op in countOps) {
-        results[op.key] = count;
+    // Create the selector and build the aggregate specification
+    final selector = AggregateFieldSelector<T>();
+    _builder(selector); // Call builder to populate operations
+    
+    // Extract aggregate operations from the record
+    _operations = selector._operations;
+    
+    if (_operations!.isEmpty) return;
+    
+    // Build list of AggregateField objects for Firestore native API
+    final aggregateFields = <AggregateField>[];
+    
+    for (final op in _operations!) {
+      if (op is CountOperation) {
+        aggregateFields.add(count());
+      } else if (op is SumOperation) {
+        aggregateFields.add(sum(op.fieldPath));
+      } else if (op is AverageOperation) {
+        aggregateFields.add(average(op.fieldPath));
       }
     }
     
-    // For sum/average, need to fetch and calculate manually
+    // Create the aggregate query using native Firestore API
+    // Firestore supports up to 30 aggregate fields
+    if (aggregateFields.length > 30) {
+      throw ArgumentError('Firestore supports a maximum of 30 aggregate fields, but ${aggregateFields.length} were provided.');
+    }
+    
+    _aggregateQuery = _buildAggregateQuery(aggregateFields);
+  }
+
+  /// Build aggregate query with support for up to 30 fields
+  AggregateQuery _buildAggregateQuery(List<AggregateField> fields) {
+    return _query.aggregate(
+      fields[0],
+      fields.length > 1 ? fields[1] : null,
+      fields.length > 2 ? fields[2] : null,
+      fields.length > 3 ? fields[3] : null,
+      fields.length > 4 ? fields[4] : null,
+      fields.length > 5 ? fields[5] : null,
+      fields.length > 6 ? fields[6] : null,
+      fields.length > 7 ? fields[7] : null,
+      fields.length > 8 ? fields[8] : null,
+      fields.length > 9 ? fields[9] : null,
+      fields.length > 10 ? fields[10] : null,
+      fields.length > 11 ? fields[11] : null,
+      fields.length > 12 ? fields[12] : null,
+      fields.length > 13 ? fields[13] : null,
+      fields.length > 14 ? fields[14] : null,
+      fields.length > 15 ? fields[15] : null,
+      fields.length > 16 ? fields[16] : null,
+      fields.length > 17 ? fields[17] : null,
+      fields.length > 18 ? fields[18] : null,
+      fields.length > 19 ? fields[19] : null,
+      fields.length > 20 ? fields[20] : null,
+      fields.length > 21 ? fields[21] : null,
+      fields.length > 22 ? fields[22] : null,
+      fields.length > 23 ? fields[23] : null,
+      fields.length > 24 ? fields[24] : null,
+      fields.length > 25 ? fields[25] : null,
+      fields.length > 26 ? fields[26] : null,
+      fields.length > 27 ? fields[27] : null,
+      fields.length > 28 ? fields[28] : null,
+      fields.length > 29 ? fields[29] : null,
+    );
+  }
+
+  /// Calculate aggregations from snapshot for streaming
+  Map<String, dynamic> _calculateAggregationsFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+    List<AggregateOperation> operations,
+  ) {
+    final results = <String, dynamic>{};
+    
+    // Count operations - can use snapshot length
+    final countOps = operations.whereType<CountOperation>().toList();
+    final count = snapshot.docs.length;
+    for (final op in countOps) {
+      results[op.key] = count;
+    }
+    
+    // For sum/average, parse documents manually
     final sumOps = operations.whereType<SumOperation>().toList();
     final avgOps = operations.whereType<AverageOperation>().toList();
     
     if (sumOps.isNotEmpty || avgOps.isNotEmpty) {
-      final snapshot = await _query.get();
       final documents = snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -74,45 +145,6 @@ class TupleAggregateQuery<T, R extends Record> {
       }
       
       // Calculate averages
-      for (final op in avgOps) {
-        results[op.key] = _calculateAverage(documents, op.fieldPath);
-      }
-    }
-    
-    return results;
-  }
-
-  /// Calculate aggregations from snapshot for streaming
-  Map<String, dynamic> _calculateAggregationsFromSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-    List<AggregateOperation> operations,
-  ) {
-    final results = <String, dynamic>{};
-    
-    // Count operations
-    final countOps = operations.whereType<CountOperation>().toList();
-    final count = snapshot.docs.length;
-    for (final op in countOps) {
-      results[op.key] = count;
-    }
-    
-    // Parse documents for sum/average
-    final sumOps = operations.whereType<SumOperation>().toList();
-    final avgOps = operations.whereType<AverageOperation>().toList();
-    
-    if (sumOps.isNotEmpty || avgOps.isNotEmpty) {
-      final documents = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return _fromJson(data);
-      }).toList();
-      
-      // Calculate sums
-      for (final op in sumOps) {
-        results[op.key] = _calculateSum(documents, op.fieldPath);
-      }
-      
-      // Calculate averages  
       for (final op in avgOps) {
         results[op.key] = _calculateAverage(documents, op.fieldPath);
       }
@@ -163,46 +195,44 @@ class TupleAggregateQuery<T, R extends Record> {
     return current;
   }
 
-  /// Build result record with computed values
-  /// TODO: This should be replaced by generated code for each specific record pattern
-  R _buildResultRecord(R template, Map<String, dynamic> results, List<AggregateOperation> operations) {
-    // TEMPORARY: Use reflection-like approach until proper code generation is implemented
-    // In production, the generator would create specific typed builders for each record pattern
-    return _buildRecordGeneric(template, results, operations);
-  }
-  
-  /// Generic record builder (temporary until code generation)
-  R _buildRecordGeneric(R template, Map<String, dynamic> results, List<AggregateOperation> operations) {
-    // This is a temporary generic approach
-    // The real solution requires code generation to create typed builders for each record pattern
+  /// Build result record from aggregate snapshot
+  R _buildResultRecordFromSnapshot(AggregateQuerySnapshot? snapshot, {Map<String, dynamic>? manualResults}) {
+    final results = <String, dynamic>{};
     
-    // Extract values in order of operations
-    final values = operations.map((op) => results[op.key]).toList();
-    
-    // For now, use a simple pattern matching approach
-    // This will be replaced by generated code that knows the exact record structure
-    
-    if (operations.length == 1 && operations.first is CountOperation) {
-      return (count: values[0] as int) as R;
-    }
-    
-    if (operations.length == 3) {
-      // Assume common pattern: count, sum, average
-      final count = values[0] as int;
-      final sum = values[1] as num;
-      final avg = values[2] as double;
-      
-      // Check template structure to determine field names
-      final templateStr = template.toString();
-      if (templateStr.contains('activeCount')) {
-        return (activeCount: count, totalAge: sum, avgRating: avg) as R;
-      } else {
-        return (count: count, totalAge: sum, avgRating: avg) as R;
+    if (snapshot != null) {
+      // Use results from native aggregate query
+      for (final op in _operations!) {
+        if (op is CountOperation) {
+          results[op.key] = snapshot.count ?? 0;
+        } else if (op is SumOperation) {
+          results[op.key] = snapshot.getSum(op.fieldPath) ?? 0;
+        } else if (op is AverageOperation) {
+          results[op.key] = snapshot.getAverage(op.fieldPath) ?? 0.0;
+        }
       }
+    } else if (manualResults != null) {
+      // Use manual calculation results for streaming
+      results.addAll(manualResults);
     }
     
-    // Default fallback
-    return template;
+    // Create a dummy record spec to get the structure
+    final selector = AggregateFieldSelector<T>();
+    final recordSpec = _builder(selector);
+    
+    return _buildResultRecord(recordSpec, results, _operations!);
+  }
+
+
+
+
+  /// Build result record with computed values
+  /// Uses dynamic record construction by re-calling the builder function with actual values
+  R _buildResultRecord(R template, Map<String, dynamic> results, List<AggregateOperation> operations) {
+    // Create a value selector that returns actual computed results
+    final valueSelector = _AggregateValueSelector<T>(results, operations);
+    
+    // Re-call the builder function with the value selector to get the final record
+    return _builder(valueSelector);
   }
 }
 
@@ -256,16 +286,53 @@ class TupleAggregateField<T extends num> {
   
   /// Create sum aggregation - returns the correct field type
   T sum() {
-    final key = 'sum_${_selector._operations.length}';
-    _selector._operations.add(SumOperation(key, _fieldPath));
-    return _getDefaultValue();
+    // Check if this is a value selector (second pass) or operation collector (first pass)
+    if (_selector is _AggregateValueSelector<dynamic>) {
+      final valueSelector = _selector;
+      // Find the sum operation for this field and return its result
+      final sumOp = valueSelector._operations.whereType<SumOperation>().where((op) => op.fieldPath == _fieldPath).firstOrNull;
+      if (sumOp != null) {
+        final value = valueSelector._results[sumOp.key];
+        if (value != null) {
+          // Convert from double (Firestore's default numeric type) to the expected type
+          if (T == int) {
+            return (value as num).toInt() as T;
+          } else if (T == double) {
+            return (value as num).toDouble() as T;
+          } else {
+            return value as T;
+          }
+        }
+      }
+      return _getDefaultValue();
+    } else {
+      // First pass: collect operation
+      final key = 'sum_${_selector._operations.length}';
+      _selector._operations.add(SumOperation(key, _fieldPath));
+      return _getDefaultValue();
+    }
   }
   
   /// Create average aggregation - always returns double
   double average() {
-    final key = 'avg_${_selector._operations.length}';
-    _selector._operations.add(AverageOperation(key, _fieldPath));
-    return 0.0; // Placeholder
+    // Check if this is a value selector (second pass) or operation collector (first pass)
+    if (_selector is _AggregateValueSelector<dynamic>) {
+      final valueSelector = _selector as _AggregateValueSelector<dynamic>;
+      // Find the average operation for this field and return its result
+      final avgOp = valueSelector._operations.whereType<AverageOperation>().where((op) => op.fieldPath == _fieldPath).firstOrNull;
+      if (avgOp != null) {
+        final value = valueSelector._results[avgOp.key];
+        if (value != null) {
+          return (value as num).toDouble();
+        }
+      }
+      return 0.0;
+    } else {
+      // First pass: collect operation
+      final key = 'avg_${_selector._operations.length}';
+      _selector._operations.add(AverageOperation(key, _fieldPath));
+      return 0.0; // Placeholder
+    }
   }
   
   /// Get default value for the specific numeric type
@@ -275,4 +342,25 @@ class TupleAggregateField<T extends num> {
     if (T == num) return 0 as T;
     throw UnsupportedError('Unsupported numeric type: $T');
   }
+}
+
+/// Simple value selector that returns actual computed results
+/// This will be extended by generated code to provide field-specific accessors
+class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
+  final Map<String, dynamic> _results;
+  final List<AggregateOperation> _operations;
+  
+  _AggregateValueSelector(this._results, this._operations);
+
+  @override
+  int count() {
+    // Return the actual count result if available
+    for (final entry in _results.entries) {
+      if (entry.key.startsWith('count_')) {
+        return entry.value as int? ?? 0;
+      }
+    }
+    return 0;
+  }
+  
 }
