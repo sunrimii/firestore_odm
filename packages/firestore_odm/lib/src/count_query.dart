@@ -12,7 +12,10 @@ class FirestoreCountQuery implements SubscribeOperations<int> {
     // Initialize the subscription service if needed
     _subscriptionService = QuerySubscriptionService<int>(
       query: _query,
-      fromJson: (data) => 0
+      converter: ModelConverter<int>(
+        fromMap: (data) => 0,
+        toMap: (value) => {'count': value},
+      ),
     );
   }
 

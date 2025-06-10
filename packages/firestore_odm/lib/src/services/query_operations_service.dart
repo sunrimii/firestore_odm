@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
 import '../filter_builder.dart';
+import '../model_converter.dart';
 
 /// Service class that encapsulates all query operations logic
 /// Follows composition over inheritance pattern
@@ -10,15 +11,15 @@ class QueryOperationsService<T> {
   /// The underlying Firestore query
   final Query<Map<String, dynamic>> query;
 
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
+  /// Model converter for data transformation
+  final ModelConverter<T> converter;
 
   final String documentIdField;
 
   /// Creates a new QueryOperationsService instance
   const QueryOperationsService({
     required this.query,
-    required this.fromJson,
+    required this.converter,
     required this.documentIdField,
   });
 
@@ -28,7 +29,7 @@ class QueryOperationsService<T> {
     final snapshot = await query.get();
     return snapshot.docs.map((doc) {
       return FirestoreDataProcessor.fromJson(
-        fromJson,
+        converter.fromJson,
         doc.data(),
         documentIdField: documentIdField,
         documentId: doc.id,
@@ -61,7 +62,7 @@ class QueryOperationsService<T> {
   QueryOperationsService<T> withQuery(Query<Map<String, dynamic>> newQuery) {
     return QueryOperationsService<T>(
       query: newQuery,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField,
     );
   }

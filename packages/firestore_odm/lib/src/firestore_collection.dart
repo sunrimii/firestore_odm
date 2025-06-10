@@ -14,6 +14,7 @@ import 'interfaces/subscribe_operations.dart';
 import 'schema.dart';
 import 'count_query.dart' show FirestoreCountQuery;
 import 'tuple_aggregate.dart';
+import 'model_converter.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
@@ -21,11 +22,8 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// The underlying Firestore collection reference
   final CollectionReference<Map<String, dynamic>> ref;
 
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
-
-  /// Function to convert model instance to JSON data
-  final Map<String, dynamic> Function(T value) toJson;
+  /// Model converter for data transformation
+  final ModelConverter<T> converter;
 
   /// Cache for document instances
   final Map<String, FirestoreDocument<S, T>> _cache = {};
@@ -44,24 +42,28 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Creates a new FirestoreCollection instance
   FirestoreCollection({
     required this.ref,
-    required this.fromJson,
-    required this.toJson,
+    required this.converter,
   }) {
     _queryService = QueryOperationsService<T>(
       query: ref,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField,
     );
     _updateService = UpdateOperationsService<T>(
-      toJson: toJson,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField,
     );
     _subscriptionService = QuerySubscriptionService<T>(
       query: ref,
-      fromJson: (data, [documentId]) => fromJson(data),
+      converter: converter,
     );
   }
+
+  /// Helper getter for fromJson (for backwards compatibility)
+  T Function(Map<String, dynamic>) get fromJson => converter.fromJson;
+
+  /// Helper getter for toJson (for backwards compatibility)
+  Map<String, dynamic> Function(T) get toJson => converter.toJson;
 
   /// Executes the query and returns the results
   @override
@@ -226,8 +228,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   ) {
     return TupleAggregateQuery<T, R>(
       ref,
-      fromJson,
-      toJson,
+      converter,
       builder,
     );
   }

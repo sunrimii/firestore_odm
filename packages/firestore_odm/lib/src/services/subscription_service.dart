@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
+import '../model_converter.dart';
 
 /// Service class that encapsulates all subscription/real-time operations logic
 /// Follows composition over inheritance pattern
@@ -9,8 +10,8 @@ class SubscriptionService<T> {
   /// The document reference to subscribe to
   final DocumentReference<Map<String, dynamic>>? documentRef;
 
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
+  /// Model converter for data transformation
+  final ModelConverter<T> converter;
 
   /// Stream subscription for real-time updates
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscription;
@@ -23,7 +24,7 @@ class SubscriptionService<T> {
   /// Creates a new SubscriptionService instance
   SubscriptionService({
     required this.documentRef,
-    required this.fromJson,
+    required this.converter,
     required this.documentIdField,
   }) {
     _setupSubscription();
@@ -48,7 +49,17 @@ class SubscriptionService<T> {
             (event) {
               log('Document data changed: ${event.data()}');
               final data = event.data();
-              _controller.add(_fromJson(data));
+              if (data != null) {
+                final processedData = FirestoreDataProcessor.processFirestoreData(
+                  data,
+                  documentIdField: documentIdField,
+                  documentId: event.id,
+                );
+                final model = converter.fromJson(processedData);
+                _controller.add(model);
+              } else {
+                _controller.add(null);
+              }
             },
             onError: (error) {
               log('Subscription error: $error');
@@ -64,17 +75,6 @@ class SubscriptionService<T> {
     };
   }
 
-  /// Converts JSON data to model instance, adding the document ID
-  T? _fromJson(Map<String, dynamic>? data) {
-    if (data == null || documentRef == null) return null;
-    // Add document ID to the data
-    final processedData = FirestoreDataProcessor.processFirestoreData(
-      data,
-      documentIdField: documentIdField,
-      documentId: documentRef!.id,
-    );
-    return fromJson(processedData);
-  }
 
   /// Start listening to real-time updates manually
   void startListening() {
@@ -85,7 +85,17 @@ class SubscriptionService<T> {
       (event) {
         log('Document data changed: ${event.data()}');
         final data = event.data();
-        _controller.add(_fromJson(data));
+        if (data != null) {
+          final processedData = FirestoreDataProcessor.processFirestoreData(
+            data,
+            documentIdField: documentIdField,
+            documentId: documentRef!.id,
+          );
+          final model = converter.fromJson(processedData);
+          _controller.add(model);
+        } else {
+          _controller.add(null);
+        }
       },
       onError: (error) {
         log('Subscription error: $error');
@@ -115,7 +125,7 @@ class SubscriptionService<T> {
   ) {
     return SubscriptionService<T>(
       documentRef: newDocumentRef,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField,
     );
   }
@@ -123,10 +133,12 @@ class SubscriptionService<T> {
   /// Create a service instance for query-based subscriptions
   static QuerySubscriptionService<T> forQuery<T>({
     required Query<Map<String, dynamic>> query,
-    required T Function(Map<String, dynamic> data, [String? documentId])
-    fromJson,
+    required ModelConverter<T> converter,
   }) {
-    return QuerySubscriptionService<T>(query: query, fromJson: fromJson);
+    return QuerySubscriptionService<T>(
+      query: query,
+      converter: converter,
+    );
   }
 }
 
@@ -135,8 +147,8 @@ class QuerySubscriptionService<T> {
   /// The query to subscribe to
   final Query<Map<String, dynamic>> query;
 
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
+  /// Model converter for data transformation
+  final ModelConverter<T> converter;
 
   /// Stream subscription for real-time query updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _querySubscription;
@@ -145,7 +157,10 @@ class QuerySubscriptionService<T> {
   final StreamController<List<T>> _queryController =
       StreamController.broadcast();
 
-  QuerySubscriptionService({required this.query, required this.fromJson}) {
+  QuerySubscriptionService({
+    required this.query,
+    required this.converter,
+  }) {
     _setupQuerySubscription();
   }
 
@@ -163,7 +178,7 @@ class QuerySubscriptionService<T> {
           final results = snapshot.docs
               .map((doc) {
                 final data = doc.data();
-                return fromJson(data);
+                return converter.fromJson(data);
               })
               .cast<T>()
               .toList();
@@ -193,7 +208,7 @@ class QuerySubscriptionService<T> {
         final results = snapshot.docs
             .map((doc) {
               final data = doc.data();
-              return fromJson(data);
+              return converter.fromJson(data);
             })
             .cast<T>()
             .toList();

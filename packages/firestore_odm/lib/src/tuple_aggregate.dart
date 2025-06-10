@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/interfaces/subscribe_operations.dart';
 import 'package:firestore_odm/src/services/subscription_service.dart';
+import 'model_converter.dart';
 
 /// Typed aggregate query that returns strongly-typed records
 class TupleAggregateQuery<T, R extends Record>
     implements SubscribeOperations<R> {
   final Query<Map<String, dynamic>> _query;
-  final T Function(Map<String, dynamic> data) _fromJson;
-  final Map<String, dynamic> Function(T value) _toJson;
+  final ModelConverter<T> _converter;
   final R Function(AggregateFieldSelector<T> selector) _builder;
 
   /// Service for handling real-time subscriptions
@@ -18,16 +18,19 @@ class TupleAggregateQuery<T, R extends Record>
 
   TupleAggregateQuery(
     this._query,
-    this._fromJson,
-    this._toJson,
+    this._converter,
     this._builder,
   ) {
     // Initialize the subscription service with the query
     _subscriptionService = QuerySubscriptionService<T>(
       query: _query,
-      fromJson: _fromJson,
+      converter: _converter,
     );
   }
+
+  /// Helper getters for backwards compatibility
+  T Function(Map<String, dynamic>) get _fromJson => _converter.fromJson;
+  Map<String, dynamic> Function(T) get _toJson => _converter.toJson;
 
   /// Execute the aggregate query and return strongly-typed record
   Future<R> get() async {

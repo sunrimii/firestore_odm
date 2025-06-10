@@ -9,6 +9,7 @@ import 'services/subscription_service.dart';
 import 'interfaces/document_operations.dart';
 import 'filter_builder.dart';
 import 'schema.dart';
+import 'model_converter.dart';
 
 /// Exception thrown when a document is not found
 class FirestoreDocumentNotFoundException implements Exception {
@@ -43,13 +44,12 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
   /// Creates a new FirestoreDocument instance from a collection and document ID
   FirestoreDocument(this.collection, this.id) {
     _updateService = UpdateOperationsService<T>(
-      toJson: collection!.toJson,
-      fromJson: collection!.fromJson,
+      converter: collection!.converter,
       documentIdField: collection!.documentIdField,
     );
     _subscriptionService = SubscriptionService<T>(
       documentRef: ref,
-      fromJson: collection!.fromJson,
+      converter: collection!.converter,
       documentIdField: collection!.documentIdField,
     );
   }
@@ -58,18 +58,16 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
   /// This constructor is used when creating documents directly from schema extensions
   FirestoreDocument.fromRef(
     DocumentReference<Map<String, dynamic>> documentRef,
-    T Function(Map<String, dynamic>) fromJson,
-    Map<String, dynamic> Function(T) toJson,
-    {String? documentIdField}
+    {required ModelConverter<T> converter,
+    String? documentIdField}
   ) : collection = null, id = documentRef.id {
     _updateService = UpdateOperationsService<T>(
-      toJson: toJson,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField ?? 'id',
     );
     _subscriptionService = SubscriptionService<T>(
       documentRef: documentRef,
-      fromJson: fromJson,
+      converter: converter,
       documentIdField: documentIdField ?? 'id',
     );
     _documentRef = documentRef;
@@ -94,7 +92,7 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
       documentIdField: collection!.documentIdField,
       documentId: id,
     );
-    return collection!.fromJson(processedData);
+    return collection!.converter.fromJson(processedData);
   }
 
   /// Checks if the document exists
@@ -142,7 +140,7 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
   @override
   Future<void> set(T state) async {
     final data = FirestoreDataProcessor.toJson(
-      collection!.toJson,
+      collection!.converter.toJson,
       state,
       documentIdField: collection!.documentIdField,
       documentId: id,
@@ -165,7 +163,7 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
     // Update cache
     final newState = modifier(oldState);
     _cache = FirestoreDataProcessor.toJson(
-      collection!.toJson,
+      collection!.converter.toJson,
       newState,
       documentIdField: collection!.documentIdField,
       documentId: id,
@@ -186,7 +184,7 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
     // Update cache
     final newState = modifier(oldState);
     _cache = FirestoreDataProcessor.toJson(
-      collection!.toJson,
+      collection!.converter.toJson,
       newState,
       documentIdField: collection!.documentIdField,
       documentId: id,

@@ -32,17 +32,16 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
   FirestoreQuery(this.collection, this.query) {
     _queryService = QueryOperationsService<T>(
       query: query,
-      fromJson: (data) => collection.fromJson(data),
+      converter: collection.converter,
       documentIdField: collection.documentIdField,
     );
     _updateService = UpdateOperationsService<T>(
-      toJson: (value) => collection.toJson(value),
-      fromJson: (data) => collection.fromJson(data),
+      converter: collection.converter,
       documentIdField: collection.documentIdField,
     );
     _subscriptionService = QuerySubscriptionService<T>(
       query: query,
-      fromJson: (data, [documentId]) => collection.fromJson(data),
+      converter: collection.converter,
     );
   }
 
@@ -129,8 +128,7 @@ class FirestoreQuery<S extends FirestoreSchema, T> implements QueryOperations<T>
   ) {
     return TupleAggregateQuery<T, R>(
       query,
-      (data) => collection.fromJson(data),
-      (value) => collection.toJson(value),
+      collection.converter,
       builder,
     );
   }

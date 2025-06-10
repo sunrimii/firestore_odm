@@ -61,7 +61,7 @@ class SchemaGenerator {
   ) {
     // Generate converter instances for each model type
     for (final modelType in modelTypes) {
-      final converterName = '${StringHelpers.camelCase(modelType)}Converter';
+      final converterName = '${_toLowerCamelCase(modelType)}Converter';
       buffer.writeln('/// Generated converter for $modelType');
       buffer.writeln('final $converterName = ModelConverter<$modelType>(');
       buffer.writeln('  fromMap: (json) => $modelType.fromJson(json),');
@@ -100,13 +100,12 @@ class SchemaGenerator {
     
     for (final collection in rootCollections) {
       final collectionName = StringHelpers.camelCase(collection.path);
-      final converterName = '${StringHelpers.camelCase(collection.modelTypeName)}Converter';
+      final converterName = '${_toLowerCamelCase(collection.modelTypeName)}Converter';
       buffer.writeln('  /// Access ${collection.path} collection');
       buffer.writeln('  FirestoreCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>');
       buffer.writeln('    FirestoreCollection<$schemaClassName, ${collection.modelTypeName}>(');
       buffer.writeln('      ref: firestore.collection(\'${collection.path}\'),');
-      buffer.writeln('      fromJson: $converterName.fromJson,');
-      buffer.writeln('      toJson: $converterName.toJson,');
+      buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');
       buffer.writeln('');
       
@@ -116,8 +115,7 @@ class SchemaGenerator {
       buffer.writeln('  FirestoreDocument<$schemaClassName, ${collection.modelTypeName}> $singularName(String id) =>');
       buffer.writeln('    FirestoreDocument.fromRef(');
       buffer.writeln('      firestore.collection(\'${collection.path}\').doc(id),');
-      buffer.writeln('      $converterName.fromJson,');
-      buffer.writeln('      $converterName.toJson,');
+      buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');
       buffer.writeln('');
     }
@@ -153,14 +151,13 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = StringHelpers.camelCase(subcollectionName);
-        final converterName = '${StringHelpers.camelCase(subcol.modelTypeName)}Converter';
+        final converterName = '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
         
         buffer.writeln('  /// Access $subcollectionName subcollection');
         buffer.writeln('  FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}> get $getterName =>');
         buffer.writeln('    FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}>(');
         buffer.writeln('      ref: ref.collection(\'$subcollectionName\'),');
-        buffer.writeln('      fromJson: $converterName.fromJson,');
-        buffer.writeln('      toJson: $converterName.toJson,');
+        buffer.writeln('      converter: $converterName,');
         buffer.writeln('    );');
         buffer.writeln('');
       }
@@ -378,5 +375,11 @@ class SchemaGenerator {
     // Fallback: generate from variable name following the convention
     return '_\$${StringHelpers.capitalize(variableElement.name)}';
   }
-  
+
+  /// Convert PascalCase to lowerCamelCase
+  static String _toLowerCamelCase(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toLowerCase() + text.substring(1);
+  }
+
 }

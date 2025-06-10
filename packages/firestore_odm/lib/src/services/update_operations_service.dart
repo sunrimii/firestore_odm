@@ -3,22 +3,19 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/data_processor.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
+import '../model_converter.dart';
 
 /// Service class that encapsulates all update operations logic
 /// Extracted from UpdateOperationsMixin to follow composition over inheritance
 class UpdateOperationsService<T> {
-  /// Function to convert model instance to JSON data
-  final Map<String, dynamic> Function(T value) toJson;
-
-  /// Function to convert JSON data to model instance
-  final T Function(Map<String, dynamic> data) fromJson;
+  /// Model converter for data transformation
+  final ModelConverter<T> converter;
 
   final String documentIdField;
 
   /// Creates a new UpdateOperationsService instance
   const UpdateOperationsService({
-    required this.toJson,
-    required this.fromJson,
+    required this.converter,
     required this.documentIdField,
   });
 
@@ -192,8 +189,8 @@ class UpdateOperationsService<T> {
     Transaction? transaction,
   }) async {
     final newData = modifier(currentData);
-    final oldDataMap = toJson(currentData);
-    final newDataMap = toJson(newData);
+    final oldDataMap = converter.toJson(currentData);
+    final newDataMap = converter.toJson(newData);
     final updateData = computeDiff(oldDataMap, newDataMap);
 
     if (updateData.isEmpty) return; // No changes
@@ -209,8 +206,8 @@ class UpdateOperationsService<T> {
     Transaction? transaction,
   }) async {
     final newData = modifier(currentData);
-    final oldDataMap = toJson(currentData);
-    final newDataMap = toJson(newData);
+    final oldDataMap = converter.toJson(currentData);
+    final newDataMap = converter.toJson(newData);
     final updateData = computeDiffWithAtomicOperations(oldDataMap, newDataMap);
 
     if (updateData.isEmpty) return; // No changes
@@ -252,10 +249,10 @@ class UpdateOperationsService<T> {
         documentIdField: documentIdField,
         documentId: docSnapshot.id,
       );
-      final doc = fromJson(processedData);
+      final doc = converter.fromJson(processedData);
       final newDoc = modifier(doc);
-      final oldData = toJson(doc);
-      final newData = toJson(newDoc);
+      final oldData = converter.toJson(doc);
+      final newData = converter.toJson(newDoc);
       final updateData = computeDiff(oldData, newData);
 
       if (updateData.isNotEmpty) {
@@ -284,10 +281,10 @@ class UpdateOperationsService<T> {
         documentIdField: documentIdField,
         documentId: docSnapshot.id,
       );
-      final doc = fromJson(processedData);
+      final doc = converter.fromJson(processedData);
       final newDoc = modifier(doc);
-      final oldData = toJson(doc);
-      final newData = toJson(newDoc);
+      final oldData = converter.toJson(doc);
+      final newData = converter.toJson(newDoc);
       final updateData = computeDiffWithAtomicOperations(oldData, newData);
 
       if (updateData.isNotEmpty) {
