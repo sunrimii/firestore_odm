@@ -30,7 +30,7 @@ class SubscriptionService<T> {
   }
 
   /// Stream of document changes
-  Stream<T?> get changes => _controller.stream;
+  Stream<T?> get snapshots => _controller.stream;
 
   /// Whether this document is currently subscribed to real-time updates
   bool get isSubscribing => _subscription != null;

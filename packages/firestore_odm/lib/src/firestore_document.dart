@@ -79,9 +79,9 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
   DocumentReference<Map<String, dynamic>> get ref =>
       _documentRef ?? collection!.ref.doc(id);
 
-  /// Stream of document changes
+  /// Stream of document snapshots
   @override
-  Stream<T?> get changes => _subscriptionService.changes;
+  Stream<T?> get snapshots => _subscriptionService.snapshots;
 
   /// Whether we are currently subscribing to changes
   @override
