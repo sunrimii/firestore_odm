@@ -406,7 +406,7 @@ class UserProfileWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: odm.users(userId).changes,
+      stream: odm.users(userId).snapshots,
       builder: (context, snapshot) {
         final user = snapshot.data;
         if (user == null) return Text('Loading...');
@@ -795,8 +795,8 @@ await doc.incrementalModify((current) => current.copyWith(
 ### Real-time Streams
 
 ```dart
-// Document changes
-final stream = doc.changes;
+// Document snapshots
+final stream = doc.snapshots;
 stream.listen((document) {
   // Handle document updates
 });
