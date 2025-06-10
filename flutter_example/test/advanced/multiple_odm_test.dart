@@ -11,8 +11,8 @@ void main() {
   group('🏢 Multiple ODM Instance Tests', () {
     late FakeFirebaseFirestore mainFirestore;
     late FakeFirebaseFirestore analyticsFirestore;
-    late FirestoreODM<$TestSchemaImpl> mainODM;
-    late FirestoreODM<$TestSchemaImpl> analyticsODM;
+    late FirestoreODM<TestSchema> mainODM;
+    late FirestoreODM<TestSchema> analyticsODM;
 
     setUp(() {
       mainFirestore = FakeFirebaseFirestore();

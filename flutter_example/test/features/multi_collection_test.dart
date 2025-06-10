@@ -10,7 +10,7 @@ import '../../lib/test_schema.dart';
 void main() {
   group('🏢 Multi-Collection Features', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM<$TestSchemaImpl> odm;
+    late FirestoreODM<TestSchema> odm;
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
@@ -297,13 +297,13 @@ void main() {
     group('🎯 Collection Type Safety', () {
       test('should maintain type safety across collections', () async {
         // Ensure each collection returns the correct type
-        expect(odm.users, isA<FirestoreCollection<$TestSchemaImpl, User>>());
-        expect(odm.posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
-        expect(odm.sharedPosts, isA<FirestoreCollection<$TestSchemaImpl, SharedPost>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
 
         // Subcollections should also be properly typed
-        expect(odm.users('test').posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
-        expect(odm.users('test').sharedPosts, isA<FirestoreCollection<$TestSchemaImpl, SharedPost>>());
+        expect(odm.users('test').posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.users('test').sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
       });
 
       test('should prevent type confusion between collections', () async {

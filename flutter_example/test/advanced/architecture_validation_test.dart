@@ -11,7 +11,7 @@ import '../../lib/test_schema.dart';
 void main() {
   group('🏗️ Architecture Validation', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM<$TestSchemaImpl> odm;
+    late FirestoreODM<TestSchema> odm;
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
@@ -27,7 +27,7 @@ void main() {
         expect(() => odm.sharedPosts, returnsNormally);
         
         // Verify schema type
-        expect(odm.schema, isA<$TestSchemaImpl>());
+        expect(odm.schema, isA<TestSchema>());
       });
 
       test('should validate collection relationships are correctly processed', () {
@@ -45,14 +45,14 @@ void main() {
 
       test('should validate unified validation completed before generation', () {
         // All model types should be properly typed
-        expect(odm.users, isA<FirestoreCollection<$TestSchemaImpl, User>>());
-        expect(odm.posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
-        expect(odm.simpleStories, isA<FirestoreCollection<$TestSchemaImpl, SimpleStory>>());
-        expect(odm.sharedPosts, isA<FirestoreCollection<$TestSchemaImpl, SharedPost>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.simpleStories, isA<FirestoreCollection<TestSchema, SimpleStory>>());
+        expect(odm.sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
         
         // Subcollections should also be properly typed
-        expect(odm.users('test').posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
-        expect(odm.users('test').sharedPosts, isA<FirestoreCollection<$TestSchemaImpl, SharedPost>>());
+        expect(odm.users('test').posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.users('test').sharedPosts, isA<FirestoreCollection<TestSchema, SharedPost>>());
       });
     });
 
@@ -257,11 +257,11 @@ void main() {
     group('🔧 Generator Logic Simplicity', () {
       test('should validate single responsibility principle', () {
         // Each collection should have clear, focused functionality
-        expect(odm.users, isA<FirestoreCollection<$TestSchemaImpl, User>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
         expect(() => odm.users('test_id'), returnsNormally);
         expect(() => odm.users.where(($) => $.name(isEqualTo: 'test')), returnsNormally);
         
-        expect(odm.posts, isA<FirestoreCollection<$TestSchemaImpl, Post>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
         expect(() => odm.posts('test_id'), returnsNormally);
         expect(() => odm.posts.where(($) => $.title(isEqualTo: 'test')), returnsNormally);
         

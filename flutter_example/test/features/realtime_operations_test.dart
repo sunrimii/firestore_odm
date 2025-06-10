@@ -8,7 +8,7 @@ import '../../lib/test_schema.dart';
 void main() {
   group('📡 Real-time Operations Features', () {
     late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM<$TestSchemaImpl> odm;
+    late FirestoreODM<TestSchema> odm;
 
     setUp(() {
       fakeFirestore = FakeFirebaseFirestore();
