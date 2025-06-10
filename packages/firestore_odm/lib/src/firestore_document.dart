@@ -81,7 +81,7 @@ class FirestoreDocument<S extends FirestoreSchema, T> implements DocumentOperati
 
   /// Stream of document snapshots
   @override
-  Stream<T?> get snapshots => _subscriptionService.snapshots;
+  Stream<T?> get stream => _subscriptionService.stream;
 
   /// Whether we are currently subscribing to changes
   @override
