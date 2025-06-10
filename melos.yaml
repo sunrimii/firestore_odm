@@ -15,8 +15,6 @@ command:
     includeScopes: false
     updateGitTagRefs: true
     workspaceChangelog: true
-  publish:
-    dryRun: false
 
 scripts:
   # Development scripts
