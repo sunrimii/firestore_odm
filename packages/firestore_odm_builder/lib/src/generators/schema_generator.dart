@@ -23,32 +23,6 @@ class SchemaCollectionInfo {
 
 /// Generator for schema-based ODM code
 class SchemaGenerator {
-  /// Generate schema class and extensions from annotated variable
-  static String generateSchemaCode(
-    TopLevelVariableElement variableElement,
-    List<SchemaCollectionInfo> collections,
-    Map<String, ClassElement> modelTypes,
-  ) {
-    final buffer = StringBuffer();
-    final variableName = variableElement.name;
-    final schemaClassName = '_\$${StringHelpers.capitalize(variableName)}Impl';
-    final schemaConstName = '_\$${StringHelpers.capitalize(variableName)}';
-    
-    // Generate the schema class
-    _generateSchemaClass(buffer, schemaClassName, schemaConstName);
-    
-    // Generate filter and order by builders for each model type
-    _generateFilterAndOrderByBuilders(buffer, modelTypes);
-    
-    // Generate ODM extensions
-    _generateODMExtensions(buffer, schemaClassName, collections);
-    
-    // Generate document extensions for subcollections
-    _generateDocumentExtensions(buffer, schemaConstName, collections);
-    
-    return buffer.toString();
-  }
-  
   /// Generate schema class and extensions from annotated variable (without converters)
   static String generateSchemaCodeWithoutConverters(
     TopLevelVariableElement variableElement,

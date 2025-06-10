@@ -3,12 +3,6 @@ import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
-import 'utils/type_analyzer.dart';
-import 'generators/collection_generator.dart';
-import 'generators/filter_generator.dart';
-import 'generators/order_by_generator.dart';
-import 'generators/update_generator.dart';
-import 'generators/odm_extension_generator.dart';
 import 'generators/schema_generator.dart';
 
 /// Collection information extracted from annotations
