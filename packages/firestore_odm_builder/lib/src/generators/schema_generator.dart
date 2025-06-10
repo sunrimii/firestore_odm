@@ -216,17 +216,6 @@ class SchemaGenerator {
     return path.split('/').last;
   }
   
-  
-  /// Get singular name from collection path
-  static String _getSingularName(String path) {
-    final collectionName = path.split('/').last;
-    // Simple pluralization removal - remove 's' if present
-    if (collectionName.endsWith('s') && collectionName.length > 1) {
-      return collectionName.substring(0, collectionName.length - 1);
-    }
-    return collectionName;
-  }
-  
   /// Generate filter and order by builders for all model types
   static void _generateFilterAndOrderByBuilders(
     StringBuffer buffer,
