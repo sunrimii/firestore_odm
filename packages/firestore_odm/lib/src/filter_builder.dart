@@ -1157,3 +1157,473 @@ extension UpdateBuilderExtensions on UpdateBuilder {
     return prefix.isEmpty ? fieldName : '$prefix.$fieldName';
   }
 }
+
+/// Callable filter instances - significantly reduce generated code
+/// Base callable filter class
+abstract class CallableFilter<T, V> {
+  final String fieldName;
+  final String prefix;
+  
+  const CallableFilter(this.fieldName, this.prefix);
+  
+  dynamic get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+}
+
+/// String field callable filter
+class StringFieldFilter<T> extends CallableFilter<T, String> {
+  const StringFieldFilter(super.fieldName, super.prefix);
+  
+  FirestoreFilter<T> call({
+    String? isEqualTo,
+    String? isNotEqualTo,
+    String? isLessThan,
+    String? isLessThanOrEqualTo,
+    String? isGreaterThan,
+    String? isGreaterThanOrEqualTo,
+    List<String>? whereIn,
+    List<String>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isLessThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
+    }
+    if (isLessThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
+    }
+    if (isGreaterThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
+/// Numeric field callable filter
+class NumericFieldFilter<T, N extends num> extends CallableFilter<T, N> {
+  const NumericFieldFilter(super.fieldName, super.prefix);
+  
+  FirestoreFilter<T> call({
+    N? isEqualTo,
+    N? isNotEqualTo,
+    N? isLessThan,
+    N? isLessThanOrEqualTo,
+    N? isGreaterThan,
+    N? isGreaterThanOrEqualTo,
+    List<N>? whereIn,
+    List<N>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isLessThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
+    }
+    if (isLessThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
+    }
+    if (isGreaterThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
+/// Boolean field callable filter
+class BoolFieldFilter<T> extends CallableFilter<T, bool> {
+  const BoolFieldFilter(super.fieldName, super.prefix);
+  
+  FirestoreFilter<T> call({
+    bool? isEqualTo,
+    bool? isNotEqualTo,
+    List<bool>? whereIn,
+    List<bool>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
+/// DateTime field callable filter
+class DateTimeFieldFilter<T> extends CallableFilter<T, DateTime> {
+  const DateTimeFieldFilter(super.fieldName, super.prefix);
+  
+  FirestoreFilter<T> call({
+    DateTime? isEqualTo,
+    DateTime? isNotEqualTo,
+    DateTime? isLessThan,
+    DateTime? isLessThanOrEqualTo,
+    DateTime? isGreaterThan,
+    DateTime? isGreaterThanOrEqualTo,
+    List<DateTime>? whereIn,
+    List<DateTime>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isLessThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
+    }
+    if (isLessThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
+    }
+    if (isGreaterThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
+/// Array field callable filter
+class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
+  const ArrayFieldFilter(super.fieldName, super.prefix);
+  
+  FirestoreFilter<T> call({
+    List<E>? isEqualTo,
+    List<E>? isNotEqualTo,
+    dynamic arrayContains,
+    List<dynamic>? arrayContainsAny,
+    List<List<E>>? whereIn,
+    List<List<E>>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (arrayContains != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContains,
+        value: arrayContains,
+      );
+    }
+    if (arrayContainsAny != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.arrayContainsAny,
+        value: arrayContainsAny,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
+/// Document ID callable filter (special case)
+class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
+  const DocumentIdFieldFilter(super.fieldName, super.prefix);
+  
+  @override
+  get fieldPath => FieldPathType.documentId;
+  
+  FirestoreFilter<T> call({
+    String? isEqualTo,
+    String? isNotEqualTo,
+    String? isLessThan,
+    String? isLessThanOrEqualTo,
+    String? isGreaterThan,
+    String? isGreaterThanOrEqualTo,
+    List<String>? whereIn,
+    List<String>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isLessThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
+    }
+    if (isLessThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
+    }
+    if (isGreaterThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
