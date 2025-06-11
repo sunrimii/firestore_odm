@@ -529,15 +529,15 @@ class UserProfileWidget extends StatelessWidget {
 
 ```dart
 // Multi-document operations with ACID guarantees
-await odm.runTransaction(() async {
-  final sender = await odm.users('user1').get();
-  final receiver = await odm.users('user2').get();
-  
+await odm.runTransaction((tx) async {
+  final sender = await tx.users('user1').get();
+  final receiver = await tx.users('user2').get();
+
   if (sender!.points >= 100) {
-    await odm.users('user1').incrementalModify((user) =>
+    await tx.users('user1').incrementalModify((user) =>
       user.copyWith(points: user.points - 100));
-      
-    await odm.users('user2').incrementalModify((user) =>
+
+    await tx.users('user2').incrementalModify((user) =>
       user.copyWith(points: user.points + 100));
   }
 });
@@ -929,13 +929,13 @@ stream.listen((document) {
 ### Transactions
 
 ```dart
-await odm.runTransaction(() async {
+await odm.runTransaction((tx) async {
   // All operations automatically use transaction context
-  final doc1 = await odm.collection1.doc('id1').get();
-  final doc2 = await odm.collection2.doc('id2').get();
+  final doc1 = await tx.collection1.doc('id1').get();
+  final doc2 = await tx.collection2.doc('id2').get();
   
   await odm.collection1.doc('id1').modify((d) => d.copyWith(field: newValue));
-  await odm.collection2.doc('id2').update(($) => [$.field.increment(1)]);
+  odm.collection2.doc('id2').patch(($) => [$.field.increment(1)]);
 });
 ```
 
