@@ -91,13 +91,13 @@ class UpdateGenerator {
     // Generate field getter that returns a callable update instance
     buffer.writeln('  /// Update $fieldName field');
 
-    if (TypeAnalyzer.isListType(fieldType)) {
-      final elementType = TypeAnalyzer.getListElementType(fieldType);
+    if (TypeAnalyzer.isIterableType(fieldType)) {
+      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
       buffer.writeln(
-        '  ListFieldUpdate<$className, $elementType> get $fieldName => ListFieldUpdate<$className, $elementType>(\'$fieldName\', prefix);',
+        '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isMapType(fieldType)) {
-      final (keyType, valueType) = TypeAnalyzer.getMapTypes(fieldType);
+      final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
         '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(\'$fieldName\', prefix);',
       );
@@ -257,16 +257,16 @@ class UpdateGenerator {
         buffer.writeln('    return DateTimeFieldBuilder(fieldPath);');
         buffer.writeln('  }');
         buffer.writeln('');
-      } else if (TypeAnalyzer.isListType(paramType)) {
-        final elementType = TypeAnalyzer.getListElementType(paramType);
+      } else if (TypeAnalyzer.isIterableType(paramType)) {
+        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(paramType);
         buffer.writeln('  /// Update $paramFieldName field');
         buffer.writeln(
-          '  ListFieldBuilder<$elementType> get $paramFieldName {',
+          '  ListFieldBuilder<$elementTypeName> get $paramFieldName {',
         );
         buffer.writeln(
           '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
         );
-        buffer.writeln('    return ListFieldBuilder<$elementType>(fieldPath);');
+        buffer.writeln('    return ListFieldBuilder<$elementTypeName>(fieldPath);');
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isCustomClass(paramType)) {

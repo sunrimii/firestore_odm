@@ -136,14 +136,16 @@ class AggregateGenerator {
 
   /// Get the appropriate Dart type for aggregate field
   static String _getDartTypeForAggregateField(DartType fieldType) {
-    final typeStr = fieldType.getDisplayString(withNullability: false);
-
-    if (typeStr == 'int') return 'int';
-    if (typeStr == 'double') return 'double';
-    if (typeStr == 'num') return 'num';
-
-    // Default to num for other numeric types
-    return 'num';
+    // Use TypeAnalyzer instead of string comparison
+    if (TypeAnalyzer.isIntType(fieldType)) {
+      return 'int';
+    } else if (TypeAnalyzer.isDoubleType(fieldType)) {
+      return 'double';
+    } else if (TypeAnalyzer.isNumericType(fieldType)) {
+      return 'num';
+    } else {
+      return 'num'; // Fallback for numeric-like types
+    }
   }
 
   /// Extract class name from DartType

@@ -36,7 +36,8 @@ class OrderByGenerator {
       if (fieldName == documentIdField) continue;
 
       if (TypeAnalyzer.isPrimitiveType(fieldType) ||
-          TypeAnalyzer.isComparableType(fieldType)) {
+          TypeAnalyzer.isComparableType(fieldType) ||
+          TypeAnalyzer.isIterableType(fieldType)) {
         _generateOrderByFieldMethod(buffer, rootOrderByType, fieldName);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -71,7 +72,8 @@ class OrderByGenerator {
       if (fieldName == documentIdField) continue;
 
       if (TypeAnalyzer.isPrimitiveType(fieldType) ||
-          TypeAnalyzer.isComparableType(fieldType)) {
+          TypeAnalyzer.isComparableType(fieldType) ||
+          TypeAnalyzer.isIterableType(fieldType)) {
         _generateOrderByFieldSelectorMethod(buffer, fieldName, fieldType);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes

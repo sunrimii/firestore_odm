@@ -31,7 +31,9 @@ class FilterGenerator {
       // Skip document ID field as it's handled separately above
       if (fieldName == documentIdField) continue;
 
-      if (TypeAnalyzer.isPrimitiveType(fieldType) || TypeAnalyzer.isMapType(fieldType)) {
+      if (TypeAnalyzer.isPrimitiveType(fieldType) ||
+          TypeAnalyzer.isIterableType(fieldType) ||
+          TypeAnalyzer.isMapType(fieldType)) {
         _generateFieldGetter(buffer, fieldName, fieldType, rootFilterType);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -88,38 +90,36 @@ class FilterGenerator {
     DartType fieldType,
     String rootFilterType,
   ) {
-    final typeString = fieldType.getDisplayString(withNullability: false);
-
     buffer.writeln('  /// Filter by $fieldName');
 
-    // Use appropriate callable filter based on type
-    if (typeString == 'String') {
+    // Use appropriate callable filter based on type using TypeChecker
+    if (TypeAnalyzer.isStringType(fieldType)) {
       buffer.writeln('  StringFieldFilter<$rootFilterType> get $fieldName =>');
       buffer.writeln(
         '      StringFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
       );
-    } else if (TypeAnalyzer.isListType(fieldType)) {
-      final elementType = TypeAnalyzer.getListElementType(fieldType);
+    } else if (TypeAnalyzer.isIterableType(fieldType)) {
+      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
       buffer.writeln(
-        '  ArrayFieldFilter<$rootFilterType, $elementType> get $fieldName =>',
+        '  ArrayFieldFilter<$rootFilterType, $elementTypeName> get $fieldName =>',
       );
       buffer.writeln(
-        '      ArrayFieldFilter<$rootFilterType, $elementType>(\'$fieldName\', prefix);',
+        '      ArrayFieldFilter<$rootFilterType, $elementTypeName>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isMapType(fieldType)) {
-      final (keyType, valueType) = TypeAnalyzer.getMapTypes(fieldType);
+      final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
         '  MapFieldFilter<$rootFilterType, $keyType, $valueType> get $fieldName =>',
       );
       buffer.writeln(
         '      MapFieldFilter<$rootFilterType, $keyType, $valueType>(\'$fieldName\', prefix);',
       );
-    } else if (typeString == 'bool') {
+    } else if (TypeAnalyzer.isBoolType(fieldType)) {
       buffer.writeln('  BoolFieldFilter<$rootFilterType> get $fieldName =>');
       buffer.writeln(
         '      BoolFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
       );
-    } else if (typeString == 'DateTime') {
+    } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
         '  DateTimeFieldFilter<$rootFilterType> get $fieldName =>',
       );
@@ -127,6 +127,7 @@ class FilterGenerator {
         '      DateTimeFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
+      final typeString = fieldType.getDisplayString(withNullability: false);
       buffer.writeln(
         '  NumericFieldFilter<$rootFilterType, $typeString> get $fieldName =>',
       );
