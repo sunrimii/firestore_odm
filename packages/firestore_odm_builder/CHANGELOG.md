@@ -1,3 +1,16 @@
+## 2.0.0
+
+> Note: This release has breaking changes.
+
+ - **REFACTOR**: remove TupleAggregateQuery and UpdateBuilder, introduce utility functions for Firestore data processing. ([8a224de8](https://github.com/sylphxltd/firestore_odm/commit/8a224de8d9dea2cc9938c707f53ef4210965d47a))
+ - **FIX**: implement defer writes pattern to resolve read-write ordering. ([cf1ae907](https://github.com/sylphxltd/firestore_odm/commit/cf1ae907eb91b926bbf8e0b116e7dc3e5e72da5d))
+ - **FEAT**: enhance type analysis with robust iterable and map support in generators. ([0d4ed7bf](https://github.com/sylphxltd/firestore_odm/commit/0d4ed7bf835eae141783b5194c9ddd01dbbd31f4))
+ - **FEAT**: add map operations, bulk delete, and collection bulk operations with comprehensive testing. ([d5612029](https://github.com/sylphxltd/firestore_odm/commit/d5612029e4c662d9054716a85f19076defc6e14a))
+ - **FEAT**: Enhance transaction support in Firestore ODM. ([5ba0b618](https://github.com/sylphxltd/firestore_odm/commit/5ba0b618605f8e8c28ae6d20234de55ee26e1d0d))
+ - **FEAT**: Implement pagination support in Firestore ODM. ([6abde897](https://github.com/sylphxltd/firestore_odm/commit/6abde8976e51ec63cededee286b750e85ba6dd3a))
+ - **FEAT**: implement callable update and order by instances to reduce generated code. ([cf16cea8](https://github.com/sylphxltd/firestore_odm/commit/cf16cea8a10fddd89f88a3fc6063cff5b5c9b2d9))
+ - **BREAKING** **FEAT**: add aggregation and pagination support with builder-to-selector refactor. ([8978198c](https://github.com/sylphxltd/firestore_odm/commit/8978198c704dc3e8600ac6f5ffdcd64ae090352c))
+
 ## 1.1.2
 
  - **REFACTOR**: remove unused _getSingularName method. ([8020f9e1](https://github.com/sylphxltd/firestore_odm/commit/8020f9e1dfbca4635ebc964468003fd500239134))
