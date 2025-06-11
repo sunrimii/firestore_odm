@@ -42,9 +42,6 @@ Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
   return result;
 }
 
-Map<String, dynamic> processUpdateData(Map<String, dynamic> data) {
-  return _replaceServerTimestamps(data);
-}
 
 /// Compute the difference between old and new data for efficient updates
 Map<String, dynamic> computeDiff(
@@ -155,84 +152,47 @@ dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
   return null;
 }
 
-Transaction? getTransactionFromZone() {
-  return Zone.current[#transaction] as Transaction?;
-}
-
-class UpdateService {
+class DocumentHandler {
   static Future<bool> exists<T>(
     DocumentReference<Map<String, dynamic>> ref,
   ) async {
-    final transaction = getTransactionFromZone();
-    if (transaction != null) {
-      final snapshot = await transaction.get(ref);
-      return snapshot.exists;
-    } else {
-      final snapshot = await ref.get();
-      return snapshot.exists;
-    }
+    final snapshot = await ref.get();
+    return snapshot.exists;
   }
 
-  static Stream<T?> streamDocument<T>(DocumentReference<Map<String, dynamic>> ref, JsonDeserializer<T> fromJson, String documentIdField) {
+  static Stream<T?> streamDocument<T>(
+    DocumentReference<Map<String, dynamic>> ref,
+    JsonDeserializer<T> fromJson,
+    String documentIdField,
+  ) {
     return lazyBroadcast(
       () => ref.snapshots().map(
         (snapshot) => snapshot.exists
-          ? processDocumentSnapshot(snapshot, fromJson, documentIdField)
-          : null,
+            ? processDocumentSnapshot(snapshot, fromJson, documentIdField)
+            : null,
       ),
     );
   }
-
 
   static Future<T?> get<T>(
     DocumentReference<Map<String, dynamic>> ref,
     JsonDeserializer<T> deserializer,
     String documentIdField,
   ) async {
-    final transaction = getTransactionFromZone();
-    if (transaction != null) {
-      final snapshot = await transaction.get(ref);
-      if (!snapshot.exists) return null;
-      return fromFirestoreData(
-        deserializer,
-        snapshot.data()!,
-        documentIdField,
-        snapshot.id,
-      );
-    } else {
-      final snapshot = await ref.get();
-      if (!snapshot.exists) return null;
-      return fromFirestoreData(
-        deserializer,
-        snapshot.data()!,
-        documentIdField,
-        snapshot.id,
-      );
-    }
-  }
-
-  static Future<void> _update<T>(
-    DocumentReference<Map<String, dynamic>> ref,
-    Map<String, dynamic> updateData,
-  ) async {
-    final transaction = getTransactionFromZone();
-    final processedUpdateData = serializeForFirestore(updateData);
-    if (transaction != null) {
-      transaction.update(ref, processedUpdateData);
-    } else {
-      await ref.update(processedUpdateData);
-    }
+    final snapshot = await ref.get();
+    if (!snapshot.exists) return null;
+    return fromFirestoreData(
+      deserializer,
+      snapshot.data()!,
+      documentIdField,
+      snapshot.id,
+    );
   }
 
   static Future<void> delete(
     DocumentReference<Map<String, dynamic>> ref,
   ) async {
-    final transaction = getTransactionFromZone();
-    if (transaction != null) {
-      transaction.delete(ref);
-    } else {
-      await ref.delete();
-    }
+    await ref.delete();
   }
 
   static Future<void> update<T>(
@@ -240,38 +200,30 @@ class UpdateService {
     T data,
     JsonSerializer<T> serializer,
     String? documentIdField,
-    ) async {
+  ) async {
     final dataMap = toFirestoreData(
       serializer,
       data,
       documentIdField: documentIdField,
     );
-    final processedData = serializeForFirestore(dataMap);
-    
-    final transaction = getTransactionFromZone();
-    if (transaction != null) {
-      transaction.set(ref, processedData);
-    } else {
-      await ref.set(processedData);
-    }
+    await ref.set(dataMap);
   }
 
   static Future<void> patch<T>(
     DocumentReference<Map<String, dynamic>> ref,
-    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
-    updateBuilder,
+    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patchBuilder,
   ) async {
     final builder = UpdateBuilder<T>();
-    final operations = updateBuilder(builder);
+    final operations = patchBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);
     if (!updateMap.isNotEmpty) {
       return; // No updates to apply
     }
-    await _update(ref, updateMap);
+    await ref.update(updateMap);
   }
 
-  static Future<void> _modify<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+  static Map<String, dynamic> processPatch<T>(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
     T Function(T) modifier,
     ModelConverter<T> converter,
     String documentIdField,
@@ -280,46 +232,27 @@ class UpdateService {
       Map<String, dynamic> newData,
     )
     computeDiff,
-  ) async {
-    final transaction = getTransactionFromZone();
-    
-    if (transaction != null) {
-      // In transaction: do all reads first, then defer writes
-      final snapshot = await transaction.get(ref);
-      if (!snapshot.exists) {
-        throw FirestoreDocumentNotFoundException(ref.id);
-      }
-      
-      final currentData = fromFirestoreData(
-        converter.fromJson,
-        snapshot.data()!,
-        documentIdField,
-        snapshot.id,
-      );
-      
-      final newData = modifier(currentData);
-      final oldDataMap = converter.toJson(currentData);
-      final newDataMap = converter.toJson(newData);
-      final updateData = computeDiff(oldDataMap, newDataMap);
-
-      if (updateData.isNotEmpty) {
-        transaction.update(ref, serializeForFirestore(updateData));
-      }
-    } else {
-      // Not in transaction: normal operation
-      final currentData = await get(ref, converter.fromJson, documentIdField);
-      if (currentData == null) {
-        throw FirestoreDocumentNotFoundException(ref.id);
-      }
-      final newData = modifier(currentData);
-      final oldDataMap = converter.toJson(currentData);
-      final newDataMap = converter.toJson(newData);
-      final updateData = computeDiff(oldDataMap, newDataMap);
-
-      if (updateData.isNotEmpty) {
-        await _update(ref, updateData);
-      }
+  ) {
+    if (!snapshot.exists) {
+      throw FirestoreDocumentNotFoundException(snapshot.id);
     }
+
+    final currentData = fromFirestoreData(
+      converter.fromJson,
+      snapshot.data()!,
+      documentIdField,
+      snapshot.id,
+    );
+
+    final newData = modifier(currentData);
+    final oldDataMap = converter.toJson(currentData);
+    final newDataMap = converter.toJson(newData);
+    final updateData = computeDiff(oldDataMap, newDataMap);
+
+    if (updateData.isNotEmpty) {
+      return _replaceServerTimestamps(updateData);
+    }
+    return {};
   }
 
   static Future<void> modify<T>(
@@ -328,7 +261,17 @@ class UpdateService {
     ModelConverter<T> converter,
     String documentIdField,
   ) async {
-    return _modify(ref, modifier, converter, documentIdField, computeDiff);
+    final currentData = await ref.get();
+    final patch = processPatch(
+      currentData,
+      modifier,
+      converter,
+      documentIdField,
+      computeDiff,
+    );
+    if (patch.isNotEmpty) {
+      await ref.update(patch);
+    }
   }
 
   static Future<void> incrementalModify<T>(
@@ -337,20 +280,19 @@ class UpdateService {
     ModelConverter<T> converter,
     String documentIdField,
   ) async {
-    return _modify(
-      ref,
+    final currentData = await ref.get();
+    final patch = processPatch(
+      currentData,
       modifier,
       converter,
       documentIdField,
       computeDiffWithAtomicOperations,
     );
+    if (patch.isNotEmpty) {
+      await ref.update(patch);
+    }
   }
-
-
-
 }
-
-
 
 abstract class CollectionHandler {
   static Future<List<T>> get<T>(
@@ -359,11 +301,8 @@ abstract class CollectionHandler {
     String documentIdField,
   ) {
     return ref.get().then(
-      (snapshot) => processQuerySnapshot<T>(
-        snapshot,
-        fromJson,
-        documentIdField,
-      ),
+      (snapshot) =>
+          processQuerySnapshot<T>(snapshot, fromJson, documentIdField),
     );
   }
 
@@ -374,7 +313,11 @@ abstract class CollectionHandler {
     String documentIdField,
   ) async {
     // First extract the document ID without validation
-    final (data, documentId) = processObject(toJson, value, documentIdField: documentIdField);
+    final (data, documentId) = processObject(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
 
     // If ID is empty string, let Firestore generate a unique ID
     if (documentId.isEmpty) {
@@ -401,7 +344,11 @@ abstract class CollectionHandler {
     JsonSerializer<T> toJson,
     String documentIdField,
   ) async {
-    final (data, documentId) = processObject(toJson, value, documentIdField: documentIdField);
+    final (data, documentId) = processObject(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
 
     if (documentId.isEmpty) {
       throw ArgumentError(
@@ -420,14 +367,17 @@ abstract class CollectionHandler {
     await docRef.set(data);
   }
 
-
   static Future<void> upsert<T>(
     CollectionReference<Map<String, dynamic>> ref,
     T value,
     JsonSerializer<T> toJson,
     String documentIdField,
   ) async {
-    final (data, documentId) = processObject(toJson, value, documentIdField: documentIdField);
+    final (data, documentId) = processObject(
+      toJson,
+      value,
+      documentIdField: documentIdField,
+    );
 
     if (documentId.isEmpty) {
       throw ArgumentError(
@@ -447,14 +397,11 @@ abstract class QueryHandler {
     String documentIdField,
   ) {
     return query.get().then(
-      (snapshot) => processQuerySnapshot<T>(
-        snapshot,
-        fromJson,
-        documentIdField,
-      ),
+      (snapshot) =>
+          processQuerySnapshot<T>(snapshot, fromJson, documentIdField),
     );
   }
-  
+
   static Stream<List<T>> stream<T>(
     Query<Map<String, dynamic>> query,
     JsonDeserializer<T> fromJson,
@@ -462,31 +409,25 @@ abstract class QueryHandler {
   ) {
     return lazyBroadcast(
       () => query.snapshots().map(
-        (snapshot) => processQuerySnapshot(
-          snapshot,
-          fromJson,
-          documentIdField,
-        ),
+        (snapshot) => processQuerySnapshot(snapshot, fromJson, documentIdField),
       ),
     );
   }
 
-  
-  static Future<void> update(
-    Query query,
-    Map<String, dynamic> updateData,
-  ) async {
-    final snapshot = await query.get();
-    final batch = query.firestore.batch();
-    final processedUpdateData = processUpdateData(updateData);
-    final serializedUpdateData = serializeForFirestore(processedUpdateData);
+  // static Future<void> update(
+  //   Query query,
+  //   Map<String, dynamic> updateData,
+  // ) async {
+  //   final snapshot = await query.get();
+  //   final batch = query.firestore.batch();
+  //   final processedUpdateData = processUpdateData(updateData);
 
-    for (final docSnapshot in snapshot.docs) {
-      batch.update(docSnapshot.reference, serializedUpdateData);
-    }
+  //   for (final docSnapshot in snapshot.docs) {
+  //     batch.update(docSnapshot.reference, processedUpdateData);
+  //   }
 
-    await batch.commit();
-  }
+  //   await batch.commit();
+  // }
 
   static Future<void> modify<T>(
     Query<Map<String, dynamic>> query,
@@ -498,25 +439,18 @@ abstract class QueryHandler {
     final batch = query.firestore.batch();
 
     for (final docSnapshot in snapshot.docs) {
-      final data = docSnapshot.data();
-      final doc = fromFirestoreData(
-        converter.fromJson,
-        data,
+      final patch = DocumentHandler.processPatch(
+        docSnapshot,
+        modifier,
+        converter,
         documentIdField,
-        docSnapshot.id,
+        computeDiff,
       );
-      final newDoc = modifier(doc);
-      final oldData = converter.toJson(doc);
-      final newData = converter.toJson(newDoc);
-      final updateData = computeDiff(oldData, newData);
-
-      if (updateData.isNotEmpty) {
-        final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = serializeForFirestore(processedUpdateData);
-        batch.update(docSnapshot.reference, serializedUpdateData);
+      if (patch.isNotEmpty) {
+        final processedUpdateData = _replaceServerTimestamps(patch);
+        batch.update(docSnapshot.reference, processedUpdateData);
       }
     }
-
     await batch.commit();
   }
 
@@ -530,22 +464,16 @@ abstract class QueryHandler {
     final batch = query.firestore.batch();
 
     for (final docSnapshot in snapshot.docs) {
-      final data = docSnapshot.data();
-      final doc = fromFirestoreData(
-        converter.fromJson,
-        data,
+      final patch = DocumentHandler.processPatch(
+        docSnapshot,
+        modifier,
+        converter,
         documentIdField,
-        docSnapshot.id,
+        computeDiffWithAtomicOperations,
       );
-      final newDoc = modifier(doc);
-      final oldData = converter.toJson(doc);
-      final newData = converter.toJson(newDoc);
-      final updateData = computeDiffWithAtomicOperations(oldData, newData);
-
-      if (updateData.isNotEmpty) {
-        final processedUpdateData = processUpdateData(updateData);
-        final serializedUpdateData = serializeForFirestore(processedUpdateData);
-        batch.update(docSnapshot.reference, serializedUpdateData);
+      if (patch.isNotEmpty) {
+        final processedUpdateData = _replaceServerTimestamps(patch);
+        batch.update(docSnapshot.reference, processedUpdateData);
       }
     }
 
@@ -568,14 +496,11 @@ abstract class QueryHandler {
       final updateMap = UpdateBuilder.operationsToMap(operations);
 
       if (updateMap.isNotEmpty) {
-        final processedUpdateData = processUpdateData(updateMap);
-        final serializedUpdateData = serializeForFirestore(processedUpdateData);
-        batch.update(docSnapshot.reference, serializedUpdateData);
+        batch.update(docSnapshot.reference, updateMap);
       }
     }
     await batch.commit();
   }
-
 
   static Future<void> delete(Query query) async {
     final snapshot = await query.get();

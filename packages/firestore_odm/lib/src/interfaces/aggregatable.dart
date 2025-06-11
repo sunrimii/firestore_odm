@@ -1,4 +1,3 @@
-import 'package:firestore_odm/src/count_query.dart' show FirestoreCountQuery;
 import 'package:firestore_odm/src/schema.dart';
 
 // abstract interface class Aggregatable<S extends FirestoreSchema, T> {

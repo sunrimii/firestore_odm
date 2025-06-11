@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/transaction.dart';
 import 'schema.dart';
 
 /// Internal variable to store the current server timestamp constant
@@ -47,23 +48,10 @@ class FirestoreODM<T extends FirestoreSchema> {
   /// The [cb] callback is executed within a transaction context.
   /// Any operations that need to be executed after successful transaction
   /// can be registered using the onSuccess handler available in the zone.
-  Future<void> runTransaction(Future<void> Function() cb) async {
-    final handlers = <FutureOr<void> Function()>[];
-
-    void onSuccess(void Function() cb) {
-      handlers.add(cb);
-    }
-
-    await _firestore.runTransaction((transaction) async {
-      await runZoned(
-        cb,
-        zoneValues: {#transaction: transaction, #onSuccess: onSuccess},
-      );
+  Future<void> runTransaction(Future<void> Function(TransactionContext<T>) cb) async {
+    _firestore.runTransaction((transaction) async {
+      final context = TransactionContext<T>(_firestore, transaction);
+      await cb(context);
     });
-
-    log('running handlers, count: ${handlers.length}');
-    for (final handler in handlers) {
-      await handler();
-    }
   }
 }

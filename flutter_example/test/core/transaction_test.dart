@@ -39,11 +39,11 @@ void main() {
         await odm.users(initialUser.id).update(initialUser);
 
         // Perform transaction to read user and update based on current state
-        await odm.runTransaction(() async {
-          final user = await odm.users('transaction_user_1').get();
+        await odm.runTransaction((tx) async {
+          final user = await tx.users('transaction_user_1').get();
           expect(user, isNotNull);
 
-          await odm.users('transaction_user_1').patch(($) => [
+          tx.users('transaction_user_1').patch(($) => [
                 $.rating.increment(1.0),
                 $.profile.followers.increment(50),
                 $.isPremium(true),
@@ -100,21 +100,21 @@ void main() {
         await odm.users(user2.id).update(user2);
 
         // Transaction with modify operations
-        await odm.runTransaction(() async {
-          final currentUser1 = await odm.users('tx_modify_user_1').get();
-          final currentUser2 = await odm.users('tx_modify_user_2').get();
+        await odm.runTransaction((tx) async {
+          final currentUser1 = await tx.users('tx_modify_user_1').get();
+          final currentUser2 = await tx.users('tx_modify_user_2').get();
 
           expect(currentUser1, isNotNull);
           expect(currentUser2, isNotNull);
 
-          await odm.users('tx_modify_user_1').modify((user) => user.copyWith(
+          await tx.users('tx_modify_user_1').modify((user) => user.copyWith(
                 isPremium: true,
                 profile: user.profile.copyWith(
                   bio: '${user.profile.bio} - TX Modified',
                 ),
               ));
 
-          await odm.users('tx_modify_user_2').modify((user) => user.copyWith(
+          await tx.users('tx_modify_user_2').modify((user) => user.copyWith(
                 isPremium: true,
                 profile: user.profile.copyWith(
                   bio: '${user.profile.bio} - TX Modified',
@@ -156,11 +156,11 @@ void main() {
         await odm.users(user.id).update(user);
 
         // Transaction with incremental modify
-        await odm.runTransaction(() async {
-          final currentUser = await odm.users('tx_inc_mod_user').get();
+        await odm.runTransaction((tx) async {
+          final currentUser = await tx.users('tx_inc_mod_user').get();
           expect(currentUser, isNotNull);
 
-          await odm
+          await tx
               .users('tx_inc_mod_user')
               .incrementalModify((user) => user.copyWith(
                     rating:
@@ -231,9 +231,9 @@ void main() {
         // Transfer 200 points from sender to receiver
         const transferAmount = 200;
 
-        await odm.runTransaction(() async {
-          final currentSender = await odm.users('sender_user').get();
-          final currentReceiver = await odm.users('receiver_user').get();
+        await odm.runTransaction((tx) async {
+          final currentSender = await tx.users('sender_user').get();
+          final currentReceiver = await tx.users('receiver_user').get();
 
           expect(currentSender, isNotNull);
           expect(currentReceiver, isNotNull);
@@ -245,11 +245,11 @@ void main() {
           expect(senderPoints, greaterThanOrEqualTo(transferAmount));
 
           // Perform the transfer
-          await odm.users('sender_user').modify((user) => user.copyWith(
+          await tx.users('sender_user').modify((user) => user.copyWith(
                 scores: [senderPoints - transferAmount],
               ));
 
-          await odm.users('receiver_user').modify((user) => user.copyWith(
+          await tx.users('receiver_user').modify((user) => user.copyWith(
                 scores: [receiverPoints + transferAmount],
               ));
         });
@@ -284,15 +284,15 @@ void main() {
         await odm.users(user.id).update(user);
 
         // Conditional upgrade to premium if user has enough points
-        await odm.runTransaction(() async {
-          final currentUser = await odm.users('conditional_user').get();
+        await odm.runTransaction((tx) async {
+          final currentUser = await tx.users('conditional_user').get();
           expect(currentUser, isNotNull);
 
           final points = currentUser!.scores.first;
 
           if (points >= 400) {
             // User has enough points, upgrade to premium and deduct points
-            await odm.users('conditional_user').modify((user) => user.copyWith(
+            await tx.users('conditional_user').modify((user) => user.copyWith(
                   isPremium: true,
                   scores: [points - 400],
                   profile: user.profile.copyWith(
@@ -333,9 +333,9 @@ void main() {
         await odm.users(user.id).update(user);
 
         try {
-          await odm.runTransaction(() async {
+          await odm.runTransaction((tx) async {
             // First operation should succeed
-            await odm.users('rollback_user').patch(($) => [
+            odm.users('rollback_user').patch(($) => [
                   $.isPremium(true),
                 ]);
 
@@ -381,12 +381,12 @@ void main() {
 
         // Simulate concurrent transactions
         final futures = List.generate(3, (index) async {
-          return odm.runTransaction(() async {
-            final currentUser = await odm.users('concurrent_user').get();
+          return odm.runTransaction((tx) async {
+            final currentUser = await tx.users('concurrent_user').get();
             expect(currentUser, isNotNull);
 
             // Each transaction tries to increment the score
-            await odm
+            await tx
                 .users('concurrent_user')
                 .incrementalModify((user) => user.copyWith(
                       scores: [user.scores.first + 10],
@@ -426,12 +426,12 @@ void main() {
 
         await odm.users(user.id).update(user);
 
-        await odm.runTransaction(() async {
-          final currentUser = await odm.users('tx_timestamp_user').get();
+        await odm.runTransaction((tx) async {
+          final currentUser = await tx.users('tx_timestamp_user').get();
           expect(currentUser, isNotNull);
 
           // Use server timestamp in transaction updates
-          await odm.users('tx_timestamp_user').patch(($) => [
+          tx.users('tx_timestamp_user').patch(($) => [
                 $.lastLogin.serverTimestamp(),
                 $.updatedAt.serverTimestamp(),
                 $.isPremium(true),
@@ -467,12 +467,12 @@ void main() {
 
         await odm.users(user.id).update(user);
 
-        await odm.runTransaction(() async {
-          final currentUser = await odm.users('tx_mod_timestamp_user').get();
+        await odm.runTransaction((tx) async {
+          final currentUser = await tx.users('tx_mod_timestamp_user').get();
           expect(currentUser, isNotNull);
 
           // Use server timestamp in transaction incremental modify
-          await odm
+          await tx
               .users('tx_mod_timestamp_user')
               .incrementalModify((user) => user.copyWith(
                     tags: [...user.tags, 'tx_modified'],

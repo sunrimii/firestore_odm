@@ -47,6 +47,9 @@ class SchemaGenerator {
 
     // Generate ODM extensions
     _generateODMExtensions(buffer, schemaClassName, collections);
+    
+    // Generate ODM extensions
+    _generateTransactionContextExtensions(buffer, schemaClassName, collections);
 
     // Generate document extensions for subcollections
     _generateDocumentExtensions(buffer, schemaClassName, collections);
@@ -125,6 +128,48 @@ class SchemaGenerator {
       );
       buffer.writeln(
         '      query: firestore.collection(\'${collection.path}\'),',
+      );
+      buffer.writeln('      converter: $converterName,');
+      buffer.writeln('    );');
+      buffer.writeln('');
+    }
+
+    buffer.writeln('}');
+    buffer.writeln('');
+  }
+
+  /// Generate ODM extensions for the schema
+  static void _generateTransactionContextExtensions(
+    StringBuffer buffer,
+    String schemaClassName,
+    List<SchemaCollectionInfo> collections,
+  ) {
+    final rootCollections = collections
+        .where((c) => !c.isSubcollection)
+        .toList();
+    if (rootCollections.isEmpty) return;
+
+    buffer.writeln(
+      '/// Extension to add collections to FirestoreODM<$schemaClassName>',
+    );
+    buffer.writeln(
+      'extension ${schemaClassName}TransactionContextExtensions on TransactionContext<$schemaClassName> {',
+    );
+
+    for (final collection in rootCollections) {
+      final collectionName = StringHelpers.camelCase(collection.path);
+      final converterName =
+          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
+      buffer.writeln('  /// Access ${collection.path} collection');
+      buffer.writeln(
+        '  TransactionCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
+      );
+      buffer.writeln(
+        '    TransactionCollection<$schemaClassName, ${collection.modelTypeName}>(',
+      );
+      buffer.writeln('      transaction: transaction,');
+      buffer.writeln(
+        '      query: ref.collection(\'${collection.path}\'),',
       );
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');

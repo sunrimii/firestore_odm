@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
-import 'firestore_collection.dart';
+import 'package:firestore_odm/src/model_converter.dart';
 import 'services/update_operations_service.dart';
 import 'filter_builder.dart';
 import 'schema.dart';
@@ -12,62 +12,64 @@ import 'schema.dart';
 class FirestoreDocument<S extends FirestoreSchema, T>
     implements Streamable<T?> {
   /// The collection this document belongs to (nullable for fromRef constructor)
-  final FirestoreCollection<S, T> collection;
+  final ModelConverter<T> converter;
+
+  final String documentIdField;
 
   /// The document ID
   final DocumentReference<Map<String, dynamic>> ref;
 
 
   /// Creates a new FirestoreDocument instance from a collection and document ID
-  FirestoreDocument(this.collection, this.ref);
+  FirestoreDocument(this.ref, this.converter, this.documentIdField);
 
   /// Stream of document snapshots
-  Stream<T?> get stream => UpdateService.streamDocument<T>(
+  Stream<T?> get stream => DocumentHandler.streamDocument<T>(
     ref,
-    collection.converter.fromJson,
-    collection.documentIdField,
+    converter.fromJson,
+    documentIdField,
   );
 
   /// Checks if the document exists
-  Future<bool> exists() => UpdateService.exists(ref);
+  Future<bool> exists() => DocumentHandler.exists(ref);
 
   /// Gets the document data
-  Future<T?> get() => UpdateService.get(
+  Future<T?> get() => DocumentHandler.get(
     ref,
-    collection.converter.fromJson,
-    collection.documentIdField,
+    converter.fromJson,
+    documentIdField,
   );
 
   /// Sets the document data
-  Future<void> update(T state) => UpdateService.update(
+  Future<void> update(T state) => DocumentHandler.update(
     ref,
     state,
-    collection.converter.toJson,
-    collection.documentIdField,
+    converter.toJson,
+    documentIdField,
   );
 
   /// Incremental modify a document using diff-based updates (with automatic atomic operations)
   Future<void> incrementalModify(T Function(T docData) modifier) =>
-      UpdateService.incrementalModify(
+      DocumentHandler.incrementalModify(
         ref,
         modifier,
-        collection.converter,
-        collection.documentIdField,
+        converter,
+        documentIdField,
       );
 
   /// Modify a document using diff-based updates
-  Future<void> modify(T Function(T docData) modifier) => UpdateService.modify(
+  Future<void> modify(T Function(T docData) modifier) => DocumentHandler.modify(
     ref,
     modifier,
-    collection.converter,
-    collection.documentIdField,
+    converter,
+    documentIdField,
   );
 
   /// Delete this document
-  Future<void> delete() => UpdateService.delete(ref);
+  Future<void> delete() => DocumentHandler.delete(ref);
 
   Future<void> patch(
     List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
     updateBuilder,
-  ) => UpdateService.patch(ref, updateBuilder);
+  ) => DocumentHandler.patch(ref, updateBuilder);
 }

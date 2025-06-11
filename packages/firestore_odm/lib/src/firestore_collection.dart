@@ -30,7 +30,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<S, T> call(String id) => FirestoreDocument(this, query.doc(id));
+  FirestoreDocument<S, T> call(String id) => FirestoreDocument(query.doc(id), converter, documentIdField);
 
   /// Upsert a document using the id field as document ID
   Future<void> upsert(T value) => 

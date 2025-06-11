@@ -420,21 +420,19 @@ void main() {
 
         // Run independent transactions
         await Future.wait([
-          mainODM.runTransaction(() async {
-            final user = await mainODM.users(userId).get();
-            await mainODM.users(userId).patch(($) => [
+          mainODM.runTransaction((tx) async {
+            final user = await tx.users(userId).get();
+            tx.users(userId).patch(($) => [
                   $.name('Main TX User'),
                   $.rating.increment(1.0),
                 ]);
           }),
-          analyticsODM.runTransaction(() async {
-            final user = await analyticsODM.users(userId).get();
-            await analyticsODM
-                .users(userId)
-                .incrementalModify((user) => user.copyWith(
-                      name: 'Analytics TX User',
-                      scores: [user.scores.first + 500],
-                    ));
+          analyticsODM.runTransaction((tx) async {
+            final user = await tx.users(userId).get();
+            await tx.users(userId).incrementalModify((user) => user.copyWith(
+                  name: 'Analytics TX User',
+                  scores: [user.scores.first + 500],
+                ));
           }),
         ]);
 

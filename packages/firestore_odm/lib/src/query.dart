@@ -299,13 +299,14 @@ extension PatchableExt<S extends FirestoreSchema, T, R>
     on Query<S, T, dynamic, dynamic> {
   /// Patches the query with a new collection
   Future<void> patch(
-    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
-    updateBuilder,
+    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder)
+    patchBuilder,
   ) async {
-    final builder = UpdateBuilder<T>();
-    final operations = updateBuilder(builder);
-    final updateMap = UpdateBuilder.operationsToMap(operations);
-    return QueryHandler.update(query, updateMap);
+    return QueryHandler.patch(query,
+      collection.documentIdField,
+      collection.converter,
+      patchBuilder,
+    );
   }
 }
 

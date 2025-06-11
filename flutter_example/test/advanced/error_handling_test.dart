@@ -211,8 +211,8 @@ void main() {
         await odm.users('transaction_user').update(user);
 
         try {
-          await odm.runTransaction(() async {
-            await odm
+          await odm.runTransaction((tx) async {
+            await tx
                 .users('transaction_user')
                 .modify((user) => user.copyWith(isPremium: true));
 

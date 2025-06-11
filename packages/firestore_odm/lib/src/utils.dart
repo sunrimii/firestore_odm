@@ -92,8 +92,7 @@ Map<String, dynamic> toFirestoreData<T>(
   String? documentIdField,
 }) {
   final mapData = toJsonFunction(data);
-  final processedData = removeDocumentIdField(mapData, documentIdField);
-  return serializeForFirestore(processedData);
+  return removeDocumentIdField(mapData, documentIdField);
 }
 
 (Map<String, dynamic>, String) processObject<T>(
@@ -107,7 +106,7 @@ Map<String, dynamic> toFirestoreData<T>(
   final processedData = removeDocumentIdField(mapData, documentIdField);
 
   // Serialize the data for Firestore storage
-  return (serializeForFirestore(processedData), documentId);
+  return (processedData, documentId);
 }
 
 String extractDocumentId(Map<String, dynamic> json, String? documentIdField) {
@@ -142,39 +141,39 @@ Map<String, dynamic> removeDocumentIdField(
   return result;
 }
 
-Map<String, dynamic> serializeForFirestore(Map<String, dynamic> json) {
-  return _serializeValue(json) as Map<String, dynamic>;
-}
+// Map<String, dynamic> serializeForFirestore(Map<String, dynamic> json) {
+//   return _serializeValue(json) as Map<String, dynamic>;
+// }
 
-dynamic _serializeValue(dynamic value) {
-  if (value == null) {
-    return null;
-  }
+// dynamic _serializeValue(dynamic value) {
+//   if (value == null) {
+//     return null;
+//   }
 
-  if (value is Map<String, dynamic>) {
-    final result = <String, dynamic>{};
-    for (final entry in value.entries) {
-      result[entry.key] = _serializeValue(entry.value);
-    }
-    return result;
-  } else if (value is List) {
-    return value.map((item) => _serializeValue(item)).toList();
-  }
+//   if (value is Map<String, dynamic>) {
+//     final result = <String, dynamic>{};
+//     for (final entry in value.entries) {
+//       result[entry.key] = _serializeValue(entry.value);
+//     }
+//     return result;
+//   } else if (value is List) {
+//     return value.map((item) => _serializeValue(item)).toList();
+//   }
 
-  // Handle Freezed objects - check if they have toJson() method
-  try {
-    // Try to call toJson method
-    final json = (value as dynamic).toJson();
-    if (json is Map<String, dynamic>) {
-      return _serializeValue(json);
-    }
-  } catch (e) {
-    // Not a Freezed object or doesn't have toJson, continue
-  }
+//   // Handle Freezed objects - check if they have toJson() method
+//   try {
+//     // Try to call toJson method
+//     final json = (value as dynamic).toJson();
+//     if (json is Map<String, dynamic>) {
+//       return _serializeValue(json);
+//     }
+//   } catch (e) {
+//     // Not a Freezed object or doesn't have toJson, continue
+//   }
 
-  // For primitive types and objects without toJson
-  return value;
-}
+//   // For primitive types and objects without toJson
+//   return value;
+// }
 
 List<T> processQuerySnapshot<T>(
   firestore.QuerySnapshot<Map<String, dynamic>> snapshot,
