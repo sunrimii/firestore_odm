@@ -176,11 +176,9 @@ class UpdateService {
   static Stream<T?> streamDocument<T>(DocumentReference<Map<String, dynamic>> ref, JsonDeserializer<T> fromJson, String documentIdField) {
     return lazyBroadcast(
       () => ref.snapshots().map(
-        (snapshot) => processDocumentSnapshot(
-          snapshot,
-          fromJson,
-          documentIdField,
-        ),
+        (snapshot) => snapshot.exists
+          ? processDocumentSnapshot(snapshot, fromJson, documentIdField)
+          : null,
       ),
     );
   }
@@ -249,7 +247,13 @@ class UpdateService {
       documentIdField: documentIdField,
     );
     final processedData = serializeForFirestore(dataMap);
-    await _update(ref, processedData);
+    
+    final transaction = getTransactionFromZone();
+    if (transaction != null) {
+      transaction.set(ref, processedData);
+    } else {
+      await ref.set(processedData);
+    }
   }
 
   static Future<void> patch<T>(
@@ -278,21 +282,43 @@ class UpdateService {
     computeDiff,
   ) async {
     final transaction = getTransactionFromZone();
-    final currentData = await get(ref, converter.fromJson, documentIdField);
-    if (currentData == null) {
-      throw FirestoreDocumentNotFoundException(ref.id);
-    }
-    final newData = modifier(currentData);
-    final oldDataMap = converter.toJson(currentData);
-    final newDataMap = converter.toJson(newData);
-    final updateData = computeDiff(oldDataMap, newDataMap);
-
-    if (updateData.isEmpty) return; // No changes
-
+    
     if (transaction != null) {
-      transaction.update(ref, serializeForFirestore(updateData));
+      // In transaction: do all reads first, then defer writes
+      final snapshot = await transaction.get(ref);
+      if (!snapshot.exists) {
+        throw FirestoreDocumentNotFoundException(ref.id);
+      }
+      
+      final currentData = fromFirestoreData(
+        converter.fromJson,
+        snapshot.data()!,
+        documentIdField,
+        snapshot.id,
+      );
+      
+      final newData = modifier(currentData);
+      final oldDataMap = converter.toJson(currentData);
+      final newDataMap = converter.toJson(newData);
+      final updateData = computeDiff(oldDataMap, newDataMap);
+
+      if (updateData.isNotEmpty) {
+        transaction.update(ref, serializeForFirestore(updateData));
+      }
     } else {
-      await _update(ref, updateData);
+      // Not in transaction: normal operation
+      final currentData = await get(ref, converter.fromJson, documentIdField);
+      if (currentData == null) {
+        throw FirestoreDocumentNotFoundException(ref.id);
+      }
+      final newData = modifier(currentData);
+      final oldDataMap = converter.toJson(currentData);
+      final newDataMap = converter.toJson(newData);
+      final updateData = computeDiff(oldDataMap, newDataMap);
+
+      if (updateData.isNotEmpty) {
+        await _update(ref, updateData);
+      }
     }
   }
 
@@ -388,7 +414,7 @@ abstract class CollectionHandler {
     final docSnapshot = await docRef.get();
 
     if (!docSnapshot.exists) {
-      throw FirestoreDocumentNotFoundException(documentId);
+      throw StateError('Document with ID \'$documentId\' does not exist');
     }
 
     await docRef.set(data);

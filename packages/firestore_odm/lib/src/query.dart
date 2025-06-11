@@ -235,7 +235,13 @@ extension FilterableExt<
     final builder = RootFilterBuilder<T>();
     final builtFilter = filterBuilder(builder);
     final newQuery = applyFilterToQuery(query, builtFilter);
-    return Query<S, T, O, L>(collection, newQuery);
+    
+    // Handle different types of query objects
+    if (this is FirestoreCollection<S, T>) {
+      return Query<S, T, O, L>(collection, newQuery, null, null);
+    } else {
+      return Query<S, T, O, L>(collection, newQuery, _orderByConfig, _orderByBuilder);
+    }
   }
 }
 
@@ -246,6 +252,9 @@ extension OrderableExt<S extends FirestoreSchema, T, L extends int?>
     O Function(OrderByFieldSelector<T> selector) orderBuilder,
   ) {
     final selector = OrderByFieldSelector<T>();
+    
+    // Call the order builder to populate the selector
+    orderBuilder(selector);
 
     // Build the actual Firestore query from the collected fields
     firestore.Query<Map<String, dynamic>> newQuery = query;
@@ -262,7 +271,7 @@ extension OrderableExt<S extends FirestoreSchema, T, L extends int?>
         .toList();
     final config = OrderByConfiguration(pgFields);
 
-    return Query<S, T, O, L>(collection, newQuery, config);
+    return Query<S, T, O, L>(collection, newQuery, config, orderBuilder);
   }
 }
 
@@ -271,12 +280,18 @@ extension LimitableExt<S extends FirestoreSchema, T, O extends Record?>
   /// Limits the number of results returned by the query
   Query<S, T, O, int> limit(int limit) {
     final newQuery = query.limit(limit);
-    return Query<S, T, O, int>(collection, newQuery);
+    
+    // Handle different types of query objects
+    if (this is FirestoreCollection<S, T>) {
+      return Query<S, T, O, int>(collection, newQuery, null, null);
+    } else {
+      return Query<S, T, O, int>(collection, newQuery, _orderByConfig, _orderByBuilder);
+    }
   }
 
   Query<S, T, O, int> limitToLast(int limit) {
     final newQuery = query.limitToLast(limit);
-    return Query<S, T, O, int>(collection, newQuery);
+    return Query<S, T, O, int>(collection, newQuery, _orderByConfig, _orderByBuilder);
   }
 }
 
@@ -602,7 +617,7 @@ class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
   int count() {
     // Return the actual count result if available
     for (final entry in _results.entries) {
-      if (entry.key.startsWith('count_')) {
+      if (entry.key == 'count' || entry.key.startsWith('count_')) {
         return entry.value as int? ?? 0;
       }
     }
@@ -705,9 +720,6 @@ R _buildResultRecordFromSnapshot<T, R>(
 ) {
   final results = <String, dynamic>{};
 
-  print(
-    'Building aggregate result record from snapshot: Json: ${snapshot.count}',
-  );
   // Use results from native aggregate query
   for (final op in operations) {
     if (op is CountOperation) {
