@@ -5,20 +5,22 @@ import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
-import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 class TransactionContext<Schema extends FirestoreSchema> {
   final firestore.FirebaseFirestore ref;
   final firestore.Transaction transaction;
-  final Map<String, firestore.DocumentSnapshot<Map<String, dynamic>>> _documentCache = {};
+  final Map<String, firestore.DocumentSnapshot<Map<String, dynamic>>>
+  _documentCache = {};
   final List<Function()> _deferredWrites = [];
 
   TransactionContext(this.ref, this.transaction);
 
   /// Cache a document snapshot for reuse within the transaction
-  void _cacheDocument(firestore.DocumentSnapshot<Map<String, dynamic>> snapshot) {
+  void _cacheDocument(
+    firestore.DocumentSnapshot<Map<String, dynamic>> snapshot,
+  ) {
     _documentCache[snapshot.reference.path] = snapshot;
   }
 
@@ -56,7 +58,8 @@ class TransactionCollection<S extends FirestoreSchema, T> {
     required this.converter,
     required TransactionContext<S> context,
     this.documentIdField = 'id',
-  }) : _transaction = transaction, _context = context;
+  }) : _transaction = transaction,
+       _context = context;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -106,7 +109,8 @@ class TransactionDocument<S extends FirestoreSchema, T>
   }
 
   /// Get a document snapshot, reading if not cached
-  Future<firestore.DocumentSnapshot<Map<String, dynamic>>> _getSnapshot() async {
+  Future<firestore.DocumentSnapshot<Map<String, dynamic>>>
+  _getSnapshot() async {
     final cached = _context._getCachedDocument(ref);
     if (cached != null) {
       return cached;

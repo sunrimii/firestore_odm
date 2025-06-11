@@ -63,16 +63,20 @@ void main() {
       }
 
       // Test: OrderedQuery.where() should preserve order type
-      final orderedQuery = odm.users
-          .orderBy(($) => ($.rating(true), $.age())); // Returns OrderedQuery<TestSchema, User, (double, int)>
+      final orderedQuery = odm.users.orderBy(
+        ($) => ($.rating(true), $.age()),
+      ); // Returns OrderedQuery<TestSchema, User, (double, int)>
 
       // After where() filtering, should still maintain order type for pagination
-      final filteredOrderedQuery = orderedQuery
-          .where(($) => $.isActive(isEqualTo: true)); // Should still be OrderedQuery<TestSchema, User, (double, int)>
+      final filteredOrderedQuery = orderedQuery.where(
+        ($) => $.isActive(isEqualTo: true),
+      ); // Should still be OrderedQuery<TestSchema, User, (double, int)>
 
       // Verify we can still use pagination methods (which require order type O)
       final results = await filteredOrderedQuery
-          .startAfterObject(users[0]) // This requires the order type O to be preserved
+          .startAfterObject(
+            users[0],
+          ) // This requires the order type O to be preserved
           .limit(1)
           .get();
 
@@ -93,74 +97,87 @@ void main() {
       print('✅ Cursor-based pagination works with preserved order type');
     });
 
-    test('should lose order type for aggregate operations (correct behavior)', () async {
-      // Create test data
-      final user = User(
-        id: 'agg_user',
-        name: 'Aggregate User',
-        email: 'agg@example.com',
-        age: 28,
-        profile: Profile(
-          bio: 'Agg bio',
-          avatar: 'agg.jpg',
-          socialLinks: {},
-          interests: ['analytics'],
-          followers: 800,
-          lastActive: DateTime.now(),
-        ),
-        rating: 4.5,
-        tags: ['analyst'],
-        isActive: true,
-        isPremium: true,
-        createdAt: DateTime.now(),
-      );
+    test(
+      'should lose order type for aggregate operations (correct behavior)',
+      () async {
+        // Create test data
+        final user = User(
+          id: 'agg_user',
+          name: 'Aggregate User',
+          email: 'agg@example.com',
+          age: 28,
+          profile: Profile(
+            bio: 'Agg bio',
+            avatar: 'agg.jpg',
+            socialLinks: {},
+            interests: ['analytics'],
+            followers: 800,
+            lastActive: DateTime.now(),
+          ),
+          rating: 4.5,
+          tags: ['analyst'],
+          isActive: true,
+          isPremium: true,
+          createdAt: DateTime.now(),
+        );
 
-      await odm.users(user.id).update(user);
+        await odm.users(user.id).update(user);
 
-      // Test: OrderedQuery.aggregate() should return AggregateQuery (no order type)
-      final orderedQuery = odm.users
-          .orderBy(($) => ($.rating(true), $.age())); // OrderedQuery with order type
+        // Test: OrderedQuery.aggregate() should return AggregateQuery (no order type)
+        final orderedQuery = odm.users.orderBy(
+          ($) => ($.rating(true), $.age()),
+        ); // OrderedQuery with order type
 
-      final aggregateQuery = orderedQuery
-          .aggregate(($) => (
-            count: $.count(),
-            avgRating: $.rating.average(),
-          )); // Returns AggregateQuery (no order type needed)
+        final aggregateQuery = orderedQuery.aggregate(
+          ($) => (count: $.count(), avgRating: $.rating.average()),
+        ); // Returns AggregateQuery (no order type needed)
 
-      final result = await aggregateQuery.get();
-      
-      expect(result.count, equals(1));
-      expect(result.avgRating, equals(4.5));
+        final result = await aggregateQuery.get();
 
-      print('✅ Aggregate operations correctly lose order type (no pagination needed)');
+        expect(result.count, equals(1));
+        expect(result.avgRating, equals(4.5));
 
-      // Test: Count operations also lose order type
-      final countQuery = orderedQuery.count(); // Returns AggregateCountQuery (no order type)
-      final countResult = await countQuery.get();
-      
-      expect(countResult, equals(1));
+        print(
+          '✅ Aggregate operations correctly lose order type (no pagination needed)',
+        );
 
-      print('✅ Count operations correctly lose order type');
-    });
+        // Test: Count operations also lose order type
+        final countQuery = orderedQuery
+            .count(); // Returns AggregateCountQuery (no order type)
+        final countResult = await countQuery.get();
+
+        expect(countResult, equals(1));
+
+        print('✅ Count operations correctly lose order type');
+      },
+    );
 
     test('should demonstrate the correct API flow', () async {
       // This test demonstrates the correct type flow
-      
+
       // 1. Start with collection (no order type)
       final collection = odm.users; // FirestoreCollection<TestSchema, User>
-      
+
       // 2. Apply ordering (gains order type)
-      final ordered = collection.orderBy(($) => ($.rating(true), $.name())); // OrderedQuery<TestSchema, User, (double, String)>
-      
+      final ordered = collection.orderBy(
+        ($) => ($.rating(true), $.name()),
+      ); // OrderedQuery<TestSchema, User, (double, String)>
+
       // 3. Apply filtering (preserves order type) ✅ CORRECT
-      final filtered = ordered.where(($) => $.isActive(isEqualTo: true)); // OrderedQuery<TestSchema, User, (double, String)>
-      
+      final filtered = ordered.where(
+        ($) => $.isActive(isEqualTo: true),
+      ); // OrderedQuery<TestSchema, User, (double, String)>
+
       // 4. Apply pagination (uses preserved order type) ✅ CORRECT
-      final paginated = filtered.limit(10); // OrderedQuery<TestSchema, User, (double, String)>
-      
+      final paginated = filtered.limit(
+        10,
+      ); // OrderedQuery<TestSchema, User, (double, String)>
+
       // 5. Aggregate loses order type (correct) ✅ CORRECT
-      final aggregated = ordered.aggregate(($) => (count: $.count())); // AggregateQuery (no order type)
-      
+      final aggregated = ordered.aggregate(
+        ($) => (count: $.count()),
+      ); // AggregateQuery (no order type)
+
       print('✅ API flow demonstrates correct type preservation:');
       print('  - Collection: No order type');
       print('  - After orderBy(): Gains order type O');

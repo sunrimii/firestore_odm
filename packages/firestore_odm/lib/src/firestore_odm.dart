@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/transaction.dart';
 import 'schema.dart';
@@ -47,13 +46,15 @@ class FirestoreODM<T extends FirestoreSchema> {
   ///
   /// The [cb] callback is executed within a transaction context.
   /// All write operations are deferred until after all reads complete.
-  Future<void> runTransaction(Future<void> Function(TransactionContext<T>) cb) async {
+  Future<void> runTransaction(
+    Future<void> Function(TransactionContext<T>) cb,
+  ) async {
     return await _firestore.runTransaction((transaction) async {
       final context = TransactionContext<T>(_firestore, transaction);
-      
+
       // Execute the callback (collects reads and defers writes)
       await cb(context);
-      
+
       // Execute all deferred writes after reads are complete
       context.executeDeferredWrites();
     });

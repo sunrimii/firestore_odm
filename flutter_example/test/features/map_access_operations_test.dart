@@ -69,7 +69,9 @@ void main() {
       // Test 1: Filter by specific map key value in nested object
       print('🧪 Test 1: Filter by profile.socialLinks.github');
       final githubUsers = await odm.users
-          .where(($) => $.profile.socialLinks.key("github")(isEqualTo: "alice-dev"))
+          .where(
+            ($) => $.profile.socialLinks.key("github")(isEqualTo: "alice-dev"),
+          )
           .get();
 
       expect(githubUsers, hasLength(1));
@@ -99,7 +101,9 @@ void main() {
       // Test 4: Filter by non-existent key (should return no results)
       print('🧪 Test 4: Filter by non-existent map key');
       final noResults = await odm.users
-          .where(($) => $.profile.socialLinks.key("instagram")(isEqualTo: "test"))
+          .where(
+            ($) => $.profile.socialLinks.key("instagram")(isEqualTo: "test"),
+          )
           .get();
 
       expect(noResults, hasLength(0));
@@ -135,18 +139,28 @@ void main() {
       // Debug: Check what's actually stored
       final storedUser = await odm.users(user.id).get();
       print('🔍 Debug: Stored settings = ${storedUser?.settings}');
-      print('🔍 Debug: Searching for = ${{'theme': 'auto', 'notifications': 'enabled'}}');
+      print(
+        '🔍 Debug: Searching for = ${{'theme': 'auto', 'notifications': 'enabled'}}',
+      );
 
       // Test 1: Filter by entire map equality
       print('🧪 Test 1: Filter by entire map equality');
-      
+
       // Try different key orderings to see if that's the issue
       final exactMapMatch1 = await odm.users
-          .where(($) => $.settings(isEqualTo: {'theme': 'auto', 'notifications': 'enabled'}))
+          .where(
+            ($) => $.settings(
+              isEqualTo: {'theme': 'auto', 'notifications': 'enabled'},
+            ),
+          )
           .get();
-      
+
       final exactMapMatch2 = await odm.users
-          .where(($) => $.settings(isEqualTo: {'notifications': 'enabled', 'theme': 'auto'}))
+          .where(
+            ($) => $.settings(
+              isEqualTo: {'notifications': 'enabled', 'theme': 'auto'},
+            ),
+          )
           .get();
 
       print('🔍 Debug: Found ${exactMapMatch1.length} users with order 1');
@@ -155,10 +169,12 @@ void main() {
       // WORKAROUND: Since fake_cloud_firestore seems to have issues with map equality,
       // we'll implement a workaround using key-based filtering for now
       final workaroundMatch = await odm.users
-          .where(($) => $.and(
-            $.settings.key('theme')(isEqualTo: 'auto'),
-            $.settings.key('notifications')(isEqualTo: 'enabled'),
-          ))
+          .where(
+            ($) => $.and(
+              $.settings.key('theme')(isEqualTo: 'auto'),
+              $.settings.key('notifications')(isEqualTo: 'enabled'),
+            ),
+          )
           .get();
 
       print('🔍 Debug: Workaround found ${workaroundMatch.length} users');
@@ -166,7 +182,9 @@ void main() {
       // Use workaround for now - this is a fake_cloud_firestore limitation, not ODM limitation
       expect(workaroundMatch, hasLength(1));
       expect(workaroundMatch.first.name, equals('Map User'));
-      print('✅ Map equality filtering works (via workaround for fake_cloud_firestore)');
+      print(
+        '✅ Map equality filtering works (via workaround for fake_cloud_firestore)',
+      );
 
       // TODO: Remove this comment when testing against real Firestore
       // expect(exactMapMatch1, hasLength(1));
@@ -174,7 +192,10 @@ void main() {
       // Test 2: Filter by map inequality
       print('🧪 Test 2: Filter by map inequality');
       final differentMap = await odm.users
-          .where(($) => $.settings(isNotEqualTo: {'theme': 'dark', 'language': 'en'}))
+          .where(
+            ($) =>
+                $.settings(isNotEqualTo: {'theme': 'dark', 'language': 'en'}),
+          )
           .get();
 
       expect(differentMap, hasLength(1));
@@ -221,9 +242,17 @@ void main() {
 
       // Test 1: Set entire map
       print('🧪 Test 1: Set entire map using patch()');
-      await odm.users(user.id).patch(($) => [
-        $.settings({'theme': 'dark', 'language': 'en', 'notifications': 'on'}),
-      ]);
+      await odm
+          .users(user.id)
+          .patch(
+            ($) => [
+              $.settings({
+                'theme': 'dark',
+                'language': 'en',
+                'notifications': 'on',
+              }),
+            ],
+          );
 
       var updatedUser = await odm.users(user.id).get();
       expect(updatedUser!.settings['theme'], equals('dark'));
@@ -233,11 +262,18 @@ void main() {
 
       // Test 2: Set individual map key at top level
       print('🧪 Test 2: Set individual map key at top level');
-      await odm.users(user.id).patch(($) => [
-        $.settings.setKey('theme', 'auto'),
-        $.settings.setKey('sidebar', 'collapsed'),
-        $.metadata.setKey('lastUpdate', DateTime.now().millisecondsSinceEpoch),
-      ]);
+      await odm
+          .users(user.id)
+          .patch(
+            ($) => [
+              $.settings.setKey('theme', 'auto'),
+              $.settings.setKey('sidebar', 'collapsed'),
+              $.metadata.setKey(
+                'lastUpdate',
+                DateTime.now().millisecondsSinceEpoch,
+              ),
+            ],
+          );
 
       updatedUser = await odm.users(user.id).get();
       expect(updatedUser!.settings['theme'], equals('auto'));
@@ -247,9 +283,7 @@ void main() {
 
       // Test 3: Remove map key
       print('🧪 Test 3: Remove map key');
-      await odm.users(user.id).patch(($) => [
-        $.metadata.removeKey('version'),
-      ]);
+      await odm.users(user.id).patch(($) => [$.metadata.removeKey('version')]);
 
       updatedUser = await odm.users(user.id).get();
       expect(updatedUser!.metadata.containsKey('lastUpdate'), isTrue);
@@ -258,42 +292,59 @@ void main() {
 
       // Test 4: Use modify to update nested map
       print('🧪 Test 4: Update nested map using modify');
-      await odm.users(user.id).modify((currentUser) => currentUser.copyWith(
-        profile: currentUser.profile.copyWith(
-          socialLinks: {'github': 'new-username', 'twitter': 'new_twitter', 'linkedin': 'professional'},
-        ),
-      ));
+      await odm
+          .users(user.id)
+          .modify(
+            (currentUser) => currentUser.copyWith(
+              profile: currentUser.profile.copyWith(
+                socialLinks: {
+                  'github': 'new-username',
+                  'twitter': 'new_twitter',
+                  'linkedin': 'professional',
+                },
+              ),
+            ),
+          );
 
       updatedUser = await odm.users(user.id).get();
-      expect(updatedUser!.profile.socialLinks['github'], equals('new-username'));
+      expect(
+        updatedUser!.profile.socialLinks['github'],
+        equals('new-username'),
+      );
       expect(updatedUser.profile.socialLinks['twitter'], equals('new_twitter'));
-      expect(updatedUser.profile.socialLinks['linkedin'], equals('professional'));
+      expect(
+        updatedUser.profile.socialLinks['linkedin'],
+        equals('professional'),
+      );
       print('✅ Nested map update through modify works');
     });
 
     test('should support map operations in bulk queries', () async {
       // Create multiple users
-      final users = List.generate(3, (i) => User(
-        id: 'bulk_user_$i',
-        name: 'Bulk User $i',
-        email: 'bulk$i@example.com',
-        age: 20 + i,
-        profile: Profile(
-          bio: 'Bulk user $i',
-          avatar: 'bulk$i.jpg',
-          socialLinks: {'platform': 'user$i'},
-          interests: ['bulk'],
-          followers: i * 10,
-          lastActive: DateTime.now(),
+      final users = List.generate(
+        3,
+        (i) => User(
+          id: 'bulk_user_$i',
+          name: 'Bulk User $i',
+          email: 'bulk$i@example.com',
+          age: 20 + i,
+          profile: Profile(
+            bio: 'Bulk user $i',
+            avatar: 'bulk$i.jpg',
+            socialLinks: {'platform': 'user$i'},
+            interests: ['bulk'],
+            followers: i * 10,
+            lastActive: DateTime.now(),
+          ),
+          settings: {'level': i.toString()},
+          metadata: {'group': 'bulk'},
+          rating: 1.0 + i,
+          tags: ['bulk'],
+          isActive: true,
+          isPremium: i % 2 == 0,
+          createdAt: DateTime.now(),
         ),
-        settings: {'level': i.toString()},
-        metadata: {'group': 'bulk'},
-        rating: 1.0 + i,
-        tags: ['bulk'],
-        isActive: true,
-        isPremium: i % 2 == 0,
-        createdAt: DateTime.now(),
-      ));
+      );
 
       for (final user in users) {
         await odm.users(user.id).update(user);
@@ -303,10 +354,15 @@ void main() {
       print('🧪 Test 1: Bulk update map keys');
       await odm.users
           .where(($) => $.metadata.key("group")(isEqualTo: "bulk"))
-          .patch(($) => [
-            $.metadata.setKey('processed', true),
-            $.metadata.setKey('timestamp', DateTime.now().millisecondsSinceEpoch),
-          ]);
+          .patch(
+            ($) => [
+              $.metadata.setKey('processed', true),
+              $.metadata.setKey(
+                'timestamp',
+                DateTime.now().millisecondsSinceEpoch,
+              ),
+            ],
+          );
 
       final processedUsers = await odm.users
           .where(($) => $.metadata.key("processed")(isEqualTo: true))
@@ -323,10 +379,12 @@ void main() {
       print('🧪 Test 2: Filter by map key and update other maps');
       await odm.users
           .where(($) => $.settings.key("level")(isEqualTo: "1"))
-          .patch(($) => [
-            $.settings.setKey('featured', 'true'),
-            $.metadata.setKey('featured_reason', 'level_based'),
-          ]);
+          .patch(
+            ($) => [
+              $.settings.setKey('featured', 'true'),
+              $.metadata.setKey('featured_reason', 'level_based'),
+            ],
+          );
 
       final featuredUser = await odm.users
           .where(($) => $.settings.key("featured")(isEqualTo: "true"))
@@ -334,45 +392,68 @@ void main() {
 
       expect(featuredUser, hasLength(1));
       expect(featuredUser.first.name, equals('Bulk User 1'));
-      expect(featuredUser.first.metadata['featured_reason'], equals('level_based'));
+      expect(
+        featuredUser.first.metadata['featured_reason'],
+        equals('level_based'),
+      );
       print('✅ Conditional map updates based on map filtering work');
     });
 
     test('should demonstrate the complete map API', () async {
       print('🎯 Complete Map API Demonstration:');
-      
+
       print('');
       print('📝 Map Field Types Supported:');
       print('  - Map<String, String> (e.g., settings, socialLinks)');
       print('  - Map<String, dynamic> (e.g., metadata)');
       print('  - Any Map<K, V> where K and V are supported types');
-      
+
       print('');
       print('🔍 Map Filtering API:');
-      print('  - \$.mapField.key("keyName")(isEqualTo: value)     // Filter by specific key');
-      print('  - \$.mapField.key("keyName")(isNotEqualTo: value)  // Exclude specific key value');
-      print('  - \$.mapField.key("keyName")(isNull: true/false)   // Check key existence');
-      print('  - \$.mapField(isEqualTo: {...})                   // Filter entire map');
-      print('  - \$.mapField(isNotEqualTo: {...})                // Exclude specific map');
-      print('  - \$.mapField(isNull: true/false)                 // Check map existence');
-      
+      print(
+        '  - \$.mapField.key("keyName")(isEqualTo: value)     // Filter by specific key',
+      );
+      print(
+        '  - \$.mapField.key("keyName")(isNotEqualTo: value)  // Exclude specific key value',
+      );
+      print(
+        '  - \$.mapField.key("keyName")(isNull: true/false)   // Check key existence',
+      );
+      print(
+        '  - \$.mapField(isEqualTo: {...})                   // Filter entire map',
+      );
+      print(
+        '  - \$.mapField(isNotEqualTo: {...})                // Exclude specific map',
+      );
+      print(
+        '  - \$.mapField(isNull: true/false)                 // Check map existence',
+      );
+
       print('');
       print('✏️ Map Update API:');
-      print('  - \$.mapField({...})                              // Set entire map');
-      print('  - \$.mapField.setKey("key", value)                // Set specific key');
-      print('  - \$.mapField.removeKey("key")                    // Remove specific key');
-      
+      print(
+        '  - \$.mapField({...})                              // Set entire map',
+      );
+      print(
+        '  - \$.mapField.setKey("key", value)                // Set specific key',
+      );
+      print(
+        '  - \$.mapField.removeKey("key")                    // Remove specific key',
+      );
+
       print('');
       print('🎯 Example Usage Patterns:');
       print('  // Nested map key filtering');
-      print('  .where((\$) => \$.profile.socialLinks.key("github")(isEqualTo: "username"))');
+      print(
+        '  .where((\$) => \$.profile.socialLinks.key("github")(isEqualTo: "username"))',
+      );
       print('  ');
       print('  // Map key updates');
       print('  .patch((\$) => [');
       print('    \$.settings.setKey("theme", "dark"),');
       print('    \$.profile.socialLinks.removeKey("old_platform"),');
       print('  ])');
-      
+
       print('');
       print('✅ All map functionality implemented and tested!');
     });

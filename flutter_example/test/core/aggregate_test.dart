@@ -146,11 +146,13 @@ void main() {
 
       // Test strongly-typed aggregate with generated field selectors
       final result = await odm.users
-          .aggregate(($) => (
-                count: $.count(),
-                totalAge: $.age.sum(),
-                avgRating: $.rating.average(),
-              ))
+          .aggregate(
+            ($) => (
+              count: $.count(),
+              totalAge: $.age.sum(),
+              avgRating: $.rating.average(),
+            ),
+          )
           .get();
 
       expect(result.count, equals(3));
@@ -228,11 +230,13 @@ void main() {
       // Test strongly-typed aggregate with filter and generated field selectors
       final result = await odm.users
           .where(($) => $.isActive(isEqualTo: true))
-          .aggregate(($) => (
-                activeCount: $.count(),
-                totalAge: $.age.sum(),
-                avgRating: $.rating.average(),
-              ))
+          .aggregate(
+            ($) => (
+              activeCount: $.count(),
+              totalAge: $.age.sum(),
+              avgRating: $.rating.average(),
+            ),
+          )
           .get();
 
       expect(result.activeCount, equals(2));
@@ -245,11 +249,13 @@ void main() {
       expect(count, equals(0));
 
       final result = await odm.users
-          .aggregate(($) => (
-                count: $.count(),
-                totalAge: $.age.sum(),
-                avgRating: $.rating.average(),
-              ))
+          .aggregate(
+            ($) => (
+              count: $.count(),
+              totalAge: $.age.sum(),
+              avgRating: $.rating.average(),
+            ),
+          )
           .get();
 
       expect(result.count, equals(0));
@@ -266,8 +272,9 @@ void main() {
       expect(firstCount, equals(0));
 
       // Test streaming strongly-typed aggregate
-      final aggregateStream =
-          odm.users.aggregate(($) => (count: $.count(),)).stream;
+      final aggregateStream = odm.users
+          .aggregate(($) => (count: $.count()))
+          .stream;
       final firstResult = await aggregateStream.first;
       expect(firstResult.count, equals(0));
 

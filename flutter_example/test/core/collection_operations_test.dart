@@ -98,66 +98,71 @@ void main() {
         // Try to insert again - should fail
         expect(
           () => odm.users.insert(user),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('already exists'),
-          )),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('already exists'),
+            ),
+          ),
         );
       });
 
       test(
-          'should fail to insert when document already exists with same model ID',
-          () async {
-        final user1 = User(
-          id: 'conflict_user',
-          name: 'User 1',
-          email: 'user1@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'User 1 bio',
-            avatar: 'user1.jpg',
-            socialLinks: {},
-            interests: ['testing'],
-            followers: 50,
-          ),
-          rating: 3.8,
-          isActive: true,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        );
+        'should fail to insert when document already exists with same model ID',
+        () async {
+          final user1 = User(
+            id: 'conflict_user',
+            name: 'User 1',
+            email: 'user1@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'User 1 bio',
+              avatar: 'user1.jpg',
+              socialLinks: {},
+              interests: ['testing'],
+              followers: 50,
+            ),
+            rating: 3.8,
+            isActive: true,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          );
 
-        final user2 = User(
-          id: 'conflict_user', // Same ID as user1
-          name: 'User 2',
-          email: 'user2@example.com',
-          age: 30,
-          profile: Profile(
-            bio: 'User 2 bio',
-            avatar: 'user2.jpg',
-            socialLinks: {},
-            interests: ['gaming'],
-            followers: 80,
-          ),
-          rating: 4.1,
-          isActive: true,
-          isPremium: true,
-          createdAt: DateTime.now(),
-        );
+          final user2 = User(
+            id: 'conflict_user', // Same ID as user1
+            name: 'User 2',
+            email: 'user2@example.com',
+            age: 30,
+            profile: Profile(
+              bio: 'User 2 bio',
+              avatar: 'user2.jpg',
+              socialLinks: {},
+              interests: ['gaming'],
+              followers: 80,
+            ),
+            rating: 4.1,
+            isActive: true,
+            isPremium: true,
+            createdAt: DateTime.now(),
+          );
 
-        // Insert first document
-        await odm.users.insert(user1);
+          // Insert first document
+          await odm.users.insert(user1);
 
-        // Try to insert second document with same ID - should fail
-        expect(
-          () => odm.users.insert(user2),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('already exists'),
-          )),
-        );
-      });
+          // Try to insert second document with same ID - should fail
+          expect(
+            () => odm.users.insert(user2),
+            throwsA(
+              isA<StateError>().having(
+                (e) => e.message,
+                'message',
+                contains('already exists'),
+              ),
+            ),
+          );
+        },
+      );
 
       test('should auto-generate ID when model ID is empty string', () async {
         final user = User(
@@ -277,11 +282,13 @@ void main() {
 
         expect(
           () => odm.users.update(user),
-          throwsA(isA<StateError>().having(
-            (e) => e.message,
-            'message',
-            contains('does not exist'),
-          )),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('does not exist'),
+            ),
+          ),
         );
       });
     });
@@ -413,10 +420,7 @@ void main() {
         expect(retrieved.profile.followers, equals(200));
 
         // 4. Try to insert duplicate (should fail)
-        expect(
-          () => odm.users.insert(baseUser),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => odm.users.insert(baseUser), throwsA(isA<StateError>()));
       });
     });
   });

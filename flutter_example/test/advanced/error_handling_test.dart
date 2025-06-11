@@ -45,10 +45,9 @@ void main() {
         await odm.users('null_test_user').update(user);
 
         // Test updating with null values
-        await odm.users('null_test_user').modify((user) => user.copyWith(
-              lastLogin: null,
-              updatedAt: null,
-            ));
+        await odm
+            .users('null_test_user')
+            .modify((user) => user.copyWith(lastLogin: null, updatedAt: null));
 
         final updated = await odm.users('null_test_user').get();
         expect(updated, isNotNull);
@@ -95,7 +94,8 @@ void main() {
           bio: 'x' * 5000, // Large bio
           avatar: 'large.jpg',
           socialLinks: Map.fromEntries(
-              List.generate(100, (i) => MapEntry('platform_$i', 'link_$i'))),
+            List.generate(100, (i) => MapEntry('platform_$i', 'link_$i')),
+          ),
           interests: List.generate(500, (i) => 'interest_$i'),
           followers: 1000000,
         );
@@ -112,9 +112,11 @@ void main() {
           tags: List.generate(100, (i) => 'tag_$i'),
           scores: List.generate(200, (i) => i),
           settings: Map.fromEntries(
-              List.generate(50, (i) => MapEntry('setting_$i', 'value_$i'))),
-          metadata:
-              Map.fromEntries(List.generate(30, (i) => MapEntry('meta_$i', i))),
+            List.generate(50, (i) => MapEntry('setting_$i', 'value_$i')),
+          ),
+          metadata: Map.fromEntries(
+            List.generate(30, (i) => MapEntry('meta_$i', i)),
+          ),
           createdAt: DateTime.now(),
         );
 
@@ -150,11 +152,17 @@ void main() {
 
         // Perform concurrent updates
         final futures = List.generate(
-            10,
-            (i) => odm.users('concurrent_user').incrementalModify((user) =>
-                user.copyWith(
-                    profile: user.profile
-                        .copyWith(followers: user.profile.followers + 1))));
+          10,
+          (i) => odm
+              .users('concurrent_user')
+              .incrementalModify(
+                (user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 1,
+                  ),
+                ),
+              ),
+        );
 
         await Future.wait(futures);
 
@@ -171,21 +179,23 @@ void main() {
 
         // Should throw when updating non-existent document
         expect(
-          () => odm.users('non_existent').modify((user) => user.copyWith(
-                name: 'Updated Name',
-              )),
+          () => odm
+              .users('non_existent')
+              .modify((user) => user.copyWith(name: 'Updated Name')),
           throwsA(isA<Exception>()),
         );
       });
 
       test('should handle malformed query filters gracefully', () async {
         // These should not throw exceptions, just return empty results
-        final negativeAge =
-            await odm.users.where(($) => $.age(isEqualTo: -1)).get();
+        final negativeAge = await odm.users
+            .where(($) => $.age(isEqualTo: -1))
+            .get();
         expect(negativeAge, isEmpty);
 
-        final impossibleRating =
-            await odm.users.where(($) => $.rating(isGreaterThan: 10.0)).get();
+        final impossibleRating = await odm.users
+            .where(($) => $.rating(isGreaterThan: 10.0))
+            .get();
         expect(impossibleRating, isEmpty);
       });
 
@@ -258,44 +268,54 @@ void main() {
 
         // Perform rapid operations
         for (int i = 0; i < 50; i++) {
-          await odm.users('rapid_user').incrementalModify((user) =>
-              user.copyWith(
-                  profile: user.profile
-                      .copyWith(followers: user.profile.followers + 1)));
+          await odm
+              .users('rapid_user')
+              .incrementalModify(
+                (user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 1,
+                  ),
+                ),
+              );
         }
 
         stopwatch.stop();
 
         final finalUser = await odm.users('rapid_user').get();
         expect(finalUser!.profile.followers, equals(100));
-        expect(stopwatch.elapsedMilliseconds,
-            lessThan(30000)); // Should complete within 30 seconds
+        expect(
+          stopwatch.elapsedMilliseconds,
+          lessThan(30000),
+        ); // Should complete within 30 seconds
       });
 
       test('should handle bulk operations on large datasets', () async {
         // Create many users
         final users = List.generate(
-            100,
-            (index) => User(
-                  id: 'bulk_user_$index',
-                  name: 'Bulk User $index',
-                  email: 'bulk$index@example.com',
-                  age: 20 + (index % 50),
-                  profile: Profile(
-                    bio: 'Bulk user $index',
-                    avatar: 'bulk$index.jpg',
-                    socialLinks: {},
-                    interests: ['bulk_testing'],
-                    followers: index * 2,
-                  ),
-                  rating: 1.0 + (index % 5),
-                  isActive: index % 2 == 0,
-                  isPremium: false,
-                  createdAt: DateTime.now(),
-                ));
+          100,
+          (index) => User(
+            id: 'bulk_user_$index',
+            name: 'Bulk User $index',
+            email: 'bulk$index@example.com',
+            age: 20 + (index % 50),
+            profile: Profile(
+              bio: 'Bulk user $index',
+              avatar: 'bulk$index.jpg',
+              socialLinks: {},
+              interests: ['bulk_testing'],
+              followers: index * 2,
+            ),
+            rating: 1.0 + (index % 5),
+            isActive: index % 2 == 0,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Create all users
-        final createFutures = users.map((user) => odm.users(user.id).update(user));
+        final createFutures = users.map(
+          (user) => odm.users(user.id).update(user),
+        );
         await Future.wait(createFutures);
 
         // Perform bulk update
@@ -304,74 +324,77 @@ void main() {
             .modify((user) => user.copyWith(isPremium: true));
 
         // Verify updates
-        final updatedUsers =
-            await odm.users.where(($) => $.isPremium(isEqualTo: true)).get();
+        final updatedUsers = await odm.users
+            .where(($) => $.isPremium(isEqualTo: true))
+            .get();
 
         expect(updatedUsers.length, equals(100));
       });
     });
 
     group('🔒 Data Integrity', () {
-      test('should maintain data consistency during complex operations',
-          () async {
-        final user = User(
-          id: 'integrity_user',
-          name: 'Integrity User',
-          email: 'integrity@example.com',
-          age: 32,
-          profile: Profile(
-            bio: 'Data integrity test',
-            avatar: 'integrity.jpg',
-            socialLinks: {
-              'github': 'https://github.com/integrity',
-              'twitter': 'https://twitter.com/integrity',
-            },
-            interests: ['integrity', 'testing'],
-            followers: 500,
-          ),
-          rating: 4.5,
-          isActive: true,
-          isPremium: true,
-          tags: ['integrity', 'testing'],
-          scores: [95, 88, 92],
-          settings: {'theme': 'dark', 'notifications': 'enabled'},
-          metadata: {'version': 2, 'last_updated': 'today'},
-          createdAt: DateTime.now(),
-        );
-
-        await odm.users('integrity_user').update(user);
-
-        // Perform complex nested updates
-        await odm.users('integrity_user').modify((user) => user.copyWith(
-              profile: user.profile.copyWith(
-                socialLinks: {
-                  ...user.profile.socialLinks,
-                  'linkedin': 'https://linkedin.com/in/integrity',
-                },
-                interests: [...user.profile.interests, 'linkedin'],
-              ),
-              tags: [...user.tags, 'updated'],
-              settings: {
-                ...user.settings,
-                'new_feature': 'enabled',
+      test(
+        'should maintain data consistency during complex operations',
+        () async {
+          final user = User(
+            id: 'integrity_user',
+            name: 'Integrity User',
+            email: 'integrity@example.com',
+            age: 32,
+            profile: Profile(
+              bio: 'Data integrity test',
+              avatar: 'integrity.jpg',
+              socialLinks: {
+                'github': 'https://github.com/integrity',
+                'twitter': 'https://twitter.com/integrity',
               },
-              metadata: {
-                ...user.metadata,
-                'version': 3,
-              },
-            ));
+              interests: ['integrity', 'testing'],
+              followers: 500,
+            ),
+            rating: 4.5,
+            isActive: true,
+            isPremium: true,
+            tags: ['integrity', 'testing'],
+            scores: [95, 88, 92],
+            settings: {'theme': 'dark', 'notifications': 'enabled'},
+            metadata: {'version': 2, 'last_updated': 'today'},
+            createdAt: DateTime.now(),
+          );
 
-        final updated = await odm.users('integrity_user').get();
+          await odm.users('integrity_user').update(user);
 
-        expect(updated, isNotNull);
-        expect(updated!.profile.socialLinks.length, equals(3));
-        expect(updated.profile.socialLinks['linkedin'],
-            equals('https://linkedin.com/in/integrity'));
-        expect(updated.profile.interests, contains('linkedin'));
-        expect(updated.tags, contains('updated'));
-        expect(updated.settings['new_feature'], equals('enabled'));
-        expect(updated.metadata['version'], equals(3));
-      });
+          // Perform complex nested updates
+          await odm
+              .users('integrity_user')
+              .modify(
+                (user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    socialLinks: {
+                      ...user.profile.socialLinks,
+                      'linkedin': 'https://linkedin.com/in/integrity',
+                    },
+                    interests: [...user.profile.interests, 'linkedin'],
+                  ),
+                  tags: [...user.tags, 'updated'],
+                  settings: {...user.settings, 'new_feature': 'enabled'},
+                  metadata: {...user.metadata, 'version': 3},
+                ),
+              );
+
+          final updated = await odm.users('integrity_user').get();
+
+          expect(updated, isNotNull);
+          expect(updated!.profile.socialLinks.length, equals(3));
+          expect(
+            updated.profile.socialLinks['linkedin'],
+            equals('https://linkedin.com/in/integrity'),
+          );
+          expect(updated.profile.interests, contains('linkedin'));
+          expect(updated.tags, contains('updated'));
+          expect(updated.settings['new_feature'], equals('enabled'));
+          expect(updated.metadata['version'], equals(3));
+        },
+      );
 
       test('should handle special characters and encoding', () async {
         final specialUser = User(

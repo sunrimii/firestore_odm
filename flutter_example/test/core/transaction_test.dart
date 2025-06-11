@@ -43,11 +43,15 @@ void main() {
           final user = await tx.users('transaction_user_1').get();
           expect(user, isNotNull);
 
-          tx.users('transaction_user_1').patch(($) => [
-                $.rating.increment(1.0),
-                $.profile.followers.increment(50),
-                $.isPremium(true),
-              ]);
+          tx
+              .users('transaction_user_1')
+              .patch(
+                ($) => [
+                  $.rating.increment(1.0),
+                  $.profile.followers.increment(50),
+                  $.isPremium(true),
+                ],
+              );
         });
 
         final updatedUser = await odm.users('transaction_user_1').get();
@@ -107,19 +111,27 @@ void main() {
           expect(currentUser1, isNotNull);
           expect(currentUser2, isNotNull);
 
-          await tx.users('tx_modify_user_1').modify((user) => user.copyWith(
-                isPremium: true,
-                profile: user.profile.copyWith(
-                  bio: '${user.profile.bio} - TX Modified',
+          await tx
+              .users('tx_modify_user_1')
+              .modify(
+                (user) => user.copyWith(
+                  isPremium: true,
+                  profile: user.profile.copyWith(
+                    bio: '${user.profile.bio} - TX Modified',
+                  ),
                 ),
-              ));
+              );
 
-          await tx.users('tx_modify_user_2').modify((user) => user.copyWith(
-                isPremium: true,
-                profile: user.profile.copyWith(
-                  bio: '${user.profile.bio} - TX Modified',
+          await tx
+              .users('tx_modify_user_2')
+              .modify(
+                (user) => user.copyWith(
+                  isPremium: true,
+                  profile: user.profile.copyWith(
+                    bio: '${user.profile.bio} - TX Modified',
+                  ),
                 ),
-              ));
+              );
         });
 
         final finalUser1 = await odm.users('tx_modify_user_1').get();
@@ -131,58 +143,63 @@ void main() {
         expect(finalUser2.profile.bio, contains('- TX Modified'));
       });
 
-      test('should perform transaction with incremental modify operations',
-          () async {
-        final user = User(
-          id: 'tx_inc_mod_user',
-          name: 'TX Inc Mod User',
-          email: 'txincmod@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'TX incremental modify test',
-            avatar: 'txincmod.jpg',
-            socialLinks: {},
-            interests: ['tx_inc_mod'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          tags: ['original'],
-          scores: [80, 85],
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should perform transaction with incremental modify operations',
+        () async {
+          final user = User(
+            id: 'tx_inc_mod_user',
+            name: 'TX Inc Mod User',
+            email: 'txincmod@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'TX incremental modify test',
+              avatar: 'txincmod.jpg',
+              socialLinks: {},
+              interests: ['tx_inc_mod'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            tags: ['original'],
+            scores: [80, 85],
+            createdAt: DateTime.now(),
+          );
 
-        await odm.users(user.id).update(user);
+          await odm.users(user.id).update(user);
 
-        // Transaction with incremental modify
-        await odm.runTransaction((tx) async {
-          final currentUser = await tx.users('tx_inc_mod_user').get();
-          expect(currentUser, isNotNull);
+          // Transaction with incremental modify
+          await odm.runTransaction((tx) async {
+            final currentUser = await tx.users('tx_inc_mod_user').get();
+            expect(currentUser, isNotNull);
 
-          await tx
-              .users('tx_inc_mod_user')
-              .incrementalModify((user) => user.copyWith(
+            await tx
+                .users('tx_inc_mod_user')
+                .incrementalModify(
+                  (user) => user.copyWith(
                     rating:
                         user.rating + 1.0, // Should auto-detect as increment
                     profile: user.profile.copyWith(
-                      followers: user.profile.followers +
+                      followers:
+                          user.profile.followers +
                           25, // Should auto-detect as increment
                     ),
                     tags: [
                       ...user.tags,
-                      'tx_incremented'
+                      'tx_incremented',
                     ], // Should auto-detect as arrayUnion
                     lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
-                  ));
-        });
+                  ),
+                );
+          });
 
-        final finalUser = await odm.users('tx_inc_mod_user').get();
-        expect(finalUser!.rating, equals(4.0));
-        expect(finalUser.profile.followers, equals(125));
-        expect(finalUser.tags, contains('tx_incremented'));
-        expect(finalUser.lastLogin, isNotNull);
-      });
+          final finalUser = await odm.users('tx_inc_mod_user').get();
+          expect(finalUser!.rating, equals(4.0));
+          expect(finalUser.profile.followers, equals(125));
+          expect(finalUser.tags, contains('tx_incremented'));
+          expect(finalUser.lastLogin, isNotNull);
+        },
+      );
     });
 
     group('💰 Complex Transaction Scenarios', () {
@@ -245,13 +262,19 @@ void main() {
           expect(senderPoints, greaterThanOrEqualTo(transferAmount));
 
           // Perform the transfer
-          await tx.users('sender_user').modify((user) => user.copyWith(
-                scores: [senderPoints - transferAmount],
-              ));
+          await tx
+              .users('sender_user')
+              .modify(
+                (user) =>
+                    user.copyWith(scores: [senderPoints - transferAmount]),
+              );
 
-          await tx.users('receiver_user').modify((user) => user.copyWith(
-                scores: [receiverPoints + transferAmount],
-              ));
+          await tx
+              .users('receiver_user')
+              .modify(
+                (user) =>
+                    user.copyWith(scores: [receiverPoints + transferAmount]),
+              );
         });
 
         final finalSender = await odm.users('sender_user').get();
@@ -292,13 +315,17 @@ void main() {
 
           if (points >= 400) {
             // User has enough points, upgrade to premium and deduct points
-            await tx.users('conditional_user').modify((user) => user.copyWith(
-                  isPremium: true,
-                  scores: [points - 400],
-                  profile: user.profile.copyWith(
-                    bio: '${user.profile.bio} - Premium Member',
+            await tx
+                .users('conditional_user')
+                .modify(
+                  (user) => user.copyWith(
+                    isPremium: true,
+                    scores: [points - 400],
+                    profile: user.profile.copyWith(
+                      bio: '${user.profile.bio} - Premium Member',
+                    ),
                   ),
-                ));
+                );
           }
         });
 
@@ -335,9 +362,7 @@ void main() {
         try {
           await odm.runTransaction((tx) async {
             // First operation should succeed
-            odm.users('rollback_user').patch(($) => [
-                  $.isPremium(true),
-                ]);
+            odm.users('rollback_user').patch(($) => [$.isPremium(true)]);
 
             // Force an error to trigger rollback
             throw Exception('Forced error for rollback test');
@@ -356,52 +381,54 @@ void main() {
         expect(finalUser, isNotNull); // At least verify the user still exists
       });
 
-      test('should handle concurrent transaction conflicts gracefully',
-          () async {
-        final user = User(
-          id: 'concurrent_user',
-          name: 'Concurrent User',
-          email: 'concurrent@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Concurrent test',
-            avatar: 'concurrent.jpg',
-            socialLinks: {},
-            interests: ['concurrent'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          scores: [500],
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should handle concurrent transaction conflicts gracefully',
+        () async {
+          final user = User(
+            id: 'concurrent_user',
+            name: 'Concurrent User',
+            email: 'concurrent@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Concurrent test',
+              avatar: 'concurrent.jpg',
+              socialLinks: {},
+              interests: ['concurrent'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            scores: [500],
+            createdAt: DateTime.now(),
+          );
 
-        await odm.users(user.id).update(user);
+          await odm.users(user.id).update(user);
 
-        // Simulate concurrent transactions
-        final futures = List.generate(3, (index) async {
-          return odm.runTransaction((tx) async {
-            final currentUser = await tx.users('concurrent_user').get();
-            expect(currentUser, isNotNull);
+          // Simulate concurrent transactions
+          final futures = List.generate(3, (index) async {
+            return odm.runTransaction((tx) async {
+              final currentUser = await tx.users('concurrent_user').get();
+              expect(currentUser, isNotNull);
 
-            // Each transaction tries to increment the score
-            await tx
-                .users('concurrent_user')
-                .incrementalModify((user) => user.copyWith(
-                      scores: [user.scores.first + 10],
-                    ));
+              // Each transaction tries to increment the score
+              await tx
+                  .users('concurrent_user')
+                  .incrementalModify(
+                    (user) => user.copyWith(scores: [user.scores.first + 10]),
+                  );
+            });
           });
-        });
 
-        // Wait for all transactions to complete
-        await Future.wait(futures);
+          // Wait for all transactions to complete
+          await Future.wait(futures);
 
-        final finalUser = await odm.users('concurrent_user').get();
-        expect(finalUser!.scores.first, greaterThan(500));
-        // Note: In fake_cloud_firestore, concurrent transactions may not
-        // behave exactly like real Firestore, but we can still test the API
-      });
+          final finalUser = await odm.users('concurrent_user').get();
+          expect(finalUser!.scores.first, greaterThan(500));
+          // Note: In fake_cloud_firestore, concurrent transactions may not
+          // behave exactly like real Firestore, but we can still test the API
+        },
+      );
     });
 
     group('🔄 Transaction with Server Timestamps', () {
@@ -431,11 +458,15 @@ void main() {
           expect(currentUser, isNotNull);
 
           // Use server timestamp in transaction updates
-          tx.users('tx_timestamp_user').patch(($) => [
-                $.lastLogin.serverTimestamp(),
-                $.updatedAt.serverTimestamp(),
-                $.isPremium(true),
-              ]);
+          tx
+              .users('tx_timestamp_user')
+              .patch(
+                ($) => [
+                  $.lastLogin.serverTimestamp(),
+                  $.updatedAt.serverTimestamp(),
+                  $.isPremium(true),
+                ],
+              );
         });
 
         final finalUser = await odm.users('tx_timestamp_user').get();
@@ -444,50 +475,54 @@ void main() {
         expect(finalUser.updatedAt, isNotNull);
       });
 
-      test('should handle server timestamps in transaction modify operations',
-          () async {
-        final user = User(
-          id: 'tx_mod_timestamp_user',
-          name: 'TX Mod Timestamp User',
-          email: 'txmodtimestamp@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'TX mod timestamp test',
-            avatar: 'txmodtimestamp.jpg',
-            socialLinks: {},
-            interests: ['tx_mod_timestamp'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          tags: ['original'],
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should handle server timestamps in transaction modify operations',
+        () async {
+          final user = User(
+            id: 'tx_mod_timestamp_user',
+            name: 'TX Mod Timestamp User',
+            email: 'txmodtimestamp@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'TX mod timestamp test',
+              avatar: 'txmodtimestamp.jpg',
+              socialLinks: {},
+              interests: ['tx_mod_timestamp'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            tags: ['original'],
+            createdAt: DateTime.now(),
+          );
 
-        await odm.users(user.id).update(user);
+          await odm.users(user.id).update(user);
 
-        await odm.runTransaction((tx) async {
-          final currentUser = await tx.users('tx_mod_timestamp_user').get();
-          expect(currentUser, isNotNull);
+          await odm.runTransaction((tx) async {
+            final currentUser = await tx.users('tx_mod_timestamp_user').get();
+            expect(currentUser, isNotNull);
 
-          // Use server timestamp in transaction incremental modify
-          await tx
-              .users('tx_mod_timestamp_user')
-              .incrementalModify((user) => user.copyWith(
+            // Use server timestamp in transaction incremental modify
+            await tx
+                .users('tx_mod_timestamp_user')
+                .incrementalModify(
+                  (user) => user.copyWith(
                     tags: [...user.tags, 'tx_modified'],
                     lastLogin: FirestoreODM.serverTimestamp,
                     updatedAt: FirestoreODM.serverTimestamp,
                     isPremium: true,
-                  ));
-        });
+                  ),
+                );
+          });
 
-        final finalUser = await odm.users('tx_mod_timestamp_user').get();
-        expect(finalUser!.isPremium, isTrue);
-        expect(finalUser.tags, contains('tx_modified'));
-        expect(finalUser.lastLogin, isNotNull);
-        expect(finalUser.updatedAt, isNotNull);
-      });
+          final finalUser = await odm.users('tx_mod_timestamp_user').get();
+          expect(finalUser!.isPremium, isTrue);
+          expect(finalUser.tags, contains('tx_modified'));
+          expect(finalUser.lastLogin, isNotNull);
+          expect(finalUser.updatedAt, isNotNull);
+        },
+      );
     });
   });
 }

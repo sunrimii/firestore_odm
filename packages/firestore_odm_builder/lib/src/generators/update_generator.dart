@@ -92,7 +92,9 @@ class UpdateGenerator {
     buffer.writeln('  /// Update $fieldName field');
 
     if (TypeAnalyzer.isIterableType(fieldType)) {
-      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
+      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
+        fieldType,
+      );
       buffer.writeln(
         '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(\'$fieldName\', prefix);',
       );
@@ -258,7 +260,9 @@ class UpdateGenerator {
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isIterableType(paramType)) {
-        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(paramType);
+        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
+          paramType,
+        );
         buffer.writeln('  /// Update $paramFieldName field');
         buffer.writeln(
           '  ListFieldBuilder<$elementTypeName> get $paramFieldName {',
@@ -266,7 +270,9 @@ class UpdateGenerator {
         buffer.writeln(
           '    final fieldPath = prefix.isEmpty ? \'$paramFieldName\' : \'\$prefix.$paramFieldName\';',
         );
-        buffer.writeln('    return ListFieldBuilder<$elementTypeName>(fieldPath);');
+        buffer.writeln(
+          '    return ListFieldBuilder<$elementTypeName>(fieldPath);',
+        );
         buffer.writeln('  }');
         buffer.writeln('');
       } else if (TypeAnalyzer.isCustomClass(paramType)) {

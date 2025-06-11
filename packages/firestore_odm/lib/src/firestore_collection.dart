@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart' hide AggregateQuery;
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/interfaces/aggregatable.dart';
 import 'package:firestore_odm/src/interfaces/deletable.dart';
 import 'package:firestore_odm/src/interfaces/filterable.dart';
@@ -108,9 +106,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   AggregateQuery<S, T, R> aggregate<R extends Record>(
     R Function(AggregateFieldSelector<T> selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(
-      builder
-    );
+    final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(
       query,
       config.operations,
@@ -138,6 +134,5 @@ class FirestoreCollection<S extends FirestoreSchema, T>
       QueryHandler.modify(query, documentIdField, converter, modifier);
 
   @override
-  Future<void> delete() =>
-      QueryHandler.delete(query);
+  Future<void> delete() => QueryHandler.delete(query);
 }

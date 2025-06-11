@@ -16,79 +16,95 @@ void main() {
     });
 
     group('🎯 OrderedQuery Additional Filtering', () {
-      test('should allow additional where() filtering on OrderedQuery', () async {
-        // Create test users with different criteria
-        final users = [
-          User(
-            id: 'ordered_filter_1',
-            name: 'Alice',
-            email: 'alice@example.com',
-            age: 25,
-            profile: Profile(
-              bio: 'Alice bio',
-              avatar: 'alice.jpg',
-              socialLinks: {},
-              interests: ['coding'],
-              followers: 500,
+      test(
+        'should allow additional where() filtering on OrderedQuery',
+        () async {
+          // Create test users with different criteria
+          final users = [
+            User(
+              id: 'ordered_filter_1',
+              name: 'Alice',
+              email: 'alice@example.com',
+              age: 25,
+              profile: Profile(
+                bio: 'Alice bio',
+                avatar: 'alice.jpg',
+                socialLinks: {},
+                interests: ['coding'],
+                followers: 500,
+              ),
+              rating: 4.5,
+              isActive: true,
+              isPremium: false,
+              createdAt: DateTime.now(),
             ),
-            rating: 4.5,
-            isActive: true,
-            isPremium: false,
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'ordered_filter_2',
-            name: 'Bob',
-            email: 'bob@example.com',
-            age: 30,
-            profile: Profile(
-              bio: 'Bob bio',
-              avatar: 'bob.jpg',
-              socialLinks: {},
-              interests: ['design'],
-              followers: 1000,
+            User(
+              id: 'ordered_filter_2',
+              name: 'Bob',
+              email: 'bob@example.com',
+              age: 30,
+              profile: Profile(
+                bio: 'Bob bio',
+                avatar: 'bob.jpg',
+                socialLinks: {},
+                interests: ['design'],
+                followers: 1000,
+              ),
+              rating: 3.8,
+              isActive: false, // Inactive
+              isPremium: true,
+              createdAt: DateTime.now(),
             ),
-            rating: 3.8,
-            isActive: false, // Inactive
-            isPremium: true,
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'ordered_filter_3',
-            name: 'Charlie',
-            email: 'charlie@example.com',
-            age: 35,
-            profile: Profile(
-              bio: 'Charlie bio',
-              avatar: 'charlie.jpg',
-              socialLinks: {},
-              interests: ['management'],
-              followers: 1500,
+            User(
+              id: 'ordered_filter_3',
+              name: 'Charlie',
+              email: 'charlie@example.com',
+              age: 35,
+              profile: Profile(
+                bio: 'Charlie bio',
+                avatar: 'charlie.jpg',
+                socialLinks: {},
+                interests: ['management'],
+                followers: 1500,
+              ),
+              rating: 4.9,
+              isActive: true,
+              isPremium: true,
+              createdAt: DateTime.now(),
             ),
-            rating: 4.9,
-            isActive: true,
-            isPremium: true,
-            createdAt: DateTime.now(),
-          ),
-        ];
+          ];
 
-        // Insert all users
-        for (final user in users) {
-          await odm.users(user.id).update(user);
-        }
+          // Insert all users
+          for (final user in users) {
+            await odm.users(user.id).update(user);
+          }
 
-        // ✅ NEW: Use OrderedQuery with additional where() filtering
-        final results = await odm.users
-            .orderBy(($) => ($.profile.followers(true),)) // Order by followers descending
-            .where(($) => $.isActive(isEqualTo: true)) // ✅ NEW: Additional filtering
-            .get();
+          // ✅ NEW: Use OrderedQuery with additional where() filtering
+          final results = await odm.users
+              .orderBy(
+                ($) => ($.profile.followers(true),),
+              ) // Order by followers descending
+              .where(
+                ($) => $.isActive(isEqualTo: true),
+              ) // ✅ NEW: Additional filtering
+              .get();
 
-        expect(results.length, equals(2)); // Only Alice and Charlie (active users)
-        expect(results.first.name, equals('Charlie')); // Highest followers among active
-        expect(results.last.name, equals('Alice')); // Lower followers among active
+          expect(
+            results.length,
+            equals(2),
+          ); // Only Alice and Charlie (active users)
+          expect(
+            results.first.name,
+            equals('Charlie'),
+          ); // Highest followers among active
+          expect(
+            results.last.name,
+            equals('Alice'),
+          ); // Lower followers among active
 
-        print('✅ OrderedQuery.where() - Additional filtering works');
-      });
+          print('✅ OrderedQuery.where() - Additional filtering works');
+        },
+      );
 
       test('should chain multiple where() calls on OrderedQuery', () async {
         // Create test users
@@ -154,8 +170,12 @@ void main() {
         // ✅ NEW: Chain multiple where() calls on OrderedQuery
         final results = await odm.users
             .orderBy(($) => ($.rating(true),)) // Order by rating descending
-            .where(($) => $.isActive(isEqualTo: true)) // First filter: active only
-            .where(($) => $.isPremium(isEqualTo: true)) // ✅ NEW: Second filter: premium only
+            .where(
+              ($) => $.isActive(isEqualTo: true),
+            ) // First filter: active only
+            .where(
+              ($) => $.isPremium(isEqualTo: true),
+            ) // ✅ NEW: Second filter: premium only
             .get();
 
         expect(results.length, equals(1)); // Only Premium Active user
@@ -213,18 +233,23 @@ void main() {
         // ✅ NEW: Bulk patch on OrderedQuery
         await odm.users
             .orderBy(($) => ($.age(),)) // Order by age
-            .patch(($) => [
-              $.isPremium(true), // Upgrade all to premium
-              $.profile.followers.increment(50), // Add 50 followers to each
-            ]);
+            .patch(
+              ($) => [
+                $.isPremium(true), // Upgrade all to premium
+                $.profile.followers.increment(50), // Add 50 followers to each
+              ],
+            );
 
         // Verify updates
         final updatedUsers = await odm.users.get();
         expect(updatedUsers.length, equals(2));
-        
+
         for (final user in updatedUsers) {
           expect(user.isPremium, isTrue);
-          expect(user.profile.followers, greaterThanOrEqualTo(150)); // 100+50 or 150+50
+          expect(
+            user.profile.followers,
+            greaterThanOrEqualTo(150),
+          ); // 100+50 or 150+50
         }
 
         print('✅ OrderedQuery.patch() - Bulk patch operations work');
@@ -277,17 +302,19 @@ void main() {
         // ✅ NEW: Bulk modify on OrderedQuery
         await odm.users
             .orderBy(($) => ($.rating(),)) // Order by rating
-            .modify((user) => user.copyWith(
-              isPremium: true,
-              profile: user.profile.copyWith(
-                bio: '${user.profile.bio} - Modified!',
+            .modify(
+              (user) => user.copyWith(
+                isPremium: true,
+                profile: user.profile.copyWith(
+                  bio: '${user.profile.bio} - Modified!',
+                ),
               ),
-            ));
+            );
 
         // Verify updates
         final modifiedUsers = await odm.users.get();
         expect(modifiedUsers.length, equals(2));
-        
+
         for (final user in modifiedUsers) {
           expect(user.isPremium, isTrue);
           expect(user.profile.bio, contains('Modified!'));
@@ -343,20 +370,28 @@ void main() {
         // ✅ NEW: Bulk incrementalModify on OrderedQuery
         await odm.users
             .orderBy(($) => ($.name(),)) // Order by name
-            .incrementalModify((user) => user.copyWith(
-              age: user.age + 5, // Should auto-convert to FieldValue.increment(5)
-              profile: user.profile.copyWith(
-                followers: user.profile.followers + 100, // Auto-increment followers
+            .incrementalModify(
+              (user) => user.copyWith(
+                age:
+                    user.age +
+                    5, // Should auto-convert to FieldValue.increment(5)
+                profile: user.profile.copyWith(
+                  followers:
+                      user.profile.followers + 100, // Auto-increment followers
+                ),
               ),
-            ));
+            );
 
         // Verify atomic updates worked
         final incrementedUsers = await odm.users.get();
         expect(incrementedUsers.length, equals(2));
-        
+
         for (final user in incrementedUsers) {
           expect(user.age, greaterThanOrEqualTo(30)); // 25+5 or 30+5
-          expect(user.profile.followers, greaterThanOrEqualTo(200)); // 100+100 or 200+100
+          expect(
+            user.profile.followers,
+            greaterThanOrEqualTo(200),
+          ); // 100+100 or 200+100
         }
 
         print('✅ OrderedQuery.incrementalModify() - Atomic operations work');
@@ -428,12 +463,14 @@ void main() {
         // ✅ NEW: Aggregate operations on OrderedQuery
         final aggregateResult = await odm.users
             .orderBy(($) => ($.rating(true),)) // Order by rating descending
-            .aggregate(($) => (
-              count: $.count(),
-              avgAge: $.age.average(),
-              totalFollowers: $.profile.followers.sum(),
-              maxRating: $.rating.sum(), // Sum for max effect
-            ))
+            .aggregate(
+              ($) => (
+                count: $.count(),
+                avgAge: $.age.average(),
+                totalFollowers: $.profile.followers.sum(),
+                maxRating: $.rating.sum(), // Sum for max effect
+              ),
+            )
             .get();
 
         expect(aggregateResult.count, equals(3));
@@ -446,23 +483,26 @@ void main() {
 
       test('should perform count operations on OrderedQuery', () async {
         // Create test users
-        final users = List.generate(5, (i) => User(
-          id: 'count_$i',
-          name: 'Count User $i',
-          email: 'count$i@example.com',
-          age: 20 + i,
-          profile: Profile(
-            bio: 'Count user $i',
-            avatar: 'count$i.jpg',
-            socialLinks: {},
-            interests: ['counting'],
-            followers: 100 * (i + 1),
+        final users = List.generate(
+          5,
+          (i) => User(
+            id: 'count_$i',
+            name: 'Count User $i',
+            email: 'count$i@example.com',
+            age: 20 + i,
+            profile: Profile(
+              bio: 'Count user $i',
+              avatar: 'count$i.jpg',
+              socialLinks: {},
+              interests: ['counting'],
+              followers: 100 * (i + 1),
+            ),
+            rating: 3.0 + (i * 0.2),
+            isActive: i % 2 == 0, // Even indices are active
+            isPremium: false,
+            createdAt: DateTime.now(),
           ),
-          rating: 3.0 + (i * 0.2),
-          isActive: i % 2 == 0, // Even indices are active
-          isPremium: false,
-          createdAt: DateTime.now(),
-        ));
+        );
 
         // Insert users
         for (final user in users) {

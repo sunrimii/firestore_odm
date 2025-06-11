@@ -69,8 +69,10 @@ void main() {
         final userDoc = odm.users('test_user');
 
         expect(userDoc.posts.query.path, equals('users/test_user/posts'));
-        expect(userDoc.sharedPosts.query.path,
-            equals('users/test_user/sharedPosts'));
+        expect(
+          userDoc.sharedPosts.query.path,
+          equals('users/test_user/sharedPosts'),
+        );
       });
 
       test('should work with posts in user subcollections', () async {
@@ -113,8 +115,10 @@ void main() {
             .posts('user_post_1')
             .update(userPost);
 
-        final retrievedPost =
-            await odm.users('subcollection_user').posts('user_post_1').get();
+        final retrievedPost = await odm
+            .users('subcollection_user')
+            .posts('user_post_1')
+            .get();
 
         expect(retrievedPost, isNotNull);
         expect(retrievedPost!.title, equals('User Specific Post'));
@@ -158,8 +162,10 @@ void main() {
             .sharedPosts('user_shared_1')
             .update(userSharedPost);
 
-        final retrieved =
-            await odm.users('sharing_user').sharedPosts('user_shared_1').get();
+        final retrieved = await odm
+            .users('sharing_user')
+            .sharedPosts('user_shared_1')
+            .get();
 
         expect(retrieved, isNotNull);
         expect(retrieved!.title, equals('User Shared Post'));
@@ -217,11 +223,13 @@ void main() {
         await odm.users('cross_user').posts('cross_user_post').update(userPost);
 
         // Query each collection independently
-        final users =
-            await odm.users.where(($) => $.name(isEqualTo: 'Cross User')).get();
+        final users = await odm.users
+            .where(($) => $.name(isEqualTo: 'Cross User'))
+            .get();
 
-        final mainPosts =
-            await odm.posts.where(($) => $.tags(arrayContains: 'main')).get();
+        final mainPosts = await odm.posts
+            .where(($) => $.tags(arrayContains: 'main'))
+            .get();
 
         final userPosts = await odm
             .users('cross_user')
@@ -241,39 +249,41 @@ void main() {
       test('should handle bulk operations across collections', () async {
         // Create multiple users
         final users = List.generate(
-            3,
-            (index) => User(
-                  id: 'bulk_user_$index',
-                  name: 'Bulk User $index',
-                  email: 'bulk$index@example.com',
-                  age: 25 + index,
-                  profile: Profile(
-                    bio: 'Bulk test user $index',
-                    avatar: 'bulk$index.jpg',
-                    socialLinks: {},
-                    interests: ['bulk_testing'],
-                    followers: 100 + index * 50,
-                  ),
-                  rating: 3.0 + index * 0.5,
-                  isActive: false, // Start inactive
-                  isPremium: false,
-                  createdAt: DateTime.now(),
-                ));
+          3,
+          (index) => User(
+            id: 'bulk_user_$index',
+            name: 'Bulk User $index',
+            email: 'bulk$index@example.com',
+            age: 25 + index,
+            profile: Profile(
+              bio: 'Bulk test user $index',
+              avatar: 'bulk$index.jpg',
+              socialLinks: {},
+              interests: ['bulk_testing'],
+              followers: 100 + index * 50,
+            ),
+            rating: 3.0 + index * 0.5,
+            isActive: false, // Start inactive
+            isPremium: false,
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Create posts for each user
         final posts = List.generate(
-            3,
-            (index) => Post(
-                  id: 'bulk_post_$index',
-                  title: 'Bulk Post $index',
-                  content: 'Bulk post content $index',
-                  authorId: 'bulk_user_$index',
-                  tags: ['bulk'],
-                  metadata: {},
-                  likes: index * 2,
-                  published: false, // Start unpublished
-                  createdAt: DateTime.now(),
-                ));
+          3,
+          (index) => Post(
+            id: 'bulk_post_$index',
+            title: 'Bulk Post $index',
+            content: 'Bulk post content $index',
+            authorId: 'bulk_user_$index',
+            tags: ['bulk'],
+            metadata: {},
+            likes: index * 2,
+            published: false, // Start unpublished
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Set all users and posts
         for (final user in users) {
@@ -294,11 +304,13 @@ void main() {
             .modify((post) => post.copyWith(published: true));
 
         // Verify changes
-        final activeUsers =
-            await odm.users.where(($) => $.isActive(isEqualTo: true)).get();
+        final activeUsers = await odm.users
+            .where(($) => $.isActive(isEqualTo: true))
+            .get();
 
-        final publishedPosts =
-            await odm.posts.where(($) => $.published(isEqualTo: true)).get();
+        final publishedPosts = await odm.posts
+            .where(($) => $.published(isEqualTo: true))
+            .get();
 
         expect(activeUsers.length, equals(3));
         expect(publishedPosts.length, equals(3));
@@ -310,14 +322,20 @@ void main() {
         // Ensure each collection returns the correct type
         expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
         expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
-        expect(odm.sharedPosts,
-            isA<FirestoreCollection<TestSchema, SharedPost>>());
+        expect(
+          odm.sharedPosts,
+          isA<FirestoreCollection<TestSchema, SharedPost>>(),
+        );
 
         // Subcollections should also be properly typed
-        expect(odm.users('test').posts,
-            isA<FirestoreCollection<TestSchema, Post>>());
-        expect(odm.users('test').sharedPosts,
-            isA<FirestoreCollection<TestSchema, SharedPost>>());
+        expect(
+          odm.users('test').posts,
+          isA<FirestoreCollection<TestSchema, Post>>(),
+        );
+        expect(
+          odm.users('test').sharedPosts,
+          isA<FirestoreCollection<TestSchema, SharedPost>>(),
+        );
       });
 
       test('should prevent type confusion between collections', () async {

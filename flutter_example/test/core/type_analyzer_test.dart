@@ -153,9 +153,7 @@ void main() {
       }
 
       // Test ordering by regular fields with iterable data present
-      final ageQuery = odm.users
-          .orderBy(($) => ($.age(),))
-          .limit(10);
+      final ageQuery = odm.users.orderBy(($) => ($.age(),)).limit(10);
 
       final ratingQuery = odm.users
           .orderBy(($) => ($.rating(true),)) // Descending
@@ -188,7 +186,10 @@ void main() {
 
       // Verify ordering
       expect(ageResults.first.age, lessThanOrEqualTo(ageResults.last.age));
-      expect(ratingResults.first.rating, greaterThanOrEqualTo(ratingResults.last.rating));
+      expect(
+        ratingResults.first.rating,
+        greaterThanOrEqualTo(ratingResults.last.rating),
+      );
 
       print('✅ OrderBy and pagination with iterables: SUCCESS');
     });
@@ -205,7 +206,11 @@ void main() {
         profile: Profile(
           bio: 'Nested iterable test',
           avatar: 'nested.jpg',
-          interests: ['ai', 'machine-learning', 'data-science'], // Nested List<String>
+          interests: [
+            'ai',
+            'machine-learning',
+            'data-science',
+          ], // Nested List<String>
           followers: 2000,
           socialLinks: {
             'github': 'https://github.com/user',
@@ -269,21 +274,32 @@ void main() {
       await odm.users(user.id).update(user);
 
       // Test updating iterable fields
-      await odm.users(user.id).modify((user) => user.copyWith(
-        tags: ['updated', 'new', 'tags'], // Update List<String>
-        scores: [85, 90, 95], // Update List<int>
-        profile: user.profile.copyWith(
-          interests: ['coding', 'testing', 'dart'], // Update nested List<String>
-          followers: 150,
-        ),
-      ));
+      await odm
+          .users(user.id)
+          .modify(
+            (user) => user.copyWith(
+              tags: ['updated', 'new', 'tags'], // Update List<String>
+              scores: [85, 90, 95], // Update List<int>
+              profile: user.profile.copyWith(
+                interests: [
+                  'coding',
+                  'testing',
+                  'dart',
+                ], // Update nested List<String>
+                followers: 150,
+              ),
+            ),
+          );
 
       // Verify updates
       final updatedUser = await odm.users(user.id).get();
       expect(updatedUser, isNotNull);
       expect(updatedUser!.tags, equals(['updated', 'new', 'tags']));
       expect(updatedUser.scores, equals([85, 90, 95]));
-      expect(updatedUser.profile.interests, equals(['coding', 'testing', 'dart']));
+      expect(
+        updatedUser.profile.interests,
+        equals(['coding', 'testing', 'dart']),
+      );
       expect(updatedUser.profile.followers, equals(150));
 
       print('✅ Iterable field updates: SUCCESS');
@@ -346,14 +362,14 @@ void main() {
 
     test('type safety - compilation tests for iterable types', () {
       // These demonstrate that the type system correctly handles iterables
-      
+
       // Single tuple with various types including iterables
       expect(() {
         const singleInt = (25,);
         const singleString = ('Alice',);
         const singleDouble = (4.5,);
         const singleBool = (true,);
-        
+
         expect(singleInt is (int,), isTrue);
         expect(singleString is (String,), isTrue);
         expect(singleDouble is (double,), isTrue);
@@ -369,13 +385,14 @@ void main() {
       // Demonstrate pattern matching works with complex types
       expect(() {
         dynamic testTuple = (30, 'Bob', 4.8);
-        
+
         final result = switch (testTuple) {
-          (var age, var name, var rating) when age is int && name is String && rating is double =>
+          (var age, var name, var rating)
+              when age is int && name is String && rating is double =>
             'User: $name, Age: $age, Rating: $rating',
           _ => 'Unknown pattern',
         };
-        
+
         expect(result, equals('User: Bob, Age: 30, Rating: 4.8'));
       }, returnsNormally);
 
@@ -385,28 +402,28 @@ void main() {
     test('demonstrates real-world usage with any iterable implementation', () {
       // This test demonstrates that the system would work with any iterable
       // implementation, not just List/Set
-      
+
       // Custom iterable example (in real usage, this could be BuiltList, etc.)
       final customIterable = ['custom', 'iterable', 'implementation'];
       final customSet = {'unique', 'values', 'only'};
-      
+
       // Verify these are recognized as iterables
       expect(customIterable is Iterable<String>, isTrue);
       expect(customSet is Iterable<String>, isTrue);
-      
+
       // Test that they work in expected contexts
       expect(customIterable.contains('custom'), isTrue);
       expect(customSet.contains('unique'), isTrue);
       expect(customIterable.length, equals(3));
       expect(customSet.length, equals(3));
-      
+
       // Test conversion operations that would be used in Firestore
       final iterableList = customIterable.toList();
       final setList = customSet.toList();
-      
+
       expect(iterableList, isA<List<String>>());
       expect(setList, isA<List<String>>());
-      
+
       print('✅ Real-world iterable implementation support: SUCCESS');
       print('   - Any implementation of Iterable<T> is supported');
       print('   - Fast immutable collections work transparently');
@@ -420,15 +437,15 @@ void main() {
       final emptyList = <String>[];
       final emptySet = <int>{};
       final emptyMap = <String, String>{};
-      
+
       expect(emptyList is Iterable<String>, isTrue);
       expect(emptySet is Iterable<int>, isTrue);
       expect(emptyMap is Map<String, String>, isTrue);
-      
+
       expect(emptyList.isEmpty, isTrue);
       expect(emptySet.isEmpty, isTrue);
       expect(emptyMap.isEmpty, isTrue);
-      
+
       print('✅ Empty iterable handling: SUCCESS');
     });
 
@@ -439,20 +456,20 @@ void main() {
       for (int i = 0; i < 5000; i++) {
         largeSet.add(i);
       }
-      
+
       expect(largeList is Iterable<String>, isTrue);
       expect(largeSet is Iterable<int>, isTrue);
-      
+
       expect(largeList.length, equals(10000));
       expect(largeSet.length, equals(5000));
-      
+
       // Test iteration performance
       var count = 0;
       for (final item in largeList.take(100)) {
         count++;
       }
       expect(count, equals(100));
-      
+
       print('✅ Large iterable performance: SUCCESS');
     });
 
@@ -463,20 +480,20 @@ void main() {
         ['d', 'e', 'f'],
         ['g', 'h', 'i'],
       ];
-      
+
       final nestedMap = {
         'list1': ['x', 'y', 'z'],
         'list2': ['1', '2', '3'],
       };
-      
+
       expect(nestedList is Iterable<List<String>>, isTrue);
       expect(nestedMap is Map<String, List<String>>, isTrue);
-      
+
       expect(nestedList.length, equals(3));
       expect(nestedMap.length, equals(2));
       expect(nestedList.first.length, equals(3));
       expect(nestedMap['list1']?.length, equals(3));
-      
+
       print('✅ Nested iterable structures: SUCCESS');
     });
   });

@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
@@ -8,15 +7,11 @@ import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
-import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
-import 'package:firestore_odm/src/query.dart';
 import 'package:firestore_odm/src/model_converter.dart';
-import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/pagination.dart';
-import 'package:firestore_odm/src/recordHelper.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 
@@ -168,7 +163,6 @@ class OrderByConfiguration<T, O extends Record> {
   String toString() => 'OrderByConfiguration(${fields.join(', ')})';
 }
 
-
 abstract class QueryOrderbyHandler {
   static OrderByConfiguration<T, O> buildOrderBy<T, O extends Record>(
     O Function(OrderByFieldSelector<T> selector) orderBuilder,
@@ -200,7 +194,6 @@ abstract class QueryOrderbyHandler {
     return newQuery;
   }
 }
-
 
 class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     implements
@@ -380,7 +373,12 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   ) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
-    return OrderedQuery<S, T, O>(newQuery, _converter, _documentIdField, _orderByConfig);
+    return OrderedQuery<S, T, O>(
+      newQuery,
+      _converter,
+      _documentIdField,
+      _orderByConfig,
+    );
   }
 
   @override
@@ -404,9 +402,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   AggregateQuery<S, T, R> aggregate<R extends Record>(
     R Function(AggregateFieldSelector<T> selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(
-      builder
-    );
+    final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(
       _query,
       config.operations,
@@ -421,6 +417,5 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   }
 
   @override
-  Future<void> delete() =>
-      QueryHandler.delete(_query);
+  Future<void> delete() => QueryHandler.delete(_query);
 }

@@ -16,7 +16,14 @@ import 'schema.dart';
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
 class FirestoreDocument<S extends FirestoreSchema, T>
-    implements Gettable<T?>, Streamable<T?>, Existable, Modifiable<T>, Patchable<T>, Deletable, Updatable<T> {
+    implements
+        Gettable<T?>,
+        Streamable<T?>,
+        Existable,
+        Modifiable<T>,
+        Patchable<T>,
+        Deletable,
+        Updatable<T> {
   /// The collection this document belongs to (nullable for fromRef constructor)
   final ModelConverter<T> converter;
 
@@ -30,11 +37,8 @@ class FirestoreDocument<S extends FirestoreSchema, T>
 
   /// Stream of document snapshots
   @override
-  Stream<T?> get stream => DocumentHandler.stream<T>(
-    ref,
-    converter.fromJson,
-    documentIdField,
-  );
+  Stream<T?> get stream =>
+      DocumentHandler.stream<T>(ref, converter.fromJson, documentIdField);
 
   /// Checks if the document exists
   @override
@@ -42,20 +46,13 @@ class FirestoreDocument<S extends FirestoreSchema, T>
 
   /// Gets the document data
   @override
-  Future<T?> get() => DocumentHandler.get(
-    ref,
-    converter.fromJson,
-    documentIdField,
-  );
+  Future<T?> get() =>
+      DocumentHandler.get(ref, converter.fromJson, documentIdField);
 
   /// Sets the document data
   @override
-  Future<void> update(T state) => DocumentHandler.update(
-    ref,
-    state,
-    converter.toJson,
-    documentIdField,
-  );
+  Future<void> update(T state) =>
+      DocumentHandler.update(ref, state, converter.toJson, documentIdField);
 
   /// Incremental modify a document using diff-based updates (with automatic atomic operations)
   @override
@@ -69,12 +66,8 @@ class FirestoreDocument<S extends FirestoreSchema, T>
 
   /// Modify a document using diff-based updates
   @override
-  Future<void> modify(T Function(T docData) modifier) => DocumentHandler.modify(
-    ref,
-    modifier,
-    converter,
-    documentIdField,
-  );
+  Future<void> modify(T Function(T docData) modifier) =>
+      DocumentHandler.modify(ref, modifier, converter, documentIdField);
 
   /// Delete this document
   @override

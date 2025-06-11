@@ -73,24 +73,26 @@ void main() {
     });
 
     group('🔍 Automatic Document ID Detection', () {
-      test('should automatically detect id field as document ID in SimpleStory',
-          () async {
-        final story = SimpleStory(
-          id: 'auto_id_story',
-          title: 'Auto ID Story',
-          content: 'This story uses automatic document ID detection',
-          authorId: 'author1',
-          tags: ['auto', 'detection'],
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should automatically detect id field as document ID in SimpleStory',
+        () async {
+          final story = SimpleStory(
+            id: 'auto_id_story',
+            title: 'Auto ID Story',
+            content: 'This story uses automatic document ID detection',
+            authorId: 'author1',
+            tags: ['auto', 'detection'],
+            createdAt: DateTime.now(),
+          );
 
-        await odm.simpleStories('auto_id_story').update(story);
-        final retrieved = await odm.simpleStories('auto_id_story').get();
+          await odm.simpleStories('auto_id_story').update(story);
+          final retrieved = await odm.simpleStories('auto_id_story').get();
 
-        expect(retrieved, isNotNull);
-        expect(retrieved!.id, equals('auto_id_story'));
-        expect(retrieved.title, equals('Auto ID Story'));
-      });
+          expect(retrieved, isNotNull);
+          expect(retrieved!.id, equals('auto_id_story'));
+          expect(retrieved.title, equals('Auto ID Story'));
+        },
+      );
 
       test('should use automatic detection for upsert operations', () async {
         final story = SimpleStory(
@@ -107,8 +109,10 @@ void main() {
 
         expect(retrieved, isNotNull);
         expect(retrieved!.id, equals('auto_upsert_story'));
-        expect(retrieved.content,
-            equals('Testing automatic ID detection with upsert'));
+        expect(
+          retrieved.content,
+          equals('Testing automatic ID detection with upsert'),
+        );
       });
     });
 
@@ -249,29 +253,31 @@ void main() {
         // The error would occur during actual operations like get/set
       });
 
-      test('should validate document ID field is not null for upsert',
-          () async {
-        // This should work fine since all our models have valid IDs
-        final user = User(
-          id: 'valid_id',
-          name: 'Valid User',
-          email: 'valid@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Valid user',
-            avatar: 'valid.jpg',
-            socialLinks: {},
-            interests: ['validation'],
-            followers: 100,
-          ),
-          rating: 4.0,
-          isActive: true,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should validate document ID field is not null for upsert',
+        () async {
+          // This should work fine since all our models have valid IDs
+          final user = User(
+            id: 'valid_id',
+            name: 'Valid User',
+            email: 'valid@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Valid user',
+              avatar: 'valid.jpg',
+              socialLinks: {},
+              interests: ['validation'],
+              followers: 100,
+            ),
+            rating: 4.0,
+            isActive: true,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          );
 
-        expect(() => odm.users.upsert(user), returnsNormally);
-      });
+          expect(() => odm.users.upsert(user), returnsNormally);
+        },
+      );
     });
   });
 }

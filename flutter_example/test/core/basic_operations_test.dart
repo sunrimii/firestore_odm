@@ -79,10 +79,11 @@ void main() {
 
         await odm.users('update_user').update(user);
 
-        await odm.users('update_user').modify((user) => user.copyWith(
-              name: 'Updated Name',
-              isActive: true,
-            ));
+        await odm
+            .users('update_user')
+            .modify(
+              (user) => user.copyWith(name: 'Updated Name', isActive: true),
+            );
 
         final updated = await odm.users('update_user').get();
         expect(updated!.name, equals('Updated Name'));
@@ -159,8 +160,9 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        final activeUsers =
-            await odm.users.where(($) => $.isActive(isEqualTo: true)).get();
+        final activeUsers = await odm.users
+            .where(($) => $.isActive(isEqualTo: true))
+            .get();
 
         expect(activeUsers.length, equals(1));
         expect(activeUsers.first.name, equals('Active User'));

@@ -61,7 +61,7 @@ class TypeAnalyzer {
   /// Check if a type is a primitive type supported by Firestore
   static bool isPrimitiveType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-    
+
     // Check basic primitive types using TypeChecker
     if (_stringChecker.isExactlyType(nonNullableType) ||
         _intChecker.isExactlyType(nonNullableType) ||
@@ -82,9 +82,9 @@ class TypeAnalyzer {
       final elementType = getIterableElementType(nonNullableType);
       if (elementType != null) {
         return _stringChecker.isExactlyType(elementType) ||
-               _intChecker.isExactlyType(elementType) ||
-               _doubleChecker.isExactlyType(elementType) ||
-               _boolChecker.isExactlyType(elementType);
+            _intChecker.isExactlyType(elementType) ||
+            _doubleChecker.isExactlyType(elementType) ||
+            _boolChecker.isExactlyType(elementType);
       }
     }
 
@@ -99,8 +99,9 @@ class TypeAnalyzer {
   /// Get the element type of any iterable using proper type analysis
   static DartType? getIterableElementType(DartType iterableType) {
     final nonNullableType = _getNonNullableType(iterableType);
-    
-    if (nonNullableType is ParameterizedType && nonNullableType.typeArguments.isNotEmpty) {
+
+    if (nonNullableType is ParameterizedType &&
+        nonNullableType.typeArguments.isNotEmpty) {
       return nonNullableType.typeArguments.first;
     }
     return null;
@@ -109,7 +110,7 @@ class TypeAnalyzer {
   /// Check if a type is a custom class (not primitive or built-in)
   static bool isCustomClass(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-    
+
     return !isPrimitiveType(nonNullableType) &&
         !isIterableType(nonNullableType) &&
         !_mapChecker.isAssignableFromType(nonNullableType) &&
@@ -119,11 +120,11 @@ class TypeAnalyzer {
   /// Check if a type is comparable (supports ordering operations)
   static bool isComparableType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-    
+
     return _intChecker.isExactlyType(nonNullableType) ||
-           _doubleChecker.isExactlyType(nonNullableType) ||
-           _dateTimeChecker.isExactlyType(nonNullableType) ||
-           nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        _doubleChecker.isExactlyType(nonNullableType) ||
+        _dateTimeChecker.isExactlyType(nonNullableType) ||
+        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
   }
 
   /// Check if a type is a List type (specifically List, not just any iterable)
@@ -137,14 +138,16 @@ class TypeAnalyzer {
   }
 
   /// Get the key and value types of a Map using proper type analysis
-  static (DartType? keyType, DartType? valueType) getMapTypes(DartType mapType) {
+  static (DartType? keyType, DartType? valueType) getMapTypes(
+    DartType mapType,
+  ) {
     final nonNullableType = _getNonNullableType(mapType);
-    
-    if (nonNullableType is ParameterizedType && 
+
+    if (nonNullableType is ParameterizedType &&
         nonNullableType.typeArguments.length >= 2) {
       return (
         nonNullableType.typeArguments[0],
-        nonNullableType.typeArguments[1]
+        nonNullableType.typeArguments[1],
       );
     }
     return (null, null);
@@ -155,28 +158,28 @@ class TypeAnalyzer {
     final (keyType, valueType) = getMapTypes(mapType);
     return (
       keyType?.getDisplayString(withNullability: false) ?? 'dynamic',
-      valueType?.getDisplayString(withNullability: false) ?? 'dynamic'
+      valueType?.getDisplayString(withNullability: false) ?? 'dynamic',
     );
   }
 
   /// Check if a type is a built-in Dart type
   static bool isBuiltInType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-    
+
     return nonNullableType.isDartCoreType ||
-           isIterableType(nonNullableType) ||
-           _mapChecker.isAssignableFromType(nonNullableType) ||
-           _dateTimeChecker.isExactlyType(nonNullableType) ||
-           nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        isIterableType(nonNullableType) ||
+        _mapChecker.isAssignableFromType(nonNullableType) ||
+        _dateTimeChecker.isExactlyType(nonNullableType) ||
+        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
   }
 
   /// Check if a type is numeric (int, double, or num)
   static bool isNumericType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-    
+
     return _intChecker.isExactlyType(nonNullableType) ||
-           _doubleChecker.isExactlyType(nonNullableType) ||
-           _numChecker.isExactlyType(nonNullableType);
+        _doubleChecker.isExactlyType(nonNullableType) ||
+        _numChecker.isExactlyType(nonNullableType);
   }
 
   /// Check if a type is String
@@ -203,7 +206,7 @@ class TypeAnalyzer {
   static bool isDateTimeType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
     return _dateTimeChecker.isExactlyType(nonNullableType) ||
-           nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
   }
 
   /// Get the element type of a List using proper type analysis
@@ -217,7 +220,7 @@ class TypeAnalyzer {
     return elementType?.getDisplayString(withNullability: false) ?? 'dynamic';
   }
 
-  /// Get the element type name of any iterable (backward compatibility)  
+  /// Get the element type name of any iterable (backward compatibility)
   static String getIterableElementTypeName(DartType iterableType) {
     final elementType = getIterableElementType(iterableType);
     return elementType?.getDisplayString(withNullability: false) ?? 'dynamic';
@@ -237,9 +240,9 @@ class TypeAnalyzer {
   /// Check if a Map has string keys and primitive values
   static bool isMapOfStringToPrimitive(DartType type) {
     final (keyType, valueType) = getMapTypes(type);
-    return keyType != null && 
-           valueType != null &&
-           isStringType(keyType) && 
-           isPrimitiveType(valueType);
+    return keyType != null &&
+        valueType != null &&
+        isStringType(keyType) &&
+        isPrimitiveType(valueType);
   }
 }

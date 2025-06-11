@@ -82,8 +82,11 @@ void main() {
 
         // Verify all users are now active
         final allUsers = await odm.users
-            .where(($) => $.id(
-                whereIn: ['bulk_modify_1', 'bulk_modify_2', 'bulk_modify_3']))
+            .where(
+              ($) => $.id(
+                whereIn: ['bulk_modify_1', 'bulk_modify_2', 'bulk_modify_3'],
+              ),
+            )
             .get();
 
         expect(allUsers.length, equals(3));
@@ -94,24 +97,25 @@ void main() {
 
       test('should handle complex bulk modifications', () async {
         final users = List.generate(
-            5,
-            (index) => User(
-                  id: 'complex_bulk_$index',
-                  name: 'Complex User $index',
-                  email: 'complex$index@example.com',
-                  age: 20 + index * 2,
-                  profile: Profile(
-                    bio: 'Complex user $index',
-                    avatar: 'complex$index.jpg',
-                    socialLinks: {},
-                    interests: ['complexity'],
-                    followers: 50 + index * 25,
-                  ),
-                  rating: 2.0 + index * 0.4,
-                  isActive: true,
-                  isPremium: index % 2 == 0, // Alternate premium status
-                  createdAt: DateTime.now(),
-                ));
+          5,
+          (index) => User(
+            id: 'complex_bulk_$index',
+            name: 'Complex User $index',
+            email: 'complex$index@example.com',
+            age: 20 + index * 2,
+            profile: Profile(
+              bio: 'Complex user $index',
+              avatar: 'complex$index.jpg',
+              socialLinks: {},
+              interests: ['complexity'],
+              followers: 50 + index * 25,
+            ),
+            rating: 2.0 + index * 0.4,
+            isActive: true,
+            isPremium: index % 2 == 0, // Alternate premium status
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);
@@ -119,16 +123,20 @@ void main() {
 
         // Complex bulk modification: update non-premium users
         await odm.users
-            .where(($) => $.and(
-                  $.isPremium(isEqualTo: false),
-                  $.rating(isLessThan: 4.0),
-                ))
-            .modify((user) => user.copyWith(
-                  isPremium: true,
-                  profile: user.profile.copyWith(
-                    bio: '${user.profile.bio} - Upgraded to Premium',
-                  ),
-                ));
+            .where(
+              ($) => $.and(
+                $.isPremium(isEqualTo: false),
+                $.rating(isLessThan: 4.0),
+              ),
+            )
+            .modify(
+              (user) => user.copyWith(
+                isPremium: true,
+                profile: user.profile.copyWith(
+                  bio: '${user.profile.bio} - Upgraded to Premium',
+                ),
+              ),
+            );
 
         final updatedUsers = await odm.users
             .where(($) => $.id(whereIn: users.map((u) => u.id).toList()))
@@ -146,116 +154,122 @@ void main() {
     });
 
     group('⚡ Bulk Incremental Modify Operations', () {
-      test('should perform bulk incremental modify with atomic operations',
-          () async {
-        final users = [
-          User(
-            id: 'atomic_bulk_1',
-            name: 'Atomic User 1',
-            email: 'atomic1@example.com',
-            age: 25,
-            profile: Profile(
-              bio: 'First atomic user',
-              avatar: 'atomic1.jpg',
-              socialLinks: {},
-              interests: ['coding'],
-              followers: 100,
+      test(
+        'should perform bulk incremental modify with atomic operations',
+        () async {
+          final users = [
+            User(
+              id: 'atomic_bulk_1',
+              name: 'Atomic User 1',
+              email: 'atomic1@example.com',
+              age: 25,
+              profile: Profile(
+                bio: 'First atomic user',
+                avatar: 'atomic1.jpg',
+                socialLinks: {},
+                interests: ['coding'],
+                followers: 100,
+              ),
+              rating: 3.0,
+              isActive: true,
+              isPremium: false,
+              tags: ['developer'],
+              scores: [85, 90],
+              createdAt: DateTime.now(),
             ),
-            rating: 3.0,
-            isActive: true,
-            isPremium: false,
-            tags: ['developer'],
-            scores: [85, 90],
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'atomic_bulk_2',
-            name: 'Atomic User 2',
-            email: 'atomic2@example.com',
-            age: 28,
-            profile: Profile(
-              bio: 'Second atomic user',
-              avatar: 'atomic2.jpg',
-              socialLinks: {},
-              interests: ['design'],
-              followers: 150,
+            User(
+              id: 'atomic_bulk_2',
+              name: 'Atomic User 2',
+              email: 'atomic2@example.com',
+              age: 28,
+              profile: Profile(
+                bio: 'Second atomic user',
+                avatar: 'atomic2.jpg',
+                socialLinks: {},
+                interests: ['design'],
+                followers: 150,
+              ),
+              rating: 4.0,
+              isActive: true,
+              isPremium: false,
+              tags: ['designer'],
+              scores: [88, 92],
+              createdAt: DateTime.now(),
             ),
-            rating: 4.0,
-            isActive: true,
-            isPremium: false,
-            tags: ['designer'],
-            scores: [88, 92],
-            createdAt: DateTime.now(),
-          ),
-        ];
+          ];
 
-        for (final user in users) {
-          await odm.users(user.id).update(user);
-        }
+          for (final user in users) {
+            await odm.users(user.id).update(user);
+          }
 
-        // Bulk incremental modify with atomic operations
-        await odm.users
-            .where(($) => $.id(whereIn: ['atomic_bulk_1', 'atomic_bulk_2']))
-            .incrementalModify((user) => user.copyWith(
+          // Bulk incremental modify with atomic operations
+          await odm.users
+              .where(($) => $.id(whereIn: ['atomic_bulk_1', 'atomic_bulk_2']))
+              .incrementalModify(
+                (user) => user.copyWith(
                   rating:
                       user.rating + 0.5, // Should use FieldValue.increment(0.5)
                   profile: user.profile.copyWith(
-                    followers: user.profile.followers +
+                    followers:
+                        user.profile.followers +
                         25, // Should use FieldValue.increment(25)
                     interests: [
                       ...user.profile.interests,
-                      'firebase'
+                      'firebase',
                     ], // Should use FieldValue.arrayUnion(['firebase'])
                   ),
                   tags: [
                     ...user.tags,
-                    'firebase_expert'
+                    'firebase_expert',
                   ], // Should use FieldValue.arrayUnion(['firebase_expert'])
                   lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
-                ));
+                ),
+              );
 
-        final updatedUsers = await odm.users
-            .where(($) => $.id(whereIn: ['atomic_bulk_1', 'atomic_bulk_2']))
-            .get();
+          final updatedUsers = await odm.users
+              .where(($) => $.id(whereIn: ['atomic_bulk_1', 'atomic_bulk_2']))
+              .get();
 
-        expect(updatedUsers.length, equals(2));
-        for (final user in updatedUsers) {
-          expect(user.profile.interests, contains('firebase'));
-          expect(user.tags, contains('firebase_expert'));
-          expect(user.lastLogin, isNotNull);
+          expect(updatedUsers.length, equals(2));
+          for (final user in updatedUsers) {
+            expect(user.profile.interests, contains('firebase'));
+            expect(user.tags, contains('firebase_expert'));
+            expect(user.lastLogin, isNotNull);
 
-          if (user.id == 'atomic_bulk_1') {
-            expect(user.rating, equals(3.5));
-            expect(user.profile.followers, equals(125));
-          } else if (user.id == 'atomic_bulk_2') {
-            expect(user.rating, equals(4.5));
-            expect(user.profile.followers, equals(175));
+            if (user.id == 'atomic_bulk_1') {
+              expect(user.rating, equals(3.5));
+              expect(user.profile.followers, equals(125));
+            } else if (user.id == 'atomic_bulk_2') {
+              expect(user.rating, equals(4.5));
+              expect(user.profile.followers, equals(175));
+            }
           }
-        }
-      });
+        },
+      );
 
       test('should handle mixed atomic and regular updates in bulk', () async {
         final users = List.generate(
-            4,
-            (index) => User(
-                  id: 'mixed_bulk_$index',
-                  name: 'Mixed User $index',
-                  email: 'mixed$index@example.com',
-                  age: 25 + index,
-                  profile: Profile(
-                    bio: 'Mixed user $index',
-                    avatar: 'mixed$index.jpg',
-                    socialLinks: {},
-                    interests: ['mixed_operations'],
-                    followers: 100 + index * 20,
-                  ),
-                  rating: 3.0 + index * 0.2,
-                  isActive: true,
-                  isPremium: false,
-                  tags: ['mixed'],
-                  scores: [80 + index * 5],
-                  createdAt: DateTime.now(),
-                ));
+          4,
+          (index) => User(
+            id: 'mixed_bulk_$index',
+            name: 'Mixed User $index',
+            email: 'mixed$index@example.com',
+            age: 25 + index,
+            profile: Profile(
+              bio: 'Mixed user $index',
+              avatar: 'mixed$index.jpg',
+              socialLinks: {},
+              interests: ['mixed_operations'],
+              followers: 100 + index * 20,
+            ),
+            rating: 3.0 + index * 0.2,
+            isActive: true,
+            isPremium: false,
+            tags: ['mixed'],
+            scores: [80 + index * 5],
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);
@@ -264,32 +278,35 @@ void main() {
         // Mixed bulk operations
         await odm.users
             .where(
-                ($) => $.profile.interests(arrayContains: 'mixed_operations'))
-            .incrementalModify((user) => user.copyWith(
-                  // Atomic operations
-                  age: user.age + 1, // Increment
-                  rating: user.rating + 0.3, // Increment
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 50, // Increment
-                    interests: [
-                      ...user.profile.interests,
-                      'advanced'
-                    ], // Array union
-                  ),
-                  tags: [...user.tags, 'updated'], // Array union
-                  scores: [
-                    ...user.scores,
-                    user.scores.length + 90
+              ($) => $.profile.interests(arrayContains: 'mixed_operations'),
+            )
+            .incrementalModify(
+              (user) => user.copyWith(
+                // Atomic operations
+                age: user.age + 1, // Increment
+                rating: user.rating + 0.3, // Increment
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 50, // Increment
+                  interests: [
+                    ...user.profile.interests,
+                    'advanced',
                   ], // Array union
-
-                  // Regular updates
-                  isPremium: true,
-                  lastLogin: FirestoreODM.serverTimestamp,
-                ));
+                ),
+                tags: [...user.tags, 'updated'], // Array union
+                scores: [
+                  ...user.scores,
+                  user.scores.length + 90,
+                ], // Array union
+                // Regular updates
+                isPremium: true,
+                lastLogin: FirestoreODM.serverTimestamp,
+              ),
+            );
 
         final updatedUsers = await odm.users
             .where(
-                ($) => $.profile.interests(arrayContains: 'mixed_operations'))
+              ($) => $.profile.interests(arrayContains: 'mixed_operations'),
+            )
             .get();
 
         expect(updatedUsers.length, equals(4));
@@ -317,44 +334,46 @@ void main() {
         final users = [
           // Young, inactive users
           ...List.generate(
-              3,
-              (index) => User(
-                    id: 'young_inactive_$index',
-                    name: 'Young Inactive $index',
-                    email: 'young_inactive$index@example.com',
-                    age: 18 + index,
-                    profile: Profile(
-                      bio: 'Young inactive user',
-                      avatar: 'young$index.jpg',
-                      socialLinks: {},
-                      interests: ['youth'],
-                      followers: 20 + index * 10,
-                    ),
-                    rating: 2.0 + index * 0.3,
-                    isActive: false,
-                    isPremium: false,
-                    createdAt: DateTime.now(),
-                  )),
+            3,
+            (index) => User(
+              id: 'young_inactive_$index',
+              name: 'Young Inactive $index',
+              email: 'young_inactive$index@example.com',
+              age: 18 + index,
+              profile: Profile(
+                bio: 'Young inactive user',
+                avatar: 'young$index.jpg',
+                socialLinks: {},
+                interests: ['youth'],
+                followers: 20 + index * 10,
+              ),
+              rating: 2.0 + index * 0.3,
+              isActive: false,
+              isPremium: false,
+              createdAt: DateTime.now(),
+            ),
+          ),
           // Older, active users
           ...List.generate(
-              3,
-              (index) => User(
-                    id: 'older_active_$index',
-                    name: 'Older Active $index',
-                    email: 'older_active$index@example.com',
-                    age: 30 + index * 2,
-                    profile: Profile(
-                      bio: 'Older active user',
-                      avatar: 'older$index.jpg',
-                      socialLinks: {},
-                      interests: ['experience'],
-                      followers: 200 + index * 50,
-                    ),
-                    rating: 4.0 + index * 0.2,
-                    isActive: true,
-                    isPremium: true,
-                    createdAt: DateTime.now(),
-                  )),
+            3,
+            (index) => User(
+              id: 'older_active_$index',
+              name: 'Older Active $index',
+              email: 'older_active$index@example.com',
+              age: 30 + index * 2,
+              profile: Profile(
+                bio: 'Older active user',
+                avatar: 'older$index.jpg',
+                socialLinks: {},
+                interests: ['experience'],
+                followers: 200 + index * 50,
+              ),
+              rating: 4.0 + index * 0.2,
+              isActive: true,
+              isPremium: true,
+              createdAt: DateTime.now(),
+            ),
+          ),
         ];
 
         for (final user in users) {
@@ -363,44 +382,50 @@ void main() {
 
         // Activate all young users and give them a bonus
         await odm.users
-            .where(($) => $.and(
-                  $.age(isLessThan: 25),
-                  $.isActive(isEqualTo: false),
-                ))
-            .incrementalModify((user) => user.copyWith(
-                  isActive: true,
-                  rating: user.rating + 1.0, // Bonus rating
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 100, // Bonus followers
-                    interests: [...user.profile.interests, 'activated'],
-                  ),
-                ));
+            .where(
+              ($) => $.and($.age(isLessThan: 25), $.isActive(isEqualTo: false)),
+            )
+            .incrementalModify(
+              (user) => user.copyWith(
+                isActive: true,
+                rating: user.rating + 1.0, // Bonus rating
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 100, // Bonus followers
+                  interests: [...user.profile.interests, 'activated'],
+                ),
+              ),
+            );
 
         // Update older users' premium features
         await odm.users
-            .where(($) => $.and(
-                  $.age(isGreaterThanOrEqualTo: 30),
-                  $.isPremium(isEqualTo: true),
-                ))
-            .modify((user) => user.copyWith(
-                  profile: user.profile.copyWith(
-                    bio: '${user.profile.bio} - Premium Member',
-                  ),
-                ));
+            .where(
+              ($) => $.and(
+                $.age(isGreaterThanOrEqualTo: 30),
+                $.isPremium(isEqualTo: true),
+              ),
+            )
+            .modify(
+              (user) => user.copyWith(
+                profile: user.profile.copyWith(
+                  bio: '${user.profile.bio} - Premium Member',
+                ),
+              ),
+            );
 
         // Verify young users were activated
         final activatedYoungUsers = await odm.users
-            .where(($) => $.and(
-                  $.age(isLessThan: 25),
-                  $.isActive(isEqualTo: true),
-                ))
+            .where(
+              ($) => $.and($.age(isLessThan: 25), $.isActive(isEqualTo: true)),
+            )
             .get();
 
         expect(activatedYoungUsers.length, equals(3));
         for (final user in activatedYoungUsers) {
           expect(user.profile.interests, contains('activated'));
-          expect(user.profile.followers,
-              greaterThanOrEqualTo(120)); // Original + bonus
+          expect(
+            user.profile.followers,
+            greaterThanOrEqualTo(120),
+          ); // Original + bonus
         }
 
         // Verify older users' premium features
@@ -433,27 +458,30 @@ void main() {
       test('should handle large bulk operations efficiently', () async {
         // Create many users for bulk testing
         final users = List.generate(
-            50,
-            (index) => User(
-                  id: 'perf_user_$index',
-                  name: 'Performance User $index',
-                  email: 'perf$index@example.com',
-                  age: 20 + (index % 30),
-                  profile: Profile(
-                    bio: 'Performance test user $index',
-                    avatar: 'perf$index.jpg',
-                    socialLinks: {},
-                    interests: ['performance'],
-                    followers: index * 5,
-                  ),
-                  rating: 1.0 + (index % 5),
-                  isActive: index % 2 == 0,
-                  isPremium: false,
-                  createdAt: DateTime.now(),
-                ));
+          50,
+          (index) => User(
+            id: 'perf_user_$index',
+            name: 'Performance User $index',
+            email: 'perf$index@example.com',
+            age: 20 + (index % 30),
+            profile: Profile(
+              bio: 'Performance test user $index',
+              avatar: 'perf$index.jpg',
+              socialLinks: {},
+              interests: ['performance'],
+              followers: index * 5,
+            ),
+            rating: 1.0 + (index % 5),
+            isActive: index % 2 == 0,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          ),
+        );
 
         // Bulk create all users
-        final createFutures = users.map((user) => odm.users(user.id).update(user));
+        final createFutures = users.map(
+          (user) => odm.users(user.id).update(user),
+        );
         await Future.wait(createFutures);
 
         final stopwatch = Stopwatch()..start();
@@ -461,23 +489,28 @@ void main() {
         // Perform bulk operation
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'performance'))
-            .incrementalModify((user) => user.copyWith(
-                  isPremium: true,
-                  rating: user.rating + 1.0,
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 100,
-                  ),
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                isPremium: true,
+                rating: user.rating + 1.0,
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 100,
+                ),
+              ),
+            );
 
         stopwatch.stop();
 
         // Verify all users were updated
-        final updatedUsers =
-            await odm.users.where(($) => $.isPremium(isEqualTo: true)).get();
+        final updatedUsers = await odm.users
+            .where(($) => $.isPremium(isEqualTo: true))
+            .get();
 
         expect(updatedUsers.length, equals(50));
-        expect(stopwatch.elapsedMilliseconds,
-            lessThan(10000)); // Should complete within 10 seconds
+        expect(
+          stopwatch.elapsedMilliseconds,
+          lessThan(10000),
+        ); // Should complete within 10 seconds
 
         // Verify updates were applied correctly
         for (final user in updatedUsers) {

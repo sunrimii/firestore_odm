@@ -41,9 +41,13 @@ void main() async {
   // Test 2: Try exact map equality
   print('🧪 Testing exact map equality...');
   final exactMatch = await odm.users
-      .where(($) => $.settings(isEqualTo: {'theme': 'auto', 'notifications': 'enabled'}))
+      .where(
+        ($) => $.settings(
+          isEqualTo: {'theme': 'auto', 'notifications': 'enabled'},
+        ),
+      )
       .get();
-  
+
   print('📊 Exact match results: ${exactMatch.length}');
   if (exactMatch.isNotEmpty) {
     print('✅ Found matching user: ${exactMatch.first.name}');
@@ -56,7 +60,7 @@ void main() async {
   final keyMatch = await odm.users
       .where(($) => $.settings.key('theme')(isEqualTo: 'auto'))
       .get();
-  
+
   print('📊 Key access results: ${keyMatch.length}');
   if (keyMatch.isNotEmpty) {
     print('✅ Found user by key access: ${keyMatch.first.name}');

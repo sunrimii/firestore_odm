@@ -46,16 +46,19 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make stream
-        await odm.users('stream_user').modify((user) => user.copyWith(
-              name: 'Updated Stream User',
-            ));
+        await odm
+            .users('stream_user')
+            .modify((user) => user.copyWith(name: 'Updated Stream User'));
 
         await odm
             .users('stream_user')
-            .incrementalModify((user) => user.copyWith(
-                  profile: user.profile
-                      .copyWith(followers: user.profile.followers + 50),
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 50,
+                ),
+              ),
+            );
 
         // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
@@ -73,8 +76,9 @@ void main() {
 
       test('should handle null document in stream', () async {
         final stream = <User?>[];
-        final subscription =
-            odm.users('non_existent_user').stream.listen((user) {
+        final subscription = odm.users('non_existent_user').stream.listen((
+          user,
+        ) {
           stream.add(user);
         });
 
@@ -109,8 +113,9 @@ void main() {
         await odm.users('delete_stream_user').update(user);
 
         final stream = <User?>[];
-        final subscription =
-            odm.users('delete_stream_user').stream.listen((user) {
+        final subscription = odm.users('delete_stream_user').stream.listen((
+          user,
+        ) {
           stream.add(user);
         });
 
@@ -181,40 +186,46 @@ void main() {
         // Note: Collection query streams not yet implemented in current ODM
         // This test demonstrates the expected API once implemented
         final initialUsers = await odm.users
-            .where(($) =>
-                $.profile.interests(arrayContains: 'collection_streaming'))
+            .where(
+              ($) => $.profile.interests(arrayContains: 'collection_streaming'),
+            )
             .get();
 
         expect(initialUsers.length, equals(2));
 
         // Activate one user
-        await odm.users('collection_user_1').modify((user) => user.copyWith(
-              isActive: true,
-            ));
+        await odm
+            .users('collection_user_1')
+            .modify((user) => user.copyWith(isActive: true));
 
         // Add a new user that matches the query
-        await odm.users('collection_user_3').update(User(
-              id: 'collection_user_3',
-              name: 'Collection User 3',
-              email: 'collection3@example.com',
-              age: 28,
-              profile: Profile(
-                bio: 'Collection test 3',
-                avatar: 'collection3.jpg',
-                socialLinks: {},
-                interests: ['collection_streaming'],
-                followers: 125,
+        await odm
+            .users('collection_user_3')
+            .update(
+              User(
+                id: 'collection_user_3',
+                name: 'Collection User 3',
+                email: 'collection3@example.com',
+                age: 28,
+                profile: Profile(
+                  bio: 'Collection test 3',
+                  avatar: 'collection3.jpg',
+                  socialLinks: {},
+                  interests: ['collection_streaming'],
+                  followers: 125,
+                ),
+                rating: 3.5,
+                isActive: true,
+                isPremium: false,
+                createdAt: DateTime.now(),
               ),
-              rating: 3.5,
-              isActive: true,
-              isPremium: false,
-              createdAt: DateTime.now(),
-            ));
+            );
 
         // Verify the updates
         final updatedResults = await odm.users
-            .where(($) =>
-                $.profile.interests(arrayContains: 'collection_streaming'))
+            .where(
+              ($) => $.profile.interests(arrayContains: 'collection_streaming'),
+            )
             .get();
 
         expect(updatedResults.length, equals(3));
@@ -266,22 +277,24 @@ void main() {
         await Future.delayed(Duration(milliseconds: 50));
 
         // Perform multiple rapid updates
-        await odm.users('realtime_user').patch(($) => [
-              $.rating.increment(0.3),
-            ]);
-
-        await odm.users('realtime_user').modify((user) => user.copyWith(
-              isPremium: true,
-            ));
+        await odm
+            .users('realtime_user')
+            .patch(($) => [$.rating.increment(0.3)]);
 
         await odm
             .users('realtime_user')
-            .incrementalModify((user) => user.copyWith(
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 100,
-                    interests: [...user.profile.interests, 'premium'],
-                  ),
-                ));
+            .modify((user) => user.copyWith(isPremium: true));
+
+        await odm
+            .users('realtime_user')
+            .incrementalModify(
+              (user) => user.copyWith(
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 100,
+                  interests: [...user.profile.interests, 'premium'],
+                ),
+              ),
+            );
 
         // Wait for all stream to propagate
         await Future.delayed(Duration(milliseconds: 300));
@@ -331,21 +344,24 @@ void main() {
         final updateFutures = [
           odm
               .users('concurrent_user')
-              .incrementalModify((user) => user.copyWith(
-                    rating: user.rating + 0.1,
-                  )),
+              .incrementalModify(
+                (user) => user.copyWith(rating: user.rating + 0.1),
+              ),
           odm
               .users('concurrent_user')
-              .incrementalModify((user) => user.copyWith(
-                    profile: user.profile
-                        .copyWith(followers: user.profile.followers + 25),
-                  )),
-          odm.users('concurrent_user').modify((user) => user.copyWith(
-                isPremium: true,
-              )),
-          odm.users('concurrent_user').patch(($) => [
-                $.profile.interests.add('updated'),
-              ]),
+              .incrementalModify(
+                (user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 25,
+                  ),
+                ),
+              ),
+          odm
+              .users('concurrent_user')
+              .modify((user) => user.copyWith(isPremium: true)),
+          odm
+              .users('concurrent_user')
+              .patch(($) => [$.profile.interests.add('updated')]),
         ];
 
         await Future.wait(updateFutures);
@@ -408,9 +424,11 @@ void main() {
         await Future.delayed(Duration(milliseconds: 100));
 
         // Make a change
-        await odm.users('multi_sub_user').modify((user) => user.copyWith(
-              name: 'Updated Multi Subscriber User',
-            ));
+        await odm
+            .users('multi_sub_user')
+            .modify(
+              (user) => user.copyWith(name: 'Updated Multi Subscriber User'),
+            );
 
         // Wait for stream to propagate
         await Future.delayed(Duration(milliseconds: 200));
@@ -462,9 +480,9 @@ void main() {
         await subscription.cancel();
 
         // Make stream after cancellation
-        await odm.users('cancel_sub_user').modify((user) => user.copyWith(
-              name: 'Should Not Be Received',
-            ));
+        await odm
+            .users('cancel_sub_user')
+            .modify((user) => user.copyWith(name: 'Should Not Be Received'));
 
         // Wait to ensure no new stream are received
         await Future.delayed(Duration(milliseconds: 200));
@@ -513,10 +531,13 @@ void main() {
         for (int i = 0; i < 10; i++) {
           await odm
               .users('high_freq_user')
-              .incrementalModify((user) => user.copyWith(
-                    profile: user.profile
-                        .copyWith(followers: user.profile.followers + 1),
-                  ));
+              .incrementalModify(
+                (user) => user.copyWith(
+                  profile: user.profile.copyWith(
+                    followers: user.profile.followers + 1,
+                  ),
+                ),
+              );
         }
 
         stopwatch.stop();

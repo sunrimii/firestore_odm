@@ -310,10 +310,7 @@ void main() {
         // Update all users matching the query
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'query_updates'))
-            .patch(($) => [
-                  $.isActive(true),
-                  $.rating.increment(0.5),
-                ]);
+            .patch(($) => [$.isActive(true), $.rating.increment(0.5)]);
 
         // Verify all matching users were updated
         final updatedUsers = await odm.users
@@ -372,12 +369,14 @@ void main() {
         // Modify all users matching the query
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'query_modify'))
-            .modify((user) => user.copyWith(
-                  isPremium: true,
-                  profile: user.profile.copyWith(
-                    bio: '${user.profile.bio} - Modified',
-                  ),
-                ));
+            .modify(
+              (user) => user.copyWith(
+                isPremium: true,
+                profile: user.profile.copyWith(
+                  bio: '${user.profile.bio} - Modified',
+                ),
+              ),
+            );
 
         // Verify all matching users were modified
         final modifiedUsers = await odm.users
@@ -391,84 +390,91 @@ void main() {
         }
       });
 
-      test('should perform incremental modify operations on query results',
-          () async {
-        final users = [
-          User(
-            id: 'query_inc_mod_1',
-            name: 'Inc Modify User 1',
-            email: 'incmod1@example.com',
-            age: 25,
-            profile: Profile(
-              bio: 'Inc modify user 1',
-              avatar: 'incmod1.jpg',
-              socialLinks: {},
-              interests: ['query_incremental'],
-              followers: 100,
+      test(
+        'should perform incremental modify operations on query results',
+        () async {
+          final users = [
+            User(
+              id: 'query_inc_mod_1',
+              name: 'Inc Modify User 1',
+              email: 'incmod1@example.com',
+              age: 25,
+              profile: Profile(
+                bio: 'Inc modify user 1',
+                avatar: 'incmod1.jpg',
+                socialLinks: {},
+                interests: ['query_incremental'],
+                followers: 100,
+              ),
+              rating: 3.0,
+              isActive: true,
+              isPremium: false,
+              tags: ['original'],
+              scores: [80, 85],
+              createdAt: DateTime.now(),
             ),
-            rating: 3.0,
-            isActive: true,
-            isPremium: false,
-            tags: ['original'],
-            scores: [80, 85],
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'query_inc_mod_2',
-            name: 'Inc Modify User 2',
-            email: 'incmod2@example.com',
-            age: 30,
-            profile: Profile(
-              bio: 'Inc modify user 2',
-              avatar: 'incmod2.jpg',
-              socialLinks: {},
-              interests: ['query_incremental'],
-              followers: 150,
+            User(
+              id: 'query_inc_mod_2',
+              name: 'Inc Modify User 2',
+              email: 'incmod2@example.com',
+              age: 30,
+              profile: Profile(
+                bio: 'Inc modify user 2',
+                avatar: 'incmod2.jpg',
+                socialLinks: {},
+                interests: ['query_incremental'],
+                followers: 150,
+              ),
+              rating: 3.5,
+              isActive: true,
+              isPremium: false,
+              tags: ['original'],
+              scores: [90, 95],
+              createdAt: DateTime.now(),
             ),
-            rating: 3.5,
-            isActive: true,
-            isPremium: false,
-            tags: ['original'],
-            scores: [90, 95],
-            createdAt: DateTime.now(),
-          ),
-        ];
+          ];
 
-        for (final user in users) {
-          await odm.users(user.id).update(user);
-        }
+          for (final user in users) {
+            await odm.users(user.id).update(user);
+          }
 
-        // Incremental modify all users matching the query
-        await odm.users
-            .where(
-                ($) => $.profile.interests(arrayContains: 'query_incremental'))
-            .incrementalModify((user) => user.copyWith(
+          // Incremental modify all users matching the query
+          await odm.users
+              .where(
+                ($) => $.profile.interests(arrayContains: 'query_incremental'),
+              )
+              .incrementalModify(
+                (user) => user.copyWith(
                   rating: user.rating + 0.5, // Should auto-detect as increment
                   profile: user.profile.copyWith(
-                    followers: user.profile.followers +
+                    followers:
+                        user.profile.followers +
                         50, // Should auto-detect as increment
                   ),
                   tags: [
                     ...user.tags,
-                    'incremented'
+                    'incremented',
                   ], // Should auto-detect as arrayUnion
                   lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
-                ));
+                ),
+              );
 
-        // Verify all matching users were incrementally modified
-        final modifiedUsers = await odm.users
-            .where(
-                ($) => $.profile.interests(arrayContains: 'query_incremental'))
-            .get();
+          // Verify all matching users were incrementally modified
+          final modifiedUsers = await odm.users
+              .where(
+                ($) => $.profile.interests(arrayContains: 'query_incremental'),
+              )
+              .get();
 
-        expect(modifiedUsers.length, equals(2));
-        for (final user in modifiedUsers) {
-          expect(user.rating, greaterThan(3.0));
-          expect(user.profile.followers, greaterThan(100));
-          expect(user.tags, contains('incremented'));
-          expect(user.lastLogin, isNotNull);
-        }
-      });
+          expect(modifiedUsers.length, equals(2));
+          for (final user in modifiedUsers) {
+            expect(user.rating, greaterThan(3.0));
+            expect(user.profile.followers, greaterThan(100));
+            expect(user.tags, contains('incremented'));
+            expect(user.lastLogin, isNotNull);
+          }
+        },
+      );
     });
   });
 }

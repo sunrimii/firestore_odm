@@ -41,14 +41,18 @@ void main() {
 
         await odm.users('array_update_user').update(user);
 
-        await odm.users('array_update_user').patch(($) => [
-              $.name('Updated Name'),
-              $.age.increment(1),
-              $.rating.increment(0.5),
-              $.isActive(true),
-              $.tags.add('updated'),
-              $.profile.followers.increment(50),
-            ]);
+        await odm
+            .users('array_update_user')
+            .patch(
+              ($) => [
+                $.name('Updated Name'),
+                $.age.increment(1),
+                $.rating.increment(0.5),
+                $.isActive(true),
+                $.tags.add('updated'),
+                $.profile.followers.increment(50),
+              ],
+            );
 
         final updated = await odm.users('array_update_user').get();
 
@@ -82,10 +86,14 @@ void main() {
 
         await odm.users('timestamp_user').update(user);
 
-        await odm.users('timestamp_user').patch(($) => [
-              $.lastLogin.serverTimestamp(),
-              $.updatedAt.serverTimestamp(),
-            ]);
+        await odm
+            .users('timestamp_user')
+            .patch(
+              ($) => [
+                $.lastLogin.serverTimestamp(),
+                $.updatedAt.serverTimestamp(),
+              ],
+            );
 
         final updated = await odm.users('timestamp_user').get();
 
@@ -117,15 +125,19 @@ void main() {
 
         await odm.users('modify_user').update(user);
 
-        await odm.users('modify_user').modify((user) => user.copyWith(
-              name: 'Modified Name',
-              isActive: true,
-              profile: user.profile.copyWith(
-                bio: 'Modified bio',
-                followers: 250,
+        await odm
+            .users('modify_user')
+            .modify(
+              (user) => user.copyWith(
+                name: 'Modified Name',
+                isActive: true,
+                profile: user.profile.copyWith(
+                  bio: 'Modified bio',
+                  followers: 250,
+                ),
+                lastLogin: FirestoreODM.serverTimestamp,
               ),
-              lastLogin: FirestoreODM.serverTimestamp,
-            ));
+            );
 
         final updated = await odm.users('modify_user').get();
 
@@ -164,19 +176,21 @@ void main() {
 
         await odm
             .users('incremental_user')
-            .incrementalModify((user) => user.copyWith(
-                  age: user.age + 1, // Auto-increment
-                  rating: user.rating + 0.5, // Auto-increment
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 25, // Auto-increment
-                    interests: [
-                      ...user.profile.interests,
-                      'atomic'
-                    ], // Auto-arrayUnion
-                  ),
-                  tags: [...user.tags, 'incremented'], // Auto-arrayUnion
-                  lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                age: user.age + 1, // Auto-increment
+                rating: user.rating + 0.5, // Auto-increment
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 25, // Auto-increment
+                  interests: [
+                    ...user.profile.interests,
+                    'atomic',
+                  ], // Auto-arrayUnion
+                ),
+                tags: [...user.tags, 'incremented'], // Auto-arrayUnion
+                lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
+              ),
+            );
 
         final updated = await odm.users('incremental_user').get();
 
@@ -214,15 +228,17 @@ void main() {
 
         await odm
             .users('array_removal_user')
-            .incrementalModify((user) => user.copyWith(
-                  profile: user.profile.copyWith(
-                    interests: user.profile.interests
-                        .where((interest) => interest != 'remove')
-                        .toList(),
-                  ),
-                  tags: user.tags.where((tag) => tag != 'tag2').toList(),
-                  scores: user.scores.where((score) => score >= 90).toList(),
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                profile: user.profile.copyWith(
+                  interests: user.profile.interests
+                      .where((interest) => interest != 'remove')
+                      .toList(),
+                ),
+                tags: user.tags.where((tag) => tag != 'tag2').toList(),
+                scores: user.scores.where((score) => score >= 90).toList(),
+              ),
+            );
 
         final updated = await odm.users('array_removal_user').get();
 
@@ -262,11 +278,15 @@ void main() {
 
         await odm.users('nested_update_user').update(user);
 
-        await odm.users('nested_update_user').patch(($) => [
-              $.profile.bio('Updated nested bio'),
-              $.profile.avatar('updated_nested.jpg'),
-              $.profile.followers.increment(100),
-            ]);
+        await odm
+            .users('nested_update_user')
+            .patch(
+              ($) => [
+                $.profile.bio('Updated nested bio'),
+                $.profile.avatar('updated_nested.jpg'),
+                $.profile.followers.increment(100),
+              ],
+            );
 
         final updated = await odm.users('nested_update_user').get();
 
@@ -275,8 +295,10 @@ void main() {
         expect(updated.profile.avatar, equals('updated_nested.jpg'));
         expect(updated.profile.followers, equals(400));
         // Other fields should remain unchanged
-        expect(updated.profile.socialLinks['github'],
-            equals('https://github.com/original'));
+        expect(
+          updated.profile.socialLinks['github'],
+          equals('https://github.com/original'),
+        );
       });
 
       test('should handle complex nested updates with modify', () async {
@@ -298,48 +320,46 @@ void main() {
           rating: 4.8,
           isActive: true,
           isPremium: true,
-          settings: {
-            'theme': 'dark',
-            'notifications': 'enabled',
-          },
-          metadata: {
-            'level': 'expert',
-            'badge_count': 15,
-          },
+          settings: {'theme': 'dark', 'notifications': 'enabled'},
+          metadata: {'level': 'expert', 'badge_count': 15},
           createdAt: DateTime.now(),
         );
 
         await odm.users('complex_nested_user').update(user);
 
-        await odm.users('complex_nested_user').modify((user) => user.copyWith(
-              profile: user.profile.copyWith(
-                socialLinks: {
-                  ...user.profile.socialLinks,
-                  'youtube': 'https://youtube.com/complex',
-                  'github':
-                      'https://github.com/updated_complex', // Update existing
-                },
-                interests: [...user.profile.interests, 'youtube'],
+        await odm
+            .users('complex_nested_user')
+            .modify(
+              (user) => user.copyWith(
+                profile: user.profile.copyWith(
+                  socialLinks: {
+                    ...user.profile.socialLinks,
+                    'youtube': 'https://youtube.com/complex',
+                    'github':
+                        'https://github.com/updated_complex', // Update existing
+                  },
+                  interests: [...user.profile.interests, 'youtube'],
+                ),
+                settings: {...user.settings, 'new_feature': 'enabled'},
+                metadata: {...user.metadata, 'badge_count': 20},
               ),
-              settings: {
-                ...user.settings,
-                'new_feature': 'enabled',
-              },
-              metadata: {
-                ...user.metadata,
-                'badge_count': 20,
-              },
-            ));
+            );
 
         final updated = await odm.users('complex_nested_user').get();
 
         expect(updated, isNotNull);
-        expect(updated!.profile.socialLinks['youtube'],
-            equals('https://youtube.com/complex'));
-        expect(updated.profile.socialLinks['github'],
-            equals('https://github.com/updated_complex'));
-        expect(updated.profile.socialLinks['linkedin'],
-            equals('https://linkedin.com/in/complex'));
+        expect(
+          updated!.profile.socialLinks['youtube'],
+          equals('https://youtube.com/complex'),
+        );
+        expect(
+          updated.profile.socialLinks['github'],
+          equals('https://github.com/updated_complex'),
+        );
+        expect(
+          updated.profile.socialLinks['linkedin'],
+          equals('https://linkedin.com/in/complex'),
+        );
         expect(updated.profile.interests, contains('youtube'));
         expect(updated.settings['new_feature'], equals('enabled'));
         expect(updated.metadata['badge_count'], equals(20));

@@ -99,7 +99,9 @@ class FilterGenerator {
         '      StringFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isIterableType(fieldType)) {
-      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
+      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
+        fieldType,
+      );
       buffer.writeln(
         '  ArrayFieldFilter<$rootFilterType, $elementTypeName> get $fieldName =>',
       );

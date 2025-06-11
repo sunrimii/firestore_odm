@@ -82,9 +82,7 @@ void main() {
         expect(allUsers.length, equals(3));
 
         // ✅ NEW: Delete all inactive users using Query.delete()
-        await odm.users
-            .where(($) => $.isActive(isEqualTo: false))
-            .delete();
+        await odm.users.where(($) => $.isActive(isEqualTo: false)).delete();
 
         // Verify only active users remain
         final remainingUsers = await odm.users.get();
@@ -158,10 +156,9 @@ void main() {
 
         // ✅ NEW: Delete users using complex AND condition
         await odm.users
-            .where(($) => $.and(
-              $.age(isLessThan: 25),
-              $.rating(isLessThan: 3.0),
-            ))
+            .where(
+              ($) => $.and($.age(isLessThan: 25), $.rating(isLessThan: 3.0)),
+            )
             .delete();
 
         // Verify only the good user remains
@@ -247,86 +244,95 @@ void main() {
         expect(remainingUsers.first.name, equals('High Rated User'));
         expect(remainingUsers.first.rating, equals(5.0));
 
-        print('✅ OrderedQuery.delete() - Successfully deleted 2 lowest rated users');
+        print(
+          '✅ OrderedQuery.delete() - Successfully deleted 2 lowest rated users',
+        );
       });
 
-      test('should delete using OrderedQuery with additional filtering', () async {
-        // Create users for complex ordered deletion
-        final users = [
-          User(
-            id: 'ordered_filter_1',
-            name: 'Young Active',
-            email: 'young@example.com',
-            age: 20,
-            profile: Profile(
-              bio: 'Young active user',
-              avatar: 'young.jpg',
-              socialLinks: {},
-              interests: ['young'],
-              followers: 80,
+      test(
+        'should delete using OrderedQuery with additional filtering',
+        () async {
+          // Create users for complex ordered deletion
+          final users = [
+            User(
+              id: 'ordered_filter_1',
+              name: 'Young Active',
+              email: 'young@example.com',
+              age: 20,
+              profile: Profile(
+                bio: 'Young active user',
+                avatar: 'young.jpg',
+                socialLinks: {},
+                interests: ['young'],
+                followers: 80,
+              ),
+              rating: 3.5,
+              isActive: true, // Active
+              isPremium: false,
+              createdAt: DateTime.now(),
             ),
-            rating: 3.5,
-            isActive: true, // Active
-            isPremium: false,
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'ordered_filter_2',
-            name: 'Young Inactive',
-            email: 'inactive@example.com',
-            age: 22,
-            profile: Profile(
-              bio: 'Young inactive user',
-              avatar: 'inactive.jpg',
-              socialLinks: {},
-              interests: ['inactive'],
-              followers: 40,
+            User(
+              id: 'ordered_filter_2',
+              name: 'Young Inactive',
+              email: 'inactive@example.com',
+              age: 22,
+              profile: Profile(
+                bio: 'Young inactive user',
+                avatar: 'inactive.jpg',
+                socialLinks: {},
+                interests: ['inactive'],
+                followers: 40,
+              ),
+              rating: 2.0,
+              isActive: false, // Inactive - will be deleted
+              isPremium: false,
+              createdAt: DateTime.now(),
             ),
-            rating: 2.0,
-            isActive: false, // Inactive - will be deleted
-            isPremium: false,
-            createdAt: DateTime.now(),
-          ),
-          User(
-            id: 'ordered_filter_3',
-            name: 'Old Active',
-            email: 'old@example.com',
-            age: 40,
-            profile: Profile(
-              bio: 'Old active user',
-              avatar: 'old.jpg',
-              socialLinks: {},
-              interests: ['old'],
-              followers: 300,
+            User(
+              id: 'ordered_filter_3',
+              name: 'Old Active',
+              email: 'old@example.com',
+              age: 40,
+              profile: Profile(
+                bio: 'Old active user',
+                avatar: 'old.jpg',
+                socialLinks: {},
+                interests: ['old'],
+                followers: 300,
+              ),
+              rating: 4.5,
+              isActive: true, // Active
+              isPremium: true,
+              createdAt: DateTime.now(),
             ),
-            rating: 4.5,
-            isActive: true, // Active
-            isPremium: true,
-            createdAt: DateTime.now(),
-          ),
-        ];
+          ];
 
-        // Insert all users
-        for (final user in users) {
-          await odm.users(user.id).update(user);
-        }
+          // Insert all users
+          for (final user in users) {
+            await odm.users(user.id).update(user);
+          }
 
-        // ✅ NEW: Use OrderedQuery with additional where() filtering
-        await odm.users
-            .orderBy(($) => ($.age(),)) // Order by age
-            .where(($) => $.isActive(isEqualTo: false)) // ✅ NEW: Additional filtering on OrderedQuery
-            .delete();
+          // ✅ NEW: Use OrderedQuery with additional where() filtering
+          await odm.users
+              .orderBy(($) => ($.age(),)) // Order by age
+              .where(
+                ($) => $.isActive(isEqualTo: false),
+              ) // ✅ NEW: Additional filtering on OrderedQuery
+              .delete();
 
-        // Verify only active users remain
-        final remainingUsers = await odm.users.get();
-        expect(remainingUsers.length, equals(2));
-        
-        final remainingNames = remainingUsers.map((u) => u.name).toSet();
-        expect(remainingNames, contains('Young Active'));
-        expect(remainingNames, contains('Old Active'));
+          // Verify only active users remain
+          final remainingUsers = await odm.users.get();
+          expect(remainingUsers.length, equals(2));
 
-        print('✅ OrderedQuery.where().delete() - Successfully deleted inactive users');
-      });
+          final remainingNames = remainingUsers.map((u) => u.name).toSet();
+          expect(remainingNames, contains('Young Active'));
+          expect(remainingNames, contains('Old Active'));
+
+          print(
+            '✅ OrderedQuery.where().delete() - Successfully deleted inactive users',
+          );
+        },
+      );
     });
 
     group('🗂️ Collection Delete Operations', () {
@@ -402,7 +408,9 @@ void main() {
         final remainingUsers = await odm.users.get();
         expect(remainingUsers.length, equals(0));
 
-        print('✅ FirestoreCollection.delete() - Successfully deleted all 3 users');
+        print(
+          '✅ FirestoreCollection.delete() - Successfully deleted all 3 users',
+        );
       });
     });
 

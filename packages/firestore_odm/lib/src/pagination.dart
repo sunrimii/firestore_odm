@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
@@ -61,4 +60,3 @@ abstract class QueryPaginationHandler {
     return query.endBefore(cursorValues);
   }
 }
-

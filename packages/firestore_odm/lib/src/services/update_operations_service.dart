@@ -1,16 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:firestore_odm/src/interfaces/aggregatable.dart';
-import 'package:firestore_odm/src/interfaces/orderable.dart';
-import 'package:firestore_odm/src/orderby.dart';
-import 'package:firestore_odm/src/recordHelper.dart';
-import 'package:firestore_odm/src/schema.dart';
-import 'package:firestore_odm/src/transaction.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
 import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
-import 'package:firestore_odm/src/query.dart' hide Query;
 import 'package:firestore_odm/src/utils.dart';
 
 class FirestoreDocumentNotFoundException implements Exception {
@@ -117,7 +110,7 @@ Map<String, dynamic> computeDiffWithAtomicOperations(
             newValue as Map<String, dynamic>,
             key,
           );
-          
+
           if (nestedAtomicOps.isNotEmpty) {
             // Use atomic operations for individual nested fields
             result.addAll(nestedAtomicOps);
@@ -178,14 +171,14 @@ Map<String, dynamic> _detectNestedAtomicOperations(
   String parentKey,
 ) {
   final result = <String, dynamic>{};
-  
+
   // Find fields that exist in both old and new values
   for (final entry in newValue.entries) {
     final fieldKey = entry.key;
     final newFieldValue = entry.value;
     final oldFieldValue = oldValue[fieldKey];
     final fullFieldPath = '$parentKey.$fieldKey';
-    
+
     if (oldValue.containsKey(fieldKey) && oldFieldValue != newFieldValue) {
       // Try to detect atomic operation for this nested field
       final atomicOp = _detectAtomicOperation(oldFieldValue, newFieldValue);
@@ -208,7 +201,7 @@ Map<String, dynamic> _detectNestedAtomicOperations(
       result[fullFieldPath] = newFieldValue;
     }
   }
-  
+
   // Handle removed fields
   for (final key in oldValue.keys) {
     if (!newValue.containsKey(key)) {
@@ -216,7 +209,7 @@ Map<String, dynamic> _detectNestedAtomicOperations(
       result[fullFieldPath] = firestore.FieldValue.delete();
     }
   }
-  
+
   return result;
 }
 
@@ -457,7 +450,6 @@ abstract class CollectionHandler {
     await ref.doc(documentId).set(data, firestore.SetOptions(merge: true));
   }
 }
-
 
 abstract class QueryLimitHandler {
   static firestore.Query<R> applyLimit<R>(

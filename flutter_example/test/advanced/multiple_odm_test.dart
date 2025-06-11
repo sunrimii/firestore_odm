@@ -24,127 +24,134 @@ void main() {
     });
 
     group('🔗 Independent ODM Instances', () {
-      test('should maintain separate data across different ODM instances',
-          () async {
-        final mainUser = User(
-          id: 'main_user',
-          name: 'Main User',
-          email: 'main@example.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Main user bio',
-            avatar: 'main.jpg',
-            socialLinks: {},
-            interests: ['main'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should maintain separate data across different ODM instances',
+        () async {
+          final mainUser = User(
+            id: 'main_user',
+            name: 'Main User',
+            email: 'main@example.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Main user bio',
+              avatar: 'main.jpg',
+              socialLinks: {},
+              interests: ['main'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          );
 
-        final analyticsUser = User(
-          id: 'analytics_user',
-          name: 'Analytics User',
-          email: 'analytics@example.com',
-          age: 30,
-          profile: Profile(
-            bio: 'Analytics user bio',
-            avatar: 'analytics.jpg',
-            socialLinks: {},
-            interests: ['analytics'],
-            followers: 200,
-          ),
-          rating: 4.0,
-          isActive: true,
-          isPremium: true,
-          createdAt: DateTime.now(),
-        );
+          final analyticsUser = User(
+            id: 'analytics_user',
+            name: 'Analytics User',
+            email: 'analytics@example.com',
+            age: 30,
+            profile: Profile(
+              bio: 'Analytics user bio',
+              avatar: 'analytics.jpg',
+              socialLinks: {},
+              interests: ['analytics'],
+              followers: 200,
+            ),
+            rating: 4.0,
+            isActive: true,
+            isPremium: true,
+            createdAt: DateTime.now(),
+          );
 
-        // Store users in different ODM instances
-        await mainODM.users(mainUser.id).update(mainUser);
-        await analyticsODM.users(analyticsUser.id).update(analyticsUser);
+          // Store users in different ODM instances
+          await mainODM.users(mainUser.id).update(mainUser);
+          await analyticsODM.users(analyticsUser.id).update(analyticsUser);
 
-        // Verify data isolation
-        final mainRetrieved = await mainODM.users('main_user').get();
-        final analyticsRetrieved =
-            await analyticsODM.users('analytics_user').get();
+          // Verify data isolation
+          final mainRetrieved = await mainODM.users('main_user').get();
+          final analyticsRetrieved = await analyticsODM
+              .users('analytics_user')
+              .get();
 
-        expect(mainRetrieved, isNotNull);
-        expect(mainRetrieved!.name, equals('Main User'));
-        expect(mainRetrieved.profile.interests, contains('main'));
+          expect(mainRetrieved, isNotNull);
+          expect(mainRetrieved!.name, equals('Main User'));
+          expect(mainRetrieved.profile.interests, contains('main'));
 
-        expect(analyticsRetrieved, isNotNull);
-        expect(analyticsRetrieved!.name, equals('Analytics User'));
-        expect(analyticsRetrieved.profile.interests, contains('analytics'));
+          expect(analyticsRetrieved, isNotNull);
+          expect(analyticsRetrieved!.name, equals('Analytics User'));
+          expect(analyticsRetrieved.profile.interests, contains('analytics'));
 
-        // Verify cross-instance isolation
-        final crossMainUser = await analyticsODM.users('main_user').get();
-        final crossAnalyticsUser = await mainODM.users('analytics_user').get();
+          // Verify cross-instance isolation
+          final crossMainUser = await analyticsODM.users('main_user').get();
+          final crossAnalyticsUser = await mainODM
+              .users('analytics_user')
+              .get();
 
-        expect(crossMainUser, isNull);
-        expect(crossAnalyticsUser, isNull);
-      });
+          expect(crossMainUser, isNull);
+          expect(crossAnalyticsUser, isNull);
+        },
+      );
 
-      test('should handle same user ID across different ODM instances',
-          () async {
-        final sameId = 'shared_user_id';
+      test(
+        'should handle same user ID across different ODM instances',
+        () async {
+          final sameId = 'shared_user_id';
 
-        final mainUserData = User(
-          id: sameId,
-          name: 'Main Version',
-          email: 'main@shared.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Main version of shared user',
-            avatar: 'main_shared.jpg',
-            socialLinks: {},
-            interests: ['main'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          createdAt: DateTime.now(),
-        );
+          final mainUserData = User(
+            id: sameId,
+            name: 'Main Version',
+            email: 'main@shared.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Main version of shared user',
+              avatar: 'main_shared.jpg',
+              socialLinks: {},
+              interests: ['main'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          );
 
-        final analyticsUserData = User(
-          id: sameId,
-          name: 'Analytics Version',
-          email: 'analytics@shared.com',
-          age: 30,
-          profile: Profile(
-            bio: 'Analytics version of shared user',
-            avatar: 'analytics_shared.jpg',
-            socialLinks: {},
-            interests: ['analytics'],
-            followers: 200,
-          ),
-          rating: 4.0,
-          isActive: true,
-          isPremium: true,
-          createdAt: DateTime.now(),
-        );
+          final analyticsUserData = User(
+            id: sameId,
+            name: 'Analytics Version',
+            email: 'analytics@shared.com',
+            age: 30,
+            profile: Profile(
+              bio: 'Analytics version of shared user',
+              avatar: 'analytics_shared.jpg',
+              socialLinks: {},
+              interests: ['analytics'],
+              followers: 200,
+            ),
+            rating: 4.0,
+            isActive: true,
+            isPremium: true,
+            createdAt: DateTime.now(),
+          );
 
-        // Store same ID in both ODM instances with different data
-        await mainODM.users(sameId).update(mainUserData);
-        await analyticsODM.users(sameId).update(analyticsUserData);
+          // Store same ID in both ODM instances with different data
+          await mainODM.users(sameId).update(mainUserData);
+          await analyticsODM.users(sameId).update(analyticsUserData);
 
-        // Verify each ODM instance maintains its own data
-        final mainRetrieved = await mainODM.users(sameId).get();
-        final analyticsRetrieved = await analyticsODM.users(sameId).get();
+          // Verify each ODM instance maintains its own data
+          final mainRetrieved = await mainODM.users(sameId).get();
+          final analyticsRetrieved = await analyticsODM.users(sameId).get();
 
-        expect(mainRetrieved!.name, equals('Main Version'));
-        expect(mainRetrieved.email, equals('main@shared.com'));
-        expect(mainRetrieved.age, equals(25));
-        expect(mainRetrieved.isPremium, isFalse);
+          expect(mainRetrieved!.name, equals('Main Version'));
+          expect(mainRetrieved.email, equals('main@shared.com'));
+          expect(mainRetrieved.age, equals(25));
+          expect(mainRetrieved.isPremium, isFalse);
 
-        expect(analyticsRetrieved!.name, equals('Analytics Version'));
-        expect(analyticsRetrieved.email, equals('analytics@shared.com'));
-        expect(analyticsRetrieved.age, equals(30));
-        expect(analyticsRetrieved.isPremium, isTrue);
-      });
+          expect(analyticsRetrieved!.name, equals('Analytics Version'));
+          expect(analyticsRetrieved.email, equals('analytics@shared.com'));
+          expect(analyticsRetrieved.age, equals(30));
+          expect(analyticsRetrieved.isPremium, isTrue);
+        },
+      );
     });
 
     group('🔄 Independent Operations', () {
@@ -175,22 +182,28 @@ void main() {
         await analyticsODM.users(userId).update(initialUser);
 
         // Perform different updates in each ODM instance
-        await mainODM.users(userId).patch(($) => [
-              $.name('Main Updated User'),
-              $.rating.increment(1.0),
-              $.isPremium(true),
-            ]);
+        await mainODM
+            .users(userId)
+            .patch(
+              ($) => [
+                $.name('Main Updated User'),
+                $.rating.increment(1.0),
+                $.isPremium(true),
+              ],
+            );
 
         await analyticsODM
             .users(userId)
-            .incrementalModify((user) => user.copyWith(
-                  name: 'Analytics Updated User',
-                  age: user.age + 5,
-                  profile: user.profile.copyWith(
-                    followers: user.profile.followers + 50,
-                  ),
-                  scores: [user.scores.first + 200],
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                name: 'Analytics Updated User',
+                age: user.age + 5,
+                profile: user.profile.copyWith(
+                  followers: user.profile.followers + 50,
+                ),
+                scores: [user.scores.first + 200],
+              ),
+            );
 
         // Verify independent updates
         final mainUpdated = await mainODM.users(userId).get();
@@ -378,10 +391,14 @@ void main() {
         await mainODM.users(user.id).posts(userPost.id).update(userPost);
 
         // Verify subcollection access
-        final mainSubPost =
-            await mainODM.users(user.id).posts(userPost.id).get();
-        final analyticsSubPost =
-            await analyticsODM.users(user.id).posts(userPost.id).get();
+        final mainSubPost = await mainODM
+            .users(user.id)
+            .posts(userPost.id)
+            .get();
+        final analyticsSubPost = await analyticsODM
+            .users(user.id)
+            .posts(userPost.id)
+            .get();
 
         expect(mainSubPost, isNotNull);
         expect(mainSubPost!.title, equals('Subcollection Post'));
@@ -391,63 +408,70 @@ void main() {
     });
 
     group('🔄 Transaction Independence', () {
-      test('should handle independent transactions across ODM instances',
-          () async {
-        final userId = 'tx_independence_user';
+      test(
+        'should handle independent transactions across ODM instances',
+        () async {
+          final userId = 'tx_independence_user';
 
-        final initialUser = User(
-          id: userId,
-          name: 'TX Independence User',
-          email: 'txindep@test.com',
-          age: 25,
-          profile: Profile(
-            bio: 'Transaction independence test',
-            avatar: 'txindep.jpg',
-            socialLinks: {},
-            interests: ['tx'],
-            followers: 100,
-          ),
-          rating: 3.0,
-          isActive: true,
-          isPremium: false,
-          scores: [1000],
-          createdAt: DateTime.now(),
-        );
+          final initialUser = User(
+            id: userId,
+            name: 'TX Independence User',
+            email: 'txindep@test.com',
+            age: 25,
+            profile: Profile(
+              bio: 'Transaction independence test',
+              avatar: 'txindep.jpg',
+              socialLinks: {},
+              interests: ['tx'],
+              followers: 100,
+            ),
+            rating: 3.0,
+            isActive: true,
+            isPremium: false,
+            scores: [1000],
+            createdAt: DateTime.now(),
+          );
 
-        // Set same initial user in both ODM instances
-        await mainODM.users(userId).update(initialUser);
-        await analyticsODM.users(userId).update(initialUser);
+          // Set same initial user in both ODM instances
+          await mainODM.users(userId).update(initialUser);
+          await analyticsODM.users(userId).update(initialUser);
 
-        // Run independent transactions
-        await Future.wait([
-          mainODM.runTransaction((tx) async {
-            final user = await tx.users(userId).get();
-            tx.users(userId).patch(($) => [
-                  $.name('Main TX User'),
-                  $.rating.increment(1.0),
-                ]);
-          }),
-          analyticsODM.runTransaction((tx) async {
-            final user = await tx.users(userId).get();
-            await tx.users(userId).incrementalModify((user) => user.copyWith(
-                  name: 'Analytics TX User',
-                  scores: [user.scores.first + 500],
-                ));
-          }),
-        ]);
+          // Run independent transactions
+          await Future.wait([
+            mainODM.runTransaction((tx) async {
+              final user = await tx.users(userId).get();
+              tx
+                  .users(userId)
+                  .patch(
+                    ($) => [$.name('Main TX User'), $.rating.increment(1.0)],
+                  );
+            }),
+            analyticsODM.runTransaction((tx) async {
+              final user = await tx.users(userId).get();
+              await tx
+                  .users(userId)
+                  .incrementalModify(
+                    (user) => user.copyWith(
+                      name: 'Analytics TX User',
+                      scores: [user.scores.first + 500],
+                    ),
+                  );
+            }),
+          ]);
 
-        // Verify independent transaction results
-        final mainResult = await mainODM.users(userId).get();
-        final analyticsResult = await analyticsODM.users(userId).get();
+          // Verify independent transaction results
+          final mainResult = await mainODM.users(userId).get();
+          final analyticsResult = await analyticsODM.users(userId).get();
 
-        expect(mainResult!.name, equals('Main TX User'));
-        expect(mainResult.rating, equals(4.0));
-        expect(mainResult.scores.first, equals(1000)); // Unchanged
+          expect(mainResult!.name, equals('Main TX User'));
+          expect(mainResult.rating, equals(4.0));
+          expect(mainResult.scores.first, equals(1000)); // Unchanged
 
-        expect(analyticsResult!.name, equals('Analytics TX User'));
-        expect(analyticsResult.rating, equals(3.0)); // Unchanged
-        expect(analyticsResult.scores.first, equals(1500)); // Updated
-      });
+          expect(analyticsResult!.name, equals('Analytics TX User'));
+          expect(analyticsResult.rating, equals(3.0)); // Unchanged
+          expect(analyticsResult.scores.first, equals(1500)); // Updated
+        },
+      );
     });
 
     group('🎯 Real-world Scenarios', () {
@@ -488,18 +512,24 @@ void main() {
         await analyticsODM.users(user.id).update(analyticsUser);
 
         // Main app performs regular operations
-        await mainODM.users(user.id).patch(($) => [
-              $.lastLogin.serverTimestamp(),
-              $.profile.followers.increment(10),
-            ]);
+        await mainODM
+            .users(user.id)
+            .patch(
+              ($) => [
+                $.lastLogin.serverTimestamp(),
+                $.profile.followers.increment(10),
+              ],
+            );
 
         // Analytics performs aggregation operations
         await analyticsODM
             .users(user.id)
-            .incrementalModify((user) => user.copyWith(
-                  scores: [user.scores.first + 50], // Track engagement score
-                  tags: [...user.tags, 'analytics_processed'],
-                ));
+            .incrementalModify(
+              (user) => user.copyWith(
+                scores: [user.scores.first + 50], // Track engagement score
+                tags: [...user.tags, 'analytics_processed'],
+              ),
+            );
 
         // Verify data separation
         final mainFinal = await mainODM.users(user.id).get();

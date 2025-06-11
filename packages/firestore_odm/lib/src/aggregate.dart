@@ -3,7 +3,6 @@ import 'package:firestore_odm/firestore_odm.dart';
 import 'package:firestore_odm/src/interfaces/aggregatable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
-import 'package:firestore_odm/src/query.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 /// Selector that provides strongly-typed field access for aggregations
@@ -409,8 +408,7 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
   );
 }
 
-class AggregateCountQuery
-    implements Gettable<int>, Streamable<int> {
+class AggregateCountQuery implements Gettable<int>, Streamable<int> {
   AggregateCountQuery(this.query);
   final firestore.AggregateQuery query;
 
@@ -422,9 +420,10 @@ class AggregateCountQuery
 
   @override
   // Returns a stream that emits the count of documents matching the query
-  Stream<int> get stream => lazyBroadcast(
-        () => (query.query as firestore.Query<Map<String, dynamic>>)
-            .snapshots(),
+  Stream<int> get stream =>
+      lazyBroadcast(
+        () =>
+            (query.query as firestore.Query<Map<String, dynamic>>).snapshots(),
       ).map((snapshot) {
         return snapshot.docs.length;
       });

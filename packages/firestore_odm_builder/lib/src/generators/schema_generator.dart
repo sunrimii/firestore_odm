@@ -47,7 +47,7 @@ class SchemaGenerator {
 
     // Generate ODM extensions
     _generateODMExtensions(buffer, schemaClassName, collections);
-    
+
     // Generate ODM extensions
     _generateTransactionContextExtensions(buffer, schemaClassName, collections);
 
@@ -168,9 +168,7 @@ class SchemaGenerator {
         '    TransactionCollection<$schemaClassName, ${collection.modelTypeName}>(',
       );
       buffer.writeln('      transaction: transaction,');
-      buffer.writeln(
-        '      query: ref.collection(\'${collection.path}\'),',
-      );
+      buffer.writeln('      query: ref.collection(\'${collection.path}\'),');
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('      context: this,');
       buffer.writeln('    );');

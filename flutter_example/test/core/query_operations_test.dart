@@ -58,8 +58,9 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        final activeUsers =
-            await odm.users.where(($) => $.isActive(isEqualTo: true)).get();
+        final activeUsers = await odm.users
+            .where(($) => $.isActive(isEqualTo: true))
+            .get();
 
         expect(activeUsers.length, equals(1));
         expect(activeUsers.first.name, equals('Active User'));
@@ -107,8 +108,9 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        final nonPremiumUsers =
-            await odm.users.where(($) => $.isPremium(isNotEqualTo: true)).get();
+        final nonPremiumUsers = await odm.users
+            .where(($) => $.isPremium(isNotEqualTo: true))
+            .get();
 
         expect(nonPremiumUsers.length, equals(1));
         expect(nonPremiumUsers.first.name, equals('Regular User'));
@@ -116,37 +118,40 @@ void main() {
 
       test('should filter by numerical comparisons', () async {
         final users = List.generate(
-            5,
-            (index) => User(
-                  id: 'age_user_$index',
-                  name: 'User $index',
-                  email: 'user$index@example.com',
-                  age: 20 + index * 5, // 20, 25, 30, 35, 40
-                  profile: Profile(
-                    bio: 'User $index bio',
-                    avatar: 'user$index.jpg',
-                    socialLinks: {},
-                    interests: ['age_test'],
-                    followers: 50 + index * 25,
-                  ),
-                  rating: 2.0 + index * 0.5, // 2.0, 2.5, 3.0, 3.5, 4.0
-                  isActive: true,
-                  isPremium: index >= 3,
-                  createdAt: DateTime.now(),
-                ));
+          5,
+          (index) => User(
+            id: 'age_user_$index',
+            name: 'User $index',
+            email: 'user$index@example.com',
+            age: 20 + index * 5, // 20, 25, 30, 35, 40
+            profile: Profile(
+              bio: 'User $index bio',
+              avatar: 'user$index.jpg',
+              socialLinks: {},
+              interests: ['age_test'],
+              followers: 50 + index * 25,
+            ),
+            rating: 2.0 + index * 0.5, // 2.0, 2.5, 3.0, 3.5, 4.0
+            isActive: true,
+            isPremium: index >= 3,
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);
         }
 
         // Test greater than
-        final olderUsers =
-            await odm.users.where(($) => $.age(isGreaterThan: 25)).get();
+        final olderUsers = await odm.users
+            .where(($) => $.age(isGreaterThan: 25))
+            .get();
         expect(olderUsers.length, equals(3)); // ages 30, 35, 40
 
         // Test less than or equal
-        final youngerUsers =
-            await odm.users.where(($) => $.age(isLessThanOrEqualTo: 30)).get();
+        final youngerUsers = await odm.users
+            .where(($) => $.age(isLessThanOrEqualTo: 30))
+            .get();
         expect(youngerUsers.length, equals(3)); // ages 20, 25, 30
 
         // Test rating greater than or equal
@@ -262,16 +267,21 @@ void main() {
         }
 
         final activeUsers = await odm.users
-            .where(($) => $.profile
-                .interests(arrayContainsAny: ['sports', 'music', 'gaming']))
+            .where(
+              ($) => $.profile.interests(
+                arrayContainsAny: ['sports', 'music', 'gaming'],
+              ),
+            )
             .get();
 
         expect(activeUsers.length, equals(1));
         expect(activeUsers.first.name, equals('Multi Interest User'));
 
         final taggedUsers = await odm.users
-            .where(($) =>
-                $.tags(arrayContainsAny: ['versatile', 'focused', 'unknown']))
+            .where(
+              ($) =>
+                  $.tags(arrayContainsAny: ['versatile', 'focused', 'unknown']),
+            )
             .get();
 
         expect(taggedUsers.length, equals(2)); // Both users have matching tags
@@ -340,39 +350,44 @@ void main() {
     group('🔗 Logical Operators', () {
       test('should combine filters with AND', () async {
         final users = List.generate(
-            4,
-            (index) => User(
-                  id: 'combo_user_$index',
-                  name: 'Combo User $index',
-                  email: 'combo$index@example.com',
-                  age: 25 + index * 5, // 25, 30, 35, 40
-                  profile: Profile(
-                    bio: 'Combo user $index',
-                    avatar: 'combo$index.jpg',
-                    socialLinks: {},
-                    interests: ['combo'],
-                    followers: 100 + index * 50,
-                  ),
-                  rating: 3.0 + index * 0.3, // 3.0, 3.3, 3.6, 3.9
-                  isActive: index % 2 == 0, // true, false, true, false
-                  isPremium: index >= 2, // false, false, true, true
-                  createdAt: DateTime.now(),
-                ));
+          4,
+          (index) => User(
+            id: 'combo_user_$index',
+            name: 'Combo User $index',
+            email: 'combo$index@example.com',
+            age: 25 + index * 5, // 25, 30, 35, 40
+            profile: Profile(
+              bio: 'Combo user $index',
+              avatar: 'combo$index.jpg',
+              socialLinks: {},
+              interests: ['combo'],
+              followers: 100 + index * 50,
+            ),
+            rating: 3.0 + index * 0.3, // 3.0, 3.3, 3.6, 3.9
+            isActive: index % 2 == 0, // true, false, true, false
+            isPremium: index >= 2, // false, false, true, true
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);
         }
 
         final complexFilter = await odm.users
-            .where(($) => $.and(
-                  $.age(isGreaterThan: 25),
-                  $.isActive(isEqualTo: true),
-                  $.rating(isGreaterThan: 3.5),
-                ))
+            .where(
+              ($) => $.and(
+                $.age(isGreaterThan: 25),
+                $.isActive(isEqualTo: true),
+                $.rating(isGreaterThan: 3.5),
+              ),
+            )
             .get();
 
-        expect(complexFilter.length,
-            equals(1)); // Only combo_user_2 matches all conditions
+        expect(
+          complexFilter.length,
+          equals(1),
+        ); // Only combo_user_2 matches all conditions
         expect(complexFilter.first.id, equals('combo_user_2'));
       });
 
@@ -436,10 +451,12 @@ void main() {
         }
 
         final orFilter = await odm.users
-            .where(($) => $.or(
-                  $.rating(isGreaterThan: 4.5),
-                  $.isPremium(isEqualTo: true),
-                ))
+            .where(
+              ($) => $.or(
+                $.rating(isGreaterThan: 4.5),
+                $.isPremium(isEqualTo: true),
+              ),
+            )
             .get();
 
         expect(orFilter.length, equals(2)); // High rating user and premium user
@@ -450,39 +467,40 @@ void main() {
 
       test('should combine AND and OR operators', () async {
         final users = List.generate(
-            6,
-            (index) => User(
-                  id: 'mixed_user_$index',
-                  name: 'Mixed User $index',
-                  email: 'mixed$index@example.com',
-                  age: 20 + index * 3, // 20, 23, 26, 29, 32, 35
-                  profile: Profile(
-                    bio: 'Mixed user $index',
-                    avatar: 'mixed$index.jpg',
-                    socialLinks: {},
-                    interests: ['mixed'],
-                    followers: 50 + index * 30,
-                  ),
-                  rating: 2.5 + index * 0.3, // 2.5, 2.8, 3.1, 3.4, 3.7, 4.0
-                  isActive:
-                      index % 2 == 1, // false, true, false, true, false, true
-                  isPremium:
-                      index >= 4, // false, false, false, false, true, true
-                  createdAt: DateTime.now(),
-                ));
+          6,
+          (index) => User(
+            id: 'mixed_user_$index',
+            name: 'Mixed User $index',
+            email: 'mixed$index@example.com',
+            age: 20 + index * 3, // 20, 23, 26, 29, 32, 35
+            profile: Profile(
+              bio: 'Mixed user $index',
+              avatar: 'mixed$index.jpg',
+              socialLinks: {},
+              interests: ['mixed'],
+              followers: 50 + index * 30,
+            ),
+            rating: 2.5 + index * 0.3, // 2.5, 2.8, 3.1, 3.4, 3.7, 4.0
+            isActive: index % 2 == 1, // false, true, false, true, false, true
+            isPremium: index >= 4, // false, false, false, false, true, true
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);
         }
 
         final mixedFilter = await odm.users
-            .where(($) => $.and(
-                  $.age(isGreaterThan: 25),
-                  $.or(
-                    $.isPremium(isEqualTo: true),
-                    $.rating(isGreaterThan: 3.5),
-                  ),
-                ))
+            .where(
+              ($) => $.and(
+                $.age(isGreaterThan: 25),
+                $.or(
+                  $.isPremium(isEqualTo: true),
+                  $.rating(isGreaterThan: 3.5),
+                ),
+              ),
+            )
             .get();
 
         // Should match users with age > 25 AND (isPremium = true OR rating > 3.5)
@@ -577,24 +595,25 @@ void main() {
 
       test('should limit results', () async {
         final users = List.generate(
-            10,
-            (index) => User(
-                  id: 'limit_user_$index',
-                  name: 'Limit User $index',
-                  email: 'limit$index@example.com',
-                  age: 20 + index,
-                  profile: Profile(
-                    bio: 'Limit user $index',
-                    avatar: 'limit$index.jpg',
-                    socialLinks: {},
-                    interests: ['limiting'],
-                    followers: index * 10,
-                  ),
-                  rating: 1.0 + index * 0.3,
-                  isActive: true,
-                  isPremium: false,
-                  createdAt: DateTime.now(),
-                ));
+          10,
+          (index) => User(
+            id: 'limit_user_$index',
+            name: 'Limit User $index',
+            email: 'limit$index@example.com',
+            age: 20 + index,
+            profile: Profile(
+              bio: 'Limit user $index',
+              avatar: 'limit$index.jpg',
+              socialLinks: {},
+              interests: ['limiting'],
+              followers: index * 10,
+            ),
+            rating: 1.0 + index * 0.3,
+            isActive: true,
+            isPremium: false,
+            createdAt: DateTime.now(),
+          ),
+        );
 
         for (final user in users) {
           await odm.users(user.id).update(user);

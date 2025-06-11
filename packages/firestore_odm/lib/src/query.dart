@@ -95,9 +95,7 @@ class Query<S extends FirestoreSchema, T>
   AggregateQuery<S, T, R> aggregate<R extends Record>(
     R Function(AggregateFieldSelector<T> selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(
-      builder
-    );
+    final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(
       _query,
       config.operations,
@@ -112,6 +110,5 @@ class Query<S extends FirestoreSchema, T>
   }
 
   @override
-  Future<void> delete() =>
-      QueryHandler.delete(_query);
+  Future<void> delete() => QueryHandler.delete(_query);
 }

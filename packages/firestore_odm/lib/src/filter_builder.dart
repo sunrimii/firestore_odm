@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:cloud_firestore_platform_interface/src/field_path_type.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 
 /// Filter types
 enum FilterType { field, and, or }
@@ -1566,7 +1565,9 @@ class MapFieldFilter<T, K, V> extends CallableFilter<T, Map<K, V>> {
     if (isNull != null) {
       return FirestoreFilter.field(
         field: fieldPath,
-        operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
         value: null,
       );
     }
@@ -1577,7 +1578,9 @@ class MapFieldFilter<T, K, V> extends CallableFilter<T, Map<K, V>> {
   /// Access a specific key in the map for filtering
   /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
   MapKeyFieldFilter<T, V> key(K mapKey) {
-    final keyPath = prefix.isEmpty ? '$fieldName.$mapKey' : '$prefix.$fieldName.$mapKey';
+    final keyPath = prefix.isEmpty
+        ? '$fieldName.$mapKey'
+        : '$prefix.$fieldName.$mapKey';
     return MapKeyFieldFilter<T, V>(keyPath, '');
   }
 }
@@ -1656,7 +1659,9 @@ class MapKeyFieldFilter<T, V> extends CallableFilter<T, V> {
     if (isNull != null) {
       return FirestoreFilter.field(
         field: fieldPath,
-        operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo,
+        operator: isNull
+            ? FilterOperator.isEqualTo
+            : FilterOperator.isNotEqualTo,
         value: null,
       );
     }
@@ -1757,16 +1762,16 @@ class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
 abstract class CallableUpdate<T> {
   final String fieldName;
   final String prefix;
-  
+
   const CallableUpdate(this.fieldName, this.prefix);
-  
+
   String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
 }
 
 /// Boolean field callable updater
 class BoolFieldUpdate<T> extends CallableUpdate<T> {
   const BoolFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set boolean value
   UpdateOperation call(bool value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
@@ -1776,7 +1781,7 @@ class BoolFieldUpdate<T> extends CallableUpdate<T> {
 /// String field callable updater
 class StringFieldUpdate<T> extends CallableUpdate<T> {
   const StringFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set string value
   UpdateOperation call(String value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
@@ -1786,12 +1791,12 @@ class StringFieldUpdate<T> extends CallableUpdate<T> {
 /// Numeric field callable updater
 class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
   const NumericFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set numeric value
   UpdateOperation call(N value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
   }
-  
+
   /// Increment field value
   UpdateOperation increment(N value) {
     return UpdateOperation(fieldPath, UpdateOperationType.increment, value);
@@ -1801,17 +1806,17 @@ class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
 /// List field callable updater
 class ListFieldUpdate<T, E> extends CallableUpdate<T> {
   const ListFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set list value
   UpdateOperation call(List<E> value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
   }
-  
+
   /// Add element to array
   UpdateOperation add(E value) {
     return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
   }
-  
+
   /// Remove element from array
   UpdateOperation remove(E value) {
     return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
@@ -1821,22 +1826,26 @@ class ListFieldUpdate<T, E> extends CallableUpdate<T> {
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T> extends CallableUpdate<T> {
   const DateTimeFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set DateTime value
   UpdateOperation call(DateTime value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
   }
-  
+
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return UpdateOperation(fieldPath, UpdateOperationType.serverTimestamp, null);
+    return UpdateOperation(
+      fieldPath,
+      UpdateOperationType.serverTimestamp,
+      null,
+    );
   }
 }
 
 /// Generic field callable updater (fallback)
 class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
   const GenericFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set value
   UpdateOperation call(V value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
@@ -1846,23 +1855,27 @@ class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
 /// Map field callable updater
 class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
   const MapFieldUpdate(super.fieldName, super.prefix);
-  
+
   /// Set entire map value
   UpdateOperation call(Map<K, V> value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
   }
-  
+
   /// Set a specific key in the map
   /// Usage: $.profile.socialLinks.setKey("github", "username")
   UpdateOperation setKey(K key, V value) {
-    final keyPath = prefix.isEmpty ? '$fieldName.$key' : '$prefix.$fieldName.$key';
+    final keyPath = prefix.isEmpty
+        ? '$fieldName.$key'
+        : '$prefix.$fieldName.$key';
     return UpdateOperation(keyPath, UpdateOperationType.set, value);
   }
-  
+
   /// Remove a specific key from the map
   /// Usage: $.profile.socialLinks.removeKey("github")
   UpdateOperation removeKey(K key) {
-    final keyPath = prefix.isEmpty ? '$fieldName.$key' : '$prefix.$fieldName.$key';
+    final keyPath = prefix.isEmpty
+        ? '$fieldName.$key'
+        : '$prefix.$fieldName.$key';
     return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
 }
@@ -1872,16 +1885,16 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
 abstract class CallableOrderBy<T> {
   final String fieldName;
   final String prefix;
-  
+
   const CallableOrderBy(this.fieldName, this.prefix);
-  
+
   String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
 }
 
 /// Generic field callable order by
 class FieldOrderBy<T> extends CallableOrderBy<T> {
   const FieldOrderBy(super.fieldName, super.prefix);
-  
+
   /// Create order by field
   OrderByField<T> call({bool descending = false}) {
     return OrderByHelper.createOrderByField<T>(
@@ -1895,7 +1908,7 @@ class FieldOrderBy<T> extends CallableOrderBy<T> {
 /// Document ID callable order by
 class DocumentIdOrderBy<T> extends CallableOrderBy<T> {
   const DocumentIdOrderBy(super.fieldName, super.prefix);
-  
+
   /// Create order by document ID
   OrderByField<T> call({bool descending = false}) {
     return OrderByHelper.createOrderByDocumentId<T>(descending: descending);

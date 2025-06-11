@@ -12,7 +12,6 @@ Stream<T> lazyBroadcast<T>(Stream<T> Function() factory) {
   });
 }
 
-
 T fromFirestoreData<T>(
   JsonDeserializer<T> fromJsonFunction,
   Map<String, dynamic> json,
@@ -114,7 +113,9 @@ String extractDocumentId(Map<String, dynamic> json, String? documentIdField) {
   return json[documentIdField] as String? ?? '';
 }
 
-void validateDocumentId(String? documentId, String? fieldName, {
+void validateDocumentId(
+  String? documentId,
+  String? fieldName, {
   bool isInsert = false,
 }) {
   // if it is an insert operation, allow empty string for auto ID generation
@@ -194,5 +195,10 @@ T processDocumentSnapshot<T>(
   if (!snapshot.exists) {
     throw StateError('Document does not exist: ${snapshot.id}');
   }
-  return fromFirestoreData<T>(fromMap, snapshot.data()!, documentIdField, snapshot.id);
+  return fromFirestoreData<T>(
+    fromMap,
+    snapshot.data()!,
+    documentIdField,
+    snapshot.id,
+  );
 }
