@@ -33,15 +33,15 @@ void main() {
       test('should validate collection relationships are correctly processed',
           () {
         // Root collections should have correct paths
-        expect(odm.users.ref.path, equals('users'));
-        expect(odm.posts.ref.path, equals('posts'));
-        expect(odm.simpleStories.ref.path, equals('simpleStories'));
-        expect(odm.sharedPosts.ref.path, equals('sharedPosts'));
+        expect(odm.users.query.path, equals('users'));
+        expect(odm.posts.query.path, equals('posts'));
+        expect(odm.simpleStories.query.path, equals('simpleStories'));
+        expect(odm.sharedPosts.query.path, equals('sharedPosts'));
 
         // Subcollections should be accessible through parent documents
         final userDoc = odm.users('test_user');
-        expect(userDoc.posts.ref.path, equals('users/test_user/posts'));
-        expect(userDoc.sharedPosts.ref.path,
+        expect(userDoc.posts.query.path, equals('users/test_user/posts'));
+        expect(userDoc.sharedPosts.query.path,
             equals('users/test_user/sharedPosts'));
       });
 
@@ -118,10 +118,10 @@ void main() {
         );
 
         // All conversions should work efficiently
-        await odm.users('converter_test_user').set(user);
-        await odm.posts('converter_test_post').set(post);
-        await odm.simpleStories('converter_test_story').set(story);
-        await odm.sharedPosts('converter_test_shared').set(sharedPost);
+        await odm.users('converter_test_user').update(user);
+        await odm.posts('converter_test_post').update(post);
+        await odm.simpleStories('converter_test_story').update(story);
+        await odm.sharedPosts('converter_test_shared').update(sharedPost);
 
         // Verify all conversions work correctly
         final retrievedUser = await odm.users('converter_test_user').get();
@@ -151,7 +151,7 @@ void main() {
 
         for (int i = 0; i < 20; i++) {
           operations.addAll([
-            odm.users('perf_user_$i').set(User(
+            odm.users('perf_user_$i').update(User(
                   id: 'perf_user_$i',
                   name: 'Performance User $i',
                   email: 'perf$i@example.com',
@@ -168,7 +168,7 @@ void main() {
                   isPremium: false,
                   createdAt: DateTime.now(),
                 )),
-            odm.posts('perf_post_$i').set(Post(
+            odm.posts('perf_post_$i').update(Post(
                   id: 'perf_post_$i',
                   title: 'Performance Post $i',
                   content: 'Performance test content $i',
@@ -227,8 +227,8 @@ void main() {
         );
 
         // Add to different collection paths using same model
-        await odm.sharedPosts('shared_1').set(sharedPost1);
-        await odm.users('author1').sharedPosts('shared_2').set(sharedPost2);
+        await odm.sharedPosts('shared_1').update(sharedPost1);
+        await odm.users('author1').sharedPosts('shared_2').update(sharedPost2);
 
         // Retrieve from both paths
         final rootSharedPost = await odm.sharedPosts('shared_1').get();
@@ -248,21 +248,21 @@ void main() {
 
       test('should validate schema-level conflict detection works', () {
         // Different models should use different collection paths
-        expect(odm.posts.ref.path, equals('posts'));
-        expect(odm.sharedPosts.ref.path, equals('sharedPosts'));
-        expect(odm.simpleStories.ref.path, equals('simpleStories'));
+        expect(odm.posts.query.path, equals('posts'));
+        expect(odm.sharedPosts.query.path, equals('sharedPosts'));
+        expect(odm.simpleStories.query.path, equals('simpleStories'));
 
         // Subcollections should also have different paths
-        expect(odm.users('test').posts.ref.path, equals('users/test/posts'));
-        expect(odm.users('test').sharedPosts.ref.path,
+        expect(odm.users('test').posts.query.path, equals('users/test/posts'));
+        expect(odm.users('test').sharedPosts.query.path,
             equals('users/test/sharedPosts'));
 
         // No path conflicts should exist
         final paths = {
-          odm.users.ref.path,
-          odm.posts.ref.path,
-          odm.sharedPosts.ref.path,
-          odm.simpleStories.ref.path,
+          odm.users.query.path,
+          odm.posts.query.path,
+          odm.sharedPosts.query.path,
+          odm.simpleStories.query.path,
         };
 
         expect(paths.length, equals(4)); // All paths should be unique
@@ -283,7 +283,7 @@ void main() {
             returnsNormally);
 
         // Each should be independently functional
-        expect(odm.users.ref.path, isNot(equals(odm.posts.ref.path)));
+        expect(odm.users.query.path, isNot(equals(odm.posts.query.path)));
       });
 
       test('should validate clean separation of concerns', () async {
@@ -307,7 +307,7 @@ void main() {
         );
 
         // Data processing should work independently
-        await odm.users('separation_user').set(user);
+        await odm.users('separation_user').update(user);
         final retrieved = await odm.users('separation_user').get();
         expect(retrieved, isNotNull);
 
@@ -382,10 +382,10 @@ void main() {
         );
 
         // Set all different model types
-        await odm.users('scalability_user').set(user);
-        await odm.posts('scalability_post').set(post);
-        await odm.simpleStories('scalability_story').set(story);
-        await odm.sharedPosts('scalability_shared').set(sharedPost);
+        await odm.users('scalability_user').update(user);
+        await odm.posts('scalability_post').update(post);
+        await odm.simpleStories('scalability_story').update(story);
+        await odm.sharedPosts('scalability_shared').update(sharedPost);
 
         // Verify all types work correctly
         final retrievedUser = await odm.users('scalability_user').get();
@@ -414,7 +414,7 @@ void main() {
 
         for (int i = 0; i < 10; i++) {
           operations.addAll([
-            odm.users('perf_test_user_$i').set(User(
+            odm.users('perf_test_user_$i').update(User(
                   id: 'perf_test_user_$i',
                   name: 'Performance User $i',
                   email: 'perf$i@test.com',
@@ -431,7 +431,7 @@ void main() {
                   isPremium: false,
                   createdAt: DateTime.now(),
                 )),
-            odm.posts('perf_test_post_$i').set(Post(
+            odm.posts('perf_test_post_$i').update(Post(
                   id: 'perf_test_post_$i',
                   title: 'Performance Post $i',
                   content: 'Performance content $i',
@@ -442,7 +442,7 @@ void main() {
                   published: true,
                   createdAt: DateTime.now(),
                 )),
-            odm.simpleStories('perf_test_story_$i').set(SimpleStory(
+            odm.simpleStories('perf_test_story_$i').update(SimpleStory(
                   id: 'perf_test_story_$i',
                   title: 'Performance Story $i',
                   content: 'Performance story $i',

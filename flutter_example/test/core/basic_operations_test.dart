@@ -49,7 +49,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('test_user').set(user);
+        await odm.users('test_user').update(user);
         final retrieved = await odm.users('test_user').get();
 
         expect(retrieved, isNotNull);
@@ -77,7 +77,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('update_user').set(user);
+        await odm.users('update_user').update(user);
 
         await odm.users('update_user').modify((user) => user.copyWith(
               name: 'Updated Name',
@@ -108,7 +108,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('delete_user').set(user);
+        await odm.users('delete_user').update(user);
         await odm.users('delete_user').delete();
 
         final deleted = await odm.users('delete_user').get();
@@ -156,7 +156,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final activeUsers =

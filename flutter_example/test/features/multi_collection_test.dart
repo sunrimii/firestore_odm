@@ -19,10 +19,10 @@ void main() {
 
     group('📁 Root Collections', () {
       test('should access standalone collections independently', () {
-        expect(odm.users.ref.path, equals('users'));
-        expect(odm.posts.ref.path, equals('posts'));
-        expect(odm.simpleStories.ref.path, equals('simpleStories'));
-        expect(odm.sharedPosts.ref.path, equals('sharedPosts'));
+        expect(odm.users.query.path, equals('users'));
+        expect(odm.posts.query.path, equals('posts'));
+        expect(odm.simpleStories.query.path, equals('simpleStories'));
+        expect(odm.sharedPosts.query.path, equals('sharedPosts'));
       });
 
       test('should work with same model in different collections', () async {
@@ -51,8 +51,8 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.posts('main_post').set(mainPost);
-        await odm.sharedPosts('shared_post').set(sharedPost);
+        await odm.posts('main_post').update(mainPost);
+        await odm.sharedPosts('shared_post').update(sharedPost);
 
         final retrievedMain = await odm.posts('main_post').get();
         final retrievedShared = await odm.sharedPosts('shared_post').get();
@@ -68,8 +68,8 @@ void main() {
       test('should access user subcollections', () async {
         final userDoc = odm.users('test_user');
 
-        expect(userDoc.posts.ref.path, equals('users/test_user/posts'));
-        expect(userDoc.sharedPosts.ref.path,
+        expect(userDoc.posts.query.path, equals('users/test_user/posts'));
+        expect(userDoc.sharedPosts.query.path,
             equals('users/test_user/sharedPosts'));
       });
 
@@ -93,7 +93,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('subcollection_user').set(user);
+        await odm.users('subcollection_user').update(user);
 
         // Add posts to user's subcollection
         final userPost = Post(
@@ -111,7 +111,7 @@ void main() {
         await odm
             .users('subcollection_user')
             .posts('user_post_1')
-            .set(userPost);
+            .update(userPost);
 
         final retrievedPost =
             await odm.users('subcollection_user').posts('user_post_1').get();
@@ -140,7 +140,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('sharing_user').set(user);
+        await odm.users('sharing_user').update(user);
 
         final userSharedPost = SharedPost(
           id: 'user_shared_1',
@@ -156,7 +156,7 @@ void main() {
         await odm
             .users('sharing_user')
             .sharedPosts('user_shared_1')
-            .set(userSharedPost);
+            .update(userSharedPost);
 
         final retrieved =
             await odm.users('sharing_user').sharedPosts('user_shared_1').get();
@@ -212,9 +212,9 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('cross_user').set(user);
-        await odm.posts('cross_main_post').set(mainPost);
-        await odm.users('cross_user').posts('cross_user_post').set(userPost);
+        await odm.users('cross_user').update(user);
+        await odm.posts('cross_main_post').update(mainPost);
+        await odm.users('cross_user').posts('cross_user_post').update(userPost);
 
         // Query each collection independently
         final users =
@@ -277,10 +277,10 @@ void main() {
 
         // Set all users and posts
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
         for (final post in posts) {
-          await odm.posts(post.id).set(post);
+          await odm.posts(post.id).update(post);
         }
 
         // Bulk activate all users
@@ -344,8 +344,8 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.posts('type_test_post').set(post);
-        await odm.sharedPosts('type_test_shared').set(sharedPost);
+        await odm.posts('type_test_post').update(post);
+        await odm.sharedPosts('type_test_shared').update(sharedPost);
 
         final retrievedPost = await odm.posts('type_test_post').get();
         final retrievedShared = await odm.sharedPosts('type_test_shared').get();

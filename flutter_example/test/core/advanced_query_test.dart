@@ -72,7 +72,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Order by age first, then by rating (descending)
@@ -150,7 +150,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Order by nested profile.followers field
@@ -240,7 +240,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Note: limitToLast might not be implemented yet in the current ODM
@@ -304,13 +304,13 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Update all users matching the query
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'query_updates'))
-            .update(($) => [
+            .patch(($) => [
                   $.isActive(true),
                   $.rating.increment(0.5),
                 ]);
@@ -366,7 +366,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Modify all users matching the query
@@ -435,7 +435,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Incremental modify all users matching the query

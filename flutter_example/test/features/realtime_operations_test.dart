@@ -35,7 +35,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('stream_user').set(user);
+        await odm.users('stream_user').update(user);
 
         final stream = <User?>[];
         final subscription = odm.users('stream_user').stream.listen((user) {
@@ -106,7 +106,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('delete_stream_user').set(user);
+        await odm.users('delete_stream_user').update(user);
 
         final stream = <User?>[];
         final subscription =
@@ -175,7 +175,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Note: Collection query streams not yet implemented in current ODM
@@ -193,7 +193,7 @@ void main() {
             ));
 
         // Add a new user that matches the query
-        await odm.users('collection_user_3').set(User(
+        await odm.users('collection_user_3').update(User(
               id: 'collection_user_3',
               name: 'Collection User 3',
               email: 'collection3@example.com',
@@ -255,7 +255,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('realtime_user').set(user);
+        await odm.users('realtime_user').update(user);
 
         final stream = <User?>[];
         final subscription = odm.users('realtime_user').stream.listen((user) {
@@ -266,7 +266,7 @@ void main() {
         await Future.delayed(Duration(milliseconds: 50));
 
         // Perform multiple rapid updates
-        await odm.users('realtime_user').update(($) => [
+        await odm.users('realtime_user').patch(($) => [
               $.rating.increment(0.3),
             ]);
 
@@ -317,7 +317,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('concurrent_user').set(user);
+        await odm.users('concurrent_user').update(user);
 
         final stream = <User?>[];
         final subscription = odm.users('concurrent_user').stream.listen((user) {
@@ -343,7 +343,7 @@ void main() {
           odm.users('concurrent_user').modify((user) => user.copyWith(
                 isPremium: true,
               )),
-          odm.users('concurrent_user').update(($) => [
+          odm.users('concurrent_user').patch(($) => [
                 $.profile.interests.add('updated'),
               ]),
         ];
@@ -386,7 +386,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('multi_sub_user').set(user);
+        await odm.users('multi_sub_user').update(user);
 
         final stream1 = <User?>[];
         final stream2 = <User?>[];
@@ -448,7 +448,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('cancel_sub_user').set(user);
+        await odm.users('cancel_sub_user').update(user);
 
         final stream = <User?>[];
         final subscription = odm.users('cancel_sub_user').stream.listen((user) {
@@ -497,7 +497,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('high_freq_user').set(user);
+        await odm.users('high_freq_user').update(user);
 
         final stream = <User?>[];
         final subscription = odm.users('high_freq_user').stream.listen((user) {

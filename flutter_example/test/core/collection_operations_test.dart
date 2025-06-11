@@ -243,7 +243,7 @@ void main() {
         );
 
         // Should successfully update
-        await odm.users.updateDocument(updatedUser);
+        await odm.users.update(updatedUser);
 
         // Verify document was updated
         final retrieved = await odm.users('update_test_user').get();
@@ -276,7 +276,7 @@ void main() {
         );
 
         expect(
-          () => odm.users.updateDocument(user),
+          () => odm.users.update(user),
           throwsA(isA<StateError>().having(
             (e) => e.message,
             'message',
@@ -397,7 +397,7 @@ void main() {
           name: 'Updated Integration User',
           age: 30,
         );
-        await odm.users.updateDocument(updatedUser);
+        await odm.users.update(updatedUser);
         retrieved = await odm.users('integration_user').get();
         expect(retrieved!.name, equals('Updated Integration User'));
         expect(retrieved.age, equals(30));

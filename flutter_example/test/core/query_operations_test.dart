@@ -55,7 +55,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final activeUsers =
@@ -104,7 +104,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final nonPremiumUsers =
@@ -136,7 +136,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Test greater than
@@ -199,7 +199,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final codingUsers = await odm.users
@@ -258,7 +258,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final activeUsers = await odm.users
@@ -318,7 +318,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final popularUsers = await odm.users
@@ -360,7 +360,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final complexFilter = await odm.users
@@ -432,7 +432,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final orFilter = await odm.users
@@ -472,7 +472,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final mixedFilter = await odm.users
@@ -551,7 +551,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final orderedByName = await odm.users
@@ -597,7 +597,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final limitedResults = await odm.users

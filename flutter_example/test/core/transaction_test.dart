@@ -36,14 +36,14 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(initialUser.id).set(initialUser);
+        await odm.users(initialUser.id).update(initialUser);
 
         // Perform transaction to read user and update based on current state
         await odm.runTransaction(() async {
           final user = await odm.users('transaction_user_1').get();
           expect(user, isNotNull);
 
-          await odm.users('transaction_user_1').update(($) => [
+          await odm.users('transaction_user_1').patch(($) => [
                 $.rating.increment(1.0),
                 $.profile.followers.increment(50),
                 $.isPremium(true),
@@ -96,8 +96,8 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user1.id).set(user1);
-        await odm.users(user2.id).set(user2);
+        await odm.users(user1.id).update(user1);
+        await odm.users(user2.id).update(user2);
 
         // Transaction with modify operations
         await odm.runTransaction(() async {
@@ -153,7 +153,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         // Transaction with incremental modify
         await odm.runTransaction(() async {
@@ -225,8 +225,8 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(sender.id).set(sender);
-        await odm.users(receiver.id).set(receiver);
+        await odm.users(sender.id).update(sender);
+        await odm.users(receiver.id).update(receiver);
 
         // Transfer 200 points from sender to receiver
         const transferAmount = 200;
@@ -281,7 +281,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         // Conditional upgrade to premium if user has enough points
         await odm.runTransaction(() async {
@@ -330,12 +330,12 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         try {
           await odm.runTransaction(() async {
             // First operation should succeed
-            await odm.users('rollback_user').update(($) => [
+            await odm.users('rollback_user').patch(($) => [
                   $.isPremium(true),
                 ]);
 
@@ -377,7 +377,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         // Simulate concurrent transactions
         final futures = List.generate(3, (index) async {
@@ -424,14 +424,14 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         await odm.runTransaction(() async {
           final currentUser = await odm.users('tx_timestamp_user').get();
           expect(currentUser, isNotNull);
 
           // Use server timestamp in transaction updates
-          await odm.users('tx_timestamp_user').update(($) => [
+          await odm.users('tx_timestamp_user').patch(($) => [
                 $.lastLogin.serverTimestamp(),
                 $.updatedAt.serverTimestamp(),
                 $.isPremium(true),
@@ -465,7 +465,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users(user.id).set(user);
+        await odm.users(user.id).update(user);
 
         await odm.runTransaction(() async {
           final currentUser = await odm.users('tx_mod_timestamp_user').get();

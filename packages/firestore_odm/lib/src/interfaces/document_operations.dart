@@ -1,11 +1,10 @@
-import 'update_operations.dart';
-import 'subscribe_operations.dart';
+import 'package:firestore_odm/src/schema.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 
 /// Interface defining document operation capabilities
 /// Combines update and subscription operations for documents
 /// Part of the Interface + Composition architecture
-abstract interface class DocumentOperations<T>
-    implements UpdateOperations<T>, SubscribeOperations<T> {
+abstract interface class DocumentOperations<T> {
   /// Gets the document data
   /// Uses transactions when available, otherwise fetches from cache or Firestore
   Future<T?> get();

@@ -39,9 +39,9 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('array_update_user').set(user);
+        await odm.users('array_update_user').update(user);
 
-        await odm.users('array_update_user').update(($) => [
+        await odm.users('array_update_user').patch(($) => [
               $.name('Updated Name'),
               $.age.increment(1),
               $.rating.increment(0.5),
@@ -80,9 +80,9 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('timestamp_user').set(user);
+        await odm.users('timestamp_user').update(user);
 
-        await odm.users('timestamp_user').update(($) => [
+        await odm.users('timestamp_user').patch(($) => [
               $.lastLogin.serverTimestamp(),
               $.updatedAt.serverTimestamp(),
             ]);
@@ -115,7 +115,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('modify_user').set(user);
+        await odm.users('modify_user').update(user);
 
         await odm.users('modify_user').modify((user) => user.copyWith(
               name: 'Modified Name',
@@ -160,7 +160,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('incremental_user').set(user);
+        await odm.users('incremental_user').update(user);
 
         await odm
             .users('incremental_user')
@@ -210,7 +210,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('array_removal_user').set(user);
+        await odm.users('array_removal_user').update(user);
 
         await odm
             .users('array_removal_user')
@@ -260,9 +260,9 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('nested_update_user').set(user);
+        await odm.users('nested_update_user').update(user);
 
-        await odm.users('nested_update_user').update(($) => [
+        await odm.users('nested_update_user').patch(($) => [
               $.profile.bio('Updated nested bio'),
               $.profile.avatar('updated_nested.jpg'),
               $.profile.followers.increment(100),
@@ -309,7 +309,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('complex_nested_user').set(user);
+        await odm.users('complex_nested_user').update(user);
 
         await odm.users('complex_nested_user').modify((user) => user.copyWith(
               profile: user.profile.copyWith(

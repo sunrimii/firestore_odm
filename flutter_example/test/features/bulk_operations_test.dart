@@ -72,7 +72,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Bulk modify all inactive users to active
@@ -114,7 +114,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Complex bulk modification: update non-premium users
@@ -190,7 +190,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Bulk incremental modify with atomic operations
@@ -258,7 +258,7 @@ void main() {
                 ));
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Mixed bulk operations
@@ -358,7 +358,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Activate all young users and give them a bonus
@@ -453,7 +453,7 @@ void main() {
                 ));
 
         // Bulk create all users
-        final createFutures = users.map((user) => odm.users(user.id).set(user));
+        final createFutures = users.map((user) => odm.users(user.id).update(user));
         await Future.wait(createFutures);
 
         final stopwatch = Stopwatch()..start();

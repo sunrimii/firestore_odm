@@ -63,8 +63,8 @@ void main() {
         );
 
         // Store users in different ODM instances
-        await mainODM.users(mainUser.id).set(mainUser);
-        await analyticsODM.users(analyticsUser.id).set(analyticsUser);
+        await mainODM.users(mainUser.id).update(mainUser);
+        await analyticsODM.users(analyticsUser.id).update(analyticsUser);
 
         // Verify data isolation
         final mainRetrieved = await mainODM.users('main_user').get();
@@ -128,8 +128,8 @@ void main() {
         );
 
         // Store same ID in both ODM instances with different data
-        await mainODM.users(sameId).set(mainUserData);
-        await analyticsODM.users(sameId).set(analyticsUserData);
+        await mainODM.users(sameId).update(mainUserData);
+        await analyticsODM.users(sameId).update(analyticsUserData);
 
         // Verify each ODM instance maintains its own data
         final mainRetrieved = await mainODM.users(sameId).get();
@@ -171,11 +171,11 @@ void main() {
         );
 
         // Set same initial user in both ODM instances
-        await mainODM.users(userId).set(initialUser);
-        await analyticsODM.users(userId).set(initialUser);
+        await mainODM.users(userId).update(initialUser);
+        await analyticsODM.users(userId).update(initialUser);
 
         // Perform different updates in each ODM instance
-        await mainODM.users(userId).update(($) => [
+        await mainODM.users(userId).patch(($) => [
               $.name('Main Updated User'),
               $.rating.increment(1.0),
               $.isPremium(true),
@@ -248,13 +248,13 @@ void main() {
 
         // Add users to main ODM only
         for (final user in users) {
-          await mainODM.users(user.id).set(user);
+          await mainODM.users(user.id).update(user);
         }
 
         // Add only active users to analytics ODM
         final activeUsers = users.where((u) => u.isActive).toList();
         for (final user in activeUsers) {
-          await analyticsODM.users(user.id).set(user);
+          await analyticsODM.users(user.id).update(user);
         }
 
         // Query both ODM instances
@@ -314,12 +314,12 @@ void main() {
         );
 
         // Add data to main ODM
-        await mainODM.users(user.id).set(user);
-        await mainODM.posts(post.id).set(post);
-        await mainODM.simpleStories(story.id).set(story);
+        await mainODM.users(user.id).update(user);
+        await mainODM.posts(post.id).update(post);
+        await mainODM.simpleStories(story.id).update(story);
 
         // Add only user to analytics ODM
-        await analyticsODM.users(user.id).set(user);
+        await analyticsODM.users(user.id).update(user);
 
         // Verify collection access across ODM instances
         final mainUser = await mainODM.users(user.id).get();
@@ -371,11 +371,11 @@ void main() {
         );
 
         // Set user in both ODM instances
-        await mainODM.users(user.id).set(user);
-        await analyticsODM.users(user.id).set(user);
+        await mainODM.users(user.id).update(user);
+        await analyticsODM.users(user.id).update(user);
 
         // Add post to user's subcollection in main ODM only
-        await mainODM.users(user.id).posts(userPost.id).set(userPost);
+        await mainODM.users(user.id).posts(userPost.id).update(userPost);
 
         // Verify subcollection access
         final mainSubPost =
@@ -415,14 +415,14 @@ void main() {
         );
 
         // Set same initial user in both ODM instances
-        await mainODM.users(userId).set(initialUser);
-        await analyticsODM.users(userId).set(initialUser);
+        await mainODM.users(userId).update(initialUser);
+        await analyticsODM.users(userId).update(initialUser);
 
         // Run independent transactions
         await Future.wait([
           mainODM.runTransaction(() async {
             final user = await mainODM.users(userId).get();
-            await mainODM.users(userId).update(($) => [
+            await mainODM.users(userId).patch(($) => [
                   $.name('Main TX User'),
                   $.rating.increment(1.0),
                 ]);
@@ -476,7 +476,7 @@ void main() {
         );
 
         // Main app stores full user data
-        await mainODM.users(user.id).set(user);
+        await mainODM.users(user.id).update(user);
 
         // Analytics stores anonymized/minimal data
         final analyticsUser = user.copyWith(
@@ -487,10 +487,10 @@ void main() {
           ),
         );
 
-        await analyticsODM.users(user.id).set(analyticsUser);
+        await analyticsODM.users(user.id).update(analyticsUser);
 
         // Main app performs regular operations
-        await mainODM.users(user.id).update(($) => [
+        await mainODM.users(user.id).patch(($) => [
               $.lastLogin.serverTimestamp(),
               $.profile.followers.increment(10),
             ]);

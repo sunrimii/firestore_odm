@@ -36,7 +36,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('explicit_id_user').set(user);
+        await odm.users('explicit_id_user').update(user);
         final retrieved = await odm.users('explicit_id_user').get();
 
         expect(retrieved, isNotNull);
@@ -84,7 +84,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.simpleStories('auto_id_story').set(story);
+        await odm.simpleStories('auto_id_story').update(story);
         final retrieved = await odm.simpleStories('auto_id_story').get();
 
         expect(retrieved, isNotNull);
@@ -152,7 +152,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         // Filter by specific document IDs
@@ -226,7 +226,7 @@ void main() {
         ];
 
         for (final user in users) {
-          await odm.users(user.id).set(user);
+          await odm.users(user.id).update(user);
         }
 
         final orderedUsers = await odm.users

@@ -64,8 +64,8 @@ class SchemaGenerator {
       final converterName = '${_toLowerCamelCase(modelType)}Converter';
       buffer.writeln('/// Generated converter for $modelType');
       buffer.writeln('final $converterName = ModelConverter<$modelType>(');
-      buffer.writeln('  fromMap: (json) => $modelType.fromJson(json),');
-      buffer.writeln('  toMap: (instance) => instance.toJson(),');
+      buffer.writeln('  fromJson: (json) => $modelType.fromJson(json),');
+      buffer.writeln('  toJson: (instance) => instance.toJson(),');
       buffer.writeln(');');
       buffer.writeln('');
     }
@@ -124,7 +124,7 @@ class SchemaGenerator {
         '    FirestoreCollection<$schemaClassName, ${collection.modelTypeName}>(',
       );
       buffer.writeln(
-        '      ref: firestore.collection(\'${collection.path}\'),',
+        '      query: firestore.collection(\'${collection.path}\'),',
       );
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('    );');
@@ -176,7 +176,7 @@ class SchemaGenerator {
         buffer.writeln(
           '    FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}>(',
         );
-        buffer.writeln('      ref: ref.collection(\'$subcollectionName\'),');
+        buffer.writeln('      query: ref.collection(\'$subcollectionName\'),');
         buffer.writeln('      converter: $converterName,');
         buffer.writeln('    );');
         buffer.writeln('');

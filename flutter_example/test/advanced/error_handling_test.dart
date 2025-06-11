@@ -42,7 +42,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('null_test_user').set(user);
+        await odm.users('null_test_user').update(user);
 
         // Test updating with null values
         await odm.users('null_test_user').modify((user) => user.copyWith(
@@ -79,7 +79,7 @@ void main() {
           createdAt: DateTime.fromMillisecondsSinceEpoch(0),
         );
 
-        await odm.users('extreme_user').set(user);
+        await odm.users('extreme_user').update(user);
         final retrieved = await odm.users('extreme_user').get();
 
         expect(retrieved, isNotNull);
@@ -118,7 +118,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('large_user').set(largeUser);
+        await odm.users('large_user').update(largeUser);
         final retrieved = await odm.users('large_user').get();
 
         expect(retrieved, isNotNull);
@@ -146,7 +146,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('concurrent_user').set(user);
+        await odm.users('concurrent_user').update(user);
 
         // Perform concurrent updates
         final futures = List.generate(
@@ -208,7 +208,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('transaction_user').set(user);
+        await odm.users('transaction_user').update(user);
 
         try {
           await odm.runTransaction(() async {
@@ -252,7 +252,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('rapid_user').set(user);
+        await odm.users('rapid_user').update(user);
 
         final stopwatch = Stopwatch()..start();
 
@@ -295,7 +295,7 @@ void main() {
                 ));
 
         // Create all users
-        final createFutures = users.map((user) => odm.users(user.id).set(user));
+        final createFutures = users.map((user) => odm.users(user.id).update(user));
         await Future.wait(createFutures);
 
         // Perform bulk update
@@ -339,7 +339,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('integrity_user').set(user);
+        await odm.users('integrity_user').update(user);
 
         // Perform complex nested updates
         await odm.users('integrity_user').modify((user) => user.copyWith(
@@ -395,7 +395,7 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.users('special_user_äöü').set(specialUser);
+        await odm.users('special_user_äöü').update(specialUser);
         final retrieved = await odm.users('special_user_äöü').get();
 
         expect(retrieved, isNotNull);

@@ -47,7 +47,7 @@ class ODMExtensionGenerator {
       buffer.writeln(
         '  FirestoreCollection<S, $className> get ${StringHelpers.camelCase(collectionPath)} => FirestoreCollection<S, $className>(',
       );
-      buffer.writeln('    ref: firestore.collection(\'$collectionPath\'),');
+      buffer.writeln('    query: firestore.collection(\'$collectionPath\'),');
       buffer.writeln(
         '    fromJson: ${StringHelpers.camelCase(className)}FromJson,',
       );
@@ -100,7 +100,7 @@ class ODMExtensionGenerator {
       buffer.writeln(
         '  FirestoreCollection<S, $className> get $childCollectionName => FirestoreCollection<S, $className>(',
       );
-      buffer.writeln('    ref: ref.collection(\'$subcollectionName\'),');
+      buffer.writeln('    query: query.collection(\'$subcollectionName\'),');
       buffer.writeln(
         '    fromJson: ${StringHelpers.camelCase(className)}FromJson,',
       );
