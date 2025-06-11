@@ -52,7 +52,7 @@ final result = await odm.users
   .get();
 
 // IDE autocomplete, compile-time safety
-await userDoc.update(($) => [
+await userDoc.patch(($) => [
   $.profile.followers.increment(1),
   $.tags.add('verified'),
   $.lastLogin.serverTimestamp(),
@@ -90,7 +90,7 @@ await userDoc.update(($) => [
 
 ### ✏️ Update Methods
 - [Three Update Patterns](#-three-powerful-update-methods) - Array-style, Modify, Incremental Modify
-- [Update Operations](#update-operations) - [`update()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart), [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart), [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart)
+- [Update Operations](#update-operations) - [`patch()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart), [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart), [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart)
 - [Smart Server Timestamps](#-smart-server-timestamps) - [`FirestoreODM.serverTimestamp`](packages/firestore_odm/lib/src/firestore_odm.dart)
 
 ### 🏗️ Advanced Features
@@ -268,8 +268,8 @@ final users = await odm.users
 Choose the update style that fits your workflow:
 
 ```dart
-// 1. Array-Style Updates (Explicit atomic operations)
-await userDoc.update(($) => [
+// 1. Array-Style Patches (Explicit atomic operations)
+await userDoc.patch(($) => [
   $.name('John Smith'),           // Direct update
   $.age.increment(1),             // Atomic increment
   $.tags.add('verified'),         // Array addition
@@ -298,7 +298,7 @@ await userDoc.incrementalModify((user) => user.copyWith(
 // Bulk operations use the same API
 await odm.users
   .where(($) => $.isActive(isEqualTo: false))
-  .update(($) => [$.isActive(true)]);         // Bulk array-style update
+  .patch(($) => [$.isActive(true)]);         // Bulk array-style patch
 
 await odm.users
   .where(($) => $.age(isLessThan: 18))
@@ -641,7 +641,7 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | Category | Feature | Status | Description |
 |----------|---------|--------|-------------|
 | **Core Operations** | Document CRUD | ✅ Complete | Create, read, update, delete documents |
-| | Collection Operations | ✅ Complete | [`insert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`updateDocument()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`upsert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart) |
+| | Collection Operations | ✅ Complete | [`insert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`update()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`upsert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart) |
 | | Document ID Fields | ✅ Complete | Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) with automatic detection |
 | **Querying** | Type-safe Filtering | ✅ Complete | All Firestore operators on primitive and custom types |
 | | Nested Object Queries | ✅ Complete | Deep filtering on custom class fields |
@@ -649,7 +649,7 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | | Logical Operations | ✅ Complete | [`and()`](packages/firestore_odm/lib/src/filter_builder.dart), [`or()`](packages/firestore_odm/lib/src/filter_builder.dart) query combinators |
 | | Order By & Limits | ✅ Complete | [`orderBy()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart), [`limit()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart) operations |
 | | Pagination | ✅ Complete | Smart Builder Pagination with [`startAt()`](packages/firestore_odm/lib/src/pagination.dart), [`startAfter()`](packages/firestore_odm/lib/src/pagination.dart), [`endAt()`](packages/firestore_odm/lib/src/pagination.dart), [`endBefore()`](packages/firestore_odm/lib/src/pagination.dart) |
-| **Updates** | Array-style Updates | ✅ Complete | Explicit atomic operations with [`update()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart) |
+| **Updates** | Array-style Updates | ✅ Complete | Explicit atomic operations with [`patch()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart) |
 | | Modify Updates | ✅ Complete | Immutable diff-based updates with [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
 | | Incremental Modify | ✅ Complete | Automatic atomic detection with [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
 | | Atomic Operations | ✅ Complete | Increments, server timestamps, mixed operations |
@@ -796,13 +796,13 @@ await odm.users
 final users = odm.users;
 
 // Document-level operations
-await users.doc('id').set(user);
+await users.doc('id').update(user);
 await users.doc('id').delete();
 final user = await users.doc('id').get();
 
 // Collection-level operations (using model's ID field)
 await users.insert(user);        // Create new (fails if exists)
-await users.updateDocument(user); // Update existing (fails if not exists)
+await users.update(user); // Update existing (fails if not exists)
 await users.upsert(user);        // Create or update
 
 // Advanced document operations
@@ -818,7 +818,7 @@ await users.doc('id').incrementalModify((user) => user.copyWith(age: user.age + 
 - ❌ Fails if document already exists (when ID is specified)
 - 🎯 Perfect for preventing accidental overwrites
 
-**`updateDocument(T value)`** - Type-safe document updates
+**`update(T value)`** - Type-safe document updates
 - ✅ Updates existing document using model's ID field
 - ❌ Fails if document doesn't exist
 - 🎯 Perfect for ensuring you're updating existing data

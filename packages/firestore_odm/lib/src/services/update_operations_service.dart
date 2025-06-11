@@ -167,7 +167,7 @@ class DocumentHandler {
     return snapshot.exists;
   }
 
-  static Stream<T?> streamDocument<T>(
+  static Stream<T?> stream<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
     JsonDeserializer<T> fromJson,
     String documentIdField,
