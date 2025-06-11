@@ -172,6 +172,7 @@ class SchemaGenerator {
         '      query: ref.collection(\'${collection.path}\'),',
       );
       buffer.writeln('      converter: $converterName,');
+      buffer.writeln('      context: this,');
       buffer.writeln('    );');
       buffer.writeln('');
     }

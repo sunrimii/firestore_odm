@@ -46,12 +46,16 @@ class FirestoreODM<T extends FirestoreSchema> {
   /// Runs a Firestore transaction with automatic success handler management
   ///
   /// The [cb] callback is executed within a transaction context.
-  /// Any operations that need to be executed after successful transaction
-  /// can be registered using the onSuccess handler available in the zone.
+  /// All write operations are deferred until after all reads complete.
   Future<void> runTransaction(Future<void> Function(TransactionContext<T>) cb) async {
-    _firestore.runTransaction((transaction) async {
+    return await _firestore.runTransaction((transaction) async {
       final context = TransactionContext<T>(_firestore, transaction);
+      
+      // Execute the callback (collects reads and defers writes)
       await cb(context);
+      
+      // Execute all deferred writes after reads are complete
+      context.executeDeferredWrites();
     });
   }
 }

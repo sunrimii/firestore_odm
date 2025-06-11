@@ -12,8 +12,35 @@ import 'package:firestore_odm/src/utils.dart';
 class TransactionContext<Schema extends FirestoreSchema> {
   final firestore.FirebaseFirestore ref;
   final firestore.Transaction transaction;
+  final Map<String, firestore.DocumentSnapshot<Map<String, dynamic>>> _documentCache = {};
+  final List<Function()> _deferredWrites = [];
 
   TransactionContext(this.ref, this.transaction);
+
+  /// Cache a document snapshot for reuse within the transaction
+  void _cacheDocument(firestore.DocumentSnapshot<Map<String, dynamic>> snapshot) {
+    _documentCache[snapshot.reference.path] = snapshot;
+  }
+
+  /// Get a cached document snapshot if available
+  firestore.DocumentSnapshot<Map<String, dynamic>>? _getCachedDocument(
+    firestore.DocumentReference<Map<String, dynamic>> ref,
+  ) {
+    return _documentCache[ref.path];
+  }
+
+  /// Add a deferred write operation
+  void _addDeferredWrite(Function() writeOperation) {
+    _deferredWrites.add(writeOperation);
+  }
+
+  /// Execute all deferred writes
+  void executeDeferredWrites() {
+    for (final write in _deferredWrites) {
+      write();
+    }
+    _deferredWrites.clear();
+  }
 }
 
 class TransactionCollection<S extends FirestoreSchema, T> {
@@ -21,13 +48,15 @@ class TransactionCollection<S extends FirestoreSchema, T> {
   final firestore.CollectionReference<Map<String, dynamic>> query;
   final ModelConverter<T> converter;
   final String documentIdField;
+  final TransactionContext<S> _context;
 
   TransactionCollection({
     required firestore.Transaction transaction,
     required this.query,
     required this.converter,
+    required TransactionContext<S> context,
     this.documentIdField = 'id',
-  }) : _transaction = transaction;
+  }) : _transaction = transaction, _context = context;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -37,6 +66,7 @@ class TransactionCollection<S extends FirestoreSchema, T> {
     query.doc(id),
     converter,
     documentIdField,
+    _context,
   );
 }
 
@@ -51,17 +81,21 @@ class TransactionDocument<S extends FirestoreSchema, T>
   final firestore.DocumentReference<Map<String, dynamic>> ref;
   final ModelConverter<T> converter;
   final String documentIdField;
+  final TransactionContext<S> _context;
 
   TransactionDocument(
     this._transaction,
     this.ref,
     this.converter,
     this.documentIdField,
+    this._context,
   );
 
   @override
   Future<T?> get() async {
     final snapshot = await _transaction.get(ref);
+    // Cache the snapshot for future use in this transaction
+    _context._cacheDocument(snapshot);
     if (!snapshot.exists) return null;
     return fromFirestoreData(
       converter.fromJson,
@@ -71,10 +105,21 @@ class TransactionDocument<S extends FirestoreSchema, T>
     );
   }
 
+  /// Get a document snapshot, reading if not cached
+  Future<firestore.DocumentSnapshot<Map<String, dynamic>>> _getSnapshot() async {
+    final cached = _context._getCachedDocument(ref);
+    if (cached != null) {
+      return cached;
+    }
+    final snapshot = await _transaction.get(ref);
+    _context._cacheDocument(snapshot);
+    return snapshot;
+  }
+
   @override
   Future<void> incrementalModify(T Function(T docData) modifier) async {
-    // In transaction: do all reads first, then defer writes
-    final snapshot = await _transaction.get(ref);
+    // Read the document and prepare the write operation
+    final snapshot = await _getSnapshot();
     final patch = DocumentHandler.processPatch(
       snapshot,
       modifier,
@@ -83,14 +128,15 @@ class TransactionDocument<S extends FirestoreSchema, T>
       computeDiff,
     );
     if (patch.isNotEmpty) {
-      _transaction.update(ref, patch);
+      // Defer the write operation
+      _context._addDeferredWrite(() => _transaction.update(ref, patch));
     }
   }
 
   @override
   Future<void> modify(T Function(T docData) modifier) async {
-    // In transaction: do all reads first, then defer writes
-    final snapshot = await _transaction.get(ref);
+    // Read the document and prepare the write operation
+    final snapshot = await _getSnapshot();
     final patch = DocumentHandler.processPatch(
       snapshot,
       modifier,
@@ -98,10 +144,10 @@ class TransactionDocument<S extends FirestoreSchema, T>
       documentIdField,
       computeDiffWithAtomicOperations,
     );
-    if (patch.isEmpty) {
-      return; // No changes to apply
+    if (patch.isNotEmpty) {
+      // Defer the write operation
+      _context._addDeferredWrite(() => _transaction.update(ref, patch));
     }
-    _transaction.update(ref, patch);
   }
 
   @override
@@ -111,19 +157,21 @@ class TransactionDocument<S extends FirestoreSchema, T>
     final builder = UpdateBuilder<T>();
     final operations = patchBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);
-    if (!updateMap.isNotEmpty) {
-      return; // No updates to apply
+    if (updateMap.isNotEmpty) {
+      // Defer the write operation
+      _context._addDeferredWrite(() => _transaction.update(ref, updateMap));
     }
-    _transaction.update(ref, updateMap);
   }
 
   @override
-  Future<bool> exists() {
-    return _transaction.get(ref).then((snapshot) => snapshot.exists);
+  Future<bool> exists() async {
+    final snapshot = await _getSnapshot();
+    return snapshot.exists;
   }
 
   @override
   void delete() {
-    _transaction.delete(ref);
+    // Defer the delete operation
+    _context._addDeferredWrite(() => _transaction.delete(ref));
   }
 }
