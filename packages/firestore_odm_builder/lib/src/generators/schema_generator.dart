@@ -43,7 +43,7 @@ class SchemaGenerator {
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
 
     // Generate filter and order by builders for each model type
-    _generateFilterAndOrderByBuilders(buffer, modelTypes);
+    _generateFilterAndOrderBySelectors(buffer, modelTypes);
 
     // Generate ODM extensions
     _generateODMExtensions(buffer, schemaClassName, collections);
@@ -299,7 +299,7 @@ class SchemaGenerator {
   }
 
   /// Generate filter and order by builders for all model types
-  static void _generateFilterAndOrderByBuilders(
+  static void _generateFilterAndOrderBySelectors(
     StringBuffer buffer,
     Map<String, ClassElement> modelTypes,
   ) {
@@ -314,7 +314,7 @@ class SchemaGenerator {
       final documentIdField = TypeAnalyzer.getDocumentIdField(constructor);
 
       // Generate FilterBuilder class
-      FilterGenerator.generateFilterBuilderClass(
+      FilterGenerator.generateFilterSelectorClass(
         buffer,
         modelTypeName,
         constructor,
@@ -323,7 +323,7 @@ class SchemaGenerator {
       );
 
       // Generate FilterBuilder classes for all nested types
-      FilterGenerator.generateNestedFilterBuilderClasses(
+      FilterGenerator.generateNestedFilterSelectorClasses(
         buffer,
         constructor,
         <String>{},
@@ -331,8 +331,8 @@ class SchemaGenerator {
       );
       buffer.writeln('');
 
-      // Generate OrderByBuilder class
-      OrderByGenerator.generateOrderByBuilderClass(
+      // Generate OrderBySelector class
+      OrderByGenerator.generateOrderBySelectorClass(
         buffer,
         modelTypeName,
         constructor,
@@ -340,8 +340,8 @@ class SchemaGenerator {
         documentIdField,
       );
 
-      // Generate nested OrderByBuilder classes
-      OrderByGenerator.generateNestedOrderByBuilderClasses(
+      // Generate nested OrderBySelector classes
+      OrderByGenerator.generateNestedOrderBySelectorClasses(
         buffer,
         constructor,
         <String>{},

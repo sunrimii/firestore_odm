@@ -1,8 +1,16 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:firestore_odm/src/interfaces/aggregatable.dart';
+import 'package:firestore_odm/src/interfaces/orderable.dart';
+import 'package:firestore_odm/src/orderby.dart';
+import 'package:firestore_odm/src/recordHelper.dart';
+import 'package:firestore_odm/src/schema.dart';
+import 'package:firestore_odm/src/transaction.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
+import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
+import 'package:firestore_odm/src/query.dart' hide Query;
 import 'package:firestore_odm/src/utils.dart';
 
 class FirestoreDocumentNotFoundException implements Exception {
@@ -22,7 +30,7 @@ Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
     final value = entry.value;
 
     if (value is DateTime && value == FirestoreODM.serverTimestamp) {
-      result[key] = FieldValue.serverTimestamp();
+      result[key] = firestore.FieldValue.serverTimestamp();
     } else if (value is Map<String, dynamic>) {
       result[key] = _replaceServerTimestamps(value);
     } else if (value is List) {
@@ -30,7 +38,7 @@ Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
         if (item is Map<String, dynamic>) {
           return _replaceServerTimestamps(item);
         } else if (item is DateTime && item == FirestoreODM.serverTimestamp) {
-          return FieldValue.serverTimestamp();
+          return firestore.FieldValue.serverTimestamp();
         }
         return item;
       }).toList();
@@ -42,7 +50,6 @@ Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
   return result;
 }
 
-
 /// Compute the difference between old and new data for efficient updates
 Map<String, dynamic> computeDiff(
   Map<String, dynamic> oldData,
@@ -53,7 +60,7 @@ Map<String, dynamic> computeDiff(
   // Find removed fields
   for (final key in oldData.keys) {
     if (!newData.containsKey(key)) {
-      result[key] = FieldValue.delete();
+      result[key] = firestore.FieldValue.delete();
     }
   }
 
@@ -80,7 +87,7 @@ Map<String, dynamic> computeDiffWithAtomicOperations(
   // Find removed fields
   for (final key in oldData.keys) {
     if (!newData.containsKey(key)) {
-      result[key] = FieldValue.delete();
+      result[key] = firestore.FieldValue.delete();
     }
   }
 
@@ -122,7 +129,7 @@ dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
   if (oldValue is num && newValue is num) {
     final diff = newValue - oldValue;
     if (diff != 0) {
-      return FieldValue.increment(diff);
+      return firestore.FieldValue.increment(diff);
     }
   }
 
@@ -136,12 +143,12 @@ dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
 
     // If only additions, use arrayUnion
     if (removed.isEmpty && added.isNotEmpty) {
-      return FieldValue.arrayUnion(added);
+      return firestore.FieldValue.arrayUnion(added);
     }
 
     // If only removals, use arrayRemove
     if (added.isEmpty && removed.isNotEmpty) {
-      return FieldValue.arrayRemove(removed);
+      return firestore.FieldValue.arrayRemove(removed);
     }
 
     // For mixed operations or when trying to add duplicates, fall back to direct assignment
@@ -154,14 +161,14 @@ dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
 
 class DocumentHandler {
   static Future<bool> exists<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
   ) async {
     final snapshot = await ref.get();
     return snapshot.exists;
   }
 
   static Stream<T?> streamDocument<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
@@ -175,7 +182,7 @@ class DocumentHandler {
   }
 
   static Future<T?> get<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     JsonDeserializer<T> deserializer,
     String documentIdField,
   ) async {
@@ -190,13 +197,13 @@ class DocumentHandler {
   }
 
   static Future<void> delete(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
   ) async {
     await ref.delete();
   }
 
   static Future<void> update<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     T data,
     JsonSerializer<T> serializer,
     String? documentIdField,
@@ -210,7 +217,7 @@ class DocumentHandler {
   }
 
   static Future<void> patch<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patchBuilder,
   ) async {
     final builder = UpdateBuilder<T>();
@@ -223,7 +230,7 @@ class DocumentHandler {
   }
 
   static Map<String, dynamic> processPatch<T>(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
+    firestore.DocumentSnapshot<Map<String, dynamic>> snapshot,
     T Function(T) modifier,
     ModelConverter<T> converter,
     String documentIdField,
@@ -256,7 +263,7 @@ class DocumentHandler {
   }
 
   static Future<void> modify<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
     ModelConverter<T> converter,
     String documentIdField,
@@ -275,7 +282,7 @@ class DocumentHandler {
   }
 
   static Future<void> incrementalModify<T>(
-    DocumentReference<Map<String, dynamic>> ref,
+    firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
     ModelConverter<T> converter,
     String documentIdField,
@@ -296,7 +303,7 @@ class DocumentHandler {
 
 abstract class CollectionHandler {
   static Future<List<T>> get<T>(
-    CollectionReference<Map<String, dynamic>> ref,
+    firestore.CollectionReference<Map<String, dynamic>> ref,
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
@@ -307,7 +314,7 @@ abstract class CollectionHandler {
   }
 
   static Future<void> insert<T>(
-    CollectionReference<Map<String, dynamic>> ref,
+    firestore.CollectionReference<Map<String, dynamic>> ref,
     T value,
     JsonSerializer<T> toJson,
     String documentIdField,
@@ -339,7 +346,7 @@ abstract class CollectionHandler {
   }
 
   static Future<void> update<T>(
-    CollectionReference<Map<String, dynamic>> ref,
+    firestore.CollectionReference<Map<String, dynamic>> ref,
     T value,
     JsonSerializer<T> toJson,
     String documentIdField,
@@ -368,7 +375,7 @@ abstract class CollectionHandler {
   }
 
   static Future<void> upsert<T>(
-    CollectionReference<Map<String, dynamic>> ref,
+    firestore.CollectionReference<Map<String, dynamic>> ref,
     T value,
     JsonSerializer<T> toJson,
     String documentIdField,
@@ -386,13 +393,226 @@ abstract class CollectionHandler {
     }
 
     // Use set with merge option to upsert
-    await ref.doc(documentId).set(data, SetOptions(merge: true));
+    await ref.doc(documentId).set(data, firestore.SetOptions(merge: true));
+  }
+}
+
+
+abstract class QueryLimitHandler {
+  static firestore.Query<R> applyLimit<R>(
+    firestore.Query<R> query,
+    int? limit,
+  ) {
+    if (limit != null && limit > 0) {
+      return query.limit(limit);
+    }
+    return query;
+  }
+
+  static firestore.Query<R> applyLimitToLast<R>(
+    firestore.Query<R> query,
+    int? limit,
+  ) {
+    if (limit != null && limit > 0) {
+      return query.limitToLast(limit);
+    }
+    return query;
+  }
+}
+
+abstract class QueryFilterHandler {
+  /// Applies a filter to the given Firestore query
+  static firestore.Query<R> applyFilter<R>(
+    firestore.Query<R> query,
+    FirestoreFilter filter,
+  ) {
+    if (filter.type == FilterType.field) {
+      final field = filter.field!;
+      final operator = filter.operator!;
+      final value = filter.value;
+
+      switch (operator) {
+        case FilterOperator.isEqualTo:
+          return query.where(field, isEqualTo: value);
+        case FilterOperator.isNotEqualTo:
+          return query.where(field, isNotEqualTo: value);
+        case FilterOperator.isLessThan:
+          return query.where(field, isLessThan: value);
+        case FilterOperator.isLessThanOrEqualTo:
+          return query.where(field, isLessThanOrEqualTo: value);
+        case FilterOperator.isGreaterThan:
+          return query.where(field, isGreaterThan: value);
+        case FilterOperator.isGreaterThanOrEqualTo:
+          return query.where(field, isGreaterThanOrEqualTo: value);
+        case FilterOperator.arrayContains:
+          return query.where(field, arrayContains: value);
+        case FilterOperator.arrayContainsAny:
+          return query.where(field, arrayContainsAny: value);
+        case FilterOperator.whereIn:
+          return query.where(field, whereIn: value);
+        case FilterOperator.whereNotIn:
+          return query.where(field, whereNotIn: value);
+      }
+    } else if (filter.type == FilterType.and) {
+      var newQuery = query;
+      for (var subFilter in filter.filters!) {
+        newQuery = applyFilter(newQuery, subFilter);
+      }
+      return newQuery;
+    } else if (filter.type == FilterType.or) {
+      // Use Firestore's Filter.or() for proper OR logic
+      final filters = filter.filters!
+          .map((f) => _buildFirestoreFilter(f))
+          .toList();
+      if (filters.isEmpty)
+        throw ArgumentError('OR filter must have at least one condition');
+      if (filters.length == 1) return query.where(filters.first);
+      return query.where(_buildOrFilter(filters));
+    }
+    throw ArgumentError('Unsupported filter type: ${filter.type}');
+  }
+
+  /// Build a Firestore Filter from our FirestoreFilter
+  static firestore.Filter _buildFirestoreFilter(FirestoreFilter filter) {
+    switch (filter.type) {
+      case FilterType.field:
+        return _buildFieldFilter(filter);
+      case FilterType.and:
+        final filters = filter.filters!.map(_buildFirestoreFilter).toList();
+        if (filters.isEmpty)
+          throw ArgumentError('AND filter must have at least one condition');
+        if (filters.length == 1) return filters.first;
+        return _buildAndFilter(filters);
+      case FilterType.or:
+        final filters = filter.filters!.map(_buildFirestoreFilter).toList();
+        if (filters.isEmpty)
+          throw ArgumentError('OR filter must have at least one condition');
+        if (filters.length == 1) return filters.first;
+        return _buildOrFilter(filters);
+    }
+  }
+
+  /// Build a single field Filter
+  static firestore.Filter _buildFieldFilter(FirestoreFilter filter) {
+    switch (filter.operator!) {
+      case FilterOperator.isEqualTo:
+        return firestore.Filter(filter.field!, isEqualTo: filter.value);
+      case FilterOperator.isNotEqualTo:
+        return firestore.Filter(filter.field!, isNotEqualTo: filter.value);
+      case FilterOperator.isLessThan:
+        return firestore.Filter(filter.field!, isLessThan: filter.value);
+      case FilterOperator.isLessThanOrEqualTo:
+        return firestore.Filter(
+          filter.field!,
+          isLessThanOrEqualTo: filter.value,
+        );
+      case FilterOperator.isGreaterThan:
+        return firestore.Filter(filter.field!, isGreaterThan: filter.value);
+      case FilterOperator.isGreaterThanOrEqualTo:
+        return firestore.Filter(
+          filter.field!,
+          isGreaterThanOrEqualTo: filter.value,
+        );
+      case FilterOperator.arrayContains:
+        return firestore.Filter(filter.field!, arrayContains: filter.value);
+      case FilterOperator.arrayContainsAny:
+        return firestore.Filter(filter.field!, arrayContainsAny: filter.value);
+      case FilterOperator.whereIn:
+        return firestore.Filter(filter.field!, whereIn: filter.value);
+      case FilterOperator.whereNotIn:
+        return firestore.Filter(filter.field!, whereNotIn: filter.value);
+    }
+  }
+
+  /// Build Filter.or() with the correct API signature
+  static firestore.Filter _buildOrFilter(List<firestore.Filter> filters) {
+    if (filters.length < 2)
+      throw ArgumentError('OR filter needs at least 2 filters');
+
+    // Use the specific API signature for Filter.or()
+    return firestore.Filter.or(
+      filters[0],
+      filters[1],
+      filters.length > 2 ? filters[2] : null,
+      filters.length > 3 ? filters[3] : null,
+      filters.length > 4 ? filters[4] : null,
+      filters.length > 5 ? filters[5] : null,
+      filters.length > 6 ? filters[6] : null,
+      filters.length > 7 ? filters[7] : null,
+      filters.length > 8 ? filters[8] : null,
+      filters.length > 9 ? filters[9] : null,
+      filters.length > 10 ? filters[10] : null,
+      filters.length > 11 ? filters[11] : null,
+      filters.length > 12 ? filters[12] : null,
+      filters.length > 13 ? filters[13] : null,
+      filters.length > 14 ? filters[14] : null,
+      filters.length > 15 ? filters[15] : null,
+      filters.length > 16 ? filters[16] : null,
+      filters.length > 17 ? filters[17] : null,
+      filters.length > 18 ? filters[18] : null,
+      filters.length > 19 ? filters[19] : null,
+      filters.length > 20 ? filters[20] : null,
+      filters.length > 21 ? filters[21] : null,
+      filters.length > 22 ? filters[22] : null,
+      filters.length > 23 ? filters[23] : null,
+      filters.length > 24 ? filters[24] : null,
+      filters.length > 25 ? filters[25] : null,
+      filters.length > 26 ? filters[26] : null,
+      filters.length > 27 ? filters[27] : null,
+      filters.length > 28 ? filters[28] : null,
+      filters.length > 29 ? filters[29] : null,
+    );
+  }
+
+  /// Build Filter.and() with the correct API signature
+  static firestore.Filter _buildAndFilter(List<firestore.Filter> filters) {
+    if (filters.length < 2)
+      throw ArgumentError('AND filter needs at least 2 filters');
+
+    // Use the specific API signature for Filter.and()
+    return firestore.Filter.and(
+      filters[0],
+      filters[1],
+      filters.length > 2 ? filters[2] : null,
+      filters.length > 3 ? filters[3] : null,
+      filters.length > 4 ? filters[4] : null,
+      filters.length > 5 ? filters[5] : null,
+      filters.length > 6 ? filters[6] : null,
+      filters.length > 7 ? filters[7] : null,
+      filters.length > 8 ? filters[8] : null,
+      filters.length > 9 ? filters[9] : null,
+      filters.length > 10 ? filters[10] : null,
+      filters.length > 11 ? filters[11] : null,
+      filters.length > 12 ? filters[12] : null,
+      filters.length > 13 ? filters[13] : null,
+      filters.length > 14 ? filters[14] : null,
+      filters.length > 15 ? filters[15] : null,
+      filters.length > 16 ? filters[16] : null,
+      filters.length > 17 ? filters[17] : null,
+      filters.length > 18 ? filters[18] : null,
+      filters.length > 19 ? filters[19] : null,
+      filters.length > 20 ? filters[20] : null,
+      filters.length > 21 ? filters[21] : null,
+      filters.length > 22 ? filters[22] : null,
+      filters.length > 23 ? filters[23] : null,
+      filters.length > 24 ? filters[24] : null,
+      filters.length > 25 ? filters[25] : null,
+      filters.length > 26 ? filters[26] : null,
+      filters.length > 27 ? filters[27] : null,
+      filters.length > 28 ? filters[28] : null,
+      filters.length > 29 ? filters[29] : null,
+    );
+  }
+
+  static FirestoreFilter<T> buildFilter<T>(FilterBuilder<T> filterBuilder) {
+    final builder = RootFilterSelector<T>();
+    return filterBuilder(builder);
   }
 }
 
 abstract class QueryHandler {
   static Future<List<T>> get<T>(
-    Query<Map<String, dynamic>> query,
+    firestore.Query<Map<String, dynamic>> query,
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
@@ -403,7 +623,7 @@ abstract class QueryHandler {
   }
 
   static Stream<List<T>> stream<T>(
-    Query<Map<String, dynamic>> query,
+    firestore.Query<Map<String, dynamic>> query,
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
@@ -430,7 +650,7 @@ abstract class QueryHandler {
   // }
 
   static Future<void> modify<T>(
-    Query<Map<String, dynamic>> query,
+    firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
     ModelConverter<T> converter,
     T Function(T) modifier,
@@ -455,7 +675,7 @@ abstract class QueryHandler {
   }
 
   static Future<void> incrementalModify<T>(
-    Query<Map<String, dynamic>> query,
+    firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
     ModelConverter<T> converter,
     T Function(T) modifier,
@@ -481,7 +701,7 @@ abstract class QueryHandler {
   }
 
   static Future<void> patch<T>(
-    Query<Map<String, dynamic>> query,
+    firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
     ModelConverter<T> converter,
     List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
@@ -502,7 +722,9 @@ abstract class QueryHandler {
     await batch.commit();
   }
 
-  static Future<void> delete(Query query) async {
+  static Future<void> delete(
+    firestore.Query<Map<String, dynamic>> query,
+  ) async {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
 

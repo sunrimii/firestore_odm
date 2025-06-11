@@ -12,9 +12,7 @@ export 'src/model_converter.dart';
 export 'src/schema.dart';
 export 'src/query.dart';
 export 'src/transaction.dart';
+export 'src/aggregate.dart';
+export 'src/orderby.dart';
 
-// New interfaces
-export 'src/interfaces/document_operations.dart';
-
-// Re-export annotations for convenience
 export 'package:firestore_odm_annotation/firestore_odm_annotation.dart';

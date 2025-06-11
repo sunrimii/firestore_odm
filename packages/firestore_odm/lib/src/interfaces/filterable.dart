@@ -1,11 +1,13 @@
 import 'package:firestore_odm/src/filter_builder.dart';
-import 'package:firestore_odm/src/schema.dart';
 
-abstract interface class Filterable<S extends FirestoreSchema, T> {
+typedef FilterBuilder<T> = FirestoreFilter<T> Function(
+  RootFilterSelector<T> selector,
+);
+abstract interface class Filterable<T> {
   /// Filter the query using a strongly-typed filter builder
   /// Returns a Filterable that can be further modified
-  Filterable<S, T> where(
-    FirestoreFilter<T> Function(RootFilterBuilder<T> builder) filterBuilder,
+  Filterable<T> where(
+    FilterBuilder<T> filterBuilder,
   );
 }
 

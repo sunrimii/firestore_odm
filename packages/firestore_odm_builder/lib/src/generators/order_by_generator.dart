@@ -5,17 +5,17 @@ import '../utils/type_analyzer.dart';
 /// Generator for order by builders
 class OrderByGenerator {
   /// Generate the order by builder class code
-  static void generateOrderByBuilderClass(
+  static void generateOrderBySelectorClass(
     StringBuffer buffer,
     String className,
     ConstructorElement constructor,
     String rootOrderByType,
     String? documentIdField,
   ) {
-    // Generate both old OrderByBuilder extensions (for backward compatibility)
-    buffer.writeln('/// Generated OrderByBuilder for $className');
+    // Generate both old OrderBySelector extensions (for backward compatibility)
+    buffer.writeln('/// Generated OrderBySelector for $className');
     buffer.writeln(
-      'extension ${className}OrderByBuilderExtension on OrderByBuilder<${className}> {',
+      'extension ${className}OrderBySelectorExtension on OrderBySelector<${className}> {',
     );
 
     // Add document ID order method if there's a document ID field
@@ -103,7 +103,7 @@ class OrderByGenerator {
     final nestedTypeName = fieldType.getDisplayString(withNullability: false);
     buffer.writeln('  /// Access nested $fieldName for ordering');
     buffer.writeln(
-      '  OrderByBuilder<$nestedTypeName> get $fieldName => OrderByHelper.createOrderByBuilder(\'$fieldName\', prefix: prefix);',
+      '  OrderBySelector<$nestedTypeName> get $fieldName => OrderByHelper.createOrderBySelector(\'$fieldName\', prefix: prefix);',
     );
     buffer.writeln('');
   }
@@ -149,7 +149,7 @@ class OrderByGenerator {
   }
 
   /// Generate nested order by builder classes
-  static void generateNestedOrderByBuilderClasses(
+  static void generateNestedOrderBySelectorClasses(
     StringBuffer buffer,
     ConstructorElement constructor,
     Set<String> processedTypes,
@@ -181,7 +181,7 @@ class OrderByGenerator {
         final nestedConstructor = nestedClass.unnamedConstructor;
 
         if (nestedConstructor != null) {
-          generateOrderByBuilderClass(
+          generateOrderBySelectorClass(
             buffer,
             nestedClassName,
             nestedConstructor,
@@ -190,7 +190,7 @@ class OrderByGenerator {
           );
 
           // Recursively generate builders for nested classes
-          generateNestedOrderByBuilderClasses(
+          generateNestedOrderBySelectorClasses(
             buffer,
             nestedConstructor,
             processedTypes,

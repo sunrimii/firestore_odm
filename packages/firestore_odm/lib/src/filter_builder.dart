@@ -83,12 +83,12 @@ class OrderByField<T> {
 
 /// Base filter builder class
 /// Extended by generated FilterBuilder classes that provide type-safe filtering methods
-class FilterBuilder<T> {
+class FilterSelector<T> {
   /// Field prefix for nested object filtering
   final String prefix;
 
-  /// Create a FilterBuilder with optional field prefix for nested objects
-  FilterBuilder({this.prefix = ''});
+  /// Create a FilterSelector with optional field prefix for nested objects
+  FilterSelector({this.prefix = ''});
 
   /// Helper to get field path with prefix
   String getFieldPath(String fieldName) {
@@ -460,8 +460,8 @@ class FilterBuilder<T> {
 
 /// Root filter builder with all filtering logic
 /// Extended by generated FilterBuilder classes for type-safe operations
-class RootFilterBuilder<T> extends FilterBuilder<T> {
-  RootFilterBuilder({super.prefix});
+class RootFilterSelector<T> extends FilterSelector<T> {
+  RootFilterSelector({super.prefix});
 
   /// Create OR filter with type safety (supports up to 30 filters)
   FirestoreFilter<T> or(
@@ -596,12 +596,12 @@ class RootFilterBuilder<T> extends FilterBuilder<T> {
 
 /// Base order by builder class
 /// Extended by generated OrderByBuilder classes that provide type-safe ordering methods
-class OrderByBuilder<T> {
+class OrderBySelector<T> {
   /// Field prefix for nested object ordering
   final String prefix;
 
   /// Create an OrderByBuilder with optional field prefix for nested objects
-  OrderByBuilder({this.prefix = ''});
+  OrderBySelector({this.prefix = ''});
 }
 
 /// Update operation types
@@ -1139,12 +1139,12 @@ class OrderByHelper {
     return OrderByField<T>(FieldPathType.documentId, descending: descending);
   }
 
-  static OrderByBuilder<T> createOrderByBuilder<T>(
+  static OrderBySelector<T> createOrderBySelector<T>(
     String fieldName, {
     String prefix = '',
   }) {
     final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    return OrderByBuilder<T>(prefix: fieldPath);
+    return OrderBySelector<T>(prefix: fieldPath);
   }
 }
 

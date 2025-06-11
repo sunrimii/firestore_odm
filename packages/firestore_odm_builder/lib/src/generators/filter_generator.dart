@@ -5,16 +5,16 @@ import '../utils/type_analyzer.dart';
 /// Generator for filter builders and filter classes
 class FilterGenerator {
   /// Generate the filter builder class code using callable instances
-  static void generateFilterBuilderClass(
+  static void generateFilterSelectorClass(
     StringBuffer buffer,
     String className,
     ConstructorElement constructor,
     String rootFilterType,
     String? documentIdField,
   ) {
-    buffer.writeln('/// Generated FilterBuilder for $className');
+    buffer.writeln('/// Generated FilterSelector for $className');
     buffer.writeln(
-      'extension ${className}FilterBuilderExtension on FilterBuilder<${className}> {',
+      'extension ${className}FilterSelectorExtension on FilterSelector<${className}> {',
     );
     buffer.writeln('');
 
@@ -71,12 +71,12 @@ class FilterGenerator {
     final nestedTypeName = fieldType.getDisplayString(withNullability: false);
 
     buffer.writeln('  /// Access nested $fieldName filters');
-    buffer.writeln('  FilterBuilder<${nestedTypeName}> get $fieldName {');
+    buffer.writeln('  FilterSelector<${nestedTypeName}> get $fieldName {');
     buffer.writeln(
       '    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';',
     );
     buffer.writeln(
-      '    return FilterBuilder<${nestedTypeName}>(prefix: nestedPrefix);',
+      '    return FilterSelector<${nestedTypeName}>(prefix: nestedPrefix);',
     );
     buffer.writeln('  }');
     buffer.writeln('');
@@ -136,7 +136,7 @@ class FilterGenerator {
   }
 
   /// Generate nested filter builder classes
-  static void generateNestedFilterBuilderClasses(
+  static void generateNestedFilterSelectorClasses(
     StringBuffer buffer,
     ConstructorElement constructor,
     Set<String> processedTypes,
@@ -157,7 +157,7 @@ class FilterGenerator {
           final nestedConstructor = element.unnamedConstructor;
           if (nestedConstructor != null) {
             buffer.writeln('');
-            generateFilterBuilderClass(
+            generateFilterSelectorClass(
               buffer,
               typeName,
               nestedConstructor,
@@ -166,7 +166,7 @@ class FilterGenerator {
             );
 
             // Recursively generate for deeply nested types
-            generateNestedFilterBuilderClasses(
+            generateNestedFilterSelectorClasses(
               buffer,
               nestedConstructor,
               processedTypes,

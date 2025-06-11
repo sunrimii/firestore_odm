@@ -1,6 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart' hide AggregateQuery;
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:firestore_odm/src/aggregate.dart';
+import 'package:firestore_odm/src/interfaces/aggregatable.dart';
+import 'package:firestore_odm/src/interfaces/filterable.dart';
+import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/insertable.dart';
+import 'package:firestore_odm/src/interfaces/limitable.dart';
+import 'package:firestore_odm/src/interfaces/orderable.dart';
+import 'package:firestore_odm/src/interfaces/patchable.dart';
+import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
@@ -8,15 +17,17 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<S extends FirestoreSchema, T>
     implements
+        Gettable<List<T>>,
+        Streamable<List<T>>,
         Insertable<T>,
         Updatable<T>,
         Upsertable<T>,
-        Query<S, T, Null, Null> {
-  @override
-  FirestoreCollection<S, T> get collection => this;
-
+        Orderable<T>,
+        Filterable<T>,
+        Patchable<T>,
+        Aggregatable<S, T>,
+        Limitable {
   /// The underlying Firestore collection reference
-  @override
   final firestore.CollectionReference<Map<String, dynamic>> query;
 
   /// Model converter for data transformation
@@ -30,10 +41,11 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<S, T> call(String id) => FirestoreDocument(query.doc(id), converter, documentIdField);
+  FirestoreDocument<S, T> call(String id) =>
+      FirestoreDocument(query.doc(id), converter, documentIdField);
 
   /// Upsert a document using the id field as document ID
-  Future<void> upsert(T value) => 
+  Future<void> upsert(T value) =>
       CollectionHandler.upsert(query, value, converter.toJson, documentIdField);
 
   /// Insert a new document using the id field as document ID
@@ -55,4 +67,56 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   @override
   Stream<List<T>> get stream =>
       QueryHandler.stream(query, converter.fromJson, documentIdField);
+
+  @override
+  OrderedQuery<S, T, O> orderBy<O extends Record>(
+    O Function(OrderByFieldSelector<T> selector) orderBuilder,
+  ) {
+    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder);
+    final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
+    return OrderedQuery(newQuery, converter, documentIdField, config);
+  }
+
+  @override
+  Query<S, T> where(FilterBuilder<T> filterBuilder) {
+    final filter = QueryFilterHandler.buildFilter(filterBuilder);
+    final newQuery = QueryFilterHandler.applyFilter(query, filter);
+    return Query<S, T>(newQuery, converter, documentIdField);
+  }
+
+  @override
+  Query<S, T> limit(int limit) {
+    final newQuery = QueryLimitHandler.applyLimit(query, limit);
+    return Query<S, T>(newQuery, converter, documentIdField);
+  }
+
+  @override
+  Query<S, T> limitToLast(int limit) {
+    final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
+    return Query<S, T>(newQuery, converter, documentIdField);
+  }
+
+  @override
+  Future<void> patch(PatchBuilder<T> patchBuilder) =>
+      QueryHandler.patch(query, documentIdField, converter, patchBuilder);
+
+  @override
+  AggregateQuery<S, T, R> aggregate<R extends Record>(
+    R Function(AggregateFieldSelector<T> selector) builder,
+  ) {
+    final config = QueryAggregatableHandler.buildAggregate(
+      builder
+    );
+    final newQuery = QueryAggregatableHandler.applyAggregate(
+      query,
+      config.operations,
+    );
+    return AggregateQuery(newQuery, converter, documentIdField, config);
+  }
+
+  @override
+  AggregateCountQuery count() {
+    final newQuery = QueryAggregatableHandler.applyCount(query);
+    return AggregateCountQuery(newQuery);
+  }
 }
