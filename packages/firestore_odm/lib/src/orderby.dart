@@ -1,10 +1,18 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:firestore_odm/src/aggregate.dart';
+import 'package:firestore_odm/src/filter_builder.dart';
+import 'package:firestore_odm/src/interfaces/aggregatable.dart';
+import 'package:firestore_odm/src/interfaces/deletable.dart';
+import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
+import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
+import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
+import 'package:firestore_odm/src/query.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/pagination.dart';
@@ -199,7 +207,12 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
         Gettable<List<T>>,
         Streamable<List<T>>,
         Paginatable<T, O>,
-        Limitable {
+        Limitable,
+        Filterable<T>,
+        Patchable<T>,
+        Modifiable<T>,
+        Aggregatable<S, T>,
+        Deletable {
   final ModelConverter<T> _converter;
 
   final String _documentIdField;
@@ -360,4 +373,54 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       _orderByConfig,
     );
   }
+
+  @override
+  OrderedQuery<S, T, O> where(
+    FirestoreFilter<T> Function(RootFilterSelector<T> builder) filterBuilder,
+  ) {
+    final filter = QueryFilterHandler.buildFilter(filterBuilder);
+    final newQuery = QueryFilterHandler.applyFilter(_query, filter);
+    return OrderedQuery<S, T, O>(newQuery, _converter, _documentIdField, _orderByConfig);
+  }
+
+  @override
+  Future<void> patch(PatchBuilder<T> patchBuilder) =>
+      QueryHandler.patch(_query, _documentIdField, _converter, patchBuilder);
+
+  @override
+  Future<void> incrementalModify(ModifierBuilder<T> modifier) =>
+      QueryHandler.incrementalModify(
+        _query,
+        _documentIdField,
+        _converter,
+        modifier,
+      );
+
+  @override
+  Future<void> modify(ModifierBuilder<T> modifier) =>
+      QueryHandler.modify(_query, _documentIdField, _converter, modifier);
+
+  @override
+  AggregateQuery<S, T, R> aggregate<R extends Record>(
+    R Function(AggregateFieldSelector<T> selector) builder,
+  ) {
+    final config = QueryAggregatableHandler.buildAggregate(
+      builder
+    );
+    final newQuery = QueryAggregatableHandler.applyAggregate(
+      _query,
+      config.operations,
+    );
+    return AggregateQuery(newQuery, _converter, _documentIdField, config);
+  }
+
+  @override
+  AggregateCountQuery count() {
+    final newQuery = QueryAggregatableHandler.applyCount(_query);
+    return AggregateCountQuery(newQuery);
+  }
+
+  @override
+  Future<void> delete() =>
+      QueryHandler.delete(_query);
 }

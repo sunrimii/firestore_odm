@@ -106,13 +106,25 @@ Map<String, dynamic> computeDiffWithAtomicOperations(
       if (atomicOp != null) {
         result[key] = atomicOp;
       } else if (oldValue is Map && newValue is Map) {
-        // Handle nested objects - check if it's an empty map (deletion scenario)
+        // Handle nested objects - recursively detect atomic operations
         if (newValue.isEmpty && oldValue.isNotEmpty) {
           // Empty map means we want to clear all nested fields
           result[key] = newValue; // Set to empty map
         } else {
-          // For other nested changes, use the new value
-          result[key] = newValue;
+          // Try to detect atomic operations in nested fields
+          final nestedAtomicOps = _detectNestedAtomicOperations(
+            oldValue as Map<String, dynamic>,
+            newValue as Map<String, dynamic>,
+            key,
+          );
+          
+          if (nestedAtomicOps.isNotEmpty) {
+            // Use atomic operations for individual nested fields
+            result.addAll(nestedAtomicOps);
+          } else {
+            // Fall back to complete object replacement
+            result[key] = newValue;
+          }
         }
       } else {
         result[key] = newValue;
@@ -157,6 +169,52 @@ dynamic _detectAtomicOperation(dynamic oldValue, dynamic newValue) {
 
   // No atomic operation detected
   return null;
+}
+
+/// Detects atomic operations in nested fields and returns a map of field paths to atomic operations
+Map<String, dynamic> _detectNestedAtomicOperations(
+  Map<String, dynamic> oldValue,
+  Map<String, dynamic> newValue,
+  String parentKey,
+) {
+  final result = <String, dynamic>{};
+  
+  // Find fields that exist in both old and new values
+  for (final entry in newValue.entries) {
+    final fieldKey = entry.key;
+    final newFieldValue = entry.value;
+    final oldFieldValue = oldValue[fieldKey];
+    final fullFieldPath = '$parentKey.$fieldKey';
+    
+    if (oldValue.containsKey(fieldKey) && oldFieldValue != newFieldValue) {
+      // Try to detect atomic operation for this nested field
+      final atomicOp = _detectAtomicOperation(oldFieldValue, newFieldValue);
+      if (atomicOp != null) {
+        result[fullFieldPath] = atomicOp;
+      } else if (oldFieldValue is Map && newFieldValue is Map) {
+        // Recursively check deeper nested objects
+        final deeperOps = _detectNestedAtomicOperations(
+          oldFieldValue as Map<String, dynamic>,
+          newFieldValue as Map<String, dynamic>,
+          fullFieldPath,
+        );
+        result.addAll(deeperOps);
+      }
+    } else if (!oldValue.containsKey(fieldKey)) {
+      // New field in nested object
+      result[fullFieldPath] = newFieldValue;
+    }
+  }
+  
+  // Handle removed fields
+  for (final key in oldValue.keys) {
+    if (!newValue.containsKey(key)) {
+      final fullFieldPath = '$parentKey.$key';
+      result[fullFieldPath] = firestore.FieldValue.delete();
+    }
+  }
+  
+  return result;
 }
 
 class DocumentHandler {

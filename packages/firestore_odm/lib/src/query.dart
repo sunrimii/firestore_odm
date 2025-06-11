@@ -5,6 +5,7 @@ import 'package:firestore_odm/src/interfaces/aggregatable.dart';
 import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
+import 'package:firestore_odm/src/interfaces/deletable.dart';
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
@@ -23,7 +24,8 @@ class Query<S extends FirestoreSchema, T>
         Patchable<T>,
         Modifiable<T>,
         Aggregatable<S, T>,
-        Limitable {
+        Limitable,
+        Deletable {
   final ModelConverter<T> _converter;
   final String _documentIdField;
 
@@ -41,7 +43,7 @@ class Query<S extends FirestoreSchema, T>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
 
   @override
-  Filterable<T> where(
+  Query<S, T> where(
     FirestoreFilter<T> Function(RootFilterSelector<T> builder) filterBuilder,
   ) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
@@ -108,4 +110,8 @@ class Query<S extends FirestoreSchema, T>
     final newQuery = QueryAggregatableHandler.applyCount(_query);
     return AggregateCountQuery(newQuery);
   }
+
+  @override
+  Future<void> delete() =>
+      QueryHandler.delete(_query);
 }

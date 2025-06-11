@@ -1,12 +1,10 @@
-import 'package:firestore_odm/src/schema.dart';
-
-abstract interface class Limitable<S extends FirestoreSchema, T> {
+abstract interface class Limitable {
   /// Limit the number of results returned
   ///
   /// // limitation: limit must be a positive integer
   /// // limitation: Cannot be combined with limitToLast() in the same query
   /// // limitation: May affect query performance for very large result sets
-  Limitable<S, T> limit(int limit);
+  dynamic limit(int limit);
 
   /// Limit the number of results returned from the end
   ///
@@ -14,5 +12,5 @@ abstract interface class Limitable<S extends FirestoreSchema, T> {
   /// // limitation: Returns results in reverse order of the orderBy clause
   /// // limitation: Cannot be combined with limit() in the same query
   /// // limitation: May have performance implications for large datasets
-  Limitable<S, T> limitToLast(int limit);
+  dynamic limitToLast(int limit);
 }

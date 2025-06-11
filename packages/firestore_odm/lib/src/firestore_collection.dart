@@ -3,10 +3,12 @@ import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_inte
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/interfaces/aggregatable.dart';
+import 'package:firestore_odm/src/interfaces/deletable.dart';
 import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/insertable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
+import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
@@ -25,8 +27,10 @@ class FirestoreCollection<S extends FirestoreSchema, T>
         Orderable<T>,
         Filterable<T>,
         Patchable<T>,
+        Modifiable<T>,
         Aggregatable<S, T>,
-        Limitable {
+        Limitable,
+        Deletable {
   /// The underlying Firestore collection reference
   final firestore.CollectionReference<Map<String, dynamic>> query;
 
@@ -119,4 +123,21 @@ class FirestoreCollection<S extends FirestoreSchema, T>
     final newQuery = QueryAggregatableHandler.applyCount(query);
     return AggregateCountQuery(newQuery);
   }
+
+  @override
+  Future<void> incrementalModify(ModifierBuilder<T> modifier) =>
+      QueryHandler.incrementalModify(
+        query,
+        documentIdField,
+        converter,
+        modifier,
+      );
+
+  @override
+  Future<void> modify(ModifierBuilder<T> modifier) =>
+      QueryHandler.modify(query, documentIdField, converter, modifier);
+
+  @override
+  Future<void> delete() =>
+      QueryHandler.delete(query);
 }

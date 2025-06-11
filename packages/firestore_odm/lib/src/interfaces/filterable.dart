@@ -5,8 +5,8 @@ typedef FilterBuilder<T> = FirestoreFilter<T> Function(
 );
 abstract interface class Filterable<T> {
   /// Filter the query using a strongly-typed filter builder
-  /// Returns a Filterable that can be further modified
-  Filterable<T> where(
+  /// Returns a query that can be further modified
+  dynamic where(
     FilterBuilder<T> filterBuilder,
   );
 }

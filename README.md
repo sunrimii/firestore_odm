@@ -78,7 +78,7 @@ await userDoc.patch(($) => [
 - [Installation & Setup](#installation--setup) - Dependencies and code generation
 
 ### 🔧 Core Operations
-- [Collection Operations](#collection-operations) - [`insert()`](#insert-vs-update-vs-upsert), [`updateDocument()`](#insert-vs-update-vs-upsert), [`upsert()`](#insert-vs-update-vs-upsert)
+- [Collection Operations](#collection-operations) - [`insert()`](#insert-vs-update-vs-upsert), [`update()`](#insert-vs-update-vs-upsert), [`upsert()`](#insert-vs-update-vs-upsert)
 - [Document ID Fields](#-document-id-fields) - Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) usage
 - [Real-time Streams](#-real-time-data-streams) - Live data updates in Flutter UI
 
@@ -844,11 +844,11 @@ await odm.users.insert(autoUser); // ✅ Success, Firestore generates unique ID
 
 // Update existing user
 final updatedUser = user.copyWith(name: 'Alice Smith');
-await odm.users.updateDocument(updatedUser); // ✅ Success
+await odm.users.update(updatedUser); // ✅ Success
 
 // Try to update non-existent user
 final newUser = User(id: 'bob', name: 'Bob', email: 'bob@example.com');
-await odm.users.updateDocument(newUser);     // ❌ Throws StateError: doesn't exist
+await odm.users.update(newUser);     // ❌ Throws StateError: doesn't exist
 
 // Upsert works in both cases
 await odm.users.upsert(user);     // ✅ Updates existing
