@@ -38,3 +38,22 @@ class DocumentIdField {
   /// Creates a [DocumentIdField] annotation
   const DocumentIdField();
 }
+
+/// Annotation to mark a variable as a Firestore schema definition
+///
+/// Used to identify schema variables that contain multiple @Collection annotations:
+/// ```dart
+/// @Schema()
+/// @Collection<User>("users")
+/// @Collection<Post>("posts")
+/// final testSchema = _$TestSchema;
+/// ```
+///
+/// This helps the code generator identify which variables represent complete schemas
+/// for automatic discovery of nested model types.
+@Target({TargetKind.topLevelVariable})
+@immutable
+class Schema {
+  /// Creates a [Schema] annotation
+  const Schema();
+}
