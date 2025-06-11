@@ -67,7 +67,8 @@ class UpdateGenerator {
       if (fieldName == documentIdField) continue;
 
       if (TypeAnalyzer.isPrimitiveType(fieldType) ||
-          TypeAnalyzer.isComparableType(fieldType)) {
+          TypeAnalyzer.isComparableType(fieldType) ||
+          TypeAnalyzer.isMapType(fieldType)) {
         _generateUpdateFieldMethod(buffer, className, fieldName, fieldType);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -94,6 +95,11 @@ class UpdateGenerator {
       final elementType = TypeAnalyzer.getListElementType(fieldType);
       buffer.writeln(
         '  ListFieldUpdate<$className, $elementType> get $fieldName => ListFieldUpdate<$className, $elementType>(\'$fieldName\', prefix);',
+      );
+    } else if (TypeAnalyzer.isMapType(fieldType)) {
+      final (keyType, valueType) = TypeAnalyzer.getMapTypes(fieldType);
+      buffer.writeln(
+        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
       buffer.writeln(

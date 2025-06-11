@@ -81,16 +81,19 @@ await userDoc.patch(($) => [
 - [Collection Operations](#collection-operations) - [`insert()`](#insert-vs-update-vs-upsert), [`update()`](#insert-vs-update-vs-upsert), [`upsert()`](#insert-vs-update-vs-upsert)
 - [Document ID Fields](#-document-id-fields) - Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) usage
 - [Real-time Streams](#-real-time-data-streams) - Live data updates in Flutter UI
+- [Bulk Delete Operations](#-bulk-delete-operations) - Query-based and collection-wide delete operations
 
 ### 🔍 Query & Filter APIs
 - [Type-Safe Querying](#-type-safe-querying) - Complex filters with logical operations
 - [Query Operations](#query-operations) - [`where()`](#query-operations), [`orderBy()`](#query-operations), [`limit()`](#query-operations)
 - [Smart Builder Pagination](#-smart-builder-pagination-system) - Revolutionary strongly-typed pagination with zero inconsistency risk
 - [Aggregate Operations](#-type-safe-aggregate-operations) - [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart)
+- [Map Field Operations](#️-map-field-operations) - Map key access, filtering, and updates
 
 ### ✏️ Update Methods
 - [Three Update Patterns](#-three-powerful-update-methods) - Array-style, Modify, Incremental Modify
 - [Update Operations](#update-operations) - [`patch()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart), [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart), [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart)
+- [Collection Bulk Operations](#-collection-bulk-operations) - Bulk modify and incremental modify on entire collections
 - [Smart Server Timestamps](#-smart-server-timestamps) - [`FirestoreODM.serverTimestamp`](packages/firestore_odm/lib/src/firestore_odm.dart)
 
 ### 🏗️ Advanced Features
@@ -311,6 +314,97 @@ await odm.users
   .incrementalModify((user) => user.copyWith( // Bulk incremental modify
     points: user.points + 10,                 // Atomic increment for all matching docs
   ));
+```
+
+### 🗑️ Bulk Delete Operations
+
+Delete multiple documents efficiently with query-based operations:
+
+```dart
+// Delete all documents matching a query
+await odm.users
+  .where(($) => $.isActive(isEqualTo: false))
+  .delete();
+
+// Delete from ordered query results
+await odm.users
+  .orderBy(($) => $.rating())
+  .limit(10)
+  .delete();
+
+// Delete entire collection
+await odm.users.delete();
+
+// Delete with complex filters
+await odm.users
+  .where(($) => $.and(
+    $.age(isLessThan: 18),
+    $.isActive(isEqualTo: false),
+  ))
+  .delete();
+```
+
+### 🗺️ Map Field Operations
+
+Complete support for Map field access and updates:
+
+```dart
+// Map key filtering
+final users = await odm.users
+  .where(($) => $.settings.key('theme')(isEqualTo: 'dark'))
+  .get();
+
+// Nested map key filtering
+final users = await odm.users
+  .where(($) => $.profile.socialLinks.key('github')(isEqualTo: 'username'))
+  .get();
+
+// Map key updates with patch
+await userDoc.patch(($) => [
+  $.settings.setKey('theme', 'dark'),
+  $.profile.socialLinks.setKey('github', 'new-username'),
+  $.metadata.removeKey('deprecated_field'),
+]);
+
+// Complete map replacement
+await userDoc.patch(($) => [
+  $.settings({'theme': 'dark', 'language': 'en'}),
+]);
+
+// Map operations in bulk queries
+await odm.users
+  .where(($) => $.settings.key('theme')(isEqualTo: 'light'))
+  .patch(($) => [$.settings.setKey('theme', 'dark')]);
+```
+
+### 🏗️ Collection Bulk Operations
+
+Perform operations on entire collections efficiently:
+
+```dart
+// Bulk modify entire collection
+await odm.users.modify((user) => user.copyWith(
+  isActive: true,
+  updatedAt: DateTime.now(),
+));
+
+// Bulk incremental modify with atomic operations
+await odm.users.incrementalModify((user) => user.copyWith(
+  points: user.points + 10,              // Auto-detects → FieldValue.increment(10)
+  tags: [...user.tags, 'bonus'],         // Auto-detects → FieldValue.arrayUnion(['bonus'])
+  lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
+));
+
+// Collection operations work with aggregations
+final stats = await odm.users.aggregate(($) => (
+  count: $.count(),
+  avgAge: $.age.average(),
+)).get();
+
+// Mix collection operations with queries
+await odm.users
+  .where(($) => $.isActive(isEqualTo: true))
+  .modify((user) => user.copyWith(lastActive: DateTime.now()));
 ```
 
 ### 🏗️ Document ID Fields
@@ -643,9 +737,11 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | **Core Operations** | Document CRUD | ✅ Complete | Create, read, update, delete documents |
 | | Collection Operations | ✅ Complete | [`insert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`update()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart), [`upsert()`](packages/firestore_odm/lib/src/interfaces/collection_operations.dart) |
 | | Document ID Fields | ✅ Complete | Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) with automatic detection |
+| | Bulk Delete Operations | ✅ Complete | Query-based and collection-wide delete operations |
 | **Querying** | Type-safe Filtering | ✅ Complete | All Firestore operators on primitive and custom types |
 | | Nested Object Queries | ✅ Complete | Deep filtering on custom class fields |
 | | Array Operations | ✅ Complete | [`arrayContains`](packages/firestore_odm/lib/src/filter_builder.dart), [`arrayContainsAny`](packages/firestore_odm/lib/src/filter_builder.dart), array updates |
+| | Map Operations | ✅ Complete | Map field access via [`key()`](packages/firestore_odm/lib/src/filter_builder.dart), individual key filtering and updates |
 | | Logical Operations | ✅ Complete | [`and()`](packages/firestore_odm/lib/src/filter_builder.dart), [`or()`](packages/firestore_odm/lib/src/filter_builder.dart) query combinators |
 | | Order By & Limits | ✅ Complete | [`orderBy()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart), [`limit()`](packages/firestore_odm/lib/src/interfaces/query_operations.dart) operations |
 | | Pagination | ✅ Complete | Smart Builder Pagination with [`startAt()`](packages/firestore_odm/lib/src/pagination.dart), [`startAfter()`](packages/firestore_odm/lib/src/pagination.dart), [`endAt()`](packages/firestore_odm/lib/src/pagination.dart), [`endBefore()`](packages/firestore_odm/lib/src/pagination.dart) |
@@ -654,6 +750,7 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | | Incremental Modify | ✅ Complete | Automatic atomic detection with [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart) |
 | | Atomic Operations | ✅ Complete | Increments, server timestamps, mixed operations |
 | | Bulk Updates | ✅ Complete | Query-based bulk operations |
+| | Map Updates | ✅ Complete | Individual map key updates via [`setKey()`](packages/firestore_odm/lib/src/filter_builder.dart), [`removeKey()`](packages/firestore_odm/lib/src/filter_builder.dart) |
 | **Advanced Features** | Aggregate Operations | ✅ Complete | [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart) with type safety |
 | | Real-time Streams | ✅ Complete | Automatic subscription management |
 | | Transactions | ✅ Complete | Full transaction support with automatic context detection |
@@ -666,19 +763,6 @@ Below is a comprehensive overview of all Firestore ODM features and their curren
 | | Type Safety | ✅ Complete | Compile-time validation throughout |
 | **Testing & Dev** | Testing Support | ✅ Complete | Full compatibility with [`fake_cloud_firestore`](packages/firestore_odm/lib/firestore_odm.dart) |
 | | Development Tools | ✅ Complete | Build runner integration and error reporting |
-| **Limitations** | Map Field Access | ❌ Not Supported | Direct access to map fields like `profile.socialLinks.github` |
-| | Complex Map Updates | ❌ Not Supported | Individual map key updates need full map replacement |
-
-### 🚧 Pending Features
-
-**Map Field Access**
-```dart
-// ❌ NOT SUPPORTED YET
-await odm.users.where(($) => $.profile.socialLinks.github(isEqualTo: 'username')).get();
-
-// ✅ WORKAROUND: Use map-level filtering
-await odm.users.where(($) => $.profile.socialLinks(isNotEqualTo: null)).get();
-```
 
 ### 🎯 Fully Implemented Core Features
 
@@ -802,8 +886,13 @@ final user = await users.doc('id').get();
 
 // Collection-level operations (using model's ID field)
 await users.insert(user);        // Create new (fails if exists)
-await users.update(user); // Update existing (fails if not exists)
+await users.update(user);        // Update existing (fails if not exists)
 await users.upsert(user);        // Create or update
+await users.delete();           // Delete entire collection
+
+// Bulk operations on collections
+await users.modify((user) => user.copyWith(isActive: true));
+await users.incrementalModify((user) => user.copyWith(points: user.points + 10));
 
 // Advanced document operations
 await users.doc('id').modify((user) => user.copyWith(age: 26));
@@ -873,6 +962,11 @@ users.where(($) => $.field(isNull: true))
 users.where(($) => $.arrayField(arrayContains: value))
 users.where(($) => $.arrayField(arrayContainsAny: [values]))
 
+// Map operations
+users.where(($) => $.mapField.key('keyName')(isEqualTo: value))
+users.where(($) => $.mapField.key('keyName')(isNull: false))
+users.where(($) => $.mapField(isEqualTo: {...}))
+
 // Logical operations
 users.where(($) => $.and(filter1, filter2, filter3))
 users.where(($) => $.or(filter1, filter2, filter3))
@@ -882,19 +976,27 @@ users.orderBy(($) => $.field(descending: true))
 users.limit(10)
 users.startAfter(document)
 users.endBefore(document)
+
+// Delete operations
+users.where(($) => $.isActive(isEqualTo: false)).delete()
+users.orderBy(($) => $.rating()).limit(10).delete()
+users.delete() // Delete entire collection
 ```
 
 ### Update Operations
 
 ```dart
 // Array-style updates
-await doc.update(($) => [
+await doc.patch(($) => [
   $.field(newValue),                    // Direct assignment
   $.nestedObject.field(value),          // Nested updates
   $.arrayField.add(item),               // Array union
   $.arrayField.remove(item),            // Array remove
   $.numericField.increment(5),          // Numeric increment
   $.timestampField.serverTimestamp(),   // Server timestamp
+  $.mapField.setKey('key', value),      // Map key update
+  $.mapField.removeKey('key'),          // Map key removal
+  $.mapField({'key': 'value'}),         // Complete map replacement
 ]);
 
 // Modify operations
@@ -909,6 +1011,13 @@ await doc.incrementalModify((current) => current.copyWith(
   tags: [...current.tags, 'new'],       // Auto-arrayUnion
   scores: current.scores.where((s) => s > 0).toList(), // Auto-arrayRemove
 ));
+
+// Bulk operations work with all update methods
+await users.where(($) => $.isActive(isEqualTo: true)).patch(($) => [
+  $.lastActive.serverTimestamp(),
+]);
+await users.modify((user) => user.copyWith(updatedAt: DateTime.now()));
+await users.incrementalModify((user) => user.copyWith(points: user.points + 1));
 ```
 
 ### Real-time Streams

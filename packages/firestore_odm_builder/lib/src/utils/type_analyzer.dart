@@ -57,7 +57,7 @@ class TypeAnalyzer {
     final typeName = type.getDisplayString(withNullability: false);
     return !isPrimitiveType(type) &&
         !isListType(type) &&
-        !typeName.startsWith('Map<') &&
+        !isMapType(type) &&
         !typeName.startsWith('Set<');
   }
 
@@ -70,6 +70,26 @@ class TypeAnalyzer {
   /// Check if a type is a List type
   static bool isListType(DartType type) {
     return type.getDisplayString(withNullability: false).startsWith('List<');
+  }
+
+  /// Check if a type is a Map type
+  static bool isMapType(DartType type) {
+    return type.getDisplayString(withNullability: false).startsWith('Map<');
+  }
+
+  /// Get the key and value types of a Map
+  static (String keyType, String valueType) getMapTypes(DartType mapType) {
+    final typeString = mapType.getDisplayString(withNullability: false);
+    if (typeString.startsWith('Map<') && typeString.endsWith('>')) {
+      final innerTypes = typeString.substring(4, typeString.length - 1);
+      final commaIndex = innerTypes.indexOf(',');
+      if (commaIndex != -1) {
+        final keyType = innerTypes.substring(0, commaIndex).trim();
+        final valueType = innerTypes.substring(commaIndex + 1).trim();
+        return (keyType, valueType);
+      }
+    }
+    return ('dynamic', 'dynamic');
   }
 
   /// Check if a type is a built-in Dart type

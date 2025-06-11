@@ -199,6 +199,9 @@ Map<String, dynamic> _detectNestedAtomicOperations(
           fullFieldPath,
         );
         result.addAll(deeperOps);
+      } else {
+        // Non-atomic operation (like string update) - include it too!
+        result[fullFieldPath] = newFieldValue;
       }
     } else if (!oldValue.containsKey(fieldKey)) {
       // New field in nested object

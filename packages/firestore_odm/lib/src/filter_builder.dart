@@ -1539,6 +1539,132 @@ class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
   }
 }
 
+/// Map field callable filter with key access support
+class MapFieldFilter<T, K, V> extends CallableFilter<T, Map<K, V>> {
+  const MapFieldFilter(super.fieldName, super.prefix);
+
+  /// Filter the entire map
+  FirestoreFilter<T> call({
+    Map<K, V>? isEqualTo,
+    Map<K, V>? isNotEqualTo,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+
+  /// Access a specific key in the map for filtering
+  /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
+  MapKeyFieldFilter<T, V> key(K mapKey) {
+    final keyPath = prefix.isEmpty ? '$fieldName.$mapKey' : '$prefix.$fieldName.$mapKey';
+    return MapKeyFieldFilter<T, V>(keyPath, '');
+  }
+}
+
+/// Filter for individual map keys
+class MapKeyFieldFilter<T, V> extends CallableFilter<T, V> {
+  const MapKeyFieldFilter(super.fieldName, super.prefix);
+
+  FirestoreFilter<T> call({
+    V? isEqualTo,
+    V? isNotEqualTo,
+    V? isLessThan,
+    V? isLessThanOrEqualTo,
+    V? isGreaterThan,
+    V? isGreaterThanOrEqualTo,
+    List<V>? whereIn,
+    List<V>? whereNotIn,
+    bool? isNull,
+  }) {
+    if (isEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isEqualTo,
+        value: isEqualTo,
+      );
+    }
+    if (isNotEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isNotEqualTo,
+        value: isNotEqualTo,
+      );
+    }
+    if (isLessThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThan,
+        value: isLessThan,
+      );
+    }
+    if (isLessThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isLessThanOrEqualTo,
+        value: isLessThanOrEqualTo,
+      );
+    }
+    if (isGreaterThan != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThan,
+        value: isGreaterThan,
+      );
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.isGreaterThanOrEqualTo,
+        value: isGreaterThanOrEqualTo,
+      );
+    }
+    if (whereIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereIn,
+        value: whereIn,
+      );
+    }
+    if (whereNotIn != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: FilterOperator.whereNotIn,
+        value: whereNotIn,
+      );
+    }
+    if (isNull != null) {
+      return FirestoreFilter.field(
+        field: fieldPath,
+        operator: isNull ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo,
+        value: null,
+      );
+    }
+
+    throw ArgumentError('At least one filter condition must be provided');
+  }
+}
+
 /// Document ID callable filter (special case)
 class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
   const DocumentIdFieldFilter(super.fieldName, super.prefix);
@@ -1714,6 +1840,30 @@ class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
   /// Set value
   UpdateOperation call(V value) {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+}
+
+/// Map field callable updater
+class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
+  const MapFieldUpdate(super.fieldName, super.prefix);
+  
+  /// Set entire map value
+  UpdateOperation call(Map<K, V> value) {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
+  }
+  
+  /// Set a specific key in the map
+  /// Usage: $.profile.socialLinks.setKey("github", "username")
+  UpdateOperation setKey(K key, V value) {
+    final keyPath = prefix.isEmpty ? '$fieldName.$key' : '$prefix.$fieldName.$key';
+    return UpdateOperation(keyPath, UpdateOperationType.set, value);
+  }
+  
+  /// Remove a specific key from the map
+  /// Usage: $.profile.socialLinks.removeKey("github")
+  UpdateOperation removeKey(K key) {
+    final keyPath = prefix.isEmpty ? '$fieldName.$key' : '$prefix.$fieldName.$key';
+    return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
 }
 

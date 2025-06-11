@@ -31,7 +31,7 @@ class FilterGenerator {
       // Skip document ID field as it's handled separately above
       if (fieldName == documentIdField) continue;
 
-      if (TypeAnalyzer.isPrimitiveType(fieldType)) {
+      if (TypeAnalyzer.isPrimitiveType(fieldType) || TypeAnalyzer.isMapType(fieldType)) {
         _generateFieldGetter(buffer, fieldName, fieldType, rootFilterType);
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         // Generate nested object getter for custom classes
@@ -105,6 +105,14 @@ class FilterGenerator {
       );
       buffer.writeln(
         '      ArrayFieldFilter<$rootFilterType, $elementType>(\'$fieldName\', prefix);',
+      );
+    } else if (TypeAnalyzer.isMapType(fieldType)) {
+      final (keyType, valueType) = TypeAnalyzer.getMapTypes(fieldType);
+      buffer.writeln(
+        '  MapFieldFilter<$rootFilterType, $keyType, $valueType> get $fieldName =>',
+      );
+      buffer.writeln(
+        '      MapFieldFilter<$rootFilterType, $keyType, $valueType>(\'$fieldName\', prefix);',
       );
     } else if (typeString == 'bool') {
       buffer.writeln('  BoolFieldFilter<$rootFilterType> get $fieldName =>');
