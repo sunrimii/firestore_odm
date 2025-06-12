@@ -2,21 +2,18 @@ name: firestore_odm_workspace
 repository: https://github.com/sylphxltd/firestore_odm
 
 packages:
-  - packages/firestore_odm_annotation
-  - packages/firestore_odm
-  - packages/firestore_odm_builder
-  - flutter_example
+  - apps/**
+  - packages/**
 
 command:
-  bootstrap:
-    usePubspecOverrides: true
   version:
-    # Only allow versioning for actual publishable packages
-    includeScopes: false
     updateGitTagRefs: true
     workspaceChangelog: true
 
 scripts:
+  generate:
+    run: melos exec -c 1 --depends-on build_runner -- dart run build_runner build
+    
   # Development scripts
   analyze:
     run: dart analyze .

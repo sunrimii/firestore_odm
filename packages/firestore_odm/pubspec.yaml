@@ -5,6 +5,7 @@ homepage: https://github.com/sylphxltd/firestore_odm
 repository: https://github.com/sylphxltd/firestore_odm
 issue_tracker: https://github.com/sylphxltd/firestore_odm/issues
 documentation: https://pub.dev/documentation/firestore_odm/latest/
+resolution: workspace
 
 topics:
   - firestore
@@ -23,7 +24,7 @@ dependencies:
   cloud_firestore: ^5.0.0
   cloud_firestore_platform_interface: ^6.5.0
   meta: ^1.9.1
-  firestore_odm_annotation: ^1.2.0
+  firestore_odm_annotation: 
 
 dev_dependencies:
   flutter_test:

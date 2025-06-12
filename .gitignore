@@ -39,3 +39,8 @@ example/.flutter-plugins-dependencies
 packages/*/pubspec_overrides.yaml
 packages/*/.dart_tool/
 packages/*/build/
+
+
+apps/*/pubspec_overrides.yaml
+apps/*/.dart_tool/
+apps/*/build/
