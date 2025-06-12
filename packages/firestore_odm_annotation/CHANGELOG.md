@@ -1,3 +1,7 @@
+## 1.2.0
+
+ - **FEAT**: add Schema annotation for Firestore schema definitions. ([036425be](https://github.com/sylphxltd/firestore_odm/commit/036425beb89ff1331a68606d1a48b22402426e88))
+
 ## 1.1.0
 
  - **REFACTOR**: Remove all hardcoded field names and simplify generator. ([8afa7ecd](https://github.com/sylphxltd/firestore_odm/commit/8afa7ecd03141a8f19aeeecf30cfdfd767009daf))

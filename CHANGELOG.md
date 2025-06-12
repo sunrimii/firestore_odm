@@ -3,6 +3,45 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-06-12
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v2.0.1`](#firestore_odm---v201)
+ - [`firestore_odm_annotation` - `v1.2.0`](#firestore_odm_annotation---v120)
+ - [`firestore_odm_builder` - `v2.0.1`](#firestore_odm_builder---v201)
+
+---
+
+#### `firestore_odm` - `v2.0.1`
+
+ - **REFACTOR**: code formatting and improve readability across multiple files. ([4a7876b7](https://github.com/sylphxltd/firestore_odm/commit/4a7876b7a16fb389301b9bdb924b24b9e4bbbde6))
+ - **REFACTOR**: update to use element2 API for improved type handling. ([77260aa7](https://github.com/sylphxltd/firestore_odm/commit/77260aa7d8ffcb22fadd8414e9e4a89aed8ffcf9))
+ - **REFACTOR**: firestore ODM code generation to utilize ModelAnalysis. ([1e82daab](https://github.com/sylphxltd/firestore_odm/commit/1e82daaba984ebd3d3d3ec15d80d855e29869221))
+ - **REFACTOR**: refactor and clean up code across multiple files. ([cc44c322](https://github.com/sylphxltd/firestore_odm/commit/cc44c322b43fb72bdeebb20b0a87ccd8fcb64607))
+ - **FIX**: correct fieldPath concatenation and update empty check for updateMap. ([d5d2db74](https://github.com/sylphxltd/firestore_odm/commit/d5d2db7462ee17016e098fc2f48a73d4c105c211))
+
+#### `firestore_odm_annotation` - `v1.2.0`
+
+ - **FEAT**: add Schema annotation for Firestore schema definitions. ([036425be](https://github.com/sylphxltd/firestore_odm/commit/036425beb89ff1331a68606d1a48b22402426e88))
+
+#### `firestore_odm_builder` - `v2.0.1`
+
+ - **REFACTOR**: code formatting and improve readability across multiple files. ([4a7876b7](https://github.com/sylphxltd/firestore_odm/commit/4a7876b7a16fb389301b9bdb924b24b9e4bbbde6))
+ - **REFACTOR**: update Firestore ODM builders to enhance type handling and improve code structure. ([841f5073](https://github.com/sylphxltd/firestore_odm/commit/841f5073c553c3793d4c8f1e4bf887663ba28ff6))
+ - **REFACTOR**: update to use element2 API for improved type handling. ([77260aa7](https://github.com/sylphxltd/firestore_odm/commit/77260aa7d8ffcb22fadd8414e9e4a89aed8ffcf9))
+ - **REFACTOR**: firestore ODM code generation to utilize ModelAnalysis. ([1e82daab](https://github.com/sylphxltd/firestore_odm/commit/1e82daaba984ebd3d3d3ec15d80d855e29869221))
+ - **REFACTOR**: refactor and clean up code across multiple files. ([cc44c322](https://github.com/sylphxltd/firestore_odm/commit/cc44c322b43fb72bdeebb20b0a87ccd8fcb64607))
+
+
 ## 2025-06-11
 
 ### Changes
