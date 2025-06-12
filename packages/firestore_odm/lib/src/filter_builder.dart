@@ -1724,7 +1724,7 @@ abstract class CallableUpdate<T> {
 
   const CallableUpdate(this.fieldName, this.prefix);
 
-  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix$fieldName';
 }
 
 /// Boolean field callable updater

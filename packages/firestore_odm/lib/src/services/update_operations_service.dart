@@ -277,7 +277,7 @@ class DocumentHandler {
     final builder = UpdateBuilder<T>();
     final operations = patchBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);
-    if (!updateMap.isNotEmpty) {
+    if (updateMap.isEmpty) {
       return; // No updates to apply
     }
     await ref.update(updateMap);
