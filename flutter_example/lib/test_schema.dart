@@ -8,6 +8,8 @@ import 'models/profile.dart';
 import 'models/story.dart';
 import 'models/immutable_user.dart';
 import 'models/json_key_user.dart';
+import 'models/dart_immutable_user.dart';
+import 'models/manual_user.dart';
 
 part 'test_schema.odm.dart';
 
@@ -21,4 +23,6 @@ part 'test_schema.odm.dart';
 @Collection<SharedPost>("users/*/sharedPosts") // Different subcollection path
 @Collection<ImmutableUser>("immutableUsers") // Fast immutable collections test
 @Collection<JsonKeyUser>("jsonKeyUsers") // JsonKey annotation test
+@Collection<DartImmutableUser>("dartImmutableUsers") // Pure Dart immutable + json_serializable test
+@Collection<ManualUser>("manualUsers") // Manual toJson/fromJson implementation test
 final testSchema = _$TestSchema;
