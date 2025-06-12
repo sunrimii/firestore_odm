@@ -15,6 +15,32 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v2.0.2`](#firestore_odm---v202)
+ - [`firestore_odm_builder` - `v2.1.0`](#firestore_odm_builder---v210)
+
+---
+
+#### `firestore_odm` - `v2.0.2`
+
+ - **REFACTOR**: improve formatting and readability in MapFieldFilter and OrderByField classes. ([4e8f1877](https://github.com/sylphxltd/firestore_odm/commit/4e8f187744dcd984d60bac976f6f1f5784c7c82a))
+
+#### `firestore_odm_builder` - `v2.1.0`
+
+ - **FEAT**: add json_annotation dependency to pubspec.yaml. ([f2c7f28d](https://github.com/sylphxltd/firestore_odm/commit/f2c7f28d17e698caeaad53777a7ce718534b1d03))
+
+
+## 2025-06-12
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v2.0.1`](#firestore_odm---v201)
  - [`firestore_odm_annotation` - `v1.2.0`](#firestore_odm_annotation---v120)
  - [`firestore_odm_builder` - `v2.0.1`](#firestore_odm_builder---v201)

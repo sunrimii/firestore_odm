@@ -1,3 +1,7 @@
+## 2.0.2
+
+ - **REFACTOR**: improve formatting and readability in MapFieldFilter and OrderByField classes. ([4e8f1877](https://github.com/sylphxltd/firestore_odm/commit/4e8f187744dcd984d60bac976f6f1f5784c7c82a))
+
 ## 2.0.1
 
  - **REFACTOR**: code formatting and improve readability across multiple files. ([4a7876b7](https://github.com/sylphxltd/firestore_odm/commit/4a7876b7a16fb389301b9bdb924b24b9e4bbbde6))

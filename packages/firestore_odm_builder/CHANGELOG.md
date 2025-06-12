@@ -1,3 +1,7 @@
+## 2.1.0
+
+ - **FEAT**: add json_annotation dependency to pubspec.yaml. ([f2c7f28d](https://github.com/sylphxltd/firestore_odm/commit/f2c7f28d17e698caeaad53777a7ce718534b1d03))
+
 ## 2.0.1
 
  - **REFACTOR**: code formatting and improve readability across multiple files. ([4a7876b7](https://github.com/sylphxltd/firestore_odm/commit/4a7876b7a16fb389301b9bdb924b24b9e4bbbde6))
