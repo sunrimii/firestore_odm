@@ -84,9 +84,6 @@ class ODMExtensionGenerator {
 
       final childCollectionName = StringHelpers.camelCase(childCollection);
 
-      // Use generic collection class name
-      final collectionClassName = '${className}Collection';
-
       // Get the subcollection name (last segment that's not a wildcard)
       final subcollectionName = collectionsOnly.last;
 

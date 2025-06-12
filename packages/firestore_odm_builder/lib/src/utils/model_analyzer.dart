@@ -218,7 +218,7 @@ class ModelAnalyzer {
     List<(String, DartType, Element)> fields,
   ) {
     // First pass: Look for explicit @DocumentIdField() annotation
-    for (final (fieldName, fieldType, element) in fields) {
+    for (final (fieldName, _, element) in fields) {
       final documentIdAnnotation = TypeAnalyzer.documentIdChecker
           .firstAnnotationOf(element);
       if (documentIdAnnotation != null) {
@@ -227,113 +227,13 @@ class ModelAnalyzer {
     }
 
     // Second pass: Look for a field named 'id' as default
-    for (final (fieldName, fieldType, element) in fields) {
+    for (final (fieldName, fieldType, _) in fields) {
       if (fieldName == 'id' && TypeAnalyzer.isStringType(fieldType)) {
         return fieldName;
       }
     }
 
     return null;
-  }
-
-  /// Analyze a single property field
-  static FieldInfo _analyzeProperty(FieldElement2 field) {
-    final fieldName = field.name3!;
-    final dartType = field.type;
-    final isNullable = TypeAnalyzer.isNullableType(dartType);
-    final isOptional = isNullable; // Properties are optional if nullable
-
-    // Determine JSON field name
-    String jsonFieldName = fieldName; // Default to field name
-
-    // Check for @JsonKey annotation
-    for (final metadata in field.metadata2.annotations) {
-      final metadataValue = metadata.computeConstantValue();
-      if (metadataValue != null &&
-          metadataValue.type != null &&
-          _jsonKeyChecker.isExactlyType(metadataValue.type!)) {
-        // Extract 'name' field from @JsonKey annotation
-        final nameField = metadataValue.getField('name');
-        if (nameField != null && !nameField.isNull) {
-          final nameValue = nameField.toStringValue();
-          if (nameValue != null && nameValue.isNotEmpty) {
-            jsonFieldName = nameValue;
-          }
-        }
-        break;
-      }
-    }
-
-    return FieldInfo(
-      parameterName: fieldName,
-      jsonFieldName: jsonFieldName,
-      dartType: dartType,
-      isDocumentId: false, // Will be set later if this is the document ID field
-      isNullable: isNullable,
-      isOptional: isOptional,
-    );
-  }
-
-  /// Find the document ID field from properties
-  static String? _getDocumentIdFieldFromProperties(List<FieldElement2> fields) {
-    // First pass: Look for explicit @DocumentIdField() annotation
-    for (final field in fields) {
-      for (final metadata in field.metadata2.annotations) {
-        final metadataValue = metadata.computeConstantValue();
-        if (metadataValue != null &&
-            metadataValue.type != null &&
-            TypeAnalyzer.documentIdChecker.isExactlyType(metadataValue.type!)) {
-          return field.name3!;
-        }
-      }
-    }
-
-    // Second pass: Look for a field named 'id' as default
-    for (final field in fields) {
-      if (field.name3 == 'id' && TypeAnalyzer.isStringType(field.type)) {
-        return field.name3!;
-      }
-    }
-
-    return null;
-  }
-
-  /// Analyze a single field parameter (legacy method for constructor-based analysis)
-  static FieldInfo _analyzeField(FormalParameterElement param) {
-    final paramName = param.name3!;
-    final dartType = param.type;
-    final isNullable = TypeAnalyzer.isNullableType(dartType);
-    final isOptional = param.isOptional || param.hasDefaultValue;
-
-    // Determine JSON field name
-    String jsonFieldName = paramName; // Default to parameter name
-
-    // Check for @JsonKey annotation
-    for (final metadata in param.metadata2.annotations) {
-      final metadataValue = metadata.computeConstantValue();
-      if (metadataValue != null &&
-          metadataValue.type != null &&
-          _jsonKeyChecker.isExactlyType(metadataValue.type!)) {
-        // Extract 'name' field from @JsonKey annotation
-        final nameField = metadataValue.getField('name');
-        if (nameField != null && !nameField.isNull) {
-          final nameValue = nameField.toStringValue();
-          if (nameValue != null && nameValue.isNotEmpty) {
-            jsonFieldName = nameValue;
-          }
-        }
-        break;
-      }
-    }
-
-    return FieldInfo(
-      parameterName: paramName,
-      jsonFieldName: jsonFieldName,
-      dartType: dartType,
-      isDocumentId: false, // Will be set later if this is the document ID field
-      isNullable: isNullable,
-      isOptional: isOptional,
-    );
   }
 
   /// Analyze a model and all its nested types recursively
