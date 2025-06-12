@@ -24,7 +24,6 @@ dependencies:
   cloud_firestore: ^5.0.0
   cloud_firestore_platform_interface: ^6.5.0
   meta: ^1.9.1
-  firestore_odm_annotation: 
 
 dev_dependencies:
   flutter_test:

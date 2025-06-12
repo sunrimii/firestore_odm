@@ -16,3 +16,10 @@ environment:
 dev_dependencies:
   melos: ^6.3.0
   very_good_analysis: ^6.0.0
+
+  
+workspace:
+  - packages/firestore_odm
+  - packages/firestore_odm_annotation
+  - packages/firestore_odm_builder
+  - apps/flutter_example
