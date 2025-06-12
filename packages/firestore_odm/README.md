@@ -68,6 +68,7 @@ await userDoc.patch(($) => [
 - **🔄 Smart Updates** - Three different update patterns for every use case
 - **🔗 Unified Collections** - Single models work across multiple collection paths
 - **🏗️ Schema-Based Architecture** - Multiple ODM instances with different structures
+- **🧩 Flexible Modeling** - Supports `freezed`, plain Dart classes, and `fast_immutable_collections`
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
 ## 📚 Documentation Index
@@ -99,6 +100,7 @@ await userDoc.patch(($) => [
 ### 🏗️ Advanced Features
 - [Multiple Collections & Subcollections](#-multiple-collections--subcollections) - Schema-based collection management
 - [Safe Transactions](#-safe-transactions) - ACID guarantees with [`runTransaction()`](packages/firestore_odm/lib/src/firestore_odm.dart)
+- [Flexible Data Modeling](#-flexible-data-modeling) - Use `freezed`, plain Dart classes, or `fast_immutable_collections`
 - [Feature Completion Status](#feature-completion-status) - What's implemented vs pending
 
 ### 📖 Reference & Examples
@@ -727,6 +729,100 @@ await userDoc.incrementalModify((user) => user.copyWith(
   sessionCount: user.sessionCount + 1,       // Auto-converted to increment
 ));
 ```
+
+### 🧩 Flexible Data Modeling
+
+While `freezed` is an excellent choice for creating data models, `firestore_odm` is designed to be flexible. You can use plain immutable Dart classes with `json_serializable` or enhance your models with `fast_immutable_collections`.
+
+#### **Plain Dart Classes with `json_serializable`**
+
+You are not required to use `freezed`. If you prefer writing immutable classes by hand, `firestore_odm` works perfectly with classes annotated with `json_serializable`.
+
+This approach gives you full control over your model's implementation while still benefiting from type-safe queries and updates.
+
+**Example `user.dart`:**
+```dart
+// lib/models/user.dart
+import 'package:firestore_odm/firestore_odm.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'user.g.dart';
+
+@JsonSerializable()
+class User {
+  @DocumentIdField()
+  final String id;
+
+  final String name;
+
+  @JsonKey(name: 'user_email') // Customize field name in Firestore
+  final String email;
+
+  @JsonKey(defaultValue: false) // Provide default values
+  final bool isPremium;
+
+  @JsonKey(includeFromJson: false, includeToJson: false) // Ignore field
+  final String? internalNotes;
+
+  const User({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.isPremium = false,
+    this.internalNotes,
+  });
+
+  // Required for json_serializable
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+
+  // Required for json_serializable
+  Map<String, dynamic> toJson() => _$UserToJson(this);
+
+  // Recommended for immutable classes
+  User copyWith({
+    String? id,
+    String? name,
+    String? email,
+    bool? isPremium,
+  }) {
+    return User(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      isPremium: isPremium ?? this.isPremium,
+      internalNotes: this.internalNotes, // Does not participate in copyWith
+    );
+  }
+}
+```
+The workflow remains the same: define your model, include it in your schema, and run `build_runner`. The ODM will generate all the necessary type-safe extensions.
+
+#### **`fast_immutable_collections` Support**
+
+For enhanced performance and truly immutable collections, `firestore_odm` seamlessly supports the [`fast_immutable_collections`](https://pub.dev/packages/fast_immutable_collections) library.
+
+You can use `IList`, `IMap`, and `ISet` directly in your models. The ODM, in conjunction with `json_serializable`, will handle the conversion to and from Firestore-compatible types (`List`, `Map`).
+
+**Example Model with `IList`:**
+```dart
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+// ... other imports
+
+@freezed
+class Product with _$Product {
+  const factory Product({
+    @DocumentIdField() required String id,
+    required String name,
+    required IList<String> tags, // Use IList for an immutable list
+    required IMap<String, String> attributes, // Use IMap for an immutable map
+  }) = _Product;
+
+  factory Product.fromJson(Map<String, dynamic> json) => _$ProductFromJson(json);
+}
+```
+This allows you to build robust, high-performance applications by leveraging the benefits of immutable data structures throughout your app.
 
 ## Feature Completion Status
 
