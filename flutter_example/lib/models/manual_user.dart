@@ -3,7 +3,7 @@ import 'package:firestore_odm/firestore_odm.dart';
 class ManualUser {
   @DocumentIdField()
   final String id;
-  
+
   final String name;
   final String email;
   final int age;
@@ -14,7 +14,7 @@ class ManualUser {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isActive;
-  
+
   // This field will be ignored in JSON serialization
   final String? debugInfo;
 
@@ -72,13 +72,17 @@ class ManualUser {
       email: json['contact_email'] as String, // Custom field name
       age: json['user_age'] as int, // Custom field name
       isPremium: json['premium_member'] as bool? ?? false, // Custom field name
-      rating: (json['user_rating'] as num?)?.toDouble() ?? 0.0, // Custom field name
+      rating:
+          (json['user_rating'] as num?)?.toDouble() ?? 0.0, // Custom field name
       tags: (json['user_tags'] as List<dynamic>?)?.cast<String>() ?? [],
-      preferences: (json['user_preferences'] as Map<String, dynamic>?)?.cast<String, String>() ?? {},
-      createdAt: json['created_timestamp'] != null 
+      preferences:
+          (json['user_preferences'] as Map<String, dynamic>?)
+              ?.cast<String, String>() ??
+          {},
+      createdAt: json['created_timestamp'] != null
           ? DateTime.parse(json['created_timestamp'] as String)
           : null,
-      updatedAt: json['updated_timestamp'] != null 
+      updatedAt: json['updated_timestamp'] != null
           ? DateTime.parse(json['updated_timestamp'] as String)
           : null,
       isActive: json['active_status'] as bool? ?? true, // Custom field name
@@ -119,15 +123,7 @@ class ManualUser {
 
   @override
   int get hashCode {
-    return Object.hash(
-      id,
-      name,
-      email,
-      age,
-      isPremium,
-      rating,
-      isActive,
-    );
+    return Object.hash(id, name, email, age, isPremium, rating, isActive);
   }
 
   @override

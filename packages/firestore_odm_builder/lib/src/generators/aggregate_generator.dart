@@ -1,4 +1,3 @@
-import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -50,8 +49,12 @@ class AggregateGenerator {
     StringBuffer buffer,
     FieldInfo field,
   ) {
-    buffer.writeln('  /// Access nested ${field.parameterName} aggregate fields');
-    buffer.writeln('  AggregateFieldSelector<${field.dartType}> get ${field.parameterName} => AggregateFieldSelector(name: \'${field.jsonFieldName}\', parent: this);');
+    buffer.writeln(
+      '  /// Access nested ${field.parameterName} aggregate fields',
+    );
+    buffer.writeln(
+      '  AggregateFieldSelector<${field.dartType}> get ${field.parameterName} => AggregateFieldSelector(name: \'${field.jsonFieldName}\', parent: this);',
+    );
     buffer.writeln('');
   }
 }

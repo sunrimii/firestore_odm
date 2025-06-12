@@ -23,6 +23,10 @@ part 'test_schema.odm.dart';
 @Collection<SharedPost>("users/*/sharedPosts") // Different subcollection path
 @Collection<ImmutableUser>("immutableUsers") // Fast immutable collections test
 @Collection<JsonKeyUser>("jsonKeyUsers") // JsonKey annotation test
-@Collection<DartImmutableUser>("dartImmutableUsers") // Pure Dart immutable + json_serializable test
-@Collection<ManualUser>("manualUsers") // Manual toJson/fromJson implementation test
+@Collection<DartImmutableUser>(
+  "dartImmutableUsers",
+) // Pure Dart immutable + json_serializable test
+@Collection<ManualUser>(
+  "manualUsers",
+) // Manual toJson/fromJson implementation test
 final testSchema = _$TestSchema;

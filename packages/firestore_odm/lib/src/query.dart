@@ -56,7 +56,10 @@ class Query<S extends FirestoreSchema, T>
   OrderedQuery<S, T, O> orderBy<O extends Record>(
     OrderByBuilder<T, O> orderBuilder,
   ) {
-    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder, _documentIdField);
+    final config = QueryOrderbyHandler.buildOrderBy(
+      orderBuilder,
+      _documentIdField,
+    );
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
     return OrderedQuery(newQuery, _converter, _documentIdField, config);
   }

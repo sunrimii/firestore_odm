@@ -1,12 +1,8 @@
-import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
 /// Generator for order by builders
 class OrderByGenerator {
-
-
   static void _generateOrderByFieldSelectorMethod(
     StringBuffer buffer,
     FieldInfo field,
@@ -32,7 +28,6 @@ class OrderByGenerator {
     buffer.writeln('');
   }
 
-
   /// Generate order by selector class using ModelAnalysis instead of constructor
   static void generateOrderBySelectorClassFromAnalysis(
     StringBuffer buffer,
@@ -54,7 +49,9 @@ class OrderByGenerator {
       if (analysis.documentIdFieldName == field.parameterName) {
         final docIdField = analysis.documentIdFieldName!;
         buffer.writeln('  /// Order by document ID ($docIdField field)');
-        buffer.writeln('  OrderByField<String> get ${field.parameterName} => OrderByField(name: \'${field.jsonFieldName}\', parent: this, type: FieldPathType.documentId);');
+        buffer.writeln(
+          '  OrderByField<String> get ${field.parameterName} => OrderByField(name: \'${field.jsonFieldName}\', parent: this, type: FieldPathType.documentId);',
+        );
         buffer.writeln('');
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {
         _generateOrderByFieldSelectorNestedGetter(buffer, field);
@@ -65,6 +62,4 @@ class OrderByGenerator {
 
     buffer.writeln('}');
   }
-
-  
 }

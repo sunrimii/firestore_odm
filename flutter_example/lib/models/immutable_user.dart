@@ -8,7 +8,7 @@ part 'immutable_user.g.dart';
 @freezed
 abstract class ImmutableUser with _$ImmutableUser {
   const ImmutableUser._();
-  
+
   const factory ImmutableUser({
     @DocumentIdField() required String id,
     required String name,
@@ -23,5 +23,6 @@ abstract class ImmutableUser with _$ImmutableUser {
     DateTime? createdAt,
   }) = _ImmutableUser;
 
-  factory ImmutableUser.fromJson(Map<String, dynamic> json) => _$ImmutableUserFromJson(json);
+  factory ImmutableUser.fromJson(Map<String, dynamic> json) =>
+      _$ImmutableUserFromJson(json);
 }

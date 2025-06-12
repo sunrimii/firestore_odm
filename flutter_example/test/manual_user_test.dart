@@ -14,32 +14,35 @@ void main() {
       odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
-    test('should create and save ManualUser with manual serialization', () async {
-      // Create a ManualUser instance
-      final user = ManualUser(
-        id: 'manual123',
-        name: 'John Manual',
-        email: 'john@manual.com',
-        age: 30,
-        isPremium: true,
-        rating: 85.5,
-        tags: ['manual', 'test', 'user'],
-        debugInfo: 'This should not be saved',
-      );
+    test(
+      'should create and save ManualUser with manual serialization',
+      () async {
+        // Create a ManualUser instance
+        final user = ManualUser(
+          id: 'manual123',
+          name: 'John Manual',
+          email: 'john@manual.com',
+          age: 30,
+          isPremium: true,
+          rating: 85.5,
+          tags: ['manual', 'test', 'user'],
+          debugInfo: 'This should not be saved',
+        );
 
-      // Save to Firestore
-      await odm.manualUsers(user.id).update(user);
+        // Save to Firestore
+        await odm.manualUsers(user.id).update(user);
 
-      // Verify the document was saved
-      final retrieved = await odm.manualUsers(user.id).get();
-      expect(retrieved, isNotNull);
-      expect(retrieved!.name, equals('John Manual'));
-      expect(retrieved.email, equals('john@manual.com'));
-      expect(retrieved.age, equals(30));
-      expect(retrieved.isPremium, equals(true));
-      expect(retrieved.rating, equals(85.5));
-      expect(retrieved.tags, equals(['manual', 'test', 'user']));
-    });
+        // Verify the document was saved
+        final retrieved = await odm.manualUsers(user.id).get();
+        expect(retrieved, isNotNull);
+        expect(retrieved!.name, equals('John Manual'));
+        expect(retrieved.email, equals('john@manual.com'));
+        expect(retrieved.age, equals(30));
+        expect(retrieved.isPremium, equals(true));
+        expect(retrieved.rating, equals(85.5));
+        expect(retrieved.tags, equals(['manual', 'test', 'user']));
+      },
+    );
 
     test('should respect custom field names in manual toJson', () async {
       final user = ManualUser(
@@ -56,16 +59,28 @@ void main() {
       await odm.manualUsers(user.id).update(user);
 
       // Check the raw Firestore data to verify custom field mapping
-      final rawDoc = await firestore.collection('manualUsers').doc(user.id).get();
+      final rawDoc = await firestore
+          .collection('manualUsers')
+          .doc(user.id)
+          .get();
       final rawData = rawDoc.data()!;
 
       // Verify custom field names from manual toJson implementation
       expect(rawData['full_name'], equals('Jane Manual')); // name -> full_name
-      expect(rawData['contact_email'], equals('jane@manual.com')); // email -> contact_email
+      expect(
+        rawData['contact_email'],
+        equals('jane@manual.com'),
+      ); // email -> contact_email
       expect(rawData['user_age'], equals(25)); // age -> user_age
-      expect(rawData['premium_member'], equals(false)); // isPremium -> premium_member
+      expect(
+        rawData['premium_member'],
+        equals(false),
+      ); // isPremium -> premium_member
       expect(rawData['user_rating'], equals(92.3)); // rating -> user_rating
-      expect(rawData['user_tags'], equals(['flutter', 'dart'])); // tags -> user_tags
+      expect(
+        rawData['user_tags'],
+        equals(['flutter', 'dart']),
+      ); // tags -> user_tags
 
       // Verify debugInfo is not saved (not included in toJson)
       expect(rawData.containsKey('debugInfo'), isFalse);
@@ -237,7 +252,7 @@ void main() {
       expect(retrieved.isPremium, equals(originalUser.isPremium));
       expect(retrieved.rating, equals(originalUser.rating));
       expect(retrieved.tags, equals(originalUser.tags));
-      
+
       // debugInfo should be default value since it's not serialized
       expect(retrieved.debugInfo, isNull);
     });

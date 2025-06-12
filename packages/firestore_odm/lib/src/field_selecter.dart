@@ -20,9 +20,9 @@ class Node {
           : (name.isEmpty ? const [] : [name]),
       _path = parent != null
           ? (name.isEmpty
-              ? parent._path
-              : parent._path.isEmpty
-                  ? name
-                  : '${parent._path}.$name')
+                ? parent._path
+                : parent._path.isEmpty
+                ? name
+                : '${parent._path}.$name')
           : name;
 }

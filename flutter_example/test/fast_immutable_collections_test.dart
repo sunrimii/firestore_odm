@@ -68,11 +68,11 @@ void main() {
       expect(retrieved!.scores.length, equals(5));
       expect(retrieved.scores.first, equals(85));
       expect(retrieved.scores.last, equals(88));
-      
+
       // Test IList immutability - these should work without modifying original
       final highScores = retrieved.scores.where((score) => score >= 90);
       expect(highScores.length, equals(2)); // 90 and 95
-      
+
       print('✅ IList scores: ${retrieved.scores}');
       print('✅ High scores: ${highScores.toList()}');
     });
@@ -89,7 +89,7 @@ void main() {
           'theme': 'light',
           'language': 'zh',
           'timezone': 'Asia/Hong_Kong',
-          'notifications': 'disabled'
+          'notifications': 'disabled',
         }.toIMap(),
         categories: {'admin', 'config-master'}.toISet(),
         rating: 5.0,
@@ -124,7 +124,7 @@ void main() {
           'designer',
           'product-manager',
           'team-lead',
-          'flutter-expert'
+          'flutter-expert',
         }.toISet(),
         rating: 4.6,
         isActive: true,
@@ -141,8 +141,9 @@ void main() {
       expect(retrieved.categories.contains('flutter-expert'), isTrue);
 
       // Test ISet operations
-      final techCategories = retrieved.categories
-          .where((cat) => cat.contains('developer') || cat.contains('flutter'));
+      final techCategories = retrieved.categories.where(
+        (cat) => cat.contains('developer') || cat.contains('flutter'),
+      );
       expect(techCategories.length, equals(2));
 
       print('✅ ISet categories: ${retrieved.categories}');
@@ -167,31 +168,35 @@ void main() {
 
       await odm.immutableUsers(user.id).update(user);
       final retrieved = await odm.immutableUsers(user.id).get();
-      
+
       expect(retrieved, isNotNull);
-      
+
       // Test immutability - operations return new collections without modifying original
       final originalTags = retrieved!.tags;
       final newTags = originalTags.add('new-tag');
-      
+
       expect(originalTags.length, equals(3));
       expect(newTags.length, equals(4));
       expect(originalTags.contains('new-tag'), isFalse);
       expect(newTags.contains('new-tag'), isTrue);
-      
+
       // Test efficient operations
       final filteredScores = retrieved.scores.where((score) => score > 85);
       expect(filteredScores.length, equals(2));
-      
+
       // Test map operations
       final updatedSettings = retrieved.settings.add('cache', 'enabled');
       expect(retrieved.settings.length, equals(2));
       expect(updatedSettings.length, equals(3));
-      
-      print('✅ Immutability preserved: original tags length = ${originalTags.length}');
+
+      print(
+        '✅ Immutability preserved: original tags length = ${originalTags.length}',
+      );
       print('✅ New collection created: new tags length = ${newTags.length}');
       print('✅ Efficient filtering: ${filteredScores.length} high scores');
-      print('✅ Map operations: ${updatedSettings.length} settings after update');
+      print(
+        '✅ Map operations: ${updatedSettings.length} settings after update',
+      );
     });
   });
 }

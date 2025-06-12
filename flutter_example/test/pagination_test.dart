@@ -83,7 +83,9 @@ void main() {
     test('double field orderBy with strongly-typed double pagination', () {
       // Order by rating field (double) - pagination should accept double cursor values
       final query = odm.users
-          .orderBy(($) => ($.rating(descending: true),)) // NEW: Tuple syntax (double,)
+          .orderBy(
+            ($) => ($.rating(descending: true),),
+          ) // NEW: Tuple syntax (double,)
           .startAt((4.5,)) // ✓ Should accept (double,) tuple cursor
           .endBefore((2.0,)); // ✓ Should accept (double,) tuple cursor
 
@@ -198,7 +200,9 @@ void main() {
     test('chronological pagination with DateTime cursors', () {
       // Chronological pagination with DateTime cursors
       final recentPosts = odm.users
-          .orderBy(($) => ($.createdAt(descending: true),)) // NEW: Tuple syntax (DateTime,)
+          .orderBy(
+            ($) => ($.createdAt(descending: true),),
+          ) // NEW: Tuple syntax (DateTime,)
           .limit(20)
           .startAfter((
             DateTime(2023, 12, 1),

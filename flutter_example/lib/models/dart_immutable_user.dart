@@ -7,31 +7,31 @@ part 'dart_immutable_user.g.dart';
 class DartImmutableUser {
   @DocumentIdField()
   final String id;
-  
+
   final String name;
-  
+
   @JsonKey(name: 'user_email')
   final String email;
-  
+
   final int age;
-  
+
   @JsonKey(name: 'premium_status')
   final bool isPremium;
-  
+
   final double rating;
-  
+
   @JsonKey(name: 'skill_tags')
   final List<String> skills;
-  
+
   @JsonKey(name: 'user_metadata')
   final Map<String, dynamic> metadata;
-  
+
   @JsonKey(name: 'creation_date')
   final DateTime? createdAt;
-  
+
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? internalNotes;
-  
+
   final bool isActive;
 
   const DartImmutableUser({
@@ -77,7 +77,7 @@ class DartImmutableUser {
     );
   }
 
-  factory DartImmutableUser.fromJson(Map<String, dynamic> json) => 
+  factory DartImmutableUser.fromJson(Map<String, dynamic> json) =>
       _$DartImmutableUserFromJson(json);
 
   Map<String, dynamic> toJson() => _$DartImmutableUserToJson(this);
@@ -97,15 +97,7 @@ class DartImmutableUser {
 
   @override
   int get hashCode {
-    return Object.hash(
-      id,
-      name,
-      email,
-      age,
-      isPremium,
-      rating,
-      isActive,
-    );
+    return Object.hash(id, name, email, age, isPremium, rating, isActive);
   }
 
   @override

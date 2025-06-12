@@ -27,20 +27,25 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
     return _generateForSchema(element, buildStep.resolver);
   }
 
-  String _generateForSchema(TopLevelVariableElement element, Resolver resolver) {
+  String _generateForSchema(
+    TopLevelVariableElement element,
+    Resolver resolver,
+  ) {
     // 1. Extract all @Collection annotations from this schema variable
     final collections = _extractCollectionAnnotations(element);
-    
+
     // 2. Extract model types and their ClassElement2 instances directly from annotations
     final Map<String, ModelAnalysis> allModelAnalyses = {};
-    
+
     for (final collection in collections) {
       final modelType = collection.modelType;
       if (modelType is InterfaceType) {
         final classElement = modelType.element3 as ClassElement2?;
         if (classElement != null) {
           // Use ModelAnalyzer to discover all nested types
-          final nestedAnalyses = ModelAnalyzer.analyzeModelWithNestedTypes(classElement);
+          final nestedAnalyses = ModelAnalyzer.analyzeModelWithNestedTypes(
+            classElement,
+          );
           allModelAnalyses.addAll(nestedAnalyses);
         }
       }
@@ -55,7 +60,9 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
   }
 
   /// Extract @Collection annotations from a schema variable
-  List<SchemaCollectionInfo> _extractCollectionAnnotations(TopLevelVariableElement element) {
+  List<SchemaCollectionInfo> _extractCollectionAnnotations(
+    TopLevelVariableElement element,
+  ) {
     final collections = <SchemaCollectionInfo>[];
     print('DEBUG: Extracting @Collection annotations from ${element.name}');
 
@@ -66,27 +73,34 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
         // Extract path from @Collection("path")
         final path = annotationValue!.getField('path')!.toStringValue()!;
         print('DEBUG: Collection path: $path');
-        
+
         // Extract model type from @Collection<ModelType>
         final collectionType = annotationValue.type!;
         print('DEBUG: Collection type: $collectionType');
-        if (collectionType is ParameterizedType && collectionType.typeArguments.isNotEmpty) {
+        if (collectionType is ParameterizedType &&
+            collectionType.typeArguments.isNotEmpty) {
           final modelType = collectionType.typeArguments.first;
           final modelTypeName = modelType.getDisplayString();
           final isSubcollection = path.contains('*');
-          print('DEBUG: Model type: $modelTypeName, isSubcollection: $isSubcollection');
-          
-          collections.add(SchemaCollectionInfo(
-            modelTypeName: modelTypeName,
-            path: path,
-            isSubcollection: isSubcollection,
-            modelType: modelType, // Store the actual DartType
-          ));
+          print(
+            'DEBUG: Model type: $modelTypeName, isSubcollection: $isSubcollection',
+          );
+
+          collections.add(
+            SchemaCollectionInfo(
+              modelTypeName: modelTypeName,
+              path: path,
+              isSubcollection: isSubcollection,
+              modelType: modelType, // Store the actual DartType
+            ),
+          );
         }
       }
     }
 
-    print('DEBUG: Found ${collections.length} collections: ${collections.map((c) => c.modelTypeName).join(', ')}');
+    print(
+      'DEBUG: Found ${collections.length} collections: ${collections.map((c) => c.modelTypeName).join(', ')}',
+    );
     return collections;
   }
 }

@@ -16,23 +16,18 @@ import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/pagination.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
-import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
+
 class OrderByField<T> extends Node {
   OrderByField({super.name, super.parent, this.type});
   final FieldPathType? type;
 
-  T call({
-    bool descending = false,
-  }) {
-    switch($root) {
+  T call({bool descending = false}) {
+    switch ($root) {
       case RootOrderByFieldSelector selector:
         // Call the addField method on the root selector
         selector._fields.add(
-          OrderByFieldInfo(
-            type?.toFirestore() ?? $path,
-            descending,
-          ),
+          OrderByFieldInfo(type?.toFirestore() ?? $path, descending),
         );
       case RootOrderByFieldExtractor extractor:
         // Extract the value from the source object using the field path
@@ -72,8 +67,7 @@ class OrderByFieldInfo {
   const OrderByFieldInfo(this.fieldPath, this.descending);
 
   @override
-  String toString() =>
-      'OrderByFieldInfo($fieldPath, desc: $descending)';
+  String toString() => 'OrderByFieldInfo($fieldPath, desc: $descending)';
 }
 
 typedef OrderByBuilderFunction<T, O extends Record> =

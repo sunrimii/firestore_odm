@@ -14,32 +14,35 @@ void main() {
       odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
-    test('should create and save DartImmutableUser with json_serializable', () async {
-      // Create a DartImmutableUser instance
-      final user = DartImmutableUser(
-        id: 'user123',
-        name: 'John Doe',
-        email: 'john@example.com',
-        age: 30,
-        isPremium: true,
-        rating: 4.5,
-        skills: ['Flutter', 'Dart', 'Firebase'],
-        internalNotes: 'This should be ignored',
-      );
+    test(
+      'should create and save DartImmutableUser with json_serializable',
+      () async {
+        // Create a DartImmutableUser instance
+        final user = DartImmutableUser(
+          id: 'user123',
+          name: 'John Doe',
+          email: 'john@example.com',
+          age: 30,
+          isPremium: true,
+          rating: 4.5,
+          skills: ['Flutter', 'Dart', 'Firebase'],
+          internalNotes: 'This should be ignored',
+        );
 
-      // Save to Firestore
-      await odm.dartImmutableUsers(user.id).update(user);
+        // Save to Firestore
+        await odm.dartImmutableUsers(user.id).update(user);
 
-      // Verify the document was saved
-      final retrieved = await odm.dartImmutableUsers(user.id).get();
-      expect(retrieved, isNotNull);
-      expect(retrieved!.name, equals('John Doe'));
-      expect(retrieved.email, equals('john@example.com'));
-      expect(retrieved.age, equals(30));
-      expect(retrieved.isPremium, equals(true));
-      expect(retrieved.rating, equals(4.5));
-      expect(retrieved.skills, equals(['Flutter', 'Dart', 'Firebase']));
-    });
+        // Verify the document was saved
+        final retrieved = await odm.dartImmutableUsers(user.id).get();
+        expect(retrieved, isNotNull);
+        expect(retrieved!.name, equals('John Doe'));
+        expect(retrieved.email, equals('john@example.com'));
+        expect(retrieved.age, equals(30));
+        expect(retrieved.isPremium, equals(true));
+        expect(retrieved.rating, equals(4.5));
+        expect(retrieved.skills, equals(['Flutter', 'Dart', 'Firebase']));
+      },
+    );
 
     test('should respect @JsonKey annotations for field mapping', () async {
       final user = DartImmutableUser(
@@ -56,13 +59,25 @@ void main() {
       await odm.dartImmutableUsers(user.id).update(user);
 
       // Check the raw Firestore data to verify field mapping
-      final rawDoc = await firestore.collection('dartImmutableUsers').doc(user.id).get();
+      final rawDoc = await firestore
+          .collection('dartImmutableUsers')
+          .doc(user.id)
+          .get();
       final rawData = rawDoc.data()!;
 
       // Verify @JsonKey mappings
-      expect(rawData['user_email'], equals('jane@example.com')); // email -> user_email
-      expect(rawData['premium_status'], equals(false)); // isPremium -> premium_status
-      expect(rawData['skill_tags'], equals(['React', 'JavaScript'])); // skills -> skill_tags
+      expect(
+        rawData['user_email'],
+        equals('jane@example.com'),
+      ); // email -> user_email
+      expect(
+        rawData['premium_status'],
+        equals(false),
+      ); // isPremium -> premium_status
+      expect(
+        rawData['skill_tags'],
+        equals(['React', 'JavaScript']),
+      ); // skills -> skill_tags
 
       // Verify @JsonKey(includeFromJson: false, includeToJson: false) works
       expect(rawData.containsKey('internalNotes'), isFalse);
@@ -81,7 +96,10 @@ void main() {
         'skill_tags': ['Python', 'Django'], // Custom field name
       };
 
-      await firestore.collection('dartImmutableUsers').doc('user789').set(rawData);
+      await firestore
+          .collection('dartImmutableUsers')
+          .doc('user789')
+          .set(rawData);
 
       // Retrieve using ODM
       final user = await odm.dartImmutableUsers('user789').get();
@@ -105,7 +123,10 @@ void main() {
         'age': 20,
       };
 
-      await firestore.collection('dartImmutableUsers').doc('user999').set(rawData);
+      await firestore
+          .collection('dartImmutableUsers')
+          .doc('user999')
+          .set(rawData);
 
       final user = await odm.dartImmutableUsers('user999').get();
       expect(user, isNotNull);

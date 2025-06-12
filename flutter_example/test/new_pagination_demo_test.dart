@@ -87,7 +87,9 @@ void main() {
 
         // Multi-field object-based pagination
         final multiQuery = odm.users
-            .orderBy(($) => ($.age(), $.rating(descending: true))) // (int, double) tuple
+            .orderBy(
+              ($) => ($.age(), $.rating(descending: true)),
+            ) // (int, double) tuple
             .startAtObject(sampleUser) // Should extract (30, 4.3) automatically
             .endBeforeObject(
               sampleUser,

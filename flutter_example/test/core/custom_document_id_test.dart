@@ -19,7 +19,7 @@ void main() {
     group('📁 Collection-Level Custom ID Tests', () {
       test('User collection: CRUD operations with custom ID field', () async {
         const customUserId = 'custom_user_123';
-        
+
         final user = User(
           id: customUserId,
           name: 'Custom ID User',
@@ -40,31 +40,31 @@ void main() {
 
         // Create with custom ID
         await odm.users(customUserId).update(user);
-        
+
         // Read using custom ID
         final retrievedUser = await odm.users(customUserId).get();
         expect(retrievedUser, isNotNull);
         expect(retrievedUser!.id, equals(customUserId));
         expect(retrievedUser.name, equals('Custom ID User'));
-        
+
         // Update using custom ID
         final updatedUser = user.copyWith(name: 'Updated Custom User');
         await odm.users(customUserId).update(updatedUser);
-        
+
         final finalUser = await odm.users(customUserId).get();
         expect(finalUser!.name, equals('Updated Custom User'));
         expect(finalUser.id, equals(customUserId)); // ID should remain the same
-        
+
         // Delete using custom ID
         await odm.users(customUserId).delete();
-        
+
         final deletedUser = await odm.users(customUserId).get();
         expect(deletedUser, isNull);
       });
 
       test('Post collection: CRUD operations with custom ID field', () async {
         const customPostId = 'custom_post_abc';
-        
+
         final post = Post(
           id: customPostId,
           title: 'Custom ID Post',
@@ -80,17 +80,17 @@ void main() {
 
         // Create with custom ID
         await odm.posts(customPostId).update(post);
-        
+
         // Read using custom ID
         final retrievedPost = await odm.posts(customPostId).get();
         expect(retrievedPost, isNotNull);
         expect(retrievedPost!.id, equals(customPostId));
         expect(retrievedPost.title, equals('Custom ID Post'));
-        
+
         // Update using custom ID
         final updatedPost = post.copyWith(title: 'Updated Custom Post');
         await odm.posts(customPostId).update(updatedPost);
-        
+
         final finalPost = await odm.posts(customPostId).get();
         expect(finalPost!.title, equals('Updated Custom Post'));
         expect(finalPost.id, equals(customPostId)); // ID should remain the same
@@ -162,7 +162,7 @@ void main() {
         // Test ordering by custom ID field
         final orderedByIdQuery = odm.users.orderBy(($) => ($.id(),));
         final orderedUsers = await orderedByIdQuery.get();
-        
+
         expect(orderedUsers.length, equals(3));
         expect(orderedUsers[0].id, equals('alpha_user'));
         expect(orderedUsers[1].id, equals('beta_user'));
@@ -172,7 +172,7 @@ void main() {
         final paginatedQuery = orderedByIdQuery
             .startAt(('beta_user',))
             .limit(2);
-        
+
         final paginatedUsers = await paginatedQuery.get();
         expect(paginatedUsers.length, equals(2));
         expect(paginatedUsers[0].id, equals('beta_user'));
@@ -183,7 +183,7 @@ void main() {
         final objectPaginatedQuery = orderedByIdQuery
             .startAfterObject(betaUser)
             .limit(1);
-        
+
         final objectPaginatedUsers = await objectPaginatedQuery.get();
         expect(objectPaginatedUsers.length, equals(1));
         expect(objectPaginatedUsers[0].id, equals('zulu_user'));
@@ -191,7 +191,7 @@ void main() {
 
       test('Custom ID field filtering and queries', () async {
         const targetUserId = 'filter_test_user';
-        
+
         final testUser = User(
           id: targetUserId,
           name: 'Filter Test User',
@@ -216,7 +216,7 @@ void main() {
         final filteredQuery = odm.users.where(
           (filter) => filter.id(isEqualTo: targetUserId),
         );
-        
+
         final filteredUsers = await filteredQuery.get();
         expect(filteredUsers.length, equals(1));
         expect(filteredUsers[0].id, equals(targetUserId));
@@ -227,7 +227,7 @@ void main() {
             .where((filter) => filter.id(isEqualTo: targetUserId))
             .where((filter) => filter.isPremium(isEqualTo: true))
             .orderBy(($) => ($.rating(descending: true),));
-        
+
         final complexResults = await complexQuery.get();
         expect(complexResults.length, equals(1));
         expect(complexResults[0].id, equals(targetUserId));
@@ -238,7 +238,7 @@ void main() {
       test('User posts subcollection: CRUD with custom IDs', () async {
         const userId = 'user_with_posts';
         const postId = 'custom_post_in_subcollection';
-        
+
         // First create a user
         final user = User(
           id: userId,
@@ -257,7 +257,7 @@ void main() {
           isPremium: true,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId).update(user);
 
         // Create a post in the user's subcollection with custom ID
@@ -276,26 +276,26 @@ void main() {
 
         // Access subcollection and create post with custom ID
         await odm.users(userId).posts(postId).update(post);
-        
+
         // Read from subcollection using custom ID
         final retrievedPost = await odm.users(userId).posts(postId).get();
         expect(retrievedPost, isNotNull);
         expect(retrievedPost!.id, equals(postId));
         expect(retrievedPost.title, equals('Subcollection Post'));
         expect(retrievedPost.authorId, equals(userId));
-        
+
         // Update post in subcollection
         final updatedPost = post.copyWith(
           title: 'Updated Subcollection Post',
           likes: 20,
         );
         await odm.users(userId).posts(postId).update(updatedPost);
-        
+
         final finalPost = await odm.users(userId).posts(postId).get();
         expect(finalPost!.title, equals('Updated Subcollection Post'));
         expect(finalPost.likes, equals(20));
         expect(finalPost.id, equals(postId)); // ID should remain the same
-        
+
         // Query subcollection
         final subcollectionQuery = odm.users(userId).posts;
         final subcollectionPosts = await subcollectionQuery.get();
@@ -307,7 +307,7 @@ void main() {
         // Skip: Known issue with fake_cloud_firestore and FieldPath.documentId
         return;
         const userId = 'user_for_pagination';
-        
+
         // Create user first
         final user = User(
           id: userId,
@@ -326,7 +326,7 @@ void main() {
           isPremium: false,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId).update(user);
 
         // Create multiple posts with custom IDs in subcollection
@@ -377,17 +377,15 @@ void main() {
         // Test ordering by custom ID in subcollection
         final orderedQuery = odm.users(userId).posts.orderBy(($) => ($.id(),));
         final orderedPosts = await orderedQuery.get();
-        
+
         expect(orderedPosts.length, equals(3));
         expect(orderedPosts[0].id, equals('post_alpha'));
         expect(orderedPosts[1].id, equals('post_beta'));
         expect(orderedPosts[2].id, equals('post_charlie'));
 
         // Test pagination in subcollection
-        final paginatedQuery = orderedQuery
-            .startAt(('post_beta',))
-            .limit(2);
-        
+        final paginatedQuery = orderedQuery.startAt(('post_beta',)).limit(2);
+
         final paginatedPosts = await paginatedQuery.get();
         expect(paginatedPosts.length, equals(2));
         expect(paginatedPosts[0].id, equals('post_beta'));
@@ -398,7 +396,7 @@ void main() {
         final objectPaginatedQuery = orderedQuery
             .startAfterObject(betaPost)
             .limit(1);
-        
+
         final objectPaginatedPosts = await objectPaginatedQuery.get();
         expect(objectPaginatedPosts.length, equals(1));
         expect(objectPaginatedPosts[0].id, equals('post_charlie'));
@@ -407,7 +405,7 @@ void main() {
       test('Subcollection filtering with custom IDs', () async {
         const userId = 'user_for_filtering';
         const targetPostId = 'specific_post_to_find';
-        
+
         // Create user
         final user = User(
           id: userId,
@@ -426,7 +424,7 @@ void main() {
           isPremium: true,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId).update(user);
 
         // Create posts in subcollection
@@ -463,21 +461,24 @@ void main() {
         }
 
         // Filter by custom ID in subcollection
-        final filteredQuery = odm.users(userId).posts.where(
-          (filter) => filter.id(isEqualTo: targetPostId),
-        );
-        
+        final filteredQuery = odm
+            .users(userId)
+            .posts
+            .where((filter) => filter.id(isEqualTo: targetPostId));
+
         final filteredPosts = await filteredQuery.get();
         expect(filteredPosts.length, equals(1));
         expect(filteredPosts[0].id, equals(targetPostId));
         expect(filteredPosts[0].title, equals('Target Post'));
 
         // Complex filter combining custom ID and other fields
-        final complexQuery = odm.users(userId).posts
+        final complexQuery = odm
+            .users(userId)
+            .posts
             .where((filter) => filter.id(isEqualTo: targetPostId))
             .where((filter) => filter.published(isEqualTo: true))
             .where((filter) => filter.likes(isGreaterThan: 50));
-        
+
         final complexResults = await complexQuery.get();
         expect(complexResults.length, equals(1));
         expect(complexResults[0].id, equals(targetPostId));
@@ -489,7 +490,7 @@ void main() {
         const userId1 = 'transaction_user_1';
         const userId2 = 'transaction_user_2';
         const postId = 'transaction_post';
-        
+
         // Create initial users
         final user1 = User(
           id: userId1,
@@ -533,15 +534,18 @@ void main() {
         // Transaction with custom IDs
         await odm.runTransaction((tx) async {
           // Modify users with custom IDs
-          await tx.users(userId1).modify((user) => user.copyWith(
-            rating: 4.0,
-            isPremium: true,
-          ));
-          
-          await tx.users(userId2).modify((user) => user.copyWith(
-            rating: 5.0,
-            profile: user.profile.copyWith(followers: 300),
-          ));
+          await tx
+              .users(userId1)
+              .modify((user) => user.copyWith(rating: 4.0, isPremium: true));
+
+          await tx
+              .users(userId2)
+              .modify(
+                (user) => user.copyWith(
+                  rating: 5.0,
+                  profile: user.profile.copyWith(followers: 300),
+                ),
+              );
         });
 
         // Create a post outside transaction (transactions don't support subcollections)
@@ -557,7 +561,7 @@ void main() {
           published: true,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId1).posts(postId).update(post);
 
         // Verify transaction results
@@ -642,14 +646,14 @@ void main() {
         final multiOrderQuery = odm.users.orderBy(
           ($) => ($.rating(descending: true), $.id()),
         );
-        
+
         final orderedUsers = await multiOrderQuery.get();
-        
+
         expect(orderedUsers.length, equals(3));
         // First: highest rating + earliest ID alphabetically
         expect(orderedUsers[0].id, equals('user_alpha'));
         expect(orderedUsers[0].rating, equals(5.0));
-        // Second: highest rating + later ID alphabetically  
+        // Second: highest rating + later ID alphabetically
         expect(orderedUsers[1].id, equals('user_zebra'));
         expect(orderedUsers[1].rating, equals(5.0));
         // Third: lower rating
@@ -660,7 +664,7 @@ void main() {
         final paginatedQuery = multiOrderQuery
             .startAfter((5.0, 'user_alpha'))
             .limit(1);
-        
+
         final paginatedUsers = await paginatedQuery.get();
         expect(paginatedUsers.length, equals(1));
         expect(paginatedUsers[0].id, equals('user_zebra'));
@@ -695,7 +699,7 @@ void main() {
             isPremium: i % 2 == 0,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(specialIds[i]).update(user);
         }
 
@@ -709,9 +713,9 @@ void main() {
         // Test ordering with special character IDs
         final orderedQuery = odm.users.orderBy(($) => ($.id(),));
         final orderedUsers = await orderedQuery.get();
-        
+
         expect(orderedUsers.length, equals(specialIds.length));
-        
+
         // Verify they're sorted correctly (lexicographic order)
         final sortedIds = List<String>.from(specialIds)..sort();
         for (int i = 0; i < orderedUsers.length; i++) {
@@ -724,7 +728,7 @@ void main() {
         return;
         const consistencyUserId = 'consistency_test_user';
         const consistencyPostId = 'consistency_test_post';
-        
+
         final user = User(
           id: consistencyUserId,
           name: 'Consistency User',
@@ -758,13 +762,19 @@ void main() {
 
         // Create user and post
         await odm.users(consistencyUserId).update(user);
-        await odm.users(consistencyUserId).posts(consistencyPostId).update(post);
+        await odm
+            .users(consistencyUserId)
+            .posts(consistencyPostId)
+            .update(post);
 
         // Test 1: Direct document access
         final directUser = await odm.users(consistencyUserId).get();
         expect(directUser!.id, equals(consistencyUserId));
 
-        final directPost = await odm.users(consistencyUserId).posts(consistencyPostId).get();
+        final directPost = await odm
+            .users(consistencyUserId)
+            .posts(consistencyPostId)
+            .get();
         expect(directPost!.id, equals(consistencyPostId));
 
         // Test 2: Query-based access
@@ -774,7 +784,9 @@ void main() {
         expect(queryUser.length, equals(1));
         expect(queryUser[0].id, equals(consistencyUserId));
 
-        final queryPost = await odm.users(consistencyUserId).posts
+        final queryPost = await odm
+            .users(consistencyUserId)
+            .posts
             .where((filter) => filter.id(isEqualTo: consistencyPostId))
             .get();
         expect(queryPost.length, equals(1));

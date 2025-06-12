@@ -1,5 +1,3 @@
-import 'package:analyzer/dart/element/element2.dart';
-import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -10,10 +8,10 @@ class FilterGenerator {
     String documentIdField,
     FieldInfo field,
   ) {
-    buffer.writeln('  /// Filter by document ID (${field.jsonFieldName} field)');
     buffer.writeln(
-      '  DocumentIdFieldFilter get ${field.parameterName} =>',
+      '  /// Filter by document ID (${field.jsonFieldName} field)',
     );
+    buffer.writeln('  DocumentIdFieldFilter get ${field.parameterName} =>');
     buffer.writeln(
       '      DocumentIdFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
     );
@@ -24,10 +22,14 @@ class FilterGenerator {
     StringBuffer buffer,
     FieldInfo field,
   ) {
-    final nestedTypeName = field.dartType.getDisplayString(withNullability: false);
+    final nestedTypeName = field.dartType.getDisplayString(
+      withNullability: false,
+    );
 
     buffer.writeln('  /// Access nested ${field.parameterName} filters');
-    buffer.writeln('  FilterSelector<${nestedTypeName}> get ${field.parameterName} {');
+    buffer.writeln(
+      '  FilterSelector<${nestedTypeName}> get ${field.parameterName} {',
+    );
     buffer.writeln(
       '    return FilterSelector<${nestedTypeName}>(name: \'${field.jsonFieldName}\', parent: this);',
     );
@@ -35,10 +37,7 @@ class FilterGenerator {
     buffer.writeln('');
   }
 
-  static void _generateFieldGetter(
-    StringBuffer buffer,
-    FieldInfo field,
-  ) {
+  static void _generateFieldGetter(StringBuffer buffer, FieldInfo field) {
     buffer.writeln('  /// Filter by ${field.parameterName}');
 
     // Use appropriate callable filter based on type using TypeChecker
@@ -48,16 +47,12 @@ class FilterGenerator {
         '      StringFieldFilter(name: \'${field.parameterName}\', parent: this);',
       );
     } else if (TypeAnalyzer.isIterableType(field.dartType)) {
-      buffer.writeln(
-        '  ArrayFieldFilter get ${field.parameterName} =>',
-      );
+      buffer.writeln('  ArrayFieldFilter get ${field.parameterName} =>');
       buffer.writeln(
         '      ArrayFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
     } else if (TypeAnalyzer.isMapType(field.dartType)) {
-      buffer.writeln(
-        '  MapFieldFilter get ${field.parameterName} =>',
-      );
+      buffer.writeln('  MapFieldFilter get ${field.parameterName} =>');
       buffer.writeln(
         '      MapFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
@@ -67,24 +62,17 @@ class FilterGenerator {
         '      BoolFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
     } else if (TypeAnalyzer.isDateTimeType(field.dartType)) {
-      buffer.writeln(
-        '  DateTimeFieldFilter get ${field.parameterName} =>',
-      );
+      buffer.writeln('  DateTimeFieldFilter get ${field.parameterName} =>');
       buffer.writeln(
         '      DateTimeFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
     } else if (TypeAnalyzer.isNumericType(field.dartType)) {
-      buffer.writeln(
-        '  NumericFieldFilter get ${field.parameterName} =>',
-      );
+      buffer.writeln('  NumericFieldFilter get ${field.parameterName} =>');
       buffer.writeln(
         '      NumericFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
     } else {
-      _generateNestedFilterGetter(
-        buffer,
-        field,
-      );
+      _generateNestedFilterGetter(buffer, field);
     }
     buffer.writeln('');
   }
@@ -101,12 +89,15 @@ class FilterGenerator {
     );
     buffer.writeln('');
 
-
     // Generate field getters from analysis
     for (final field in analysis.fields.values) {
       // Skip document ID field as it's handled separately above
       if (field.parameterName == analysis.documentIdFieldName) {
-        _generateDocumentIdFilterGetter(buffer, analysis.documentIdFieldName!, field);
+        _generateDocumentIdFilterGetter(
+          buffer,
+          analysis.documentIdFieldName!,
+          field,
+        );
       } else {
         _generateFieldGetter(buffer, field);
       }

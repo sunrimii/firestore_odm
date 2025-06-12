@@ -9,11 +9,11 @@ import 'test_helper.dart';
 void main() {
   group('📄 Document ID Field Annotation Tests', () {
     late FirestoreODM<TestSchema> odm;
-    
+
     setUpAll(() async {
       await initializeFirebase();
     });
-    
+
     setUp(() async {
       odm = FirestoreODM(testSchema, firestore: getFirestore());
       await clearFirestoreEmulator();
@@ -22,7 +22,7 @@ void main() {
     group('🏷️ @DocumentIdField Annotation Behavior', () {
       test('Document ID field is correctly identified and used', () async {
         const customId = 'annotated_id_test';
-        
+
         final user = User(
           id: customId, // This field has @DocumentIdField() annotation
           name: 'Annotated User',
@@ -43,7 +43,7 @@ void main() {
 
         // The ID field should be automatically handled by the ODM
         await odm.users(customId).update(user);
-        
+
         // Retrieve and verify the ID is preserved
         final retrievedUser = await odm.users(customId).get();
         expect(retrievedUser, isNotNull);
@@ -54,7 +54,7 @@ void main() {
       test('Document ID field works in queries and filters', () async {
         const targetId = 'query_target_id';
         const otherId = 'other_id';
-        
+
         final users = [
           User(
             id: targetId,
@@ -101,7 +101,7 @@ void main() {
         final filteredQuery = odm.users.where(
           (filter) => filter.id(isEqualTo: targetId),
         );
-        
+
         final results = await filteredQuery.get();
         expect(results.length, equals(1));
         expect(results[0].id, equals(targetId));
@@ -111,7 +111,7 @@ void main() {
         final compoundQuery = odm.users
             .where((filter) => filter.id(isEqualTo: targetId))
             .where((filter) => filter.rating(isGreaterThan: 4.0));
-        
+
         final compoundResults = await compoundQuery.get();
         expect(compoundResults.length, equals(1));
         expect(compoundResults[0].id, equals(targetId));
@@ -119,7 +119,7 @@ void main() {
 
       test('Document ID field in ordering operations', () async {
         const ids = ['zulu_id', 'alpha_id', 'beta_id', 'charlie_id'];
-        
+
         // Create users with specific IDs for ordering test
         for (int i = 0; i < ids.length; i++) {
           final user = User(
@@ -139,7 +139,7 @@ void main() {
             isPremium: i % 2 == 0,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(ids[i]).update(user);
         }
 
@@ -149,9 +149,9 @@ void main() {
         // Order by the document ID field
         final orderedQuery = odm.users.orderBy(($) => ($.id(),));
         final orderedUsers = await orderedQuery.get();
-        
+
         expect(orderedUsers.length, equals(4));
-        
+
         // Should be in alphabetical order
         expect(orderedUsers[0].id, equals('alpha_id'));
         expect(orderedUsers[1].id, equals('beta_id'));
@@ -159,9 +159,11 @@ void main() {
         expect(orderedUsers[3].id, equals('zulu_id'));
 
         // Test descending order
-        final descendingQuery = odm.users.orderBy(($) => ($.id(descending: true),));
+        final descendingQuery = odm.users.orderBy(
+          ($) => ($.id(descending: true),),
+        );
         final descendingUsers = await descendingQuery.get();
-        
+
         expect(descendingUsers[0].id, equals('zulu_id'));
         expect(descendingUsers[1].id, equals('charlie_id'));
         expect(descendingUsers[2].id, equals('beta_id'));
@@ -170,7 +172,7 @@ void main() {
 
       test('Document ID field in pagination cursors', () async {
         const baseIds = ['page_a', 'page_b', 'page_c', 'page_d', 'page_e'];
-        
+
         // Create users for pagination test
         for (int i = 0; i < baseIds.length; i++) {
           final user = User(
@@ -190,15 +192,13 @@ void main() {
             isPremium: i % 2 == 0,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(baseIds[i]).update(user);
         }
 
         // Test pagination using document ID field
-        final firstPageQuery = odm.users
-            .orderBy(($) => ($.id(),))
-            .limit(2);
-        
+        final firstPageQuery = odm.users.orderBy(($) => ($.id(),)).limit(2);
+
         final firstPage = await firstPageQuery.get();
         expect(firstPage.length, equals(2));
         expect(firstPage[0].id, equals('page_a'));
@@ -209,7 +209,7 @@ void main() {
             .orderBy(($) => ($.id(),))
             .startAfter(('page_b',))
             .limit(2);
-        
+
         final secondPage = await secondPageQuery.get();
         expect(secondPage.length, equals(2));
         expect(secondPage[0].id, equals('page_c'));
@@ -220,7 +220,7 @@ void main() {
             .orderBy(($) => ($.id(),))
             .startAfterObject(firstPage[1]) // Using page_b user object
             .limit(3);
-        
+
         final thirdPage = await thirdPageQuery.get();
         expect(thirdPage.length, equals(3));
         expect(thirdPage[0].id, equals('page_c'));
@@ -233,7 +233,7 @@ void main() {
       test('Subcollection document ID field behavior', () async {
         const userId = 'subcol_user';
         const postIds = ['sub_post_alpha', 'sub_post_beta', 'sub_post_gamma'];
-        
+
         // Create parent user
         final user = User(
           id: userId,
@@ -252,7 +252,7 @@ void main() {
           isPremium: true,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId).update(user);
 
         // Create posts in subcollection with custom IDs
@@ -269,36 +269,42 @@ void main() {
             published: true,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(userId).posts(postIds[i]).update(post);
         }
 
         // Query subcollection by document ID
-        final filteredPosts = await odm.users(userId).posts
+        final filteredPosts = await odm
+            .users(userId)
+            .posts
             .where((filter) => filter.id(isEqualTo: 'sub_post_beta'))
             .get();
-        
+
         expect(filteredPosts.length, equals(1));
         expect(filteredPosts[0].id, equals('sub_post_beta'));
         expect(filteredPosts[0].title, equals('Subcollection Post 2'));
-        
+
         // Order subcollection by document ID
-        final orderedPosts = await odm.users(userId).posts
+        final orderedPosts = await odm
+            .users(userId)
+            .posts
             .orderBy(($) => ($.id(),))
             .get();
-        
+
         expect(orderedPosts.length, equals(3));
         expect(orderedPosts[0].id, equals('sub_post_alpha'));
         expect(orderedPosts[1].id, equals('sub_post_beta'));
         expect(orderedPosts[2].id, equals('sub_post_gamma'));
 
         // Paginate subcollection using document ID
-        final paginatedPosts = await odm.users(userId).posts
+        final paginatedPosts = await odm
+            .users(userId)
+            .posts
             .orderBy(($) => ($.id(),))
             .startAt(('sub_post_beta',))
             .limit(2)
             .get();
-        
+
         expect(paginatedPosts.length, equals(2));
         expect(paginatedPosts[0].id, equals('sub_post_beta'));
         expect(paginatedPosts[1].id, equals('sub_post_gamma'));
@@ -306,7 +312,7 @@ void main() {
 
       test('Complex subcollection queries with document ID field', () async {
         const userId = 'complex_subcol_user';
-        
+
         // Create parent user
         final user = User(
           id: userId,
@@ -325,7 +331,7 @@ void main() {
           isPremium: false,
           createdAt: DateTime.now(),
         );
-        
+
         await odm.users(userId).update(user);
 
         // Create posts with varying characteristics
@@ -374,35 +380,44 @@ void main() {
         }
 
         // Complex query: published posts with high engagement, ordered by likes
-        final complexQuery = await odm.users(userId).posts
+        final complexQuery = await odm
+            .users(userId)
+            .posts
             .where((filter) => filter.published(isEqualTo: true))
             .where((filter) => filter.likes(isGreaterThan: 25))
             .orderBy(($) => ($.likes(),))
             .get();
-        
+
         expect(complexQuery.length, equals(2));
         // Order should be by likes: medium_post (50), high_engagement_post (1000)
         expect(complexQuery[0].likes, equals(50));
         expect(complexQuery[1].likes, equals(1000));
 
         // Multi-field ordering with regular fields
-        final multiOrderQuery = await odm.users(userId).posts
+        final multiOrderQuery = await odm
+            .users(userId)
+            .posts
             .orderBy(($) => ($.likes(descending: true),))
             .get();
-        
+
         expect(multiOrderQuery.length, equals(3));
         // Ordered by likes desc, then ID asc
-        expect(multiOrderQuery[0].id, equals('high_engagement_post')); // 1000 likes
+        expect(
+          multiOrderQuery[0].id,
+          equals('high_engagement_post'),
+        ); // 1000 likes
         expect(multiOrderQuery[1].id, equals('medium_post')); // 50 likes
         expect(multiOrderQuery[2].id, equals('draft_post')); // 0 likes
 
         // Range query on document ID
-        final rangeQuery = await odm.users(userId).posts
+        final rangeQuery = await odm
+            .users(userId)
+            .posts
             .where((filter) => filter.id(isGreaterThanOrEqualTo: 'draft_post'))
             .where((filter) => filter.id(isLessThan: 'medium_post'))
             .orderBy(($) => ($.id(),))
             .get();
-        
+
         expect(rangeQuery.length, equals(2));
         expect(rangeQuery[0].id, equals('draft_post'));
         expect(rangeQuery[1].id, equals('high_engagement_post'));
@@ -412,7 +427,7 @@ void main() {
     group('⚡ Document ID Field Performance and Edge Cases', () {
       test('Document ID field with large datasets', () async {
         const userCount = 50;
-        
+
         // Create a large number of users with systematic IDs
         for (int i = 0; i < userCount; i++) {
           final paddedId = 'user_${i.toString().padLeft(3, '0')}';
@@ -433,7 +448,7 @@ void main() {
             isPremium: i % 4 == 0,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(paddedId).update(user);
         }
 
@@ -441,28 +456,28 @@ void main() {
         const pageSize = 10;
         String? lastId;
         int totalRetrieved = 0;
-        
+
         while (totalRetrieved < userCount) {
           var query = odm.users.orderBy(($) => ($.id(),)).limit(pageSize);
-          
+
           if (lastId != null) {
             query = query.startAfter((lastId,));
           }
-          
+
           final page = await query.get();
           expect(page.length, lessThanOrEqualTo(pageSize));
-          
+
           if (page.isEmpty) break;
-          
+
           totalRetrieved += page.length;
           lastId = page.last.id;
-          
+
           // Verify page ordering
           for (int i = 1; i < page.length; i++) {
-            expect(page[i].id.compareTo(page[i-1].id), greaterThan(0));
+            expect(page[i].id.compareTo(page[i - 1].id), greaterThan(0));
           }
         }
-        
+
         expect(totalRetrieved, equals(userCount));
       });
 
@@ -475,7 +490,7 @@ void main() {
           'user_日本語',
           'user_한국어',
         ];
-        
+
         // Create users with unicode IDs
         for (int i = 0; i < unicodeIds.length; i++) {
           final user = User(
@@ -496,7 +511,7 @@ void main() {
             isPremium: i % 2 == 0,
             createdAt: DateTime.now(),
           );
-          
+
           await odm.users(unicodeIds[i]).update(user);
         }
 
@@ -511,16 +526,16 @@ void main() {
         final orderedQuery = odm.users
             .where((filter) => filter.tags(arrayContains: 'unicode'))
             .orderBy(($) => ($.id(),));
-        
+
         final orderedUsers = await orderedQuery.get();
         expect(orderedUsers.length, equals(unicodeIds.length));
-        
+
         // Verify they can be retrieved by ID filtering
         for (final id in unicodeIds) {
           final filteredUsers = await odm.users
               .where((filter) => filter.id(isEqualTo: id))
               .get();
-          
+
           expect(filteredUsers.length, equals(1));
           expect(filteredUsers[0].id, equals(id));
         }
@@ -538,11 +553,11 @@ void main() {
           '!@#\$%^&*()', // Special characters
           'mixed_Case_123_!@#', // Mixed everything
         ];
-        
+
         // Test each edge case ID
         for (int i = 0; i < edgeCaseIds.length; i++) {
           final id = edgeCaseIds[i];
-          
+
           try {
             final user = User(
               id: id,
@@ -561,14 +576,14 @@ void main() {
               isPremium: false,
               createdAt: DateTime.now(),
             );
-            
+
             await odm.users(id).update(user);
-            
+
             // Verify retrieval
             final retrievedUser = await odm.users(id).get();
             expect(retrievedUser, isNotNull);
             expect(retrievedUser!.id, equals(id));
-            
+
             print('✅ Edge case ID "$id" works correctly');
           } catch (e) {
             print('❌ Edge case ID "$id" failed: $e');

@@ -79,7 +79,10 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   OrderedQuery<S, T, O> orderBy<O extends Record>(
     O Function(OrderByFieldSelector<T> selector) orderBuilder,
   ) {
-    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder, documentIdField);
+    final config = QueryOrderbyHandler.buildOrderBy(
+      orderBuilder,
+      documentIdField,
+    );
     final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
     return OrderedQuery(newQuery, converter, documentIdField, config);
   }

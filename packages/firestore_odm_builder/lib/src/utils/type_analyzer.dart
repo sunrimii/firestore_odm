@@ -5,7 +5,6 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
-
 /// Utility class for analyzing Dart types in Firestore ODM generation
 class TypeAnalyzer {
   static final TypeChecker documentIdChecker = TypeChecker.fromRuntime(
@@ -25,9 +24,12 @@ class TypeAnalyzer {
   static const TypeChecker _listChecker = TypeChecker.fromRuntime(List);
   static const TypeChecker _mapChecker = TypeChecker.fromRuntime(Map);
 
-  static const TypeChecker _immutableCollectionChecker = TypeChecker.fromRuntime(ImmutableCollection);
+  static const TypeChecker _immutableCollectionChecker =
+      TypeChecker.fromRuntime(ImmutableCollection);
   static const TypeChecker _immutableMapChecker = TypeChecker.fromRuntime(IMap);
-  static const TypeChecker _immutableListChecker = TypeChecker.fromRuntime(IList);
+  static const TypeChecker _immutableListChecker = TypeChecker.fromRuntime(
+    IList,
+  );
 
   /// Find the document ID field in a constructor
   /// First looks for fields with @DocumentIdField() annotation.
@@ -95,7 +97,9 @@ class TypeAnalyzer {
     }
 
     // if IMap, ISet, IList are used, they are also iterable
-    if (_immutableCollectionChecker.isAssignableFromType(_getNonNullableType(type)) ||
+    if (_immutableCollectionChecker.isAssignableFromType(
+          _getNonNullableType(type),
+        ) ||
         _immutableMapChecker.isAssignableFromType(_getNonNullableType(type)) ||
         _immutableListChecker.isAssignableFromType(_getNonNullableType(type))) {
       return true;
@@ -143,7 +147,7 @@ class TypeAnalyzer {
     if (_immutableListChecker.isAssignableFromType(_getNonNullableType(type))) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -153,7 +157,7 @@ class TypeAnalyzer {
       return true;
     }
 
-  // Check for IMap, which is a custom immutable map type
+    // Check for IMap, which is a custom immutable map type
     if (_immutableMapChecker.isAssignableFromType(_getNonNullableType(type))) {
       return true;
     }

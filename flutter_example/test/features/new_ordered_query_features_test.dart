@@ -169,7 +169,9 @@ void main() {
 
         // ✅ NEW: Chain multiple where() calls on OrderedQuery
         final results = await odm.users
-            .orderBy(($) => ($.rating(descending: true),)) // Order by rating descending
+            .orderBy(
+              ($) => ($.rating(descending: true),),
+            ) // Order by rating descending
             .where(
               ($) => $.isActive(isEqualTo: true),
             ) // First filter: active only
@@ -462,7 +464,9 @@ void main() {
 
         // ✅ NEW: Aggregate operations on OrderedQuery
         final aggregateResult = await odm.users
-            .orderBy(($) => ($.rating(descending: true),)) // Order by rating descending
+            .orderBy(
+              ($) => ($.rating(descending: true),),
+            ) // Order by rating descending
             .aggregate(
               ($) => (
                 count: $.count(),

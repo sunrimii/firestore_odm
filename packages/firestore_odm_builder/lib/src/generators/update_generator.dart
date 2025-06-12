@@ -12,9 +12,9 @@ class UpdateGenerator {
     if (analysis.updateableFields.isEmpty) {
       return;
     }
-    
+
     final className = analysis.className;
-    
+
     buffer.writeln('/// Generated UpdateBuilder for $className');
     buffer.writeln(
       'extension ${className}UpdateBuilder on UpdateBuilder<${className}> {',
@@ -30,7 +30,9 @@ class UpdateGenerator {
       // Make all parameters optional for object merge operations
       final dartTypeString = field.dartType.getDisplayString();
       // If the type is already nullable, use it as-is, otherwise make it nullable
-      final optionalType = field.isNullable ? dartTypeString : '$dartTypeString?';
+      final optionalType = field.isNullable
+          ? dartTypeString
+          : '$dartTypeString?';
       buffer.writeln('    $optionalType ${field.parameterName},');
     }
 
@@ -72,7 +74,9 @@ class UpdateGenerator {
     buffer.writeln('  /// Update $fieldName field');
 
     if (TypeAnalyzer.isIterableType(fieldType)) {
-      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
+      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
+        fieldType,
+      );
       buffer.writeln(
         '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(name: \'$jsonFieldName\', parent: this);',
       );

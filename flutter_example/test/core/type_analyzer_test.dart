@@ -305,117 +305,141 @@ void main() {
       print('✅ Iterable field updates: SUCCESS');
     });
 
-    test('modify should calculate nested field differences correctly', () async {
-      // Create initial user with complex nested structure
-      final user = User(
-        id: 'nested_diff_test',
-        name: 'Nested Diff Test User',
-        email: 'nested_diff@test.com',
-        age: 30,
-        tags: ['initial', 'tag'],
-        scores: [85, 90],
-        profile: Profile(
-          bio: 'Original bio content',
-          avatar: 'original.jpg',
-          interests: ['reading', 'coding'],
-          followers: 1000,
-          socialLinks: {
-            'github': 'https://github.com/original',
-            'twitter': 'https://twitter.com/original',
-          },
-        ),
-        rating: 4.0,
-        isActive: true,
-        isPremium: false,
-        settings: {'theme': 'light', 'notifications': 'enabled'},
-        metadata: {'version': 1, 'level': 'beginner'},
-        createdAt: DateTime.now(),
-      );
+    test(
+      'modify should calculate nested field differences correctly',
+      () async {
+        // Create initial user with complex nested structure
+        final user = User(
+          id: 'nested_diff_test',
+          name: 'Nested Diff Test User',
+          email: 'nested_diff@test.com',
+          age: 30,
+          tags: ['initial', 'tag'],
+          scores: [85, 90],
+          profile: Profile(
+            bio: 'Original bio content',
+            avatar: 'original.jpg',
+            interests: ['reading', 'coding'],
+            followers: 1000,
+            socialLinks: {
+              'github': 'https://github.com/original',
+              'twitter': 'https://twitter.com/original',
+            },
+          ),
+          rating: 4.0,
+          isActive: true,
+          isPremium: false,
+          settings: {'theme': 'light', 'notifications': 'enabled'},
+          metadata: {'version': 1, 'level': 'beginner'},
+          createdAt: DateTime.now(),
+        );
 
-      await odm.users(user.id).update(user);
+        await odm.users(user.id).update(user);
 
-      // ✅ Test modify with partial nested field changes
-      // Only modify specific nested fields, others should remain unchanged
-      await odm
-          .users(user.id)
-          .modify(
-            (user) => user.copyWith(
-              // Change only some top-level fields
-              age: 31, // Changed
-              // name stays the same - should not be updated
-              
-              // Change only some nested profile fields
-              profile: user.profile.copyWith(
-                bio: 'Updated bio content', // Changed
-                followers: 1200, // Changed
-                // interests, avatar, socialLinks stay the same
+        // ✅ Test modify with partial nested field changes
+        // Only modify specific nested fields, others should remain unchanged
+        await odm
+            .users(user.id)
+            .modify(
+              (user) => user.copyWith(
+                // Change only some top-level fields
+                age: 31, // Changed
+                // name stays the same - should not be updated
+
+                // Change only some nested profile fields
+                profile: user.profile.copyWith(
+                  bio: 'Updated bio content', // Changed
+                  followers: 1200, // Changed
+                  // interests, avatar, socialLinks stay the same
+                ),
+
+                // Partially update settings map
+                settings: {
+                  ...user.settings,
+                  'theme': 'dark', // Changed existing
+                  'language': 'zh-TW', // Added new
+                  // 'notifications' stays 'enabled'
+                },
+
+                // Partially update metadata map
+                metadata: {
+                  ...user.metadata,
+                  'level': 'intermediate', // Changed existing
+                  'badge': 'contributor', // Added new
+                  // 'version' stays 1
+                },
               ),
-              
-              // Partially update settings map
-              settings: {
-                ...user.settings,
-                'theme': 'dark', // Changed existing
-                'language': 'zh-TW', // Added new
-                // 'notifications' stays 'enabled'
-              },
-              
-              // Partially update metadata map
-              metadata: {
-                ...user.metadata,
-                'level': 'intermediate', // Changed existing
-                'badge': 'contributor', // Added new
-                // 'version' stays 1
-              },
-            ),
-          );
+            );
 
-      // Verify that modify calculated differences correctly
-      final updatedUser = await odm.users(user.id).get();
-      expect(updatedUser, isNotNull);
+        // Verify that modify calculated differences correctly
+        final updatedUser = await odm.users(user.id).get();
+        expect(updatedUser, isNotNull);
 
-      // ✅ Changed fields should be updated
-      expect(updatedUser!.age, equals(31)); // Changed from 30
-      expect(updatedUser.profile.bio, equals('Updated bio content')); // Changed
-      expect(updatedUser.profile.followers, equals(1200)); // Changed from 1000
-      expect(updatedUser.settings['theme'], equals('dark')); // Changed from 'light'
-      expect(updatedUser.settings['language'], equals('zh-TW')); // Added
-      expect(updatedUser.metadata['level'], equals('intermediate')); // Changed
-      expect(updatedUser.metadata['badge'], equals('contributor')); // Added
+        // ✅ Changed fields should be updated
+        expect(updatedUser!.age, equals(31)); // Changed from 30
+        expect(
+          updatedUser.profile.bio,
+          equals('Updated bio content'),
+        ); // Changed
+        expect(
+          updatedUser.profile.followers,
+          equals(1200),
+        ); // Changed from 1000
+        expect(
+          updatedUser.settings['theme'],
+          equals('dark'),
+        ); // Changed from 'light'
+        expect(updatedUser.settings['language'], equals('zh-TW')); // Added
+        expect(
+          updatedUser.metadata['level'],
+          equals('intermediate'),
+        ); // Changed
+        expect(updatedUser.metadata['badge'], equals('contributor')); // Added
 
-      // ✅ Unchanged fields should remain exactly the same
-      expect(updatedUser.name, equals('Nested Diff Test User')); // Unchanged
-      expect(updatedUser.email, equals('nested_diff@test.com')); // Unchanged
-      expect(updatedUser.rating, equals(4.0)); // Unchanged
-      expect(updatedUser.isActive, isTrue); // Unchanged
-      expect(updatedUser.isPremium, isFalse); // Unchanged
-      expect(updatedUser.tags, equals(['initial', 'tag'])); // Unchanged
-      expect(updatedUser.scores, equals([85, 90])); // Unchanged
+        // ✅ Unchanged fields should remain exactly the same
+        expect(updatedUser.name, equals('Nested Diff Test User')); // Unchanged
+        expect(updatedUser.email, equals('nested_diff@test.com')); // Unchanged
+        expect(updatedUser.rating, equals(4.0)); // Unchanged
+        expect(updatedUser.isActive, isTrue); // Unchanged
+        expect(updatedUser.isPremium, isFalse); // Unchanged
+        expect(updatedUser.tags, equals(['initial', 'tag'])); // Unchanged
+        expect(updatedUser.scores, equals([85, 90])); // Unchanged
 
-      // ✅ Unchanged nested fields should remain exactly the same
-      expect(updatedUser.profile.avatar, equals('original.jpg')); // Unchanged
-      expect(updatedUser.profile.interests, equals(['reading', 'coding'])); // Unchanged
-      expect(
-        updatedUser.profile.socialLinks['github'],
-        equals('https://github.com/original'),
-      ); // Unchanged
-      expect(
-        updatedUser.profile.socialLinks['twitter'],
-        equals('https://twitter.com/original'),
-      ); // Unchanged
+        // ✅ Unchanged nested fields should remain exactly the same
+        expect(updatedUser.profile.avatar, equals('original.jpg')); // Unchanged
+        expect(
+          updatedUser.profile.interests,
+          equals(['reading', 'coding']),
+        ); // Unchanged
+        expect(
+          updatedUser.profile.socialLinks['github'],
+          equals('https://github.com/original'),
+        ); // Unchanged
+        expect(
+          updatedUser.profile.socialLinks['twitter'],
+          equals('https://twitter.com/original'),
+        ); // Unchanged
 
-      // ✅ Partial map updates should preserve unchanged entries
-      expect(updatedUser.settings['notifications'], equals('enabled')); // Preserved
-      expect(updatedUser.metadata['version'], equals(1)); // Preserved
+        // ✅ Partial map updates should preserve unchanged entries
+        expect(
+          updatedUser.settings['notifications'],
+          equals('enabled'),
+        ); // Preserved
+        expect(updatedUser.metadata['version'], equals(1)); // Preserved
 
-      // Verify map sizes are correct (original + new entries)
-      expect(updatedUser.settings, hasLength(3)); // theme, notifications, language
-      expect(updatedUser.metadata, hasLength(3)); // version, level, badge
+        // Verify map sizes are correct (original + new entries)
+        expect(
+          updatedUser.settings,
+          hasLength(3),
+        ); // theme, notifications, language
+        expect(updatedUser.metadata, hasLength(3)); // version, level, badge
 
-      print('✅ Modify correctly calculates nested field differences');
-      print('   - Only modified fields are updated in Firestore');
-      print('   - Unchanged nested fields are preserved');
-      print('   - Partial map updates work correctly');
-    });
+        print('✅ Modify correctly calculates nested field differences');
+        print('   - Only modified fields are updated in Firestore');
+        print('   - Unchanged nested fields are preserved');
+        print('   - Partial map updates work correctly');
+      },
+    );
 
     test('handles complex iterable type combinations', () async {
       // Create user with complex nested iterable combinations
@@ -461,7 +485,9 @@ void main() {
 
       // Test complex ordering with multiple fields including iterables present
       final complexOrderQuery = odm.users
-          .orderBy(($) => ($.profile.followers(descending: true), $.rating(), $.age()))
+          .orderBy(
+            ($) => ($.profile.followers(descending: true), $.rating(), $.age()),
+          )
           .limit(10);
 
       expect(complexOrderQuery, isNotNull);

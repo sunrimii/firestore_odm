@@ -19,5 +19,6 @@ abstract class JsonKeyUser with _$JsonKeyUser {
     @Default([]) List<String> tags,
   }) = _JsonKeyUser;
 
-  factory JsonKeyUser.fromJson(Map<String, dynamic> json) => _$JsonKeyUserFromJson(json);
+  factory JsonKeyUser.fromJson(Map<String, dynamic> json) =>
+      _$JsonKeyUserFromJson(json);
 }

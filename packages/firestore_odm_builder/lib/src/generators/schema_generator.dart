@@ -4,12 +4,12 @@ import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 import '../utils/string_helpers.dart';
-import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 import 'filter_generator.dart';
 import 'order_by_generator.dart';
 import 'update_generator.dart';
 import 'aggregate_generator.dart';
+
 /// Information about a collection annotation extracted from a schema variable
 class SchemaCollectionInfo {
   final String path;
@@ -59,10 +59,20 @@ class SchemaGenerator {
     _generateODMExtensions(buffer, schemaClassName, collections, modelAnalyses);
 
     // Generate transaction context extensions
-    _generateTransactionContextExtensions(buffer, schemaClassName, collections, modelAnalyses);
+    _generateTransactionContextExtensions(
+      buffer,
+      schemaClassName,
+      collections,
+      modelAnalyses,
+    );
 
     // Generate document extensions for subcollections
-    _generateDocumentExtensions(buffer, schemaClassName, collections, modelAnalyses);
+    _generateDocumentExtensions(
+      buffer,
+      schemaClassName,
+      collections,
+      modelAnalyses,
+    );
 
     return buffer.toString();
   }
@@ -130,12 +140,12 @@ class SchemaGenerator {
       final collectionName = StringHelpers.camelCase(collection.path);
       final converterName =
           '${_toLowerCamelCase(collection.modelTypeName)}Converter';
-      
+
       // Get document ID field from model analysis
       final analysis = modelAnalyses[collection.modelTypeName];
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
-      
+
       buffer.writeln('  /// Access ${collection.path} collection');
       buffer.writeln(
         '  FirestoreCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
@@ -179,12 +189,12 @@ class SchemaGenerator {
       final collectionName = StringHelpers.camelCase(collection.path);
       final converterName =
           '${_toLowerCamelCase(collection.modelTypeName)}Converter';
-      
+
       // Get document ID field from model analysis
       final analysis = modelAnalyses[collection.modelTypeName];
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
-      
+
       buffer.writeln('  /// Access ${collection.path} collection');
       buffer.writeln(
         '  TransactionCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
@@ -337,10 +347,7 @@ class SchemaGenerator {
   ) {
     for (final analysis in modelAnalyses.values) {
       // Generate FilterBuilder class using ModelAnalysis
-      FilterGenerator.generateFilterSelectorClassFromAnalysis(
-        buffer,
-        analysis,
-      );
+      FilterGenerator.generateFilterSelectorClassFromAnalysis(buffer, analysis);
       buffer.writeln('');
 
       // Generate OrderBySelector class using ModelAnalysis
@@ -351,10 +358,7 @@ class SchemaGenerator {
       buffer.writeln('');
 
       // Generate UpdateBuilder class using new signature
-      UpdateGenerator.generateUpdateBuilderClass(
-        buffer,
-        analysis,
-      );
+      UpdateGenerator.generateUpdateBuilderClass(buffer, analysis);
       buffer.writeln('');
 
       // Generate AggregateFieldSelector class using ModelAnalysis

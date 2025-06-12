@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/types.dart';
-import 'package:firestore_odm/src/utils.dart';
 
 /// Filter types
 enum FilterType { field, and, or }
@@ -721,11 +720,7 @@ class MapFieldFilter extends CallableFilter {
   MapFieldFilter({super.name, super.parent});
 
   /// Filter the entire map
-  FirestoreFilter call({
-    Map? isEqualTo,
-    Map? isNotEqualTo,
-    bool? isNull,
-  }) {
+  FirestoreFilter call({Map? isEqualTo, Map? isNotEqualTo, bool? isNull}) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
         field: fieldPath,
