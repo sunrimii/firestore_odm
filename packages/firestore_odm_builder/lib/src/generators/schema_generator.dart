@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
@@ -14,21 +15,22 @@ class SchemaCollectionInfo {
   final String path;
   final String modelTypeName;
   final bool isSubcollection;
+  final DartType? modelType; // Store the actual DartType for element extraction
 
   SchemaCollectionInfo({
     required this.path,
     required this.modelTypeName,
     required this.isSubcollection,
+    this.modelType,
   });
 }
 
 /// Generator for schema-based ODM code
 class SchemaGenerator {
   /// Generate schema class and extensions from annotated variable (with converters)
-  static String generateSchemaCodeWithoutConverters(
+  static String generateSchemaCode(
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
-    Map<String, ClassElement> modelTypes,
     Map<String, ModelAnalysis> modelAnalyses,
   ) {
     final buffer = StringBuffer();
@@ -49,16 +51,18 @@ class SchemaGenerator {
     generateGlobalConverterInstances(buffer, allModelTypes);
 
     // Generate filter and order by builders for each model type
-    _generateFilterAndOrderBySelectors(buffer, modelTypes, modelAnalyses);
+    buffer.writeln('// Starting to generate filter and order by selectors...');
+    _generateFilterAndOrderBySelectors(buffer, modelAnalyses);
+    buffer.writeln('// Finished generating filter and order by selectors');
 
     // Generate ODM extensions
-    _generateODMExtensions(buffer, schemaClassName, collections, modelTypes);
+    _generateODMExtensions(buffer, schemaClassName, collections, modelAnalyses);
 
-    // Generate ODM extensions
-    _generateTransactionContextExtensions(buffer, schemaClassName, collections, modelTypes);
+    // Generate transaction context extensions
+    _generateTransactionContextExtensions(buffer, schemaClassName, collections, modelAnalyses);
 
     // Generate document extensions for subcollections
-    _generateDocumentExtensions(buffer, schemaClassName, collections, modelTypes);
+    _generateDocumentExtensions(buffer, schemaClassName, collections, modelAnalyses);
 
     return buffer.toString();
   }
@@ -108,7 +112,7 @@ class SchemaGenerator {
     StringBuffer buffer,
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<String, ClassElement> modelTypes,
+    Map<String, ModelAnalysis> modelAnalyses,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -127,11 +131,9 @@ class SchemaGenerator {
       final converterName =
           '${_toLowerCamelCase(collection.modelTypeName)}Converter';
       
-      // Find the class element for this model type to get document ID field
-      final classElement = modelTypes[collection.modelTypeName];
-      final documentIdField = classElement?.unnamedConstructor != null
-          ? TypeAnalyzer.getDocumentIdField(classElement!.unnamedConstructor!)
-          : null;
+      // Get document ID field from model analysis
+      final analysis = modelAnalyses[collection.modelTypeName];
+      final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
       
       buffer.writeln('  /// Access ${collection.path} collection');
@@ -159,7 +161,7 @@ class SchemaGenerator {
     StringBuffer buffer,
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<String, ClassElement> modelTypes,
+    Map<String, ModelAnalysis> modelAnalyses,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -178,11 +180,9 @@ class SchemaGenerator {
       final converterName =
           '${_toLowerCamelCase(collection.modelTypeName)}Converter';
       
-      // Find the class element for this model type to get document ID field
-      final classElement = modelTypes[collection.modelTypeName];
-      final documentIdField = classElement?.unnamedConstructor != null
-          ? TypeAnalyzer.getDocumentIdField(classElement!.unnamedConstructor!)
-          : null;
+      // Get document ID field from model analysis
+      final analysis = modelAnalyses[collection.modelTypeName];
+      final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
       
       buffer.writeln('  /// Access ${collection.path} collection');
@@ -210,7 +210,7 @@ class SchemaGenerator {
     StringBuffer buffer,
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<String, ClassElement> modelTypes,
+    Map<String, ModelAnalysis> modelAnalyses,
   ) {
     final subcollections = collections.where((c) => c.isSubcollection).toList();
 
@@ -241,10 +241,9 @@ class SchemaGenerator {
             '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
 
         // Find the class element for this model type to get document ID field
-        final classElement = modelTypes[subcol.modelTypeName];
-        final documentIdField = classElement?.unnamedConstructor != null
-            ? TypeAnalyzer.getDocumentIdField(classElement!.unnamedConstructor!)
-            : null;
+        final analysis = modelAnalyses[subcol.modelTypeName];
+        // ignore: deprecated_member_use
+        final documentIdField = analysis?.documentIdFieldName;
         final documentIdFieldValue = documentIdField ?? 'id';
 
         buffer.writeln('  /// Access $subcollectionName subcollection');
@@ -334,17 +333,9 @@ class SchemaGenerator {
   /// Generate filter and order by builders for all model types
   static void _generateFilterAndOrderBySelectors(
     StringBuffer buffer,
-    Map<String, ClassElement> modelTypes,
     Map<String, ModelAnalysis> modelAnalyses,
   ) {
-    for (final entry in modelTypes.entries) {
-      final modelTypeName = entry.key;
-      final classElement = entry.value;
-      final constructor = classElement.unnamedConstructor;
-      final analysis = modelAnalyses[modelTypeName];
-
-      if (constructor == null || analysis == null) continue;
-
+    for (final analysis in modelAnalyses.values) {
       // Generate FilterBuilder class using ModelAnalysis
       FilterGenerator.generateFilterSelectorClassFromAnalysis(
         buffer,

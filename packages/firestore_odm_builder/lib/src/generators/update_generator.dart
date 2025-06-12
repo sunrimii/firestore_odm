@@ -28,8 +28,9 @@ class UpdateGenerator {
     // Generate named parameters for all updateable fields
     for (final field in analysis.updateableFields) {
       // Make all parameters optional for object merge operations
-      final baseType = field.dartType.getDisplayString(withNullability: false);
-      final optionalType = field.dartType.isDartCoreNull ? baseType : '$baseType?';
+      final dartTypeString = field.dartType.getDisplayString();
+      // If the type is already nullable, use it as-is, otherwise make it nullable
+      final optionalType = field.isNullable ? dartTypeString : '$dartTypeString?';
       buffer.writeln('    $optionalType ${field.parameterName},');
     }
 
@@ -44,7 +45,7 @@ class UpdateGenerator {
     }
 
     buffer.writeln(
-      '    return UpdateOperation(prefix, UpdateOperationType.objectMerge, data);',
+      '    return UpdateOperation(\$path, UpdateOperationType.objectMerge, data);',
     );
     buffer.writeln('  }');
     buffer.writeln('');
@@ -73,40 +74,40 @@ class UpdateGenerator {
     if (TypeAnalyzer.isIterableType(fieldType)) {
       final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
       buffer.writeln(
-        '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(\'$jsonFieldName\', prefix);',
+        '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isMapType(fieldType)) {
       final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
-        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(\'$jsonFieldName\', prefix);',
+        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isStringType(fieldType)) {
       buffer.writeln(
-        '  StringFieldUpdate<$className> get $fieldName => StringFieldUpdate<$className>(\'$jsonFieldName\', prefix);',
+        '  StringFieldUpdate<$className> get $fieldName => StringFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isBoolType(fieldType)) {
       buffer.writeln(
-        '  BoolFieldUpdate<$className> get $fieldName => BoolFieldUpdate<$className>(\'$jsonFieldName\', prefix);',
+        '  BoolFieldUpdate<$className> get $fieldName => BoolFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
-        '  DateTimeFieldUpdate<$className> get $fieldName => DateTimeFieldUpdate<$className>(\'$jsonFieldName\', prefix);',
+        '  DateTimeFieldUpdate<$className> get $fieldName => DateTimeFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      final typeString = fieldType.getDisplayString(withNullability: false);
+      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  NumericFieldUpdate<$className, $typeString> get $fieldName => NumericFieldUpdate<$className, $typeString>(\'$jsonFieldName\', prefix);',
+        '  NumericFieldUpdate<$className, $typeString> get $fieldName => NumericFieldUpdate<$className, $typeString>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isCustomClass(fieldType)) {
       // Generate nested UpdateBuilder for custom class types
-      final typeString = fieldType.getDisplayString(withNullability: false);
+      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  UpdateBuilder<$typeString> get $fieldName => UpdateBuilder<$typeString>(prefix: \'$jsonFieldName.\');',
+        '  UpdateBuilder<$typeString> get $fieldName => UpdateBuilder<$typeString>(name: \'$jsonFieldName\', parent: this);',
       );
     } else {
-      final typeString = fieldType.getDisplayString(withNullability: false);
+      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  GenericFieldUpdate<$className, $typeString> get $fieldName => GenericFieldUpdate<$className, $typeString>(\'$jsonFieldName\', prefix);',
+        '  GenericFieldUpdate<$className, $typeString> get $fieldName => GenericFieldUpdate<$className, $typeString>(name: \'$jsonFieldName\', parent: this);',
       );
     }
     buffer.writeln('');

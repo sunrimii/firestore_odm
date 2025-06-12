@@ -1,4 +1,4 @@
-import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:source_gen/source_gen.dart';
@@ -26,23 +26,23 @@ class TypeAnalyzer {
   /// Find the document ID field in a constructor
   /// First looks for fields with @DocumentIdField() annotation.
   /// If none found, defaults to a field named 'id' (must be String type).
-  static String? getDocumentIdField(ConstructorElement constructor) {
+  static String? getDocumentIdField(ConstructorElement2 constructor) {
     // First pass: Look for explicit @DocumentIdField() annotation
-    for (final param in constructor.parameters) {
-      for (final metadata in param.metadata) {
+    for (final param in constructor.formalParameters) {
+      for (final metadata in param.metadata2.annotations) {
         final metadataValue = metadata.computeConstantValue();
         if (metadataValue != null &&
             metadataValue.type != null &&
             documentIdChecker.isExactlyType(metadataValue.type!)) {
-          return param.name;
+          return param.name3!;
         }
       }
     }
 
     // Second pass: Look for a field named 'id' as default
-    for (final param in constructor.parameters) {
-      if (param.name == 'id' && isStringType(param.type)) {
-        return param.name;
+    for (final param in constructor.formalParameters) {
+      if (param.name3 == 'id' && isStringType(param.type)) {
+        return param.name3!;
       }
     }
 
@@ -72,7 +72,7 @@ class TypeAnalyzer {
     }
 
     // Check for Timestamp (Firestore specific)
-    final typeName = nonNullableType.getDisplayString(withNullability: false);
+    final typeName = nonNullableType.getDisplayString();
     if (typeName == 'Timestamp') {
       return true;
     }
@@ -124,7 +124,7 @@ class TypeAnalyzer {
     return _intChecker.isExactlyType(nonNullableType) ||
         _doubleChecker.isExactlyType(nonNullableType) ||
         _dateTimeChecker.isExactlyType(nonNullableType) ||
-        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        nonNullableType.getDisplayString() == 'Timestamp';
   }
 
   /// Check if a type is a List type (specifically List, not just any iterable)
@@ -157,8 +157,8 @@ class TypeAnalyzer {
   static (String keyType, String valueType) getMapTypeNames(DartType mapType) {
     final (keyType, valueType) = getMapTypes(mapType);
     return (
-      keyType?.getDisplayString(withNullability: false) ?? 'dynamic',
-      valueType?.getDisplayString(withNullability: false) ?? 'dynamic',
+      keyType?.getDisplayString() ?? 'dynamic',
+      valueType?.getDisplayString() ?? 'dynamic',
     );
   }
 
@@ -170,7 +170,7 @@ class TypeAnalyzer {
         isIterableType(nonNullableType) ||
         _mapChecker.isAssignableFromType(nonNullableType) ||
         _dateTimeChecker.isExactlyType(nonNullableType) ||
-        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        nonNullableType.getDisplayString() == 'Timestamp';
   }
 
   /// Check if a type is numeric (int, double, or num)
@@ -206,7 +206,7 @@ class TypeAnalyzer {
   static bool isDateTimeType(DartType type) {
     final nonNullableType = _getNonNullableType(type);
     return _dateTimeChecker.isExactlyType(nonNullableType) ||
-        nonNullableType.getDisplayString(withNullability: false) == 'Timestamp';
+        nonNullableType.getDisplayString() == 'Timestamp';
   }
 
   /// Get the element type of a List using proper type analysis
@@ -217,13 +217,13 @@ class TypeAnalyzer {
   /// Get the element type name of a List (backward compatibility)
   static String getListElementTypeName(DartType listType) {
     final elementType = getListElementType(listType);
-    return elementType?.getDisplayString(withNullability: false) ?? 'dynamic';
+    return elementType?.getDisplayString() ?? 'dynamic';
   }
 
   /// Get the element type name of any iterable (backward compatibility)
   static String getIterableElementTypeName(DartType iterableType) {
     final elementType = getIterableElementType(iterableType);
-    return elementType?.getDisplayString(withNullability: false) ?? 'dynamic';
+    return elementType?.getDisplayString() ?? 'dynamic';
   }
 
   /// Check if a type is nullable

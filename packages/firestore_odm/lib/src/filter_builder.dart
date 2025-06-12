@@ -961,7 +961,7 @@ class StringFieldUpdate<T> extends CallableUpdate<T> {
 }
 
 /// Numeric field callable updater
-class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
+class NumericFieldUpdate<T, N extends num?> extends CallableUpdate<T> {
   NumericFieldUpdate({super.name, super.parent});
 
   /// Set numeric value

@@ -293,7 +293,7 @@ class _AggregateValueSelector<T> extends RootAggregateFieldSelector<T> {
 }
 
 /// Strongly-typed aggregate field that knows its numeric type
-class AggregateField<T extends num> extends Node {
+class AggregateField<T extends num?> extends Node {
   AggregateField({super.name, super.parent});
 
   /// Create sum aggregation - returns the correct field type

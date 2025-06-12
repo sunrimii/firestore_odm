@@ -38,6 +38,7 @@ class OrderByGenerator {
     StringBuffer buffer,
     ModelAnalysis analysis,
   ) {
+    // ModelAnalysis is only created for custom classes, so no primitive type check needed
     final className = analysis.className;
 
     // Generate OrderByFieldSelector extension

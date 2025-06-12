@@ -1,4 +1,4 @@
-import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
@@ -9,7 +9,7 @@ class FilterGenerator {
   static void generateFilterSelectorClass(
     StringBuffer buffer,
     String className,
-    ConstructorElement constructor,
+    ConstructorElement2 constructor,
     String rootFilterType,
     String? documentIdField,
   ) {
@@ -25,8 +25,8 @@ class FilterGenerator {
     }
 
     // Generate field getters and nested object getters
-    for (final param in constructor.parameters) {
-      final fieldName = param.name;
+    for (final param in constructor.formalParameters) {
+      final fieldName = param.name3!;
       final fieldType = param.type;
 
       // Skip document ID field as it's handled separately above
@@ -60,7 +60,7 @@ class FilterGenerator {
       '  DocumentIdFieldFilter get $documentIdField =>',
     );
     buffer.writeln(
-      '      DocumentIdFieldFilter(\'$documentIdField\', prefix);',
+      '      DocumentIdFieldFilter(name: \'$documentIdField\', parent: this);',
     );
     buffer.writeln('');
   }
@@ -76,10 +76,7 @@ class FilterGenerator {
     buffer.writeln('  /// Access nested $fieldName filters');
     buffer.writeln('  FilterSelector<${nestedTypeName}> get $fieldName {');
     buffer.writeln(
-      '    final nestedPrefix = prefix.isEmpty ? \'$fieldName\' : \'\$prefix.$fieldName\';',
-    );
-    buffer.writeln(
-      '    return FilterSelector<${nestedTypeName}>(prefix: nestedPrefix);',
+      '    return FilterSelector<${nestedTypeName}>(name: \'$fieldName\', parent: this);',
     );
     buffer.writeln('  }');
     buffer.writeln('');
@@ -97,7 +94,7 @@ class FilterGenerator {
     if (TypeAnalyzer.isStringType(fieldType)) {
       buffer.writeln('  StringFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      StringFieldFilter(\'$fieldName\', prefix);',
+        '      StringFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isIterableType(fieldType)) {
       final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
@@ -107,7 +104,7 @@ class FilterGenerator {
         '  ArrayFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      ArrayFieldFilter(\'$fieldName\', prefix);',
+        '      ArrayFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isMapType(fieldType)) {
       final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
@@ -115,19 +112,19 @@ class FilterGenerator {
         '  MapFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      MapFieldFilter(\'$fieldName\', prefix);',
+        '      MapFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isBoolType(fieldType)) {
       buffer.writeln('  BoolFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      BoolFieldFilter(\'$fieldName\', prefix);',
+        '      BoolFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
         '  DateTimeFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      DateTimeFieldFilter(\'$fieldName\', prefix);',
+        '      DateTimeFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
       final typeString = fieldType.getDisplayString(withNullability: false);
@@ -135,13 +132,13 @@ class FilterGenerator {
         '  NumericFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      NumericFieldFilter(\'$fieldName\', prefix);',
+        '      NumericFieldFilter(name: \'$fieldName\', parent: this);',
       );
     } else {
       // Fallback for other types, treat as string-like
       buffer.writeln('  StringFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      StringFieldFilter(\'$fieldName\', prefix);',
+        '      StringFieldFilter(name: \'$fieldName\', parent: this);',
       );
     }
     buffer.writeln('');

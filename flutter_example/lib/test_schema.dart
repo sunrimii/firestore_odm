@@ -8,7 +8,7 @@ import 'models/story.dart';
 
 part 'test_schema.odm.dart';
 
-/// Test schema that includes all collections used in existing tests
+/// Test schema that includes all collections used in existing tests.
 @Schema()
 @Collection<User>("users")
 @Collection<Post>("posts")

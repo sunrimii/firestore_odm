@@ -1,12 +1,12 @@
-import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import '../utils/string_helpers.dart';
 
 /// Generator for collection converter functions and related utilities
 class CollectionGenerator {
   /// Generate converter functions for a model class
-  static String generateConverters(ClassElement element) {
+  static String generateConverters(ClassElement2 element) {
     final buffer = StringBuffer();
-    final className = element.name;
+    final className = element.name3!;
 
     // Generate fromJson converter function
     buffer.writeln('/// Generated fromJson converter for $className');
