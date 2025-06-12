@@ -159,7 +159,7 @@ void main() {
         expect(orderedUsers[3].id, equals('zulu_id'));
 
         // Test descending order
-        final descendingQuery = odm.users.orderBy(($) => ($.id(true),));
+        final descendingQuery = odm.users.orderBy(($) => ($.id(descending: true),));
         final descendingUsers = await descendingQuery.get();
         
         expect(descendingUsers[0].id, equals('zulu_id'));
@@ -387,7 +387,7 @@ void main() {
 
         // Multi-field ordering with regular fields
         final multiOrderQuery = await odm.users(userId).posts
-            .orderBy(($) => ($.likes(true),))
+            .orderBy(($) => ($.likes(descending: true),))
             .get();
         
         expect(multiOrderQuery.length, equals(3));
