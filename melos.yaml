@@ -95,3 +95,10 @@ scripts:
     run: dart pub outdated
     description: Check for outdated dependencies.
 
+  sync:readme:
+    run: |
+      copy README.md packages\firestore_odm\README.md
+      copy README.md packages\firestore_odm_annotation\README.md
+      copy README.md packages\firestore_odm_builder\README.md
+    description: Sync README.md to all packages.
+
