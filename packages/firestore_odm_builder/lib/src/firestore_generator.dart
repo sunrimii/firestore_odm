@@ -1,67 +1,33 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:build/build.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_builder/src/generators/schema_generator.dart';
 import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
 
-/// Custom builder that replaces source_gen for Firestore ODM generation
-class FirestoreOdmBuilder implements Builder {
-  const FirestoreOdmBuilder();
+/// Generator for Firestore ODM using source_gen
+class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
+  const FirestoreGenerator();
 
   @override
-  Map<String, List<String>> get buildExtensions => const {
-    '.dart': ['.odm.dart']
-  };
-
-  @override
-  Future<void> build(BuildStep buildStep) async {
-    final resolver = buildStep.resolver;
-    if (!await resolver.isLibrary(buildStep.inputId)) return;
-
-    final library = await buildStep.resolver.libraryFor(buildStep.inputId);
-    final schemaElements = <TopLevelVariableElement>[];
-
-    // Find all @Schema annotated variables
-    for (final element in library.topLevelElements) {
-      if (element is TopLevelVariableElement) {
-        for (final annotation in element.metadata) {
-          final annotationValue = annotation.computeConstantValue();
-          if (annotationValue?.type?.element?.name == 'Schema') {
-            schemaElements.add(element);
-            break;
-          }
-        }
-      }
+  String generateForAnnotatedElement(
+    Element element,
+    ConstantReader annotation,
+    BuildStep buildStep,
+  ) {
+    if (element is! TopLevelVariableElement) {
+      throw InvalidGenerationSourceError(
+        'Schema annotation can only be applied to top-level variables.',
+        element: element,
+      );
     }
 
-    if (schemaElements.isEmpty) return;
-
-    // Generate code for each schema
-    final buffer = StringBuffer();
-    buffer.writeln('// dart format width=80');
-    buffer.writeln('// GENERATED CODE - DO NOT MODIFY BY HAND');
-    buffer.writeln();
-    buffer.writeln("part of '${buildStep.inputId.pathSegments.last}';");
-    buffer.writeln();
-    buffer.writeln('// **************************************************************************');
-    buffer.writeln('// FirestoreGenerator');
-    buffer.writeln('// **************************************************************************');
-    buffer.writeln();
-
-    for (final schemaElement in schemaElements) {
-      final generatedCode = await _generateForSchema(schemaElement, resolver);
-      buffer.write(generatedCode);
-    }
-
-    final outputId = buildStep.inputId.changeExtension('.odm.dart');
-    await buildStep.writeAsString(outputId, buffer.toString());
+    return _generateForSchema(element, buildStep.resolver);
   }
 
-  Future<String> _generateForSchema(TopLevelVariableElement element, Resolver resolver) async {
+  String _generateForSchema(TopLevelVariableElement element, Resolver resolver) {
     // 1. Extract all @Collection annotations from this schema variable
     final collections = _extractCollectionAnnotations(element);
     
@@ -87,7 +53,6 @@ class FirestoreOdmBuilder implements Builder {
       allModelAnalyses,
     );
   }
-
 
   /// Extract @Collection annotations from a schema variable
   List<SchemaCollectionInfo> _extractCollectionAnnotations(TopLevelVariableElement element) {
@@ -124,9 +89,4 @@ class FirestoreOdmBuilder implements Builder {
     print('DEBUG: Found ${collections.length} collections: ${collections.map((c) => c.modelTypeName).join(', ')}');
     return collections;
   }
-}
-
-/// Legacy generator class for backwards compatibility
-class FirestoreGenerator {
-  const FirestoreGenerator();
 }

@@ -1,8 +1,10 @@
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
+
 
 /// Utility class for analyzing Dart types in Firestore ODM generation
 class TypeAnalyzer {
@@ -22,6 +24,10 @@ class TypeAnalyzer {
   static const TypeChecker _iterableChecker = TypeChecker.fromRuntime(Iterable);
   static const TypeChecker _listChecker = TypeChecker.fromRuntime(List);
   static const TypeChecker _mapChecker = TypeChecker.fromRuntime(Map);
+
+  static const TypeChecker _immutableCollectionChecker = TypeChecker.fromRuntime(ImmutableCollection);
+  static const TypeChecker _immutableMapChecker = TypeChecker.fromRuntime(IMap);
+  static const TypeChecker _immutableListChecker = TypeChecker.fromRuntime(IList);
 
   /// Find the document ID field in a constructor
   /// First looks for fields with @DocumentIdField() annotation.
@@ -51,10 +57,6 @@ class TypeAnalyzer {
 
   /// Get the non-nullable version of a type for consistent comparison
   static DartType _getNonNullableType(DartType type) {
-    if (type.nullabilitySuffix == NullabilitySuffix.question) {
-      // For nullable types, get the non-nullable version
-      return (type as dynamic).withNullability(NullabilitySuffix.none);
-    }
     return type;
   }
 
@@ -71,21 +73,16 @@ class TypeAnalyzer {
       return true;
     }
 
-    // Check for Timestamp (Firestore specific)
-    final typeName = nonNullableType.getDisplayString();
-    if (typeName == 'Timestamp') {
-      return true;
-    }
-
     // Check for iterables of primitives (supports any iterable type)
     if (isIterableType(nonNullableType)) {
-      final elementType = getIterableElementType(nonNullableType);
-      if (elementType != null) {
-        return _stringChecker.isExactlyType(elementType) ||
-            _intChecker.isExactlyType(elementType) ||
-            _doubleChecker.isExactlyType(elementType) ||
-            _boolChecker.isExactlyType(elementType);
-      }
+      return true;
+      // final elementType = getIterableElementType(nonNullableType);
+      // if (elementType != null) {
+      //   return _stringChecker.isExactlyType(elementType) ||
+      //       _intChecker.isExactlyType(elementType) ||
+      //       _doubleChecker.isExactlyType(elementType) ||
+      //       _boolChecker.isExactlyType(elementType);
+      // }
     }
 
     return false;
@@ -93,7 +90,17 @@ class TypeAnalyzer {
 
   /// Check if a type is an iterable type (List, Set, any custom iterable)
   static bool isIterableType(DartType type) {
-    return _iterableChecker.isAssignableFromType(_getNonNullableType(type));
+    if (_iterableChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+
+    // if IMap, ISet, IList are used, they are also iterable
+    if (_immutableCollectionChecker.isAssignableFromType(_getNonNullableType(type)) ||
+        _immutableMapChecker.isAssignableFromType(_getNonNullableType(type)) ||
+        _immutableListChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+    return false;
   }
 
   /// Get the element type of any iterable using proper type analysis
@@ -123,18 +130,35 @@ class TypeAnalyzer {
 
     return _intChecker.isExactlyType(nonNullableType) ||
         _doubleChecker.isExactlyType(nonNullableType) ||
-        _dateTimeChecker.isExactlyType(nonNullableType) ||
-        nonNullableType.getDisplayString() == 'Timestamp';
+        _dateTimeChecker.isExactlyType(nonNullableType);
   }
 
   /// Check if a type is a List type (specifically List, not just any iterable)
   static bool isListType(DartType type) {
-    return _listChecker.isAssignableFromType(_getNonNullableType(type));
+    if (_listChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+
+    // Check for IList, which is a custom immutable list type
+    if (_immutableListChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+    
+    return false;
   }
 
   /// Check if a type is a Map type
   static bool isMapType(DartType type) {
-    return _mapChecker.isAssignableFromType(_getNonNullableType(type));
+    if (_mapChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+
+  // Check for IMap, which is a custom immutable map type
+    if (_immutableMapChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+
+    return false;
   }
 
   /// Get the key and value types of a Map using proper type analysis

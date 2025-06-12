@@ -375,15 +375,14 @@ class ModelAnalyzer {
     if (actualType is InterfaceType) {
       final element = actualType.element3;
       print('DEBUG: Found InterfaceType element: ${element.name3}');
-      
-      // Check if this is a custom class (not built-in types)
-      final isCustom = _isCustomClass(element);
-      print('DEBUG: Is custom class: $isCustom');
-      
-      if (isCustom) {
-        print('DEBUG: Processing custom class recursively: ${element.name3}');
-        _analyzeModelRecursively(element as ClassElement2, allAnalyses, processedTypes);
+
+      if (TypeAnalyzer.isPrimitiveType(actualType)) {
+        print('DEBUG: Skipping primitive type: ${actualType.getDisplayString()}');
+        return; // Skip primitive types
       }
+      
+      print('DEBUG: Processing custom class recursively: ${element.name3}');
+      _analyzeModelRecursively(element as ClassElement2, allAnalyses, processedTypes);
       
       // Handle generic types (List<T>, Map<K,V>)
       for (final typeArg in actualType.typeArguments) {
@@ -395,37 +394,4 @@ class ModelAnalyzer {
     }
   }
 
-  /// Check if a class element represents a custom class (not built-in types)
-  static bool _isCustomClass(InterfaceElement2 element) {
-    final typeName = element.name3;
-    
-    // Handle null type name
-    if (typeName == null) {
-      return false;
-    }
-    
-    // Skip built-in Dart types
-    if (const ['String', 'int', 'double', 'bool', 'DateTime', 'List', 'Map', 'Set'].contains(typeName)) {
-      return false;
-    }
-    
-    // Skip generated types (like copyWith classes)
-    if (typeName.startsWith('\$') || typeName.endsWith('CopyWith')) {
-      return false;
-    }
-    
-    // Check if the class has a fromJson factory constructor or method (indicating it's a serializable model)
-    if (element is ClassElement2) {
-      // Check for factory constructors named fromJson
-      final hasFromJsonFactory = element.constructors2.any((constructor) =>
-          constructor.name3 == 'fromJson' && constructor.isFactory);
-      
-      // Check for instance methods named fromJson
-      final hasFromJsonMethod = element.methods2.any((method) => method.name3 == 'fromJson');
-      
-      return hasFromJsonFactory || hasFromJsonMethod;
-    }
-    
-    return false;
-  }
 }
