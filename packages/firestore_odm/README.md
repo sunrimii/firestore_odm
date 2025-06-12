@@ -71,45 +71,348 @@ await userDoc.patch(($) => [
 - **🧩 Flexible Modeling** - Supports `freezed`, plain Dart classes, and `fast_immutable_collections`
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
-## 📚 Documentation Index
+## 📚 Table of Contents
 
-### 🚀 Getting Started
-- [Quick Start](#quick-start) - Installation and basic usage
-- [Schema-Based Architecture](#schema-based-architecture) - Multiple ODM instances and collections
-- [Installation & Setup](#installation--setup) - Dependencies and code generation
+- [🚀 Getting Started](#-getting-started)
+  - [1. Installation](#1-installation)
+  - [2. Define Your Model](#2-define-your-model)
+  - [3. Define Your Schema](#3-define-your-schema)
+  - [4. Generate Code](#4-generate-code)
+  - [5. Start Using](#5-start-using)
+- [🌟 Core Concepts](#-core-concepts)
+  - [Schema-Based Architecture](#schema-based-architecture)
+  - [Flexible Data Modeling](#flexible-data-modeling)
+  - [Type-Safe Everything](#type-safe-everything)
+- [✨ Key Features](#-key-features)
+  - [🔍 Type-Safe Queries](#-type-safe-queries)
+  - [🔄 Powerful Updates](#-powerful-updates)
+  - [🧠 Smart Pagination](#-smart-pagination)
+  - [📊 Aggregate Operations](#-aggregate-operations)
+  - [🔗 Subcollections](#-subcollections)
+  - [🏦 Transactions](#-transactions)
+- [🧪 Testing](#-testing)
+- [📄 API Reference](#-api-reference)
+- [🤝 Contributing](#-contributing)
 
-### 🔧 Core Operations
-- [Collection Operations](#collection-operations) - [`insert()`](#insert-vs-update-vs-upsert), [`update()`](#insert-vs-update-vs-upsert), [`upsert()`](#insert-vs-update-vs-upsert)
-- [Document ID Fields](#-document-id-fields) - Virtual [`@DocumentIdField()`](packages/firestore_odm_annotation/lib/src/annotations.dart) usage
-- [Real-time Streams](#-real-time-data-streams) - Live data updates in Flutter UI
-- [Bulk Delete Operations](#-bulk-delete-operations) - Query-based and collection-wide delete operations
+---
 
-### 🔍 Query & Filter APIs
-- [Type-Safe Querying](#-type-safe-querying) - Complex filters with logical operations
-- [Query Operations](#query-operations) - [`where()`](#query-operations), [`orderBy()`](#query-operations), [`limit()`](#query-operations)
-- [Smart Builder Pagination](#-smart-builder-pagination-system) - Revolutionary strongly-typed pagination with zero inconsistency risk
-- [Aggregate Operations](#-type-safe-aggregate-operations) - [`count()`](packages/firestore_odm/lib/src/count_query.dart), [`sum()`](packages/firestore_odm/lib/src/tuple_aggregate.dart), [`average()`](packages/firestore_odm/lib/src/tuple_aggregate.dart)
-- [Map Field Operations](#️-map-field-operations) - Map key access, filtering, and updates
+## 🚀 Getting Started
 
-### ✏️ Update Methods
-- [Three Update Patterns](#-three-powerful-update-methods) - Array-style, Modify, Incremental Modify
-- [Update Operations](#update-operations) - [`patch()`](packages/firestore_odm/lib/src/interfaces/update_operations.dart), [`modify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart), [`incrementalModify()`](packages/firestore_odm/lib/src/interfaces/document_operations.dart)
-- [Collection Bulk Operations](#-collection-bulk-operations) - Bulk modify and incremental modify on entire collections
-- [Smart Server Timestamps](#-smart-server-timestamps) - [`FirestoreODM.serverTimestamp`](packages/firestore_odm/lib/src/firestore_odm.dart)
+Get up and running with Firestore ODM in five simple steps.
 
-### 🏗️ Advanced Features
-- [Multiple Collections & Subcollections](#-multiple-collections--subcollections) - Schema-based collection management
-- [Safe Transactions](#-safe-transactions) - ACID guarantees with [`runTransaction()`](packages/firestore_odm/lib/src/firestore_odm.dart)
-- [Flexible Data Modeling](#-flexible-data-modeling) - Use `freezed`, plain Dart classes, or `fast_immutable_collections`
-- [Feature Completion Status](#feature-completion-status) - What's implemented vs pending
+### 1. Installation
 
-### 📖 Reference & Examples
-- [API Reference](#api-reference) - Complete method documentation
-- [Testing](#testing) - Integration with [`fake_cloud_firestore`](packages/firestore_odm/lib/firestore_odm.dart)
-- [Migration Guide](#migration-from-raw-firestore) - From raw Firestore to ODM
-- [Complete Example App](flutter_example/) - Working Flutter application
+Add the necessary dependencies to your `pubspec.yaml`:
 
-## Quick Start
+```yaml
+# pubspec.yaml
+dependencies:
+  cloud_firestore: ^4.0.0 # Or your desired version
+  firestore_odm: ^1.0.0
+  firestore_odm_annotation: ^1.0.0
+  # One of: freezed_annotation, json_annotation
+  freezed_annotation: ^2.0.0
+
+dev_dependencies:
+  build_runner: ^2.0.0
+  firestore_odm_builder: ^1.0.0
+  # One of: freezed, json_serializable
+  freezed: ^2.0.0
+  json_serializable: ^6.0.0
+```
+
+### 2. Define Your Model
+
+Create your data model using `freezed` or a plain Dart class with `json_serializable`.
+
+```dart
+// lib/models/user.dart
+import 'package:firestore_odm/firestore_odm.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'user.freezed.dart';
+part 'user.g.dart';
+
+@freezed
+class User with _$User {
+  const factory User({
+    @DocumentIdField() required String id,
+    required String name,
+    required String email,
+  }) = _User;
+
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+```
+
+### 3. Define Your Schema
+
+Group your collections into a schema. This is the single source of truth for your database structure.
+
+```dart
+// lib/schema.dart
+import 'package:firestore_odm/firestore_odm.dart';
+import 'models/user.dart';
+
+part 'schema.odm.dart';
+
+@Schema()
+@Collection<User>("users")
+final appSchema = _$AppSchema;
+```
+
+> **Note:** The `@Schema()` annotation is crucial for the generator to correctly process your collections.
+
+### 4. Generate Code
+
+Run the `build_runner` to generate the required ODM code:
+
+```bash
+# Generate code
+dart run build_runner build --delete-conflicting-outputs
+```
+
+### 5. Start Using
+
+Initialize the ODM and start performing type-safe operations.
+
+```dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
+import 'schema.dart';
+
+void main() async {
+  final firestore = FirebaseFirestore.instance;
+  final odm = FirestoreODM(appSchema, firestore: firestore);
+
+  // Create a user
+  await odm.users.insert(User(id: 'jane', name: 'Jane Smith', email: 'jane@example.com'));
+
+  // Get a user
+  final user = await odm.users('jane').get();
+  print(user?.name); // Prints "Jane Smith"
+
+  // Query users
+  final smiths = await odm.users.where((_) => _.name(isEqualTo: 'Jane Smith')).get();
+  print('Found ${smiths.length} users named Jane Smith');
+}
+```
+
+## 🌟 Core Concepts
+
+### Schema-Based Architecture
+
+The schema is the heart of the ODM. By defining all your collections in one place, you get:
+- **Compile-time validation** of collection paths and model relationships.
+- **Automatic parent-child detection** for subcollections.
+- **No manual model imports** needed for nested types.
+- The ability to have **multiple, separate ODM instances** for different parts of your app.
+
+```dart
+// Define multiple collections and subcollections in one place
+@Schema()
+@Collection<User>("users")
+@Collection<Post>("posts")
+@Collection<Post>("users/*/posts") // User subcollection
+final appSchema = _$AppSchema;
+```
+
+### Flexible Data Modeling
+
+`firestore_odm` is unopinionated about how you create your models.
+
+- **`freezed` (Recommended):** The examples use `freezed` for its concise and robust immutable classes.
+- **`json_serializable`:** Use plain, hand-written Dart classes with the `json_serializable` package. This gives you full control.
+- **`fast_immutable_collections`:** Integrate for high-performance, truly immutable lists (`IList`), maps (`IMap`), and sets (`ISet`).
+
+```dart
+// Example model with fast_immutable_collections
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+// ...
+
+@freezed
+class Product with _$Product {
+  const factory Product({
+    @DocumentIdField() required String id,
+    required String name,
+    required IList<String> tags, // Immutable list
+  }) = _Product;
+  // ...
+}
+```
+
+### Type-Safe Everything
+
+Every API in `firestore_odm` is designed to be type-safe. From queries to updates, the Dart compiler becomes your best defense against common database errors.
+
+- ✅ **Queries:** `odm.users.where((_) => _.age(isGreaterThan: 18))`
+- ✅ **Updates:** `odm.users('id').patch((_) => [_.age.increment(1)])`
+- ✅ **Pagination:** `odm.users.orderBy((_) => _.age()).startAfterObject(lastUser)`
+- ✅ **Aggregates:** `odm.users.aggregate((_) => _.age.average())`
+
+Say goodbye to `string-based` field names and runtime errors.
+
+## ✨ Key Features
+
+### 🔍 Type-Safe Queries
+
+Write complex, readable queries that are validated at compile-time.
+
+```dart
+// Complex logical query
+final engagedUsers = await odm.users
+  .where(($) => $.and(
+    $.isActive(isEqualTo: true),
+    $.or(
+      $.tags(arrayContains: 'premium'),
+      $.profile.followers(isGreaterThan: 1000),
+    ),
+  ))
+  .get();
+
+// Map field query
+final darkThemeUsers = await odm.users
+  .where(($) => $.settings.key('theme')(isEqualTo: 'dark'))
+  .get();
+```
+
+### 🔄 Powerful Updates
+
+Choose the update pattern that best fits your needs. All methods support both single-document and bulk updates.
+
+- **`patch()` (Array-Style):** For explicit, atomic operations.
+- **`modify()`:** For immutable, diff-based updates using `copyWith`.
+- **`incrementalModify()` (Recommended):** Automatically detects and applies atomic operations like `FieldValue.increment()` and `FieldValue.arrayUnion()`.
+
+```dart
+// 1. patch() - Explicit and atomic
+await userDoc.patch(($) => [
+  $.name('John Smith'),
+  $.age.increment(1),
+  $.tags.add('verified'),
+]);
+
+// 2. incrementalModify() - Smart and convenient
+await userDoc.incrementalModify((user) => user.copyWith(
+  age: user.age + 1,              // Auto-detects -> FieldValue.increment(1)
+  tags: [...user.tags, 'expert'], // Auto-detects -> FieldValue.arrayUnion()
+));
+
+// 3. Bulk update an entire query
+await odm.users
+  .where(($) => $.isActive(isEqualTo: false))
+  .patch(($) => [$.isActive(true)]);
+```
+
+### 🧠 Smart Pagination
+
+Our revolutionary "Smart Builder" provides strongly-typed pagination with zero risk of inconsistency. The same builder function is used for both ordering and cursor creation.
+
+```dart
+// Define the ordering and cursor fields ONCE
+final builder = ($) => ($.followers(true), $.name()); // Order by followers (desc), then name (asc)
+
+// 1. Get the first page
+final firstPage = await odm.users.orderBy(builder).limit(10).get();
+
+// 2. Get the next page with perfect type-safety
+if (firstPage.isNotEmpty) {
+  final nextPage = await odm.users
+    .orderBy(builder)
+    .startAfterObject(firstPage.last) // Auto-extracts cursor from the last user object
+    .limit(10)
+    .get();
+}
+```
+
+### 📊 Aggregate Operations
+
+Perform `count`, `sum`, and `average` aggregations with full type-safety and real-time stream support.
+
+```dart
+// Get aggregate data for active users
+final stats = await odm.users
+  .where(($) => $.isActive(isEqualTo: true))
+  .aggregate(($) => (
+    count: $.count(),              // Returns int
+    avgAge: $.age.average(),       // Returns double
+    totalPoints: $.points.sum(),   // Returns int (or double if points is double)
+  ))
+  .get();
+
+print('Active users: ${stats.count}');
+print('Average age: ${stats.avgAge}');
+
+// Also available as a stream: .aggregate(...).stream
+```
+
+### 🔗 Subcollections
+
+Define and access subcollections with a fluent, type-safe API.
+
+```dart
+// 1. Define in schema
+@Schema()
+@Collection<User>("users")
+@Collection<Post>("users/*/posts") // Subcollection of users
+final appSchema = _$AppSchema;
+
+// 2. Access with type-safety
+final userPosts = odm.users('jane').posts;
+
+// 3. Perform operations
+await userPosts.insert(Post(id: 'post1', title: 'My First Post'));
+final allPosts = await userPosts.get();
+```
+
+### 🏦 Transactions
+
+Run atomic, multi-document operations with ACID guarantees. The transaction context is automatically passed to all ODM operations within the callback.
+
+```dart
+await odm.runTransaction((tx) async {
+  final sender = await tx.users('user1').get();
+  final receiver = await tx.users('user2').get();
+
+  if (sender!.balance >= 100) {
+    // All operations inside this block are part of the transaction
+    await tx.users('user1').patch(($) => [$.balance.increment(-100)]);
+    await tx.users('user2').patch(($) => [$.balance.increment(100)]);
+  }
+});
+```
+
+## 🧪 Testing
+
+The ODM integrates perfectly with `package:fake_cloud_firestore` for fast and reliable unit/widget testing.
+
+```dart
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:flutter_test/flutter_test.dart';
+// ... your imports
+
+void main() {
+  test('user queries work correctly', () async {
+    final firestore = FakeFirebaseFirestore();
+    final odm = FirestoreODM(appSchema, firestore: firestore);
+
+    await odm.users.insert(User(id: 'test', name: 'Test User', email: '...'));
+
+    final result = await odm.users('test').get();
+    expect(result?.name, 'Test User');
+  });
+}
+```
+
+## 📄 API Reference
+
+For a detailed look at all available methods, please explore the generated code and the source files linked below.
+
+- **[Collection Operations](#-powerful-updates):** `insert`, `update`, `upsert`, `patch`, `modify`, `delete`.
+- **[Query Operations](#-type-safe-queries):** `where`, `orderBy`, `limit`, `startAt`, `endBefore`.
+- **[Document Operations:** `get`, `stream`, `delete`, `patch`, `modify`.
+
+## 🤝 Contributing
 
 ### 1. Add Dependencies
 
@@ -152,6 +455,7 @@ import 'models/user.dart';
 
 part 'schema.odm.dart';
 
+@Schema()
 @Collection<User>("users")
 final appSchema = _$AppSchema;
 ```
@@ -201,10 +505,12 @@ The new schema-based approach solves major limitations of traditional ODM patter
 ### **Multiple ODM Instances**
 ```dart
 // Different schemas for different parts of your app
+@Schema()
 @Collection<User>("main_users")
 @Collection<Post>("main_posts")
 final mainSchema = _$MainSchema;
 
+@Schema()
 @Collection<User>("analytics_users")
 @Collection<Post>("analytics_posts")
 final analyticsSchema = _$AnalyticsSchema;
@@ -223,6 +529,7 @@ class Post with _$Post {
 }
 
 // ✅ NEW: Schema-level definitions eliminate manual imports
+@Schema()
 @Collection<User>("users")
 @Collection<Post>("users/*/posts")  // Parent-child relationships auto-detected
 final schema = _$Schema;
@@ -670,6 +977,7 @@ import 'models/post.dart';
 part 'app_schema.odm.dart';
 
 // Schema-based collection definitions
+@Schema()
 @Collection<User>("users")
 @Collection<Post>("posts")           // Top-level posts collection
 @Collection<Post>("users/*/posts")   // User subcollection posts
@@ -701,6 +1009,7 @@ await odm.users('alice').posts.upsert(Post(
 ));
 
 // Multiple schemas for different parts of your app
+@Schema()
 @Collection<Project>("organizations/*/departments/*/teams/*/projects")
 final projectSchema = _$ProjectSchema;
 
