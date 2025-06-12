@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
-import 'package:cloud_firestore_platform_interface/src/field_path_type.dart';
+import 'package:firestore_odm/src/field_selecter.dart';
+import 'package:firestore_odm/src/types.dart';
+import 'package:firestore_odm/src/utils.dart';
 
 /// Filter types
 enum FilterType { field, and, or }
@@ -72,388 +74,14 @@ class FirestoreFilter {
       );
 }
 
-
-/// Base filter builder class
-/// Extended by generated FilterBuilder classes that provide type-safe filtering methods
-class FilterSelector<T> {
-  /// Field prefix for nested object filtering
-  final String prefix;
-
-  /// Create a FilterSelector with optional field prefix for nested objects
-  FilterSelector({this.prefix = ''});
-
-  /// Helper to get field path with prefix
-  String getFieldPath(String fieldName) {
-    return prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-  }
-
-  /// Create string field filter
-  FirestoreFilter stringFilter<R>(
-    dynamic fieldName, {
-    String? isEqualTo,
-    String? isNotEqualTo,
-    String? isLessThan,
-    String? isLessThanOrEqualTo,
-    String? isGreaterThan,
-    String? isGreaterThanOrEqualTo,
-    List<String>? whereIn,
-    List<String>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = fieldName is String ? getFieldPath(fieldName) : fieldName;
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (isLessThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThan,
-        value: isLessThan,
-      );
-    }
-    if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThanOrEqualTo,
-        value: isLessThanOrEqualTo,
-      );
-    }
-    if (isGreaterThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThan,
-        value: isGreaterThan,
-      );
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThanOrEqualTo,
-        value: isGreaterThanOrEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create numeric field filter
-  FirestoreFilter numericFilter<R, N extends num>(
-    String fieldName, {
-    N? isEqualTo,
-    N? isNotEqualTo,
-    N? isLessThan,
-    N? isLessThanOrEqualTo,
-    N? isGreaterThan,
-    N? isGreaterThanOrEqualTo,
-    List<N>? whereIn,
-    List<N>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = getFieldPath(fieldName);
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (isLessThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThan,
-        value: isLessThan,
-      );
-    }
-    if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThanOrEqualTo,
-        value: isLessThanOrEqualTo,
-      );
-    }
-    if (isGreaterThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThan,
-        value: isGreaterThan,
-      );
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThanOrEqualTo,
-        value: isGreaterThanOrEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create boolean field filter
-  FirestoreFilter boolFilter<R>(
-    String fieldName, {
-    bool? isEqualTo,
-    bool? isNotEqualTo,
-    List<bool>? whereIn,
-    List<bool>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = getFieldPath(fieldName);
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create DateTime field filter
-  FirestoreFilter dateTimeFilter<R>(
-    String fieldName, {
-    DateTime? isEqualTo,
-    DateTime? isNotEqualTo,
-    DateTime? isLessThan,
-    DateTime? isLessThanOrEqualTo,
-    DateTime? isGreaterThan,
-    DateTime? isGreaterThanOrEqualTo,
-    List<DateTime>? whereIn,
-    List<DateTime>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = getFieldPath(fieldName);
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (isLessThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThan,
-        value: isLessThan,
-      );
-    }
-    if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThanOrEqualTo,
-        value: isLessThanOrEqualTo,
-      );
-    }
-    if (isGreaterThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThan,
-        value: isGreaterThan,
-      );
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThanOrEqualTo,
-        value: isGreaterThanOrEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create array field filter
-  FirestoreFilter arrayFilter<R, E>(
-    String fieldName, {
-    List<E>? isEqualTo,
-    List<E>? isNotEqualTo,
-    dynamic arrayContains,
-    List<dynamic>? arrayContainsAny,
-    List<List<E>>? whereIn,
-    List<List<E>>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = getFieldPath(fieldName);
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (arrayContains != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.arrayContains,
-        value: arrayContains,
-      );
-    }
-    if (arrayContainsAny != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.arrayContainsAny,
-        value: arrayContainsAny,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
+/// Base filter builder class using Node-based architecture
+class FilterSelector<T> extends Node {
+  /// Create a FilterSelector with optional name and parent for nested objects
+  FilterSelector({super.name, super.parent});
 }
 
-/// Root filter builder with all filtering logic
-/// Extended by generated FilterBuilder classes for type-safe operations
 class RootFilterSelector<T> extends FilterSelector<T> {
-  RootFilterSelector({super.prefix});
+  RootFilterSelector();
 
   /// Create OR filter with type safety (supports up to 30 filters)
   FirestoreFilter or(
@@ -586,7 +214,6 @@ class RootFilterSelector<T> extends FilterSelector<T> {
   }
 }
 
-
 /// Update operation types
 enum UpdateOperationType {
   set, // Direct field assignment
@@ -610,14 +237,10 @@ class UpdateOperation {
   String toString() => 'UpdateOperation($field, $type, $value)';
 }
 
-/// Base update builder class
-/// Extended by generated UpdateBuilder classes that provide type-safe update methods
-class UpdateBuilder<T> {
-  /// Field prefix for nested object updates
-  final String prefix;
-
-  /// Create an UpdateBuilder with optional field prefix for nested objects
-  UpdateBuilder({this.prefix = ''});
+/// Base update builder class using Node-based architecture
+class UpdateBuilder<T> extends Node {
+  /// Create an UpdateBuilder with optional name and parent for nested objects
+  UpdateBuilder({super.name, super.parent});
 
   /// Convert operations to Firestore update map
   static Map<String, dynamic> operationsToMap(
@@ -691,399 +314,6 @@ class UpdateBuilder<T> {
   }
 }
 
-/// Generic field builder
-class FieldBuilder<T> {
-  final String fieldPath;
-  FieldBuilder(this.fieldPath);
-
-  /// Set field value
-  UpdateOperation call(T value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-}
-
-/// List field builder
-class ListFieldBuilder<T> extends FieldBuilder<List<T>> {
-  ListFieldBuilder(super.fieldPath);
-
-  /// Add element to array
-  UpdateOperation add(T value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
-  }
-
-  /// Remove element from array
-  UpdateOperation remove(T value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
-  }
-}
-
-/// Numeric field builder
-class NumericFieldBuilder<T extends num> extends FieldBuilder<T> {
-  NumericFieldBuilder(super.fieldPath);
-
-  /// Increment field value
-  UpdateOperation increment(T value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.increment, value);
-  }
-}
-
-/// DateTime field builder
-class DateTimeFieldBuilder extends FieldBuilder<DateTime> {
-  DateTimeFieldBuilder(super.fieldPath);
-
-  /// Set field to server timestamp
-  UpdateOperation serverTimestamp() {
-    return UpdateOperation(
-      fieldPath,
-      UpdateOperationType.serverTimestamp,
-      null,
-    );
-  }
-}
-
-/// Universal filter creation helper - eliminates need for repetitive generated code
-class FilterFactory {
-  /// Create string field filter with all operators
-  static FirestoreFilter stringFilter(
-    String fieldName,
-    String prefix, {
-    String? isEqualTo,
-    String? isNotEqualTo,
-    List<String>? whereIn,
-    List<String>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create boolean field filter
-  static FirestoreFilter boolFilter(
-    String fieldName,
-    String prefix, {
-    bool? isEqualTo,
-    bool? isNotEqualTo,
-    List<bool>? whereIn,
-    List<bool>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create comparable field filter (int, double, DateTime)
-  static FirestoreFilter comparableFilter<T>(
-    String fieldName,
-    String prefix, {
-    T? isEqualTo,
-    T? isNotEqualTo,
-    T? isLessThan,
-    T? isLessThanOrEqualTo,
-    T? isGreaterThan,
-    T? isGreaterThanOrEqualTo,
-    List<T>? whereIn,
-    List<T>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (isLessThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThan,
-        value: isLessThan,
-      );
-    }
-    if (isLessThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isLessThanOrEqualTo,
-        value: isLessThanOrEqualTo,
-      );
-    }
-    if (isGreaterThan != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThan,
-        value: isGreaterThan,
-      );
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isGreaterThanOrEqualTo,
-        value: isGreaterThanOrEqualTo,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  /// Create list field filter
-  static FirestoreFilter listFilter<T>(
-    String fieldName,
-    String prefix, {
-    List<T>? isEqualTo,
-    List<T>? isNotEqualTo,
-    dynamic arrayContains,
-    List<dynamic>? arrayContainsAny,
-    List<List<T>>? whereIn,
-    List<List<T>>? whereNotIn,
-    bool? isNull,
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-
-    if (isEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isEqualTo,
-        value: isEqualTo,
-      );
-    }
-    if (isNotEqualTo != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.isNotEqualTo,
-        value: isNotEqualTo,
-      );
-    }
-    if (arrayContains != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.arrayContains,
-        value: arrayContains,
-      );
-    }
-    if (arrayContainsAny != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.arrayContainsAny,
-        value: arrayContainsAny,
-      );
-    }
-    if (whereIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereIn,
-        value: whereIn,
-      );
-    }
-    if (whereNotIn != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: FilterOperator.whereNotIn,
-        value: whereNotIn,
-      );
-    }
-    if (isNull != null) {
-      return FirestoreFilter.field(
-        field: fieldPath,
-        operator: isNull
-            ? FilterOperator.isEqualTo
-            : FilterOperator.isNotEqualTo,
-        value: null,
-      );
-    }
-    throw ArgumentError('At least one filter condition must be provided');
-  }
-}
-
-/// Universal AND/OR filter creation - eliminates repetitive 30-parameter methods
-class LogicalFilterFactory {
-  /// Create OR filter from variable number of filters
-  static FirestoreFilter orFilters(List<FirestoreFilter> filters) {
-    if (filters.length < 2) {
-      throw ArgumentError('OR operation requires at least 2 filters');
-    }
-    return FirestoreFilter.or(filters);
-  }
-
-  /// Create AND filter from variable number of filters
-  static FirestoreFilter andFilters(List<FirestoreFilter> filters) {
-    if (filters.length < 2) {
-      throw ArgumentError('AND operation requires at least 2 filters');
-    }
-    return FirestoreFilter.and(filters);
-  }
-
-  /// Helper to collect optional filters into list
-  static List<FirestoreFilter> collectFilters(
-    FirestoreFilter filter1,
-    FirestoreFilter filter2, [
-    FirestoreFilter? filter3,
-    FirestoreFilter? filter4,
-    FirestoreFilter? filter5,
-    FirestoreFilter? filter6,
-    FirestoreFilter? filter7,
-    FirestoreFilter? filter8,
-    FirestoreFilter? filter9,
-    FirestoreFilter? filter10,
-    FirestoreFilter? filter11,
-    FirestoreFilter? filter12,
-    FirestoreFilter? filter13,
-    FirestoreFilter? filter14,
-    FirestoreFilter? filter15,
-    FirestoreFilter? filter16,
-    FirestoreFilter? filter17,
-    FirestoreFilter? filter18,
-    FirestoreFilter? filter19,
-    FirestoreFilter? filter20,
-    FirestoreFilter? filter21,
-    FirestoreFilter? filter22,
-    FirestoreFilter? filter23,
-    FirestoreFilter? filter24,
-    FirestoreFilter? filter25,
-    FirestoreFilter? filter26,
-    FirestoreFilter? filter27,
-    FirestoreFilter? filter28,
-    FirestoreFilter? filter29,
-    FirestoreFilter? filter30,
-  ]) {
-    final allFilters = <FirestoreFilter>[filter1, filter2];
-    if (filter3 != null) allFilters.add(filter3);
-    if (filter4 != null) allFilters.add(filter4);
-    if (filter5 != null) allFilters.add(filter5);
-    if (filter6 != null) allFilters.add(filter6);
-    if (filter7 != null) allFilters.add(filter7);
-    if (filter8 != null) allFilters.add(filter8);
-    if (filter9 != null) allFilters.add(filter9);
-    if (filter10 != null) allFilters.add(filter10);
-    if (filter11 != null) allFilters.add(filter11);
-    if (filter12 != null) allFilters.add(filter12);
-    if (filter13 != null) allFilters.add(filter13);
-    if (filter14 != null) allFilters.add(filter14);
-    if (filter15 != null) allFilters.add(filter15);
-    if (filter16 != null) allFilters.add(filter16);
-    if (filter17 != null) allFilters.add(filter17);
-    if (filter18 != null) allFilters.add(filter18);
-    if (filter19 != null) allFilters.add(filter19);
-    if (filter20 != null) allFilters.add(filter20);
-    if (filter21 != null) allFilters.add(filter21);
-    if (filter22 != null) allFilters.add(filter22);
-    if (filter23 != null) allFilters.add(filter23);
-    if (filter24 != null) allFilters.add(filter24);
-    if (filter25 != null) allFilters.add(filter25);
-    if (filter26 != null) allFilters.add(filter26);
-    if (filter27 != null) allFilters.add(filter27);
-    if (filter28 != null) allFilters.add(filter28);
-    if (filter29 != null) allFilters.add(filter29);
-    if (filter30 != null) allFilters.add(filter30);
-    return allFilters;
-  }
-}
-
 class FieldNameOrDocumentId {
   final String? fieldName;
   final FieldPathType documentId = FieldPathType.documentId;
@@ -1100,34 +330,23 @@ class FieldNameOrDocumentId {
   bool get isDocumentId => fieldName == null;
   bool get isFieldName => fieldName != null;
 
-  dynamic get value => fieldName ?? documentId;
+  dynamic get value => fieldName ?? documentId.toFirestore();
 
   @override
-  String toString() => fieldName ?? documentId.toString();
+  String toString() => fieldName ?? documentId.toFirestore().toString();
 }
 
-/// Extension for Update operations
-extension UpdateBuilderExtensions on UpdateBuilder {
-  /// Get field path with prefix
-  String getFieldPath(String fieldName) {
-    return prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-  }
-}
-
-/// Callable filter instances - significantly reduce generated code
+/// Callable filter instances using Node-based architecture
 /// Base callable filter class
-abstract class CallableFilter {
-  final String fieldName;
-  final String prefix;
+abstract class CallableFilter extends Node {
+  CallableFilter({super.name, super.parent});
 
-  const CallableFilter(this.fieldName, this.prefix);
-
-  dynamic get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
+  dynamic get fieldPath => $path;
 }
 
 /// String field callable filter
 class StringFieldFilter extends CallableFilter {
-  const StringFieldFilter(super.fieldName, super.prefix);
+  StringFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     String? isEqualTo,
@@ -1211,7 +430,7 @@ class StringFieldFilter extends CallableFilter {
 
 /// Numeric field callable filter
 class NumericFieldFilter extends CallableFilter {
-  const NumericFieldFilter(super.fieldName, super.prefix);
+  NumericFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     num? isEqualTo,
@@ -1295,7 +514,7 @@ class NumericFieldFilter extends CallableFilter {
 
 /// Boolean field callable filter
 class BoolFieldFilter extends CallableFilter {
-  const BoolFieldFilter(super.fieldName, super.prefix);
+  BoolFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     bool? isEqualTo,
@@ -1347,7 +566,7 @@ class BoolFieldFilter extends CallableFilter {
 
 /// DateTime field callable filter
 class DateTimeFieldFilter extends CallableFilter {
-  const DateTimeFieldFilter(super.fieldName, super.prefix);
+  DateTimeFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     DateTime? isEqualTo,
@@ -1431,7 +650,7 @@ class DateTimeFieldFilter extends CallableFilter {
 
 /// Array field callable filter
 class ArrayFieldFilter extends CallableFilter {
-  const ArrayFieldFilter(super.fieldName, super.prefix);
+  ArrayFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     List? isEqualTo,
@@ -1499,7 +718,7 @@ class ArrayFieldFilter extends CallableFilter {
 
 /// Map field callable filter with key access support
 class MapFieldFilter extends CallableFilter {
-  const MapFieldFilter(super.fieldName, super.prefix);
+  MapFieldFilter({super.name, super.parent});
 
   /// Filter the entire map
   FirestoreFilter call({
@@ -1537,16 +756,13 @@ class MapFieldFilter extends CallableFilter {
   /// Access a specific key in the map for filtering
   /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
   MapKeyFieldFilter key(dynamic mapKey) {
-    final keyPath = prefix.isEmpty
-        ? '$fieldName.$mapKey'
-        : '$prefix.$fieldName.$mapKey';
-    return MapKeyFieldFilter(keyPath, '');
+    return MapKeyFieldFilter(name: mapKey.toString(), parent: this);
   }
 }
 
 /// Filter for individual map keys
 class MapKeyFieldFilter extends CallableFilter {
-  const MapKeyFieldFilter(super.fieldName, super.prefix);
+  MapKeyFieldFilter({super.name, super.parent});
 
   FirestoreFilter call({
     dynamic isEqualTo,
@@ -1631,10 +847,10 @@ class MapKeyFieldFilter extends CallableFilter {
 
 /// Document ID callable filter (special case)
 class DocumentIdFieldFilter extends CallableFilter {
-  const DocumentIdFieldFilter(super.fieldName, super.prefix);
+  DocumentIdFieldFilter({super.name, super.parent});
 
   @override
-  get fieldPath => FieldPathType.documentId;
+  get fieldPath => FieldPathType.documentId.toFirestore();
 
   FirestoreFilter call({
     String? isEqualTo,
@@ -1716,20 +932,17 @@ class DocumentIdFieldFilter extends CallableFilter {
   }
 }
 
-/// Callable update instances - reduce generated update code
+/// Callable update instances using Node-based architecture
 /// Base callable update class
-abstract class CallableUpdate<T> {
-  final String fieldName;
-  final String prefix;
+abstract class CallableUpdate<T> extends Node {
+  CallableUpdate({super.name, super.parent});
 
-  const CallableUpdate(this.fieldName, this.prefix);
-
-  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix$fieldName';
+  String get fieldPath => $path;
 }
 
 /// Boolean field callable updater
 class BoolFieldUpdate<T> extends CallableUpdate<T> {
-  const BoolFieldUpdate(super.fieldName, super.prefix);
+  BoolFieldUpdate({super.name, super.parent});
 
   /// Set boolean value
   UpdateOperation call(bool value) {
@@ -1739,7 +952,7 @@ class BoolFieldUpdate<T> extends CallableUpdate<T> {
 
 /// String field callable updater
 class StringFieldUpdate<T> extends CallableUpdate<T> {
-  const StringFieldUpdate(super.fieldName, super.prefix);
+  StringFieldUpdate({super.name, super.parent});
 
   /// Set string value
   UpdateOperation call(String value) {
@@ -1749,7 +962,7 @@ class StringFieldUpdate<T> extends CallableUpdate<T> {
 
 /// Numeric field callable updater
 class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
-  const NumericFieldUpdate(super.fieldName, super.prefix);
+  NumericFieldUpdate({super.name, super.parent});
 
   /// Set numeric value
   UpdateOperation call(N value) {
@@ -1764,7 +977,7 @@ class NumericFieldUpdate<T, N extends num> extends CallableUpdate<T> {
 
 /// List field callable updater
 class ListFieldUpdate<T, E> extends CallableUpdate<T> {
-  const ListFieldUpdate(super.fieldName, super.prefix);
+  ListFieldUpdate({super.name, super.parent});
 
   /// Set list value
   UpdateOperation call(List<E> value) {
@@ -1784,7 +997,7 @@ class ListFieldUpdate<T, E> extends CallableUpdate<T> {
 
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T> extends CallableUpdate<T> {
-  const DateTimeFieldUpdate(super.fieldName, super.prefix);
+  DateTimeFieldUpdate({super.name, super.parent});
 
   /// Set DateTime value
   UpdateOperation call(DateTime value) {
@@ -1803,7 +1016,7 @@ class DateTimeFieldUpdate<T> extends CallableUpdate<T> {
 
 /// Generic field callable updater (fallback)
 class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
-  const GenericFieldUpdate(super.fieldName, super.prefix);
+  GenericFieldUpdate({super.name, super.parent});
 
   /// Set value
   UpdateOperation call(V value) {
@@ -1813,7 +1026,7 @@ class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
 
 /// Map field callable updater
 class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
-  const MapFieldUpdate(super.fieldName, super.prefix);
+  MapFieldUpdate({super.name, super.parent});
 
   /// Set entire map value
   UpdateOperation call(Map<K, V> value) {
@@ -1823,19 +1036,14 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
   /// Set a specific key in the map
   /// Usage: $.profile.socialLinks.setKey("github", "username")
   UpdateOperation setKey(K key, V value) {
-    final keyPath = prefix.isEmpty
-        ? '$fieldName.$key'
-        : '$prefix.$fieldName.$key';
+    final keyPath = '$fieldPath.$key';
     return UpdateOperation(keyPath, UpdateOperationType.set, value);
   }
 
   /// Remove a specific key from the map
   /// Usage: $.profile.socialLinks.removeKey("github")
   UpdateOperation removeKey(K key) {
-    final keyPath = prefix.isEmpty
-        ? '$fieldName.$key'
-        : '$prefix.$fieldName.$key';
+    final keyPath = '$fieldPath.$key';
     return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
 }
-
