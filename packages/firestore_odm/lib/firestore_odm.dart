@@ -14,5 +14,6 @@ export 'src/query.dart';
 export 'src/transaction.dart';
 export 'src/aggregate.dart';
 export 'src/orderby.dart';
+export 'src/types.dart';
 
 export 'package:firestore_odm_annotation/firestore_odm_annotation.dart';

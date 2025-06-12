@@ -61,7 +61,7 @@ void main() {
         // Order by rating (double) + age (int) + name (String)
         final query = odm.users
             .orderBy(
-              ($) => ($.rating(true), $.age(), $.name()),
+              ($) => ($.rating(descending: true), $.age(), $.name()),
             ) // NEW: Tuple syntax (double, int, String)
             .startAfter((4.5, 30, 'John')) // ✓ (double, int, String) tuple
             .endAt((2.0, 60, 'Zoe')); // ✓ (double, int, String) tuple
@@ -83,7 +83,7 @@ void main() {
     test('double field orderBy with strongly-typed double pagination', () {
       // Order by rating field (double) - pagination should accept double cursor values
       final query = odm.users
-          .orderBy(($) => ($.rating(true),)) // NEW: Tuple syntax (double,)
+          .orderBy(($) => ($.rating(descending: true),)) // NEW: Tuple syntax (double,)
           .startAt((4.5,)) // ✓ Should accept (double,) tuple cursor
           .endBefore((2.0,)); // ✓ Should accept (double,) tuple cursor
 
@@ -107,7 +107,7 @@ void main() {
       // Order by nested profile.followers field (int) - pagination should accept int cursor
       final query = odm.users
           .orderBy(
-            ($) => ($.profile.followers(true),),
+            ($) => ($.profile.followers(descending: true),),
           ) // NEW: Tuple syntax (int,) - nested field!
           .startAt((
             1000,
@@ -162,7 +162,7 @@ void main() {
       // Triple field object-based pagination
       final tripleQuery = odm.users
           .orderBy(
-            ($) => ($.rating(true), $.age(), $.name()),
+            ($) => ($.rating(descending: true), $.age(), $.name()),
           ) // NEW: Tuple syntax (double, int, String)
           .endBeforeObject(
             sampleUser,
@@ -176,7 +176,7 @@ void main() {
       final leaderboard = odm.users
           .where((filter) => filter.isActive(isEqualTo: true))
           .orderBy(
-            ($) => ($.rating(true), $.id()),
+            ($) => ($.rating(descending: true), $.id()),
           ) // NEW: Tuple syntax (double, String)
           .limit(10)
           .startAfter((
@@ -198,7 +198,7 @@ void main() {
     test('chronological pagination with DateTime cursors', () {
       // Chronological pagination with DateTime cursors
       final recentPosts = odm.users
-          .orderBy(($) => ($.createdAt(true),)) // NEW: Tuple syntax (DateTime,)
+          .orderBy(($) => ($.createdAt(descending: true),)) // NEW: Tuple syntax (DateTime,)
           .limit(20)
           .startAfter((
             DateTime(2023, 12, 1),
@@ -219,7 +219,7 @@ void main() {
       final searchResults = odm.users
           .where((filter) => filter.tags(arrayContains: 'developer'))
           .orderBy(
-            ($) => ($.rating(true), $.id()),
+            ($) => ($.rating(descending: true), $.id()),
           ) // NEW: Tuple syntax (double, String)
           .limit(15)
           .startAfter((3.8, 'user_xyz')); // ✓ (double, String) tuple
@@ -242,7 +242,7 @@ void main() {
         // Order by 4 fields to test larger tuple types
         final query = odm.users
             .orderBy(
-              ($) => ($.rating(true), $.age(), $.name(), $.id()),
+              ($) => ($.rating(descending: true), $.age(), $.name(), $.id()),
             ) // NEW: Tuple syntax (double, int, String, String)
             .startAfter((
               4.5,

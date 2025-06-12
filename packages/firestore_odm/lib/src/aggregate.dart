@@ -1,12 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/interfaces/aggregatable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 /// Selector that provides strongly-typed field access for aggregations
-class AggregateFieldSelector<T> {
+class AggregateFieldSelector<T> extends Node {
+  AggregateFieldSelector({super.name = '', super.parent});
+}
+
+class RootAggregateFieldSelector<T> extends AggregateFieldSelector<T> {
   final List<AggregateOperation> operations = [];
 
   /// Get count of documents
@@ -19,7 +24,7 @@ class AggregateFieldSelector<T> {
 
 class AggregateConfiguration<T, R> {
   final List<AggregateOperation> operations;
-  final R Function(AggregateFieldSelector<T> selector) builder;
+  final AggregateBuilder<T, R> builder;
 
   AggregateConfiguration(this.operations, this.builder);
 }
@@ -35,7 +40,7 @@ abstract class QueryAggregatableHandler {
     AggregateBuilder<T, R> builder,
   ) {
     // Create the selector and build the aggregate specification
-    final selector = AggregateFieldSelector<T>();
+    final selector = RootAggregateFieldSelector<T>();
     builder(selector); // Call builder to populate operations
 
     return AggregateConfiguration(selector.operations, builder);
@@ -129,7 +134,7 @@ abstract class QueryAggregatableHandler {
     }
 
     // Create a dummy record spec to get the structure
-    final selector = AggregateFieldSelector<T>();
+    final selector = RootAggregateFieldSelector<T>();
     final recordSpec = configuration.builder(selector);
 
     return _buildResultRecord(recordSpec, results, configuration);
@@ -269,7 +274,7 @@ abstract class QueryAggregatableHandler {
   }
 }
 
-class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
+class _AggregateValueSelector<T> extends RootAggregateFieldSelector<T> {
   final Map<String, dynamic> _results;
   final List<AggregateOperation> _operations;
 
@@ -288,75 +293,84 @@ class _AggregateValueSelector<T> extends AggregateFieldSelector<T> {
 }
 
 /// Strongly-typed aggregate field that knows its numeric type
-class TupleAggregateField<T extends num> {
-  final String _fieldPath;
-  final AggregateFieldSelector _selector;
-
-  const TupleAggregateField(this._fieldPath, this._selector);
+class AggregateField<T extends num> extends Node {
+  AggregateField({super.name, super.parent});
 
   /// Create sum aggregation - returns the correct field type
   T sum() {
     // Check if this is a value selector (second pass) or operation collector (first pass)
-    if (_selector is _AggregateValueSelector<dynamic>) {
-      final valueSelector = _selector;
-      // Find the sum operation for this field and return its result
-      final sumOp = valueSelector._operations
-          .whereType<SumOperation>()
-          .where((op) => op.fieldPath == _fieldPath)
-          .firstOrNull;
-      if (sumOp != null) {
-        final value = valueSelector._results[sumOp.key];
-        if (value != null) {
-          // Convert from double (Firestore's default numeric type) to the expected type
-          if (T == int) {
-            return (value as num).toInt() as T;
-          } else if (T == double) {
-            return (value as num).toDouble() as T;
-          } else {
-            return value as T;
+    switch ($root) {
+      case _AggregateValueSelector root:
+        // Find the sum operation for this field and return its result
+        final sumOp = root._operations
+            .whereType<SumOperation>()
+            .where((op) => op.fieldPath == $path)
+            .firstOrNull;
+        if (sumOp != null) {
+          final value = root._results[sumOp.key];
+          if (value != null) {
+            // Convert from double (Firestore's default numeric type) to the expected type
+            switch (T) {
+              case int:
+                return (value as num).toInt() as T;
+              case double:
+                return (value as num).toDouble() as T;
+              case num:
+                return value as T; // Firestore returns num by default
+              default:
+                throw UnsupportedError('Unsupported numeric type: $T');
+            }
           }
         }
-      }
-      return _getDefaultValue();
-    } else {
-      // First pass: collect operation
-      final key = 'sum_${_selector.operations.length}';
-      _selector.operations.add(SumOperation(key, _fieldPath));
-      return _getDefaultValue();
+        return _getDefaultValue();
+      case RootAggregateFieldSelector root:
+        // First pass: collect operation
+        final key = 'sum_${root.operations.length}';
+        root.operations.add(SumOperation(key, $path));
+        return _getDefaultValue();
+      default:
+        throw UnsupportedError('Unsupported numeric type: $T');
     }
   }
 
   /// Create average aggregation - always returns double
   double average() {
-    // Check if this is a value selector (second pass) or operation collector (first pass)
-    if (_selector is _AggregateValueSelector<dynamic>) {
-      final valueSelector = _selector;
-      // Find the average operation for this field and return its result
-      final avgOp = valueSelector._operations
-          .whereType<AverageOperation>()
-          .where((op) => op.fieldPath == _fieldPath)
-          .firstOrNull;
-      if (avgOp != null) {
-        final value = valueSelector._results[avgOp.key];
-        if (value != null) {
-          return (value as num).toDouble();
+    switch ($root) {
+      case _AggregateValueSelector root:
+        // Find the average operation for this field and return its result
+        final avgOp = root._operations
+            .whereType<AverageOperation>()
+            .where((op) => op.fieldPath == $path)
+            .firstOrNull;
+        if (avgOp != null) {
+          final value = root._results[avgOp.key];
+          if (value != null) {
+            return (value as num).toDouble();
+          }
         }
-      }
-      return 0.0;
-    } else {
-      // First pass: collect operation
-      final key = 'avg_${_selector.operations.length}';
-      _selector.operations.add(AverageOperation(key, _fieldPath));
-      return 0.0; // Placeholder
+        return 0.0; // Default value if no average found
+      case RootAggregateFieldSelector _selector:
+        // First pass: collect operation
+        final key = 'avg_${_selector.operations.length}';
+        _selector.operations.add(AverageOperation(key, $path));
+        return 0.0; // Placeholder
+      default:
+        throw UnsupportedError('Unsupported numeric type for average: $T');
     }
   }
 
   /// Get default value for the specific numeric type
   T _getDefaultValue() {
-    if (T == int) return 0 as T;
-    if (T == double) return 0.0 as T;
-    if (T == num) return 0 as T;
-    throw UnsupportedError('Unsupported numeric type: $T');
+    switch (T) {
+      case int:
+        return 0 as T;
+      case double:
+        return 0.0 as T;
+      case num:
+        return 0 as T; // Firestore returns num by default
+      default:
+        throw UnsupportedError('Unsupported numeric type: $T');
+    }
   }
 }
 

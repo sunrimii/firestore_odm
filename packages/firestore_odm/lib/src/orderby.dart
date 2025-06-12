@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/aggregate.dart';
+import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/interfaces/aggregatable.dart';
 import 'package:firestore_odm/src/interfaces/deletable.dart';
@@ -14,133 +15,64 @@ import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/pagination.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
+import 'package:firestore_odm/src/types.dart';
+import 'package:firestore_odm/src/utils.dart';
+class OrderByField<T> extends Node {
+  OrderByField({super.name, super.parent, this.type});
+  final FieldPathType? type;
 
-class OrderByFieldSelector<T> {
-  final String prefix;
-  final List<OrderByFieldInfo> _fields;
-
-  // Value extraction mode - extracts actual values from object
-  final bool _isExtractionMode;
-  final Map<String, dynamic>? _sourceObject;
-  final List<dynamic> _extractedValues = [];
-
-  /// Create a field selector with optional prefix for nested fields
-  /// If parentFields is provided, nested selectors will share the same field collection
-  OrderByFieldSelector({
-    this.prefix = '',
-    List<OrderByFieldInfo>? parentFields,
-    bool isExtractionMode = false,
-    Map<String, dynamic>? sourceObject,
-  }) : _fields = parentFields ?? <OrderByFieldInfo>[],
-       _isExtractionMode = isExtractionMode,
-       _sourceObject = sourceObject;
-
-  /// Get the collected orderBy fields
-  List<OrderByFieldInfo> get fields => _fields;
-
-  /// Get extracted values (only available in extraction mode)
-  List<dynamic> get extractedValues => _extractedValues;
-
-  /// Public getters for extraction mode state (needed by generated extensions)
-  bool get isExtractionMode => _isExtractionMode;
-  Map<String, dynamic>? get sourceObject => _sourceObject;
-
-  /// Add a field to the orderBy configuration
-  /// Returns the field type to enable tuple type inference OR extracted value
-  R addField<R>(dynamic fieldPath, bool descending, Type fieldType) {
-    String fullPath;
-    if (fieldPath is String) {
-      fullPath = prefix.isEmpty ? fieldPath : '$prefix$fieldPath';
-    } else {
-      // Handle FieldPath objects (e.g., FieldPath.documentId)
-      fullPath = fieldPath.toString();
-    }
-
-    if (_isExtractionMode) {
-      // Extract actual value from source object
-      if (fieldPath == firestore.FieldPath.documentId) {
-        // For document ID, extract from the object's id field
-        final value =
-            _sourceObject!['id'] ??
-            _sourceObject['_id'] ??
-            _sourceObject.keys.first;
-        _extractedValues.add(value);
-        return value as R;
-      } else {
-        final value = _extractNestedValue(_sourceObject!, fullPath);
-        _extractedValues.add(value);
-        return value as R;
-      }
-    } else {
-      // Normal orderBy mode - collect field info and return type placeholder
-      if (fieldPath == firestore.FieldPath.documentId) {
-        // For document ID, store the actual FieldPath.documentId object
-        _fields.add(
+  T call({
+    bool descending = false,
+  }) {
+    switch($root) {
+      case RootOrderByFieldSelector selector:
+        // Call the addField method on the root selector
+        selector._fields.add(
           OrderByFieldInfo(
-            firestore.FieldPath.documentId,
+            type?.toFirestore() ?? $path,
             descending,
-            fieldType,
           ),
         );
-      } else {
-        _fields.add(OrderByFieldInfo(fullPath, descending, fieldType));
-      }
-      // Return default value of the type for type inference
-      switch (fieldType) {
-        case == int:
-          return 0 as R;
-        case == double:
-          return 0.0 as R;
-        case == String:
-          return '' as R;
-        case == bool:
-          return false as R;
-        case == DateTime:
-          return DateTime.now() as R;
-        default:
-          // For other types, return null cast to R
-          return null as R;
-      }
+      case RootOrderByFieldExtractor extractor:
+        // Extract the value from the source object using the field path
+        final value = resolveJsonWithParts(extractor.data, $parts);
+        // Add the extracted value to the list
+        extractor.extractedValues.add(value);
+      default:
+        throw StateError('Invalid root type for OrderByField: ${$root}');
     }
+    return defaultValue<T>();
   }
+}
 
-  /// Extract nested value from object map using dot notation
-  static dynamic _extractNestedValue(
-    Map<String, dynamic> map,
-    String fieldPath,
-  ) {
-    final parts = fieldPath.split('.');
-    dynamic current = map;
+class OrderByFieldSelector<T> extends Node {
+  /// Create a field selector with optional prefix for nested fields
+  /// If parentFields is provided, nested selectors will share the same field collection
+  OrderByFieldSelector({super.name, super.parent});
+}
 
-    for (final part in parts) {
-      if (current is Map<String, dynamic> && current.containsKey(part)) {
-        current = current[part];
-      } else {
-        return null;
-      }
-    }
+class RootOrderByFieldSelector<T> extends OrderByFieldSelector<T> {
+  RootOrderByFieldSelector();
 
-    return current;
-  }
+  final List<OrderByFieldInfo> _fields = [];
+}
 
-  // Field accessor methods are code-generated by OrderByGenerator
-  // Each method returns the field type (int, String, etc.) to build the tuple type
-  // Example generated methods:
-  // int age([bool descending = false]) => addField('age', descending, int);
-  // String name([bool descending = false]) => addField('name', descending, String);
+class RootOrderByFieldExtractor<T> extends OrderByFieldSelector<T> {
+  RootOrderByFieldExtractor(this.data);
+  final Map<String, dynamic> data;
+  final List<dynamic> extractedValues = [];
 }
 
 /// Information about an orderBy field for pagination
 class OrderByFieldInfo {
   final dynamic fieldPath; // Can be String or FieldPath
   final bool descending;
-  final Type fieldType;
 
-  const OrderByFieldInfo(this.fieldPath, this.descending, this.fieldType);
+  const OrderByFieldInfo(this.fieldPath, this.descending);
 
   @override
   String toString() =>
-      'OrderByFieldInfo($fieldPath, desc: $descending, type: $fieldType)';
+      'OrderByFieldInfo($fieldPath, desc: $descending)';
 }
 
 typedef OrderByBuilderFunction<T, O extends Record> =
@@ -153,12 +85,6 @@ class OrderByConfiguration<T, O extends Record> {
 
   const OrderByConfiguration(this.fields, this.builder);
 
-  /// Check if this configuration is empty
-  bool get isEmpty => fields.isEmpty;
-
-  /// Get field types as a tuple-like representation
-  List<Type> get fieldTypes => fields.map((f) => f.fieldType).toList();
-
   @override
   String toString() => 'OrderByConfiguration(${fields.join(', ')})';
 }
@@ -166,14 +92,15 @@ class OrderByConfiguration<T, O extends Record> {
 abstract class QueryOrderbyHandler {
   static OrderByConfiguration<T, O> buildOrderBy<T, O extends Record>(
     O Function(OrderByFieldSelector<T> selector) orderBuilder,
+    String documentIdFieldName,
   ) {
-    final selector = OrderByFieldSelector<T>();
+    final selector = RootOrderByFieldSelector<T>();
 
     // Call the order builder to populate the selector
     orderBuilder(selector);
 
-    final pgFields = selector.fields
-        .map((f) => OrderByFieldInfo(f.fieldPath, f.descending, f.fieldType))
+    final pgFields = selector._fields
+        .map((f) => OrderByFieldInfo(f.fieldPath, f.descending))
         .toList();
     return OrderByConfiguration(pgFields, orderBuilder);
   }
@@ -273,6 +200,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       object,
       _converter,
       _orderByConfig.builder,
+      _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyEndAt(_query, values);
     return OrderedQuery<S, T, O>(
@@ -301,6 +229,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       object,
       _converter,
       _orderByConfig.builder,
+      _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, values);
     return OrderedQuery<S, T, O>(
@@ -329,6 +258,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       object,
       _converter,
       _orderByConfig.builder,
+      _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, values);
     return OrderedQuery<S, T, O>(
@@ -357,6 +287,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       object,
       _converter,
       _orderByConfig.builder,
+      _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyStartAt(_query, values);
     return OrderedQuery<S, T, O>(
@@ -369,7 +300,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   @override
   OrderedQuery<S, T, O> where(
-    FirestoreFilter<T> Function(RootFilterSelector<T> builder) filterBuilder,
+    FirestoreFilter Function(RootFilterSelector<T> builder) filterBuilder,
   ) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
@@ -400,7 +331,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(
-    R Function(AggregateFieldSelector<T> selector) builder,
+    R Function(RootAggregateFieldSelector<T> selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(

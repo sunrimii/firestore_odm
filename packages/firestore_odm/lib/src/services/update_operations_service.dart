@@ -657,7 +657,7 @@ abstract class QueryFilterHandler {
     );
   }
 
-  static FirestoreFilter<T> buildFilter<T>(FilterBuilder<T> filterBuilder) {
+  static FirestoreFilter buildFilter<T>(FilterBuilder<T> filterBuilder) {
     final builder = RootFilterSelector<T>();
     return filterBuilder(builder);
   }

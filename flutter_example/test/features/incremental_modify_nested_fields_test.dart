@@ -487,7 +487,7 @@ void main() {
         // ✅ OrderedQuery with nested incrementalModify
         await odm.users
             .orderBy(
-              ($) => ($.profile.followers(true),),
+              ($) => ($.profile.followers(descending: true),),
             ) // Order by followers descending
             .incrementalModify(
               (user) => user.copyWith(

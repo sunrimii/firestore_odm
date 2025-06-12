@@ -78,7 +78,7 @@ void main() {
         // Order by age first, then by rating (descending)
         final results = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'coding'))
-            .orderBy(($) => ($.age(), $.rating(true)))
+            .orderBy(($) => ($.age(), $.rating(descending: true)))
             .get();
 
         expect(results.length, equals(3));
@@ -156,7 +156,7 @@ void main() {
         // Order by nested profile.followers field
         final results = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'nested'))
-            .orderBy(($) => ($.profile.followers(true),))
+            .orderBy(($) => ($.profile.followers(descending: true),))
             .get();
 
         expect(results.length, equals(3));

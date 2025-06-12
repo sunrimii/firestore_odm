@@ -37,7 +37,7 @@ void main() {
           .orderBy(
             ($) => (
               $.age(), // int
-              $.rating(true), // double (descending)
+              $.rating(descending: true), // double (descending)
             ),
           )
           .limit(10);
@@ -87,7 +87,7 @@ void main() {
 
         // Multi-field object-based pagination
         final multiQuery = odm.users
-            .orderBy(($) => ($.age(), $.rating(true))) // (int, double) tuple
+            .orderBy(($) => ($.age(), $.rating(descending: true))) // (int, double) tuple
             .startAtObject(sampleUser) // Should extract (30, 4.3) automatically
             .endBeforeObject(
               sampleUser,
@@ -117,8 +117,8 @@ void main() {
       final query = odm.users
           .orderBy(
             ($) => (
-              $.rating(true), // double, descending
-              $.age(false), // int, ascending
+              $.rating(descending: true), // double, descending
+              $.age(descending: false), // int, ascending
             ),
           )
           .limit(10);

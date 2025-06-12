@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
+import '../utils/model_analyzer.dart';
 
 /// Generator for filter builders and filter classes
 class FilterGenerator {
@@ -56,10 +57,10 @@ class FilterGenerator {
   ) {
     buffer.writeln('  /// Filter by document ID (${documentIdField} field)');
     buffer.writeln(
-      '  DocumentIdFieldFilter<$rootFilterType> get $documentIdField =>',
+      '  DocumentIdFieldFilter get $documentIdField =>',
     );
     buffer.writeln(
-      '      DocumentIdFieldFilter<$rootFilterType>(\'$documentIdField\', prefix);',
+      '      DocumentIdFieldFilter(\'$documentIdField\', prefix);',
     );
     buffer.writeln('');
   }
@@ -94,98 +95,95 @@ class FilterGenerator {
 
     // Use appropriate callable filter based on type using TypeChecker
     if (TypeAnalyzer.isStringType(fieldType)) {
-      buffer.writeln('  StringFieldFilter<$rootFilterType> get $fieldName =>');
+      buffer.writeln('  StringFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      StringFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
+        '      StringFieldFilter(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isIterableType(fieldType)) {
       final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
         fieldType,
       );
       buffer.writeln(
-        '  ArrayFieldFilter<$rootFilterType, $elementTypeName> get $fieldName =>',
+        '  ArrayFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      ArrayFieldFilter<$rootFilterType, $elementTypeName>(\'$fieldName\', prefix);',
+        '      ArrayFieldFilter(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isMapType(fieldType)) {
       final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
-        '  MapFieldFilter<$rootFilterType, $keyType, $valueType> get $fieldName =>',
+        '  MapFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      MapFieldFilter<$rootFilterType, $keyType, $valueType>(\'$fieldName\', prefix);',
+        '      MapFieldFilter(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isBoolType(fieldType)) {
-      buffer.writeln('  BoolFieldFilter<$rootFilterType> get $fieldName =>');
+      buffer.writeln('  BoolFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      BoolFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
+        '      BoolFieldFilter(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
-        '  DateTimeFieldFilter<$rootFilterType> get $fieldName =>',
+        '  DateTimeFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      DateTimeFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
+        '      DateTimeFieldFilter(\'$fieldName\', prefix);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
       final typeString = fieldType.getDisplayString(withNullability: false);
       buffer.writeln(
-        '  NumericFieldFilter<$rootFilterType, $typeString> get $fieldName =>',
+        '  NumericFieldFilter get $fieldName =>',
       );
       buffer.writeln(
-        '      NumericFieldFilter<$rootFilterType, $typeString>(\'$fieldName\', prefix);',
+        '      NumericFieldFilter(\'$fieldName\', prefix);',
       );
     } else {
       // Fallback for other types, treat as string-like
-      buffer.writeln('  StringFieldFilter<$rootFilterType> get $fieldName =>');
+      buffer.writeln('  StringFieldFilter get $fieldName =>');
       buffer.writeln(
-        '      StringFieldFilter<$rootFilterType>(\'$fieldName\', prefix);',
+        '      StringFieldFilter(\'$fieldName\', prefix);',
       );
     }
     buffer.writeln('');
   }
 
-  /// Generate nested filter builder classes
-  static void generateNestedFilterSelectorClasses(
+  /// Generate filter selector class using ModelAnalysis instead of constructor
+  static void generateFilterSelectorClassFromAnalysis(
     StringBuffer buffer,
-    ConstructorElement constructor,
-    Set<String> processedTypes,
-    String rootFilterType,
+    ModelAnalysis analysis,
   ) {
-    for (final param in constructor.parameters) {
-      final fieldType = param.type;
+    final className = analysis.className;
+    buffer.writeln('/// Generated FilterSelector for $className');
+    buffer.writeln(
+      'extension ${className}FilterSelectorExtension on FilterSelector<${className}> {',
+    );
+    buffer.writeln('');
 
-      if (TypeAnalyzer.isCustomClass(fieldType)) {
-        final element = fieldType.element;
-        if (element is ClassElement) {
-          final typeName = element.name;
+    // Add document ID filter if there's a document ID field
+    if (analysis.documentIdFieldName != null) {
+      _generateDocumentIdFilterGetter(buffer, analysis.documentIdFieldName!, className);
+    }
 
-          // Avoid processing the same type multiple times
-          if (processedTypes.contains(typeName)) continue;
-          processedTypes.add(typeName);
+    // Generate field getters from analysis
+    for (final field in analysis.fields.values) {
+      // Skip document ID field as it's handled separately above
+      if (field.parameterName == analysis.documentIdFieldName) continue;
 
-          final nestedConstructor = element.unnamedConstructor;
-          if (nestedConstructor != null) {
-            buffer.writeln('');
-            generateFilterSelectorClass(
-              buffer,
-              typeName,
-              nestedConstructor,
-              rootFilterType,
-              null,
-            );
-
-            // Recursively generate for deeply nested types
-            generateNestedFilterSelectorClasses(
-              buffer,
-              nestedConstructor,
-              processedTypes,
-              rootFilterType,
-            );
-          }
-        }
+      if (TypeAnalyzer.isPrimitiveType(field.dartType) ||
+          TypeAnalyzer.isIterableType(field.dartType) ||
+          TypeAnalyzer.isMapType(field.dartType)) {
+        _generateFieldGetter(buffer, field.parameterName, field.dartType, className);
+      } else if (TypeAnalyzer.isCustomClass(field.dartType)) {
+        // Generate nested object getter for custom classes - note: rootFilterType stays as className for correct type system
+        _generateNestedFilterGetter(
+          buffer,
+          field.parameterName,
+          field.dartType,
+          className,  // This is the root filter type, not the nested type
+        );
       }
     }
+
+    buffer.writeln('}');
   }
 }

@@ -64,7 +64,7 @@ void main() {
 
       // Test: OrderedQuery.where() should preserve order type
       final orderedQuery = odm.users.orderBy(
-        ($) => ($.rating(true), $.age()),
+        ($) => ($.rating(descending: true), $.age()),
       ); // Returns OrderedQuery<TestSchema, User, (double, int)>
 
       // After where() filtering, should still maintain order type for pagination
@@ -125,7 +125,7 @@ void main() {
 
         // Test: OrderedQuery.aggregate() should return AggregateQuery (no order type)
         final orderedQuery = odm.users.orderBy(
-          ($) => ($.rating(true), $.age()),
+          ($) => ($.rating(descending: true), $.age()),
         ); // OrderedQuery with order type
 
         final aggregateQuery = orderedQuery.aggregate(
@@ -160,7 +160,7 @@ void main() {
 
       // 2. Apply ordering (gains order type)
       final ordered = collection.orderBy(
-        ($) => ($.rating(true), $.name()),
+        ($) => ($.rating(descending: true), $.name()),
       ); // OrderedQuery<TestSchema, User, (double, String)>
 
       // 3. Apply filtering (preserves order type) ✅ CORRECT

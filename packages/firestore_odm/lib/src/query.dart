@@ -44,7 +44,7 @@ class Query<S extends FirestoreSchema, T>
 
   @override
   Query<S, T> where(
-    FirestoreFilter<T> Function(RootFilterSelector<T> builder) filterBuilder,
+    FirestoreFilter Function(RootFilterSelector<T> builder) filterBuilder,
   ) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
@@ -56,7 +56,7 @@ class Query<S extends FirestoreSchema, T>
   OrderedQuery<S, T, O> orderBy<O extends Record>(
     OrderByBuilder<T, O> orderBuilder,
   ) {
-    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder);
+    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder, _documentIdField);
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
     return OrderedQuery(newQuery, _converter, _documentIdField, config);
   }
@@ -93,7 +93,7 @@ class Query<S extends FirestoreSchema, T>
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(
-    R Function(AggregateFieldSelector<T> selector) builder,
+    R Function(RootAggregateFieldSelector<T> selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(

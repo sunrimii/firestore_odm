@@ -202,3 +202,76 @@ T processDocumentSnapshot<T>(
     snapshot.id,
   );
 }
+
+T resolveJsonWithParts<T>(Map<String, dynamic> json, List<String> parts) {
+  dynamic current = json;
+  
+  for (final part in parts) {
+    if (current == null) {
+      throw ArgumentError('Cannot resolve path ${parts.join(".")} - null encountered at "$part"');
+    }
+    
+    // Check if it's a numeric index (array access)
+    if (RegExp(r'^\d+$').hasMatch(part)) {
+      final index = int.parse(part);
+      if (current is List) {
+        if (index >= 0 && index < current.length) {
+          current = current[index];
+        } else {
+          throw RangeError('Index $index out of bounds for array of length ${current.length} at path ${parts.join(".")}');
+        }
+      } else {
+        throw ArgumentError('Expected List but found ${current.runtimeType} when accessing index "$part" in path ${parts.join(".")}');
+      }
+    } else {
+      // 字符串鍵 (object access)
+      if (current is Map<String, dynamic>) {
+        if (current.containsKey(part)) {
+          current = current[part];
+        } else {
+          throw ArgumentError('Key "$part" not found in object at path ${parts.join(".")}');
+        }
+      } else {
+        throw ArgumentError('Expected Map but found ${current.runtimeType} when accessing key "$part" in path ${parts.join(".")}');
+      }
+    }
+  }
+  
+  // 類型檢查並轉換
+  if (current is T) {
+    return current;
+  } else {
+    throw ArgumentError('Expected type $T but found ${current.runtimeType} at path ${parts.join(".")}. Value: $current');
+  }
+}
+
+T defaultValue<T>() {
+  // 處理 nullable 類型
+  if (null is T) return null as T;
+  
+  // 數字類型
+  if (T == int) return 0 as T;
+  if (T == double) return 0.0 as T;
+  if (T == num) return 0 as T;
+  
+  // 布爾類型
+  if (T == bool) return false as T;
+  
+  // 字符串類型
+  if (T == String) return '' as T;
+  
+  // 集合類型 - 使用反射檢查
+  final typeString = T.toString();
+  if (typeString.startsWith('List<')) return <dynamic>[] as T;
+  if (typeString.startsWith('Set<')) return <dynamic>{} as T;
+  if (typeString.startsWith('Map<')) return <String, dynamic>{} as T;
+  
+  // DateTime
+  if (T == DateTime) return DateTime.fromMillisecondsSinceEpoch(0) as T;
+  
+  // Duration  
+  if (T == Duration) return Duration.zero as T;
+  
+  // 無法處理的類型
+  throw UnsupportedError('Cannot create default value for type $T');
+}

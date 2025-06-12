@@ -19,7 +19,7 @@ enum FilterOperator {
 }
 
 /// Universal filter class that can represent any filter type
-class FirestoreFilter<T> {
+class FirestoreFilter {
   final FilterType type;
 
   // For field filters
@@ -72,13 +72,6 @@ class FirestoreFilter<T> {
       );
 }
 
-/// Represents an order by field with direction
-class OrderByField<T> {
-  final dynamic field;
-  final bool descending;
-
-  const OrderByField(this.field, {this.descending = false});
-}
 
 /// Base filter builder class
 /// Extended by generated FilterBuilder classes that provide type-safe filtering methods
@@ -95,7 +88,7 @@ class FilterSelector<T> {
   }
 
   /// Create string field filter
-  FirestoreFilter<R> stringFilter<R>(
+  FirestoreFilter stringFilter<R>(
     dynamic fieldName, {
     String? isEqualTo,
     String? isNotEqualTo,
@@ -177,7 +170,7 @@ class FilterSelector<T> {
   }
 
   /// Create numeric field filter
-  FirestoreFilter<R> numericFilter<R, N extends num>(
+  FirestoreFilter numericFilter<R, N extends num>(
     String fieldName, {
     N? isEqualTo,
     N? isNotEqualTo,
@@ -259,7 +252,7 @@ class FilterSelector<T> {
   }
 
   /// Create boolean field filter
-  FirestoreFilter<R> boolFilter<R>(
+  FirestoreFilter boolFilter<R>(
     String fieldName, {
     bool? isEqualTo,
     bool? isNotEqualTo,
@@ -309,7 +302,7 @@ class FilterSelector<T> {
   }
 
   /// Create DateTime field filter
-  FirestoreFilter<R> dateTimeFilter<R>(
+  FirestoreFilter dateTimeFilter<R>(
     String fieldName, {
     DateTime? isEqualTo,
     DateTime? isNotEqualTo,
@@ -391,7 +384,7 @@ class FilterSelector<T> {
   }
 
   /// Create array field filter
-  FirestoreFilter<R> arrayFilter<R, E>(
+  FirestoreFilter arrayFilter<R, E>(
     String fieldName, {
     List<E>? isEqualTo,
     List<E>? isNotEqualTo,
@@ -463,37 +456,37 @@ class RootFilterSelector<T> extends FilterSelector<T> {
   RootFilterSelector({super.prefix});
 
   /// Create OR filter with type safety (supports up to 30 filters)
-  FirestoreFilter<T> or(
-    FirestoreFilter<T> filter1,
-    FirestoreFilter<T> filter2, [
-    FirestoreFilter<T>? filter3,
-    FirestoreFilter<T>? filter4,
-    FirestoreFilter<T>? filter5,
-    FirestoreFilter<T>? filter6,
-    FirestoreFilter<T>? filter7,
-    FirestoreFilter<T>? filter8,
-    FirestoreFilter<T>? filter9,
-    FirestoreFilter<T>? filter10,
-    FirestoreFilter<T>? filter11,
-    FirestoreFilter<T>? filter12,
-    FirestoreFilter<T>? filter13,
-    FirestoreFilter<T>? filter14,
-    FirestoreFilter<T>? filter15,
-    FirestoreFilter<T>? filter16,
-    FirestoreFilter<T>? filter17,
-    FirestoreFilter<T>? filter18,
-    FirestoreFilter<T>? filter19,
-    FirestoreFilter<T>? filter20,
-    FirestoreFilter<T>? filter21,
-    FirestoreFilter<T>? filter22,
-    FirestoreFilter<T>? filter23,
-    FirestoreFilter<T>? filter24,
-    FirestoreFilter<T>? filter25,
-    FirestoreFilter<T>? filter26,
-    FirestoreFilter<T>? filter27,
-    FirestoreFilter<T>? filter28,
-    FirestoreFilter<T>? filter29,
-    FirestoreFilter<T>? filter30,
+  FirestoreFilter or(
+    FirestoreFilter filter1,
+    FirestoreFilter filter2, [
+    FirestoreFilter? filter3,
+    FirestoreFilter? filter4,
+    FirestoreFilter? filter5,
+    FirestoreFilter? filter6,
+    FirestoreFilter? filter7,
+    FirestoreFilter? filter8,
+    FirestoreFilter? filter9,
+    FirestoreFilter? filter10,
+    FirestoreFilter? filter11,
+    FirestoreFilter? filter12,
+    FirestoreFilter? filter13,
+    FirestoreFilter? filter14,
+    FirestoreFilter? filter15,
+    FirestoreFilter? filter16,
+    FirestoreFilter? filter17,
+    FirestoreFilter? filter18,
+    FirestoreFilter? filter19,
+    FirestoreFilter? filter20,
+    FirestoreFilter? filter21,
+    FirestoreFilter? filter22,
+    FirestoreFilter? filter23,
+    FirestoreFilter? filter24,
+    FirestoreFilter? filter25,
+    FirestoreFilter? filter26,
+    FirestoreFilter? filter27,
+    FirestoreFilter? filter28,
+    FirestoreFilter? filter29,
+    FirestoreFilter? filter30,
   ]) {
     final allFilters = <FirestoreFilter>[filter1, filter2];
     if (filter3 != null) allFilters.add(filter3);
@@ -524,41 +517,41 @@ class RootFilterSelector<T> extends FilterSelector<T> {
     if (filter28 != null) allFilters.add(filter28);
     if (filter29 != null) allFilters.add(filter29);
     if (filter30 != null) allFilters.add(filter30);
-    return FirestoreFilter<T>.or(allFilters);
+    return FirestoreFilter.or(allFilters);
   }
 
   /// Create AND filter with type safety (supports up to 30 filters)
-  FirestoreFilter<T> and(
-    FirestoreFilter<T> filter1,
-    FirestoreFilter<T> filter2, [
-    FirestoreFilter<T>? filter3,
-    FirestoreFilter<T>? filter4,
-    FirestoreFilter<T>? filter5,
-    FirestoreFilter<T>? filter6,
-    FirestoreFilter<T>? filter7,
-    FirestoreFilter<T>? filter8,
-    FirestoreFilter<T>? filter9,
-    FirestoreFilter<T>? filter10,
-    FirestoreFilter<T>? filter11,
-    FirestoreFilter<T>? filter12,
-    FirestoreFilter<T>? filter13,
-    FirestoreFilter<T>? filter14,
-    FirestoreFilter<T>? filter15,
-    FirestoreFilter<T>? filter16,
-    FirestoreFilter<T>? filter17,
-    FirestoreFilter<T>? filter18,
-    FirestoreFilter<T>? filter19,
-    FirestoreFilter<T>? filter20,
-    FirestoreFilter<T>? filter21,
-    FirestoreFilter<T>? filter22,
-    FirestoreFilter<T>? filter23,
-    FirestoreFilter<T>? filter24,
-    FirestoreFilter<T>? filter25,
-    FirestoreFilter<T>? filter26,
-    FirestoreFilter<T>? filter27,
-    FirestoreFilter<T>? filter28,
-    FirestoreFilter<T>? filter29,
-    FirestoreFilter<T>? filter30,
+  FirestoreFilter and(
+    FirestoreFilter filter1,
+    FirestoreFilter filter2, [
+    FirestoreFilter? filter3,
+    FirestoreFilter? filter4,
+    FirestoreFilter? filter5,
+    FirestoreFilter? filter6,
+    FirestoreFilter? filter7,
+    FirestoreFilter? filter8,
+    FirestoreFilter? filter9,
+    FirestoreFilter? filter10,
+    FirestoreFilter? filter11,
+    FirestoreFilter? filter12,
+    FirestoreFilter? filter13,
+    FirestoreFilter? filter14,
+    FirestoreFilter? filter15,
+    FirestoreFilter? filter16,
+    FirestoreFilter? filter17,
+    FirestoreFilter? filter18,
+    FirestoreFilter? filter19,
+    FirestoreFilter? filter20,
+    FirestoreFilter? filter21,
+    FirestoreFilter? filter22,
+    FirestoreFilter? filter23,
+    FirestoreFilter? filter24,
+    FirestoreFilter? filter25,
+    FirestoreFilter? filter26,
+    FirestoreFilter? filter27,
+    FirestoreFilter? filter28,
+    FirestoreFilter? filter29,
+    FirestoreFilter? filter30,
   ]) {
     final allFilters = <FirestoreFilter>[filter1, filter2];
     if (filter3 != null) allFilters.add(filter3);
@@ -589,19 +582,10 @@ class RootFilterSelector<T> extends FilterSelector<T> {
     if (filter28 != null) allFilters.add(filter28);
     if (filter29 != null) allFilters.add(filter29);
     if (filter30 != null) allFilters.add(filter30);
-    return FirestoreFilter<T>.and(allFilters);
+    return FirestoreFilter.and(allFilters);
   }
 }
 
-/// Base order by builder class
-/// Extended by generated OrderByBuilder classes that provide type-safe ordering methods
-class OrderBySelector<T> {
-  /// Field prefix for nested object ordering
-  final String prefix;
-
-  /// Create an OrderByBuilder with optional field prefix for nested objects
-  OrderBySelector({this.prefix = ''});
-}
 
 /// Update operation types
 enum UpdateOperationType {
@@ -1122,31 +1106,6 @@ class FieldNameOrDocumentId {
   String toString() => fieldName ?? documentId.toString();
 }
 
-class OrderByHelper {
-  /// Create OrderByField with prefix
-  static OrderByField<T> createOrderByField<T>(
-    String fieldName, {
-    String prefix = '',
-    bool descending = false,
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    return OrderByField<T>(fieldPath, descending: descending);
-  }
-
-  /// Create OrderByField with prefix
-  static OrderByField<T> createOrderByDocumentId<T>({bool descending = false}) {
-    return OrderByField<T>(FieldPathType.documentId, descending: descending);
-  }
-
-  static OrderBySelector<T> createOrderBySelector<T>(
-    String fieldName, {
-    String prefix = '',
-  }) {
-    final fieldPath = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-    return OrderBySelector<T>(prefix: fieldPath);
-  }
-}
-
 /// Extension for Update operations
 extension UpdateBuilderExtensions on UpdateBuilder {
   /// Get field path with prefix
@@ -1157,7 +1116,7 @@ extension UpdateBuilderExtensions on UpdateBuilder {
 
 /// Callable filter instances - significantly reduce generated code
 /// Base callable filter class
-abstract class CallableFilter<T, V> {
+abstract class CallableFilter {
   final String fieldName;
   final String prefix;
 
@@ -1167,10 +1126,10 @@ abstract class CallableFilter<T, V> {
 }
 
 /// String field callable filter
-class StringFieldFilter<T> extends CallableFilter<T, String> {
+class StringFieldFilter extends CallableFilter {
   const StringFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
+  FirestoreFilter call({
     String? isEqualTo,
     String? isNotEqualTo,
     String? isLessThan,
@@ -1251,18 +1210,18 @@ class StringFieldFilter<T> extends CallableFilter<T, String> {
 }
 
 /// Numeric field callable filter
-class NumericFieldFilter<T, N extends num> extends CallableFilter<T, N> {
+class NumericFieldFilter extends CallableFilter {
   const NumericFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
-    N? isEqualTo,
-    N? isNotEqualTo,
-    N? isLessThan,
-    N? isLessThanOrEqualTo,
-    N? isGreaterThan,
-    N? isGreaterThanOrEqualTo,
-    List<N>? whereIn,
-    List<N>? whereNotIn,
+  FirestoreFilter call({
+    num? isEqualTo,
+    num? isNotEqualTo,
+    num? isLessThan,
+    num? isLessThanOrEqualTo,
+    num? isGreaterThan,
+    num? isGreaterThanOrEqualTo,
+    List<num>? whereIn,
+    List<num>? whereNotIn,
     bool? isNull,
   }) {
     if (isEqualTo != null) {
@@ -1335,10 +1294,10 @@ class NumericFieldFilter<T, N extends num> extends CallableFilter<T, N> {
 }
 
 /// Boolean field callable filter
-class BoolFieldFilter<T> extends CallableFilter<T, bool> {
+class BoolFieldFilter extends CallableFilter {
   const BoolFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
+  FirestoreFilter call({
     bool? isEqualTo,
     bool? isNotEqualTo,
     List<bool>? whereIn,
@@ -1387,10 +1346,10 @@ class BoolFieldFilter<T> extends CallableFilter<T, bool> {
 }
 
 /// DateTime field callable filter
-class DateTimeFieldFilter<T> extends CallableFilter<T, DateTime> {
+class DateTimeFieldFilter extends CallableFilter {
   const DateTimeFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
+  FirestoreFilter call({
     DateTime? isEqualTo,
     DateTime? isNotEqualTo,
     DateTime? isLessThan,
@@ -1471,16 +1430,16 @@ class DateTimeFieldFilter<T> extends CallableFilter<T, DateTime> {
 }
 
 /// Array field callable filter
-class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
+class ArrayFieldFilter extends CallableFilter {
   const ArrayFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
-    List<E>? isEqualTo,
-    List<E>? isNotEqualTo,
+  FirestoreFilter call({
+    List? isEqualTo,
+    List? isNotEqualTo,
     dynamic arrayContains,
     List<dynamic>? arrayContainsAny,
-    List<List<E>>? whereIn,
-    List<List<E>>? whereNotIn,
+    List<List>? whereIn,
+    List<List>? whereNotIn,
     bool? isNull,
   }) {
     if (isEqualTo != null) {
@@ -1539,13 +1498,13 @@ class ArrayFieldFilter<T, E> extends CallableFilter<T, List<E>> {
 }
 
 /// Map field callable filter with key access support
-class MapFieldFilter<T, K, V> extends CallableFilter<T, Map<K, V>> {
+class MapFieldFilter extends CallableFilter {
   const MapFieldFilter(super.fieldName, super.prefix);
 
   /// Filter the entire map
-  FirestoreFilter<T> call({
-    Map<K, V>? isEqualTo,
-    Map<K, V>? isNotEqualTo,
+  FirestoreFilter call({
+    Map? isEqualTo,
+    Map? isNotEqualTo,
     bool? isNull,
   }) {
     if (isEqualTo != null) {
@@ -1577,27 +1536,27 @@ class MapFieldFilter<T, K, V> extends CallableFilter<T, Map<K, V>> {
 
   /// Access a specific key in the map for filtering
   /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
-  MapKeyFieldFilter<T, V> key(K mapKey) {
+  MapKeyFieldFilter key(dynamic mapKey) {
     final keyPath = prefix.isEmpty
         ? '$fieldName.$mapKey'
         : '$prefix.$fieldName.$mapKey';
-    return MapKeyFieldFilter<T, V>(keyPath, '');
+    return MapKeyFieldFilter(keyPath, '');
   }
 }
 
 /// Filter for individual map keys
-class MapKeyFieldFilter<T, V> extends CallableFilter<T, V> {
+class MapKeyFieldFilter extends CallableFilter {
   const MapKeyFieldFilter(super.fieldName, super.prefix);
 
-  FirestoreFilter<T> call({
-    V? isEqualTo,
-    V? isNotEqualTo,
-    V? isLessThan,
-    V? isLessThanOrEqualTo,
-    V? isGreaterThan,
-    V? isGreaterThanOrEqualTo,
-    List<V>? whereIn,
-    List<V>? whereNotIn,
+  FirestoreFilter call({
+    dynamic isEqualTo,
+    dynamic isNotEqualTo,
+    dynamic isLessThan,
+    dynamic isLessThanOrEqualTo,
+    dynamic isGreaterThan,
+    dynamic isGreaterThanOrEqualTo,
+    List? whereIn,
+    List? whereNotIn,
     bool? isNull,
   }) {
     if (isEqualTo != null) {
@@ -1671,13 +1630,13 @@ class MapKeyFieldFilter<T, V> extends CallableFilter<T, V> {
 }
 
 /// Document ID callable filter (special case)
-class DocumentIdFieldFilter<T> extends CallableFilter<T, String> {
+class DocumentIdFieldFilter extends CallableFilter {
   const DocumentIdFieldFilter(super.fieldName, super.prefix);
 
   @override
   get fieldPath => FieldPathType.documentId;
 
-  FirestoreFilter<T> call({
+  FirestoreFilter call({
     String? isEqualTo,
     String? isNotEqualTo,
     String? isLessThan,
@@ -1880,37 +1839,3 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
   }
 }
 
-/// Callable order by instances - reduce generated order by code
-/// Base callable order by class
-abstract class CallableOrderBy<T> {
-  final String fieldName;
-  final String prefix;
-
-  const CallableOrderBy(this.fieldName, this.prefix);
-
-  String get fieldPath => prefix.isEmpty ? fieldName : '$prefix.$fieldName';
-}
-
-/// Generic field callable order by
-class FieldOrderBy<T> extends CallableOrderBy<T> {
-  const FieldOrderBy(super.fieldName, super.prefix);
-
-  /// Create order by field
-  OrderByField<T> call({bool descending = false}) {
-    return OrderByHelper.createOrderByField<T>(
-      fieldName,
-      prefix: prefix,
-      descending: descending,
-    );
-  }
-}
-
-/// Document ID callable order by
-class DocumentIdOrderBy<T> extends CallableOrderBy<T> {
-  const DocumentIdOrderBy(super.fieldName, super.prefix);
-
-  /// Create order by document ID
-  OrderByField<T> call({bool descending = false}) {
-    return OrderByHelper.createOrderByDocumentId<T>(descending: descending);
-  }
-}

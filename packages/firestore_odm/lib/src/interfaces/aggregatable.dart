@@ -1,7 +1,7 @@
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/schema.dart';
 
-typedef AggregateBuilder<T, R> = R Function(AggregateFieldSelector<T> selector);
+typedef AggregateBuilder<T, R> = R Function(RootAggregateFieldSelector<T> selector);
 
 abstract interface class Aggregatable<S extends FirestoreSchema, T> {
   /// Perform strongly-typed aggregate operations using records/tuples

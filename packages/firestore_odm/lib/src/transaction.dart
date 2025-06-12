@@ -57,7 +57,7 @@ class TransactionCollection<S extends FirestoreSchema, T> {
     required this.query,
     required this.converter,
     required TransactionContext<S> context,
-    this.documentIdField = 'id',
+    required this.documentIdField,
   }) : _transaction = transaction,
        _context = context;
 

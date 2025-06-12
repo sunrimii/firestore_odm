@@ -584,7 +584,7 @@ void main() {
 
         final orderedByRatingDesc = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'sorting'))
-            .orderBy(($) => ($.rating(true),))
+            .orderBy(($) => ($.rating(descending: true),))
             .get();
 
         expect(orderedByRatingDesc.length, equals(3));
@@ -628,7 +628,7 @@ void main() {
 
         final limitedAndOrdered = await odm.users
             .where(($) => $.profile.interests(arrayContains: 'limiting'))
-            .orderBy(($) => ($.age(true),))
+            .orderBy(($) => ($.age(descending: true),))
             .limit(3)
             .get();
 

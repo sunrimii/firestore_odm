@@ -156,11 +156,11 @@ void main() {
       final ageQuery = odm.users.orderBy(($) => ($.age(),)).limit(10);
 
       final ratingQuery = odm.users
-          .orderBy(($) => ($.rating(true),)) // Descending
+          .orderBy(($) => ($.rating(descending: true),)) // Descending
           .limit(10);
 
       final multiQuery = odm.users
-          .orderBy(($) => ($.age(), $.rating(true)))
+          .orderBy(($) => ($.age(), $.rating(descending: true)))
           .limit(10);
 
       // These should work regardless of iterable fields present
@@ -232,7 +232,7 @@ void main() {
 
       // Test ordering by nested numeric field
       final nestedFollowerQuery = odm.users
-          .orderBy(($) => ($.profile.followers(true),))
+          .orderBy(($) => ($.profile.followers(descending: true),))
           .limit(10);
 
       expect(nestedInterestQuery, isNotNull);
@@ -450,7 +450,7 @@ void main() {
           .where((filter) => filter.tags(arrayContains: 'complex'))
           .where((filter) => filter.scores(arrayContains: 98))
           .where((filter) => filter.profile.interests(arrayContains: 'ai'))
-          .orderBy(($) => ($.rating(true),))
+          .orderBy(($) => ($.rating(descending: true),))
           .limit(5);
 
       expect(complexQuery, isNotNull);
@@ -461,7 +461,7 @@ void main() {
 
       // Test complex ordering with multiple fields including iterables present
       final complexOrderQuery = odm.users
-          .orderBy(($) => ($.profile.followers(true), $.rating(), $.age()))
+          .orderBy(($) => ($.profile.followers(descending: true), $.rating(), $.age()))
           .limit(10);
 
       expect(complexOrderQuery, isNotNull);

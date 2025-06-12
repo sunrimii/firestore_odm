@@ -15,15 +15,13 @@ abstract class QueryPaginationHandler {
     T object,
     ModelConverter<T> converter,
     OrderByBuilder<T, O> orderByBuilder,
+    String documentIdFieldName,
   ) {
     // Convert object to Map for extraction
     final objectMap = converter.toJson(object);
 
     // Create extraction-mode selector with the same object
-    final extractionSelector = OrderByFieldSelector<T>(
-      isExtractionMode: true,
-      sourceObject: objectMap,
-    );
+    final extractionSelector = RootOrderByFieldExtractor<T>(objectMap);
 
     // Reuse the SAME builder function to extract values!
     // This guarantees perfect consistency with orderBy

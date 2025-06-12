@@ -35,10 +35,15 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Model converter for data transformation
   final ModelConverter<T> converter;
 
-  String get documentIdField => 'id';
+  /// Document ID field name (detected from model analysis)
+  final String documentIdField;
 
   /// Creates a new FirestoreCollection instance
-  FirestoreCollection({required this.query, required this.converter});
+  FirestoreCollection({
+    required this.query,
+    required this.converter,
+    required this.documentIdField,
+  });
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -74,7 +79,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   OrderedQuery<S, T, O> orderBy<O extends Record>(
     O Function(OrderByFieldSelector<T> selector) orderBuilder,
   ) {
-    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder);
+    final config = QueryOrderbyHandler.buildOrderBy(orderBuilder, documentIdField);
     final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
     return OrderedQuery(newQuery, converter, documentIdField, config);
   }
@@ -104,7 +109,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(
-    R Function(AggregateFieldSelector<T> selector) builder,
+    R Function(RootAggregateFieldSelector<T> selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(builder);
     final newQuery = QueryAggregatableHandler.applyAggregate(

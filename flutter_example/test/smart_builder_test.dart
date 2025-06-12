@@ -90,7 +90,7 @@ void main() {
         // Use builder for orderBy
         final query = odm.users
             .orderBy(
-              ($) => ($.age(), $.rating(true), $.name()),
+              ($) => ($.age(), $.rating(descending: true), $.name()),
             ) // Creates (int, double, String) tuple
             .limit(10);
 
@@ -134,7 +134,7 @@ void main() {
       // Use builder for orderBy
       final query = odm.users
           .orderBy(
-            ($) => ($.profile.followers(true), $.age()),
+            ($) => ($.profile.followers(descending: true), $.age()),
           ) // Creates (int, int) tuple from nested+regular fields
           .limit(10);
 
@@ -201,10 +201,10 @@ void main() {
       final query = odm.users
           .orderBy(
             ($) => (
-              $.profile.followers(true), // int (descending)
+              $.profile.followers(descending: true), // int (descending)
               $.rating(), // double (ascending)
               $.name(), // String (ascending)
-              $.age(true), // int (descending)
+              $.age(descending: true), // int (descending)
             ),
           ) // (int, double, String, int) tuple
           .limit(50);
@@ -248,7 +248,7 @@ void main() {
 
       // Use inline builder pattern
       final query = odm.users.orderBy(
-        ($) => ($.rating(true), $.profile.followers()),
+        ($) => ($.rating(descending: true), $.profile.followers()),
       );
 
       // Mix manual cursors and object-based pagination
