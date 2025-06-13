@@ -1,3 +1,7 @@
+## 2.2.1
+
+ - **REFACTOR**: remove debug print statements from model analysis and firestore generator. ([98217a66](https://github.com/sylphxltd/firestore_odm/commit/98217a662835489eddfe034aa3a48c6b5171c92c))
+
 ## 2.2.0
 
  - **REFACTOR**: remove unused variables and simplify field analysis in ModelAnalyzer. ([1032f4e0](https://github.com/sylphxltd/firestore_odm/commit/1032f4e0e746c7965ab24491539747c9df427d60))

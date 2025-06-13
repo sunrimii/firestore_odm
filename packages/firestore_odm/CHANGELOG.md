@@ -1,3 +1,7 @@
+## 2.3.0
+
+ - **FEAT**: enhance aggregate and batch operations with detailed documentation. ([5e05ce2e](https://github.com/sylphxltd/firestore_odm/commit/5e05ce2e4c3d693779d2fb0416b1fc91ecc15487))
+
 ## 2.2.0
 
  - **FIX**: prevent auto-generated IDs in update operations. ([0389c6a8](https://github.com/sylphxltd/firestore_odm/commit/0389c6a84e83a3e0e3385a08d4c5687860dac946))

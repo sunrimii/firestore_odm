@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-06-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v2.3.0`](#firestore_odm---v230)
+ - [`firestore_odm_builder` - `v2.2.1`](#firestore_odm_builder---v221)
+
+---
+
+#### `firestore_odm` - `v2.3.0`
+
+ - **FEAT**: enhance aggregate and batch operations with detailed documentation. ([5e05ce2e](https://github.com/sylphxltd/firestore_odm/commit/5e05ce2e4c3d693779d2fb0416b1fc91ecc15487))
+
+#### `firestore_odm_builder` - `v2.2.1`
+
+ - **REFACTOR**: remove debug print statements from model analysis and firestore generator. ([98217a66](https://github.com/sylphxltd/firestore_odm/commit/98217a662835489eddfe034aa3a48c6b5171c92c))
+
+
 ## 2025-06-13
 
 ### Changes
