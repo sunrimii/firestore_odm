@@ -29,6 +29,7 @@ export default defineConfig({
           items: [
             { text: 'What is Firestore ODM?', link: '/guide/introduction' },
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Migration Guide', link: '/guide/migration-guide' },
           ]
         },
         {
