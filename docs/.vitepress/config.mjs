@@ -4,6 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Firestore ODM",
   description: "A type-safe ODM for Firestore on Dart & Flutter",
+  base: '/firestore_odm/',
   themeConfig: {
     search: {
       provider: 'local'
