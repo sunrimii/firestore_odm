@@ -20,6 +20,12 @@ final userDoc = odm.users('jane-doe');
 await userDoc.modify((user) => user.copyWith(
   lastLogin: FirestoreODM.serverTimestamp,
 ));
+
+// incrementalModify also supports server timestamps
+await userDoc.incrementalModify((user) => user.copyWith(
+  age: user.age + 1,
+  lastLogin: FirestoreODM.serverTimestamp,
+));
 ```
 
 ## Usage with `patch`

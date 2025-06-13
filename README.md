@@ -97,6 +97,7 @@ await userDoc.patch(($) => [
 await userDoc.incrementalModify((user) => user.copyWith(
   age: user.age + 1,              // Auto-detects -> FieldValue.increment(1)
   tags: [...user.tags, 'expert'], // Auto-detects -> FieldValue.arrayUnion()
+  lastLogin: FirestoreODM.serverTimestamp, // Server timestamp support
 ));
 ```
 
