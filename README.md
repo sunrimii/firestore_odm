@@ -71,6 +71,14 @@ await userDoc.patch(($) => [
 - **🧩 Flexible Modeling** - Supports `freezed`, plain Dart classes, and `fast_immutable_collections`
 - **📱 Flutter-First** - Built specifically for Flutter development patterns
 
+## 📚 Documentation
+
+📖 **[Complete Documentation](https://sylphxltd.github.io/firestore_odm/)** - Comprehensive guides, examples, and API reference
+
+## 📚 Documentation
+
+📖 **[Complete Documentation](https://sylphxltd.github.io/firestore_odm/)** - Comprehensive guides, examples, and API reference
+
 ## 📚 Table of Contents
 
 - [🚀 Getting Started](#-getting-started)

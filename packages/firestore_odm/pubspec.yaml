@@ -4,7 +4,7 @@ version: 2.0.2
 homepage: https://github.com/sylphxltd/firestore_odm
 repository: https://github.com/sylphxltd/firestore_odm
 issue_tracker: https://github.com/sylphxltd/firestore_odm/issues
-documentation: https://pub.dev/documentation/firestore_odm/latest/
+documentation: https://sylphxltd.github.io/firestore_odm/
 resolution: workspace
 
 topics:
