@@ -215,7 +215,91 @@ await db.users('user123').incrementalModify((user) => user.copyWith(
 - ✅ **Type-safe field updates** - No more string-based field names
 - ✅ **Server timestamp helpers** - Easy server timestamp handling
 
-## 5. Querying Migration
+## 5. Batch Operations Migration
+
+### Before (Manual WriteBatch Handling)
+```dart
+// Manual batch creation and management
+WriteBatch batch = FirebaseFirestore.instance.batch();
+
+// Manual map construction for each operation
+batch.set(usersCollection.doc('user1'), {
+  'name': 'John Doe',
+  'email': 'john@example.com',
+  'age': 30,
+});
+
+batch.update(usersCollection.doc('user2'), {
+  'age': FieldValue.increment(1),
+  'tags': FieldValue.arrayUnion(['premium']),
+});
+
+batch.delete(usersCollection.doc('user3'));
+
+// Manual commit
+await batch.commit();
+
+// No subcollection support in batch
+// No type safety
+// Manual error handling for batch limits
+```
+
+### After (Type-Safe Batch Operations)
+```dart
+// Automatic batch management - simple and clean
+await db.runBatch((batch) {
+  // Type-safe operations with models
+  batch.users.insert(User(
+    id: 'user1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    age: 30,
+  ));
+  
+  // Atomic operations with type safety
+  batch.users('user2').patch(($) => [
+    $.age.increment(1),
+    $.tags.add('premium'),
+  ]);
+  
+  // Delete operations
+  batch.users('user3').delete();
+  
+  // Subcollection support
+  batch.users('user1').posts.insert(Post(
+    id: 'post1',
+    title: 'My First Post',
+    content: 'Hello world!',
+  ));
+});
+
+// Manual batch management for fine-grained control
+final batch = db.batch();
+batch.users.insert(user1);
+batch.users.insert(user2);
+batch.posts.update(post);
+await batch.commit();
+```
+
+### Migration Steps:
+1. **Replace `WriteBatch` creation** with ODM batch methods
+2. **Convert manual maps** to typed model operations
+3. **Use type-safe field operations** instead of `FieldValue` maps
+4. **Choose batch approach**:
+   - Use `runBatch()` for automatic management
+   - Use `batch()` for manual control
+5. **Add subcollection operations** where needed
+6. **Remove manual batch limit checking** - ODM handles this
+
+### Benefits After Migration:
+- ✅ **Two convenient approaches** - Automatic and manual batch management
+- ✅ **Complete type safety** - No more manual map construction
+- ✅ **Subcollection support** - Full nested document operations
+- ✅ **Atomic operations** - Type-safe patch operations
+- ✅ **Automatic limit handling** - Built-in 500 operation limit management
+- ✅ **Better error handling** - Clear error messages for batch failures
+
+## 6. Querying Migration
 
 ### Before (String-Based Queries)
 ```dart
@@ -278,7 +362,7 @@ List<User> engagedUsers = await db.users
 - ✅ **Nested field support** - Full autocomplete for nested objects
 - ✅ **Automatic deserialization** - Direct typed results
 
-## 6. Pagination Migration
+## 7. Pagination Migration
 
 ### Before (Error-Prone Manual Cursors)
 ```dart
@@ -341,7 +425,7 @@ List<User> complexPage = await db.users
 - ✅ **Multi-field sorting** - Easy tuple-based ordering
 - ✅ **Automatic cursor extraction** - No manual document cursor management
 
-## 7. Aggregations Migration
+## 8. Aggregations Migration
 
 ### Before (Limited Basic Aggregations)
 ```dart
@@ -396,7 +480,7 @@ db.users
 - ✅ **Type-safe results** - Strongly typed aggregate responses
 - ✅ **Efficient queries** - Server-side calculations
 
-## 8. Transactions Migration
+## 9. Transactions Migration
 
 ### Before (Manual Read-Before-Write)
 ```dart
@@ -464,7 +548,7 @@ await db.runTransaction((tx) async {
 - ✅ **Cleaner code** - Less boilerplate, more readable
 - ✅ **Error prevention** - Compile-time validation of transaction logic
 
-## 9. Subcollections Migration
+## 10. Subcollections Migration
 
 ### Before (Manual Path Construction)
 ```dart
@@ -521,7 +605,7 @@ await userPosts.insert(Post(
 - ✅ **Automatic path construction** - No manual path building
 - ✅ **Full feature support** - All ODM features work on subcollections
 
-## 10. Error Handling Migration
+## 11. Error Handling Migration
 
 ### Before (Runtime Error Prone)
 ```dart
@@ -582,6 +666,7 @@ try {
 ### Phase 2: Core Operations
 - [ ] Migrate document reading operations
 - [ ] Migrate document writing operations
+- [ ] Migrate batch operations
 - [ ] Migrate basic queries
 - [ ] Update error handling
 
