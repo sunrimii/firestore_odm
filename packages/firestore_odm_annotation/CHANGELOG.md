@@ -1,3 +1,9 @@
+## 1.3.0
+
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+
 ## 1.2.0
 
  - **FEAT**: add Schema annotation for Firestore schema definitions. ([036425be](https://github.com/sylphxltd/firestore_odm/commit/036425beb89ff1331a68606d1a48b22402426e88))

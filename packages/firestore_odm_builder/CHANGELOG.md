@@ -1,3 +1,12 @@
+## 2.2.0
+
+ - **REFACTOR**: remove unused variables and simplify field analysis in ModelAnalyzer. ([1032f4e0](https://github.com/sylphxltd/firestore_odm/commit/1032f4e0e746c7965ab24491539747c9df427d60))
+ - **FIX**: specify version for firestore_odm_annotation dependency in pubspec.yaml. ([a768af95](https://github.com/sylphxltd/firestore_odm/commit/a768af9501fab24a4b9680109bd089b22465bfa5))
+ - **FEAT**: Add comprehensive batch operations support. ([802a629b](https://github.com/sylphxltd/firestore_odm/commit/802a629b2efe4e8c95b8efeb9766dff0b69f62d3))
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+
 ## 2.1.0
 
  - **FEAT**: add json_annotation dependency to pubspec.yaml. ([f2c7f28d](https://github.com/sylphxltd/firestore_odm/commit/f2c7f28d17e698caeaad53777a7ce718534b1d03))

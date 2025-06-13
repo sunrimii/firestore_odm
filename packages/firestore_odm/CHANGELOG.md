@@ -1,3 +1,13 @@
+## 2.1.0
+
+ - **FIX**: specify version for firestore_odm_annotation dependency in pubspec.yaml. ([934810fa](https://github.com/sylphxltd/firestore_odm/commit/934810fa1a07464652636e28e6b65f3cc1e8b12c))
+ - **FEAT**: Add comprehensive batch operations support. ([802a629b](https://github.com/sylphxltd/firestore_odm/commit/802a629b2efe4e8c95b8efeb9766dff0b69f62d3))
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+ - **DOCS**: update README to enhance structure and add flexible data modeling section. ([801a242c](https://github.com/sylphxltd/firestore_odm/commit/801a242c1f393a3a74ac3428b0f8b3e383b2215c))
+ - **DOCS**: enhance README with flexible data modeling options and examples. ([d33115d9](https://github.com/sylphxltd/firestore_odm/commit/d33115d9aa579f3c90158695286482f6f4729595))
+
 ## 2.0.2
 
  - **REFACTOR**: improve formatting and readability in MapFieldFilter and OrderByField classes. ([4e8f1877](https://github.com/sylphxltd/firestore_odm/commit/4e8f187744dcd984d60bac976f6f1f5784c7c82a))

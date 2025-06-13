@@ -3,6 +3,50 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-06-13
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v2.1.0`](#firestore_odm---v210)
+ - [`firestore_odm_annotation` - `v1.3.0`](#firestore_odm_annotation---v130)
+ - [`firestore_odm_builder` - `v2.2.0`](#firestore_odm_builder---v220)
+
+---
+
+#### `firestore_odm` - `v2.1.0`
+
+ - **FIX**: specify version for firestore_odm_annotation dependency in pubspec.yaml. ([934810fa](https://github.com/sylphxltd/firestore_odm/commit/934810fa1a07464652636e28e6b65f3cc1e8b12c))
+ - **FEAT**: Add comprehensive batch operations support. ([802a629b](https://github.com/sylphxltd/firestore_odm/commit/802a629b2efe4e8c95b8efeb9766dff0b69f62d3))
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+ - **DOCS**: update README to enhance structure and add flexible data modeling section. ([801a242c](https://github.com/sylphxltd/firestore_odm/commit/801a242c1f393a3a74ac3428b0f8b3e383b2215c))
+ - **DOCS**: enhance README with flexible data modeling options and examples. ([d33115d9](https://github.com/sylphxltd/firestore_odm/commit/d33115d9aa579f3c90158695286482f6f4729595))
+
+#### `firestore_odm_annotation` - `v1.3.0`
+
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+
+#### `firestore_odm_builder` - `v2.2.0`
+
+ - **REFACTOR**: remove unused variables and simplify field analysis in ModelAnalyzer. ([1032f4e0](https://github.com/sylphxltd/firestore_odm/commit/1032f4e0e746c7965ab24491539747c9df427d60))
+ - **FIX**: specify version for firestore_odm_annotation dependency in pubspec.yaml. ([a768af95](https://github.com/sylphxltd/firestore_odm/commit/a768af9501fab24a4b9680109bd089b22465bfa5))
+ - **FEAT**: Add comprehensive batch operations support. ([802a629b](https://github.com/sylphxltd/firestore_odm/commit/802a629b2efe4e8c95b8efeb9766dff0b69f62d3))
+ - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
+ - **DOCS**: Update all documentation URLs to GitHub Pages. ([321ccdcd](https://github.com/sylphxltd/firestore_odm/commit/321ccdcd10f31374f6cd5b955fa3b7cb2d7f17fa))
+ - **DOCS**: refactor and centralize README.md. ([7c121c62](https://github.com/sylphxltd/firestore_odm/commit/7c121c62981001803322ff5af1e2bb3f4593c46c))
+
+
 ## 2025-06-12
 
 ### Changes
