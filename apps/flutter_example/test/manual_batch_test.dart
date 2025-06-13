@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
-import '../lib/test_schema.dart';
-import '../lib/models/user.dart';
-import '../lib/models/profile.dart';
-import '../lib/models/post.dart';
+import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/post.dart';
 
 void main() {
   group('Manual Batch Operations Test', () {
