@@ -164,6 +164,25 @@ await db.runTransaction((tx) async {
 });
 ```
 
+### ⚡ Atomic Batch Operations
+Perform multiple writes atomically with two convenient approaches:
+```dart
+// Automatic management - simple and clean
+await db.runBatch((batch) {
+  batch.users.insert(newUser);
+  batch.posts.update(existingPost);
+  batch.users('user_id').posts.insert(userPost);
+  batch.users('old_user').delete();
+});
+
+// Manual management - fine-grained control
+final batch = db.batch();
+batch.users.insert(user1);
+batch.users.insert(user2);
+batch.posts.update(post);
+await batch.commit();
+```
+
 ### 🔗 Flexible Data Modeling
 Support for multiple modeling approaches:
 - **`freezed`** (recommended) - Robust immutable classes

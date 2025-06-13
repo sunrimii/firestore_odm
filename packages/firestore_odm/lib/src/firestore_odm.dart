@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/transaction.dart';
+import 'package:firestore_odm/src/batch.dart';
 import 'schema.dart';
 
 /// Internal variable to store the current server timestamp constant
@@ -58,5 +59,47 @@ class FirestoreODM<T extends FirestoreSchema> {
       // Execute all deferred writes after reads are complete
       context.executeDeferredWrites();
     });
+  }
+
+  /// Runs a batch write operation with automatic batching
+  ///
+  /// The [cb] callback is executed within a batch context.
+  /// All write operations are queued and committed at the end.
+  ///
+  /// Example:
+  /// ```dart
+  /// await odm.runBatch((batch) {
+  ///   batch.users.insert(user1);
+  ///   batch.users.insert(user2);
+  ///   batch.users('user3').delete();
+  /// });
+  /// ```
+  Future<void> runBatch(
+    void Function(BatchContext<T>) cb,
+  ) async {
+    final context = BatchContext<T>(_firestore);
+    
+    // Execute the callback (queues all write operations)
+    cb(context);
+    
+    // Commit all queued operations
+    await context.commit();
+  }
+
+  /// Creates a batch context for manual batch operations
+  ///
+  /// This allows for manual control over when to commit the batch.
+  /// Remember to call [BatchContext.commit] when you're done.
+  ///
+  /// Example:
+  /// ```dart
+  /// final batch = odm.batch();
+  /// batch.users.insert(user1);
+  /// batch.users.insert(user2);
+  /// batch.users('user3').delete();
+  /// await batch.commit();
+  /// ```
+  BatchContext<T> batch() {
+    return BatchContext<T>(_firestore);
   }
 }

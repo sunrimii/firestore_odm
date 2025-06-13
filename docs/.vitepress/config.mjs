@@ -63,6 +63,7 @@ export default defineConfig({
           text: 'Advanced Features',
           items: [
             { text: 'Transactions', link: '/guide/transactions' },
+            { text: 'Batch Operations', link: '/guide/batch-operations' },
             { text: 'Aggregations', link: '/guide/aggregations' },
             { text: 'Subcollections', link: '/guide/subcollections' },
           ]

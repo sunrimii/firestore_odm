@@ -66,8 +66,24 @@ class SchemaGenerator {
       modelAnalyses,
     );
 
+    // Generate batch context extensions
+    _generateBatchContextExtensions(
+      buffer,
+      schemaClassName,
+      collections,
+      modelAnalyses,
+    );
+
     // Generate document extensions for subcollections
     _generateDocumentExtensions(
+      buffer,
+      schemaClassName,
+      collections,
+      modelAnalyses,
+    );
+
+    // Generate batch document extensions for subcollections
+    _generateBatchDocumentExtensions(
       buffer,
       schemaClassName,
       collections,
@@ -207,6 +223,56 @@ class SchemaGenerator {
       buffer.writeln('      converter: $converterName,');
       buffer.writeln('      context: this,');
       buffer.writeln('      documentIdField: \'$documentIdFieldValue\',');
+      buffer.writeln('    );');
+      buffer.writeln('');
+    }
+
+    buffer.writeln('}');
+    buffer.writeln('');
+  }
+
+  /// Generate batch context extensions for the schema
+  static void _generateBatchContextExtensions(
+    StringBuffer buffer,
+    String schemaClassName,
+    List<SchemaCollectionInfo> collections,
+    Map<String, ModelAnalysis> modelAnalyses,
+  ) {
+    final rootCollections = collections
+        .where((c) => !c.isSubcollection)
+        .toList();
+    if (rootCollections.isEmpty) return;
+
+    buffer.writeln(
+      '/// Extension to add collections to BatchContext<$schemaClassName>',
+    );
+    buffer.writeln(
+      'extension ${schemaClassName}BatchContextExtensions on BatchContext<$schemaClassName> {',
+    );
+
+    for (final collection in rootCollections) {
+      final collectionName = StringHelpers.camelCase(collection.path);
+      final converterName =
+          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
+
+      // Get document ID field from model analysis
+      final analysis = modelAnalyses[collection.modelTypeName];
+      final documentIdField = analysis?.documentIdFieldName;
+      final documentIdFieldValue = documentIdField ?? 'id';
+
+      buffer.writeln('  /// Access ${collection.path} collection');
+      buffer.writeln(
+        '  BatchCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
+      );
+      buffer.writeln(
+        '    BatchCollection<$schemaClassName, ${collection.modelTypeName}>(',
+      );
+      buffer.writeln(
+        '      collection: firestoreInstance.collection(\'${collection.path}\'),',
+      );
+      buffer.writeln('      converter: $converterName,');
+      buffer.writeln('      documentIdField: \'$documentIdFieldValue\',');
+      buffer.writeln('      context: this,');
       buffer.writeln('    );');
       buffer.writeln('');
     }
@@ -408,6 +474,66 @@ class SchemaGenerator {
 
     // Fallback: generate from variable name following the convention
     return '_\$${StringHelpers.capitalize(variableElement.name)}';
+  }
+
+  /// Generate batch document extensions for subcollections
+  static void _generateBatchDocumentExtensions(
+    StringBuffer buffer,
+    String schemaClassName,
+    List<SchemaCollectionInfo> collections,
+    Map<String, ModelAnalysis> modelAnalyses,
+  ) {
+    final subcollections = collections.where((c) => c.isSubcollection).toList();
+
+    // Group subcollections by parent type
+    final parentGroups = <String, List<SchemaCollectionInfo>>{};
+    for (final subcol in subcollections) {
+      final parentType = _getParentTypeFromPath(subcol.path, collections);
+      if (parentType != null) {
+        parentGroups.putIfAbsent(parentType, () => []).add(subcol);
+      }
+    }
+
+    for (final entry in parentGroups.entries) {
+      final parentType = entry.key;
+      final subcolsForParent = entry.value;
+
+      buffer.writeln(
+        '/// Extension to access subcollections on $parentType batch document',
+      );
+      buffer.writeln(
+        'extension ${schemaClassName}${parentType}BatchDocumentSubcollectionExtensions on BatchDocument<$schemaClassName, $parentType> {',
+      );
+
+      for (final subcol in subcolsForParent) {
+        final subcollectionName = _getSubcollectionName(subcol.path);
+        final getterName = StringHelpers.camelCase(subcollectionName);
+        final converterName =
+            '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
+
+        // Find the class element for this model type to get document ID field
+        final analysis = modelAnalyses[subcol.modelTypeName];
+        final documentIdField = analysis?.documentIdFieldName;
+        final documentIdFieldValue = documentIdField ?? 'id';
+
+        buffer.writeln('  /// Access $subcollectionName subcollection for batch operations');
+        buffer.writeln(
+          '  BatchCollection<$schemaClassName, ${subcol.modelTypeName}> get $getterName =>',
+        );
+        buffer.writeln(
+          '    BatchCollection<$schemaClassName, ${subcol.modelTypeName}>(',
+        );
+        buffer.writeln('      collection: ref.collection(\'$subcollectionName\'),');
+        buffer.writeln('      converter: $converterName,');
+        buffer.writeln('      documentIdField: \'$documentIdFieldValue\',');
+        buffer.writeln('      context: context,');
+        buffer.writeln('    );');
+        buffer.writeln('');
+      }
+
+      buffer.writeln('}');
+      buffer.writeln('');
+    }
   }
 
   /// Convert PascalCase to lowerCamelCase
