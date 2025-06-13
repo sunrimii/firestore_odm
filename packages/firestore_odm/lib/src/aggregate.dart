@@ -22,10 +22,25 @@ class RootAggregateFieldSelector<T> extends AggregateFieldSelector<T> {
   }
 }
 
+/// Configuration for aggregate operations on a Firestore collection.
+///
+/// This class holds the aggregate operations to be performed and the builder
+/// function that defines how to construct the result record from the aggregated data.
+///
+/// Type parameters:
+/// - [T]: The document type being aggregated
+/// - [R]: The result record type containing the aggregated values
 class AggregateConfiguration<T, R> {
+  /// List of aggregate operations to be performed
   final List<AggregateOperation> operations;
+  
+  /// Builder function that constructs the result record
   final AggregateBuilder<T, R> builder;
 
+  /// Creates a new aggregate configuration.
+  ///
+  /// [operations] - The list of aggregate operations to perform
+  /// [builder] - Function that builds the result record from aggregated data
   AggregateConfiguration(this.operations, this.builder);
 }
 
@@ -374,46 +389,98 @@ class AggregateField<T extends num?> extends Node {
   }
 }
 
-/// Base class for aggregate operations
+/// Base class for aggregate operations.
+///
+/// All aggregate operations (count, sum, average) extend this class
+/// and provide a unique key for identifying the operation result.
 abstract class AggregateOperation {
+  /// Unique identifier for this aggregate operation
   final String key;
+  
+  /// Creates a new aggregate operation with the given key.
+  ///
+  /// [key] - Unique identifier for this operation
   const AggregateOperation(this.key);
 }
 
-/// Count operation
+/// Count operation that counts the number of documents.
 class CountOperation extends AggregateOperation {
+  /// Creates a count operation.
+  ///
+  /// [key] - Unique identifier for this operation
   const CountOperation(String key) : super(key);
 }
 
-/// Sum operation
+/// Sum operation that calculates the sum of numeric values in a field.
 class SumOperation extends AggregateOperation {
+  /// The field path to sum values from
   final String fieldPath;
+  
+  /// Creates a sum operation.
+  ///
+  /// [key] - Unique identifier for this operation
+  /// [fieldPath] - The field path to sum values from
   const SumOperation(String key, this.fieldPath) : super(key);
 }
 
-/// Average operation
+/// Average operation that calculates the average of numeric values in a field.
 class AverageOperation extends AggregateOperation {
+  /// The field path to calculate average from
   final String fieldPath;
+  
+  /// Creates an average operation.
+  ///
+  /// [key] - Unique identifier for this operation
+  /// [fieldPath] - The field path to calculate average from
   const AverageOperation(String key, this.fieldPath) : super(key);
 }
 
+/// A query that performs aggregate operations on a Firestore collection.
+///
+/// This class provides methods to execute aggregate queries and get results
+/// either as a one-time operation or as a real-time stream.
+///
+/// Type parameters:
+/// - [S]: The Firestore schema type
+/// - [T]: The document type being aggregated
+/// - [R]: The result record type containing aggregated values
 class AggregateQuery<S extends FirestoreSchema, T, R>
     implements Gettable<R>, Streamable<R> {
+  /// Creates a new aggregate query.
+  ///
+  /// [query] - The underlying Firestore aggregate query
+  /// [_converter] - Model converter for document serialization
+  /// [_documentIdField] - The document ID field name
+  /// [_configuration] - The aggregate configuration
   AggregateQuery(
     this.query,
     this._converter,
     this._documentIdField,
     this._configuration,
   );
+  
+  /// Model converter for document serialization (used in streaming)
   final ModelConverter<T> _converter;
+  
+  /// The document ID field name (used in streaming)
   final String _documentIdField;
+  
+  /// The underlying Firestore aggregate query
   final firestore.AggregateQuery query;
+  
+  /// The aggregate configuration defining operations and result building
   final AggregateConfiguration<T, R> _configuration;
 
-  /// Executes the aggregate query and returns the result
+  /// Executes the aggregate query and returns the result.
+  ///
+  /// Returns a [Future] that completes with the aggregated result record.
   Future<R> get() => QueryAggregatableHandler.get(query, _configuration);
 
   @override
+  /// Returns a stream that emits aggregated results in real-time.
+  ///
+  /// The stream will emit new aggregated values whenever the underlying
+  /// collection changes in a way that affects the query results.
   Stream<R> get stream => QueryAggregatableHandler.stream(
     query,
     _converter,
@@ -422,18 +489,33 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
   );
 }
 
+/// A query that performs count aggregation on a Firestore collection.
+///
+/// This class provides methods to get the count of documents matching
+/// a query either as a one-time operation or as a real-time stream.
 class AggregateCountQuery implements Gettable<int>, Streamable<int> {
+  /// Creates a new aggregate count query.
+  ///
+  /// [query] - The underlying Firestore aggregate query
   AggregateCountQuery(this.query);
+  
+  /// The underlying Firestore aggregate query
   final firestore.AggregateQuery query;
 
-  /// Executes the aggregate query and returns the result
+  /// Executes the aggregate query and returns the count result.
+  ///
+  /// Returns a [Future] that completes with the number of documents
+  /// matching the query criteria.
   Future<int> get() => query.get().then((snapshot) {
     // Firestore's count query returns a single integer
     return snapshot.count ?? 0;
   });
 
   @override
-  // Returns a stream that emits the count of documents matching the query
+  /// Returns a stream that emits the count of documents matching the query.
+  ///
+  /// The stream will emit a new count value whenever the underlying
+  /// collection changes in a way that affects the query results.
   Stream<int> get stream =>
       lazyBroadcast(
         () =>

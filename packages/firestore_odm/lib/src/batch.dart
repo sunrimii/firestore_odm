@@ -133,12 +133,16 @@ class BatchContext<S extends FirestoreSchema> {
 }
 
 /// Batch document for handling document-level batch operations
-class BatchDocument<S extends FirestoreSchema, T> 
+class BatchDocument<S extends FirestoreSchema, T>
     implements BatchDeletable, BatchPatchable<T> {
   final BatchContext<S> _context;
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
-  final ModelConverter<T> _converter;
-  final String _documentIdField;
+  
+  // ignore: unused_field
+  final ModelConverter<T> _converter; // Reserved for future functionality
+  
+  // ignore: unused_field
+  final String _documentIdField; // Reserved for future functionality
 
   BatchDocument(
     this._context,

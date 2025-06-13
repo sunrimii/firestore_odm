@@ -6,9 +6,19 @@ import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/utils.dart';
 
+/// Exception thrown when a Firestore document is not found.
+///
+/// This exception is typically thrown during update operations when
+/// attempting to modify a document that doesn't exist in the collection.
 class FirestoreDocumentNotFoundException implements Exception {
+  /// The ID of the document that was not found
   final String documentId;
+  
+  /// Creates a new exception for a missing document.
+  ///
+  /// [documentId] - The ID of the document that could not be found
   FirestoreDocumentNotFoundException(this.documentId);
+  
   @override
   String toString() =>
       'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
