@@ -136,36 +136,6 @@ void main() {
 
       await odm.users(user.id).update(user);
 
-      // Debug: Check what's actually stored
-      final storedUser = await odm.users(user.id).get();
-      print('🔍 Debug: Stored settings = ${storedUser?.settings}');
-      print(
-        '🔍 Debug: Searching for = ${{'theme': 'auto', 'notifications': 'enabled'}}',
-      );
-
-      // Test 1: Filter by entire map equality
-      print('🧪 Test 1: Filter by entire map equality');
-
-      // Try different key orderings to see if that's the issue
-      final exactMapMatch1 = await odm.users
-          .where(
-            ($) => $.settings(
-              isEqualTo: {'theme': 'auto', 'notifications': 'enabled'},
-            ),
-          )
-          .get();
-
-      final exactMapMatch2 = await odm.users
-          .where(
-            ($) => $.settings(
-              isEqualTo: {'notifications': 'enabled', 'theme': 'auto'},
-            ),
-          )
-          .get();
-
-      print('🔍 Debug: Found ${exactMapMatch1.length} users with order 1');
-      print('🔍 Debug: Found ${exactMapMatch2.length} users with order 2');
-
       // WORKAROUND: Since fake_cloud_firestore seems to have issues with map equality,
       // we'll implement a workaround using key-based filtering for now
       final workaroundMatch = await odm.users
@@ -177,14 +147,10 @@ void main() {
           )
           .get();
 
-      print('🔍 Debug: Workaround found ${workaroundMatch.length} users');
 
       // Use workaround for now - this is a fake_cloud_firestore limitation, not ODM limitation
       expect(workaroundMatch, hasLength(1));
       expect(workaroundMatch.first.name, equals('Map User'));
-      print(
-        '✅ Map equality filtering works (via workaround for fake_cloud_firestore)',
-      );
 
       // TODO: Remove this comment when testing against real Firestore
       // expect(exactMapMatch1, hasLength(1));

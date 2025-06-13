@@ -61,26 +61,19 @@ class ModelAnalyzer {
 
   /// Analyze a complete model class and return structured information
   static ModelAnalysis? analyzeModel(ClassElement2 classElement) {
-    print('DEBUG: analyzeModel called for ${classElement.name3}');
 
     try {
       // Get all fields from the class and its supertypes (excluding Object)
       final fields = _getFields(classElement);
-      print(
-        'DEBUG: Found ${fields.length} fields in ${classElement.name3} (including supertypes)',
-      );
 
       if (fields.isEmpty) {
-        print('DEBUG: No fields found in ${classElement.name3}');
         return null;
       }
 
       // Analyze all fields
       final Map<String, FieldInfo> fieldsMap = {};
-      print('DEBUG: Starting field analysis loop');
 
       for (final (fieldName, fieldType, element) in fields) {
-        print('DEBUG: Analyzing field $fieldName of type $fieldType');
         final fieldInfo = _analyzeFieldFromAccessor(
           fieldName,
           fieldType,
@@ -89,13 +82,8 @@ class ModelAnalyzer {
         fieldsMap[fieldName] = fieldInfo;
       }
 
-      print(
-        'DEBUG: Analyzed ${fieldsMap.length} fields, looking for document ID field',
-      );
-
       // Find document ID field using logic
       final documentIdFieldName = _getDocumentIdFieldFromAccessors(fields);
-      print('DEBUG: Document ID field: $documentIdFieldName');
 
       // Mark document ID field
       if (documentIdFieldName != null &&
@@ -116,19 +104,13 @@ class ModelAnalyzer {
           .where((field) => !field.isDocumentId)
           .toList();
 
-      print(
-        'DEBUG: Creating ModelAnalysis for ${classElement.name3} with ${fieldsMap.length} fields',
-      );
-
       return ModelAnalysis(
         className: classElement.name3!,
         documentIdFieldName: documentIdFieldName,
         fields: fieldsMap,
         updateableFields: updateableFields,
       );
-    } catch (e, stackTrace) {
-      print('DEBUG: Exception analyzing ${classElement.name3}: $e');
-      print('DEBUG: Stack trace: $stackTrace');
+    } catch (e) {
       return null;
     }
   }
@@ -243,11 +225,7 @@ class ModelAnalyzer {
     final Map<String, ModelAnalysis> allAnalyses = {};
     final Set<String> processedTypes = {};
 
-    print('DEBUG: Starting nested analysis for ${rootClassElement.name3}');
     _analyzeModelRecursively(rootClassElement, allAnalyses, processedTypes);
-    print(
-      'DEBUG: Finished nested analysis. Found ${allAnalyses.length} types: ${allAnalyses.keys.join(', ')}',
-    );
 
     return allAnalyses;
   }
@@ -259,11 +237,9 @@ class ModelAnalyzer {
     Set<String> processedTypes,
   ) {
     final typeName = classElement.name3!;
-    print('DEBUG: Analyzing model: $typeName');
 
     // Skip if already processed
     if (processedTypes.contains(typeName)) {
-      print('DEBUG: Skipping already processed: $typeName');
       return;
     }
     processedTypes.add(typeName);
@@ -271,24 +247,16 @@ class ModelAnalyzer {
     // Analyze the current model
     final analysis = analyzeModel(classElement);
     if (analysis != null) {
-      print(
-        'DEBUG: Successfully analyzed $typeName with ${analysis.fields.length} fields',
-      );
       allAnalyses[typeName] = analysis;
 
       // Process nested types in all fields
       for (final field in analysis.fields.values) {
-        print(
-          'DEBUG: Processing field ${field.parameterName} of type ${field.dartType}',
-        );
         _processFieldTypeForNestedModels(
           field.dartType,
           allAnalyses,
           processedTypes,
         );
       }
-    } else {
-      print('DEBUG: Failed to analyze: $typeName');
     }
   }
 
@@ -298,31 +266,19 @@ class ModelAnalyzer {
     Map<String, ModelAnalysis> allAnalyses,
     Set<String> processedTypes,
   ) {
-    print(
-      'DEBUG: _processFieldTypeForNestedModels called with: ${fieldType.getDisplayString()}',
-    );
 
     // Handle nullable types
     final actualType = fieldType.nullabilitySuffix == NullabilitySuffix.question
         ? (fieldType as InterfaceType).element3.thisType
         : fieldType;
 
-    print(
-      'DEBUG: Actual type after nullable handling: ${actualType.getDisplayString()}',
-    );
-
     if (actualType is InterfaceType) {
       final element = actualType.element3;
-      print('DEBUG: Found InterfaceType element: ${element.name3}');
 
       if (TypeAnalyzer.isPrimitiveType(actualType)) {
-        print(
-          'DEBUG: Skipping primitive type: ${actualType.getDisplayString()}',
-        );
         return; // Skip primitive types
       }
 
-      print('DEBUG: Processing custom class recursively: ${element.name3}');
       _analyzeModelRecursively(
         element as ClassElement2,
         allAnalyses,
@@ -331,11 +287,8 @@ class ModelAnalyzer {
 
       // Handle generic types (List<T>, Map<K,V>)
       for (final typeArg in actualType.typeArguments) {
-        print('DEBUG: Processing type argument: ${typeArg.getDisplayString()}');
         _processFieldTypeForNestedModels(typeArg, allAnalyses, processedTypes);
       }
-    } else {
-      print('DEBUG: Not an InterfaceType: ${actualType.runtimeType}');
     }
   }
 }

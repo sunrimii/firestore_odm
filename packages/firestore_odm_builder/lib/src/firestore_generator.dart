@@ -64,27 +64,20 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
     TopLevelVariableElement element,
   ) {
     final collections = <SchemaCollectionInfo>[];
-    print('DEBUG: Extracting @Collection annotations from ${element.name}');
 
     for (final annotation in element.metadata) {
       final annotationValue = annotation.computeConstantValue();
-      print('DEBUG: Found annotation: ${annotationValue?.type?.element?.name}');
       if (annotationValue?.type?.element?.name == 'Collection') {
         // Extract path from @Collection("path")
         final path = annotationValue!.getField('path')!.toStringValue()!;
-        print('DEBUG: Collection path: $path');
 
         // Extract model type from @Collection<ModelType>
         final collectionType = annotationValue.type!;
-        print('DEBUG: Collection type: $collectionType');
         if (collectionType is ParameterizedType &&
             collectionType.typeArguments.isNotEmpty) {
           final modelType = collectionType.typeArguments.first;
           final modelTypeName = modelType.getDisplayString();
           final isSubcollection = path.contains('*');
-          print(
-            'DEBUG: Model type: $modelTypeName, isSubcollection: $isSubcollection',
-          );
 
           collections.add(
             SchemaCollectionInfo(
@@ -98,9 +91,6 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
       }
     }
 
-    print(
-      'DEBUG: Found ${collections.length} collections: ${collections.map((c) => c.modelTypeName).join(', ')}',
-    );
     return collections;
   }
 }
