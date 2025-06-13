@@ -117,15 +117,16 @@ await userDoc.incrementalModify((user) => user.copyWith(
 ### 🧠 Revolutionary Pagination
 Our **Smart Builder** eliminates the most common Firestore pagination bugs:
 ```dart
-// Define ordering and cursor fields ONCE
-final builder = ($) => ($.followers(descending: true), $.name());
-
-// Get first page
-final page1 = await db.users.orderBy(builder).limit(10).get();
+// Get first page with ordering
+final page1 = await db.users
+  .orderBy(($) => ($.followers(descending: true), $.name()))
+  .limit(10)
+  .get();
 
 // Get next page with perfect type-safety - zero inconsistency risk
+// The same orderBy ensures cursor consistency automatically
 final page2 = await db.users
-  .orderBy(builder)
+  .orderBy(($) => ($.followers(descending: true), $.name()))
   .startAfterObject(page1.last) // Auto-extracts cursor values
   .limit(10)
   .get();
