@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v2.3.1`](#firestore_odm---v231)
+
+---
+
+#### `firestore_odm` - `v2.3.1`
+
+ - **REFACTOR**: remove lazyBroadcast and use native Firestore streams. ([971b472f](https://github.com/sylphxltd/firestore_odm/commit/971b472f857bbea14d3523b967192dd44f4d0461))
+
+
+## 2025-06-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v2.3.0`](#firestore_odm---v230)
  - [`firestore_odm_builder` - `v2.2.1`](#firestore_odm_builder---v221)
 

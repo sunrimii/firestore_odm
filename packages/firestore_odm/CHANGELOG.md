@@ -1,3 +1,7 @@
+## 2.3.1
+
+ - **REFACTOR**: remove lazyBroadcast and use native Firestore streams. ([971b472f](https://github.com/sylphxltd/firestore_odm/commit/971b472f857bbea14d3523b967192dd44f4d0461))
+
 ## 2.3.0
 
  - **FEAT**: enhance aggregate and batch operations with detailed documentation. ([5e05ce2e](https://github.com/sylphxltd/firestore_odm/commit/5e05ce2e4c3d693779d2fb0416b1fc91ecc15487))
