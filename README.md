@@ -11,7 +11,20 @@ Transform your Firestore development experience with type-safe, intuitive databa
 
 **[📚 Read the Full Documentation](https://sylphxltd.github.io/firestore_odm/)** - Comprehensive guides, examples, and API reference
 
-## 🚀 Why Firestore ODM?
+## 📋 Table of Contents
+
+- [Why Firestore ODM?](#why-firestore-odm)
+- [Before vs After](#before-vs-after)
+- [Key Features](#key-features)
+- [Quick Start](#quick-start)
+- [Advanced Features](#advanced-features)
+- [Performance & Technical Excellence](#performance--technical-excellence)
+- [Testing](#testing)
+- [Comparison with Standard Firestore](#comparison-with-standard-firestore)
+- [Contributing](#contributing)
+- [License](#license)
+
+##  Why Firestore ODM?
 
 If you've worked with Flutter and Firestore, you know the pain:
 
