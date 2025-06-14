@@ -22,7 +22,28 @@ dev_dependencies:
   json_serializable: ^6.0.0
 ```
 
-## 2. Define Your Model
+## 2. Configure json_serializable (Important for Nested Models)
+
+If you're using models with nested objects, create a `build.yaml` file next to your `pubspec.yaml` to enable `explicit_to_json`:
+
+```yaml
+# build.yaml
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          explicit_to_json: true
+```
+
+**Why is this needed?** When using nested Freezed classes or any nested objects with `json_serializable`, the generated `toJson()` method doesn't automatically call `toJson()` on nested objects. This results in nested objects being serialized as their raw Dart object representation instead of proper JSON. The `explicit_to_json: true` option forces `json_serializable` to generate proper serialization code for nested objects.
+
+**When do you need this?**
+- When using nested Freezed classes
+- When using nested objects with `json_serializable`
+- When you encounter serialization issues with complex object structures
+
+## 3. Define Your Model
 
 Create your data model. We recommend using packages like `freezed` for robust, immutable classes.
 
@@ -52,7 +73,7 @@ class User with _$User {
 }
 ```
 
-## 3. Define Your Schema
+## 4. Define Your Schema
 
 Group your collections into a schema. This is the single source of truth for your database structure.
 
@@ -70,7 +91,7 @@ final appSchema = _$AppSchema;
 
 > **Note:** The `@Schema()` annotation is crucial for the generator to correctly process your collections.
 
-## 4. Generate Code
+## 5. Generate Code
 
 Run the `build_runner` to generate the required ODM code:
 
@@ -79,7 +100,7 @@ Run the `build_runner` to generate the required ODM code:
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-## 5. Start Using
+## 6. Start Using
 
 Initialize the ODM and start performing type-safe operations.
 

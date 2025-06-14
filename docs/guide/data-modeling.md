@@ -2,6 +2,66 @@
 
 The ODM is designed to be unopinionated about how you create your data models. It supports a variety of popular modeling styles and packages, allowing you to choose the approach that best fits your project.
 
+## Important: Nested Object Serialization
+
+When working with nested objects (especially with Freezed classes), you **must** configure `json_serializable` to properly handle nested serialization. Create a `build.yaml` file next to your `pubspec.yaml`:
+
+```yaml
+# build.yaml
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          explicit_to_json: true
+```
+
+**Why is this required?** Without `explicit_to_json: true`, `json_serializable` generates `toJson()` methods that don't properly serialize nested objects. Instead of calling `toJson()` on nested objects, it serializes them as raw Dart objects, which causes issues when storing data in Firestore.
+
+**Example of the problem:**
+```dart
+// Without explicit_to_json: true, this generates broken JSON:
+@freezed
+class User with _$User {
+  const factory User({
+    @DocumentIdField() required String id,
+    required String name,
+    required Profile profile, // This won't serialize properly!
+  }) = _User;
+  
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+
+@freezed
+class Profile with _$Profile {
+  const factory Profile({
+    required String bio,
+    required int followers,
+  }) = _Profile;
+  
+  factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
+}
+```
+
+**Alternative Solutions:**
+If you can't use a global `build.yaml` configuration, you can add the annotation directly to specific classes:
+
+```dart
+@freezed
+class User with _$User {
+  const User._();
+  
+  @JsonSerializable(explicitToJson: true) // Add this annotation
+  const factory User({
+    @DocumentIdField() required String id,
+    required String name,
+    required Profile profile,
+  }) = _User;
+  
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+```
+
 ## Using `freezed` (Recommended)
 
 We recommend using the [freezed](https://pub.dev/packages/freezed) package to create your models. It generates robust, immutable classes with `copyWith`, `==`, and `toString()` methods, reducing boilerplate and preventing common errors.
@@ -118,3 +178,66 @@ class JsonKeyUser {
   factory JsonKeyUser.fromJson(Map<String, dynamic> json) => _$JsonKeyUserFromJson(json);
   Map<String, dynamic> toJson() => _$JsonKeyUserToJson(this);
 }
+
+## Troubleshooting Nested Object Serialization
+
+### Common Error: "Instance of 'NestedClass'" in Firestore
+
+If you see raw Dart object representations like `Instance of 'Profile'` stored in Firestore instead of proper JSON objects, this indicates that nested objects aren't being serialized correctly.
+
+**Symptoms:**
+- Nested objects appear as `Instance of 'ClassName'` in Firestore console
+- Deserialization fails when reading documents with nested objects
+- Type errors when trying to access nested object properties
+
+**Solution:**
+Add the `build.yaml` configuration as described above, or use the `@JsonSerializable(explicitToJson: true)` annotation on affected classes.
+
+### Alternative Per-Class Configuration
+
+If you prefer not to use a global `build.yaml` configuration, you can enable explicit JSON serialization on individual classes:
+
+```dart
+@freezed
+class User with _$User {
+  const User._(); // Required for the annotation below
+  
+  @JsonSerializable(explicitToJson: true)
+  const factory User({
+    @DocumentIdField() required String id,
+    required String name,
+    required Profile profile, // Now properly serialized
+  }) = _User;
+  
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+```
+
+### Working with Lists of Nested Objects
+
+When using lists of nested objects, the `explicit_to_json: true` configuration is especially important:
+
+```dart
+@freezed
+class Team with _$Team {
+  const factory Team({
+    @DocumentIdField() required String id,
+    required String name,
+    required List<Member> members, // Requires explicit_to_json
+  }) = _Team;
+  
+  factory Team.fromJson(Map<String, dynamic> json) => _$TeamFromJson(json);
+}
+
+@freezed
+class Member with _$Member {
+  const factory Member({
+    required String name,
+    required String role,
+  }) = _Member;
+  
+  factory Member.fromJson(Map<String, dynamic> json) => _$MemberFromJson(json);
+}
+```
+
+Without proper configuration, the `members` list would be serialized incorrectly, causing data corruption in Firestore.

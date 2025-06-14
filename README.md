@@ -211,7 +211,31 @@ dev_dependencies:
   json_serializable: ^6.0.0
 ```
 
-### 2. Define Your Model
+### 2. Configure json_serializable (Critical for Nested Models)
+
+**⚠️ Important:** If you're using models with nested objects (especially with Freezed), you **must** create a `build.yaml` file next to your `pubspec.yaml`:
+
+```yaml
+# build.yaml
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          explicit_to_json: true
+```
+
+**Why is this required?** Without this configuration, `json_serializable` generates broken `toJson()` methods for nested objects. Instead of proper JSON, you'll get `Instance of 'NestedClass'` stored in Firestore, causing data corruption and deserialization failures.
+
+**When you need this:**
+- ✅ Using nested Freezed classes
+- ✅ Using nested objects with `json_serializable`
+- ✅ Working with complex object structures
+- ✅ Encountering "Instance of..." in Firestore console
+
+**Alternative:** Add `@JsonSerializable(explicitToJson: true)` to individual classes if you can't use global configuration.
+
+### 3. Define Your Model
 ```dart
 // lib/models/user.dart
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -234,7 +258,7 @@ class User with _$User {
 }
 ```
 
-### 3. Define Your Schema
+### 4. Define Your Schema
 ```dart
 // lib/schema.dart
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -247,12 +271,12 @@ part 'schema.odm.dart';
 final appSchema = _$AppSchema;
 ```
 
-### 4. Generate Code
+### 5. Generate Code
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-### 5. Start Using
+### 6. Start Using
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
