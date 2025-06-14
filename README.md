@@ -13,18 +13,18 @@ Transform your Firestore development experience with type-safe, intuitive databa
 
 ## 📋 Table of Contents
 
-- [Why Firestore ODM?](#why-firestore-odm)
-- [Before vs After](#before-vs-after)
-- [Key Features](#key-features)
-- [Quick Start](#quick-start)
-- [Advanced Features](#advanced-features)
-- [Performance & Technical Excellence](#performance--technical-excellence)
-- [Testing](#testing)
-- [Comparison with Standard Firestore](#comparison-with-standard-firestore)
-- [Contributing](#contributing)
-- [License](#license)
+- [Why Firestore ODM?](#-why-firestore-odm)
+- [Before vs After](#-before-vs-after)
+- [Key Features](#-key-features)
+- [Quick Start](#-quick-start)
+- [Advanced Features](#-advanced-features)
+- [Performance & Technical Excellence](#-performance--technical-excellence)
+- [Testing](#-testing)
+- [Comparison with Standard Firestore](#-comparison-with-standard-firestore)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-##  Why Firestore ODM?
+## 🚀 Why Firestore ODM?
 
 If you've worked with Flutter and Firestore, you know the pain:
 
@@ -212,19 +212,43 @@ Support for multiple modeling approaches:
 
 ### 1. Installation
 
-Add Firestore ODM to your project:
+To use Firestore ODM, you will need your typical build_runner/code-generator setup.
 
+First, install Firestore ODM by adding it to your project:
+
+**For a Flutter project:**
 ```bash
-# Add the core package
-dart pub add firestore_odm
+flutter pub add firestore_odm
+flutter pub add dev:firestore_odm_builder
+flutter pub add dev:build_runner
+```
 
-# Add the code generator
-dart pub add -d firestore_odm_builder build_runner
+**For a Dart project:**
+```bash
+dart pub add firestore_odm
+dart pub add dev:firestore_odm_builder
+dart pub add dev:build_runner
 ```
 
 You'll also need a JSON serialization solution. Choose one:
-- **For Freezed users:** `dart pub add freezed_annotation && dart pub add -d freezed json_serializable`
-- **For plain classes:** `dart pub add json_annotation && dart pub add -d json_serializable`
+
+**If using Freezed:**
+```bash
+flutter pub add freezed_annotation
+flutter pub add dev:freezed
+flutter pub add dev:json_serializable
+```
+
+**If using plain classes:**
+```bash
+flutter pub add json_annotation
+flutter pub add dev:json_serializable
+```
+
+This installs:
+- `firestore_odm` - The core ODM package
+- `firestore_odm_builder` - The code generator
+- `build_runner` - The tool to run code generators
 
 ### 2. Configure json_serializable (Critical for Nested Models)
 
