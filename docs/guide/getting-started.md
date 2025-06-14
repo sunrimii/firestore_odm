@@ -4,23 +4,21 @@ Get up and running with Firestore ODM in five simple steps.
 
 ## 1. Installation
 
-Add the necessary dependencies to your `pubspec.yaml`. Note that `firestore_odm_annotation` is exported by `firestore_odm`, so you don't need to add it manually.
+Add Firestore ODM to your project:
 
-```yaml
-# pubspec.yaml
-dependencies:
-  cloud_firestore: ^4.0.0 # Or your desired version
-  firestore_odm: ^1.0.0
-  # One of: freezed_annotation, json_annotation
-  freezed_annotation: ^2.0.0
+```bash
+# Add the core package
+dart pub add firestore_odm
 
-dev_dependencies:
-  build_runner: ^2.0.0
-  firestore_odm_builder: ^1.0.0
-  # One of: freezed, json_serializable
-  freezed: ^2.0.0
-  json_serializable: ^6.0.0
+# Add the code generator
+dart pub add -d firestore_odm_builder build_runner
 ```
+
+You'll also need a JSON serialization solution. Choose one:
+- **For Freezed users:** `dart pub add freezed_annotation && dart pub add -d freezed json_serializable`
+- **For plain classes:** `dart pub add json_annotation && dart pub add -d json_serializable`
+
+> **Note:** `firestore_odm_annotation` is exported by `firestore_odm`, so you don't need to add it manually.
 
 ## 2. Configure json_serializable (Important for Nested Models)
 

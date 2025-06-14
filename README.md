@@ -198,18 +198,20 @@ Support for multiple modeling approaches:
 ## 🚀 Quick Start
 
 ### 1. Installation
-```yaml
-dependencies:
-  cloud_firestore: ^4.0.0
-  firestore_odm: ^2.0.0
-  freezed_annotation: ^2.0.0
 
-dev_dependencies:
-  build_runner: ^2.0.0
-  firestore_odm_builder: ^2.0.0
-  freezed: ^2.0.0
-  json_serializable: ^6.0.0
+Add Firestore ODM to your project:
+
+```bash
+# Add the core package
+dart pub add firestore_odm
+
+# Add the code generator
+dart pub add -d firestore_odm_builder build_runner
 ```
+
+You'll also need a JSON serialization solution. Choose one:
+- **For Freezed users:** `dart pub add freezed_annotation && dart pub add -d freezed json_serializable`
+- **For plain classes:** `dart pub add json_annotation && dart pub add -d json_serializable`
 
 ### 2. Configure json_serializable (Critical for Nested Models)
 
