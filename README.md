@@ -212,43 +212,26 @@ Support for multiple modeling approaches:
 
 ### 1. Installation
 
-To use Firestore ODM, you will need your typical build_runner/code-generator setup.
+Install Firestore ODM:
 
-First, install Firestore ODM by adding it to your project:
-
-**For a Flutter project:**
-```bash
-flutter pub add firestore_odm
-flutter pub add dev:firestore_odm_builder
-flutter pub add dev:build_runner
-```
-
-**For a Dart project:**
 ```bash
 dart pub add firestore_odm
 dart pub add dev:firestore_odm_builder
 dart pub add dev:build_runner
 ```
 
-You'll also need a JSON serialization solution. Choose one:
+You'll also need a JSON serialization solution:
 
-**If using Freezed:**
 ```bash
-flutter pub add freezed_annotation
-flutter pub add dev:freezed
-flutter pub add dev:json_serializable
-```
+# If using Freezed
+dart pub add freezed_annotation
+dart pub add dev:freezed
+dart pub add dev:json_serializable
 
-**If using plain classes:**
-```bash
-flutter pub add json_annotation
-flutter pub add dev:json_serializable
+# If using plain classes
+dart pub add json_annotation
+dart pub add dev:json_serializable
 ```
-
-This installs:
-- `firestore_odm` - The core ODM package
-- `firestore_odm_builder` - The code generator
-- `build_runner` - The tool to run code generators
 
 ### 2. Configure json_serializable (Critical for Nested Models)
 
