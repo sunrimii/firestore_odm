@@ -161,10 +161,8 @@ abstract class QueryAggregatableHandler {
     String _documentIdField,
     AggregateConfiguration<T, R> configuration,
   ) {
-    return lazyBroadcast(
-          () => (query.query as firestore.Query<Map<String, dynamic>>)
-              .snapshots(),
-        )
+    return (query.query as firestore.Query<Map<String, dynamic>>)
+        .snapshots()
         .map(
           (snapshot) => processQuerySnapshot(
             snapshot,
@@ -517,10 +515,8 @@ class AggregateCountQuery implements Gettable<int>, Streamable<int> {
   /// The stream will emit a new count value whenever the underlying
   /// collection changes in a way that affects the query results.
   Stream<int> get stream =>
-      lazyBroadcast(
-        () =>
-            (query.query as firestore.Query<Map<String, dynamic>>).snapshots(),
-      ).map((snapshot) {
+      (query.query as firestore.Query<Map<String, dynamic>>).snapshots()
+      .map((snapshot) {
         return snapshot.docs.length;
       });
 }

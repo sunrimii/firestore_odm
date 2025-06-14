@@ -236,12 +236,10 @@ class DocumentHandler {
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
-    return lazyBroadcast(
-      () => ref.snapshots().map(
-        (snapshot) => snapshot.exists
-            ? processDocumentSnapshot(snapshot, fromJson, documentIdField)
-            : null,
-      ),
+    return ref.snapshots().map(
+      (snapshot) => snapshot.exists
+          ? processDocumentSnapshot(snapshot, fromJson, documentIdField)
+          : null,
     );
   }
 
@@ -717,10 +715,8 @@ abstract class QueryHandler {
     JsonDeserializer<T> fromJson,
     String documentIdField,
   ) {
-    return lazyBroadcast(
-      () => query.snapshots().map(
-        (snapshot) => processQuerySnapshot(snapshot, fromJson, documentIdField),
-      ),
+    return query.snapshots().map(
+      (snapshot) => processQuerySnapshot(snapshot, fromJson, documentIdField),
     );
   }
 

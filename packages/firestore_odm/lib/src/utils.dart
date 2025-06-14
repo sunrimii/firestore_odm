@@ -1,17 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/model_converter.dart';
 
-Stream<T> lazyBroadcast<T>(Stream<T> Function() factory) {
-  return Stream.multi((controller) {
-    final sub = factory().listen(
-      controller.add,
-      onError: controller.addError,
-      onDone: controller.close,
-    );
-    controller.onCancel = sub.cancel;
-  });
-}
-
 T fromFirestoreData<T>(
   JsonDeserializer<T> fromJsonFunction,
   Map<String, dynamic> json,
