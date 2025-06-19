@@ -54,7 +54,52 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   Future<void> update(T state) =>
       DocumentHandler.update(ref, state, converter.toJson, documentIdField);
 
-  /// Incremental modify a document using diff-based updates (with automatic atomic operations)
+  /// Modify a document using diff-based updates.
+  ///
+  /// This method performs a read operation followed by an update operation.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// **Important Notes:**
+  /// - **Performance**: This method has an additional read operation, making it slower than [patch]
+  /// - **Concurrency**: Firestore uses last-write-wins semantics. This read-modify-write
+  ///   operation is NOT transactional and may be subject to race conditions
+  /// - **Transactions**: For transactional updates, use transactions instead
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// // With atomic operations (default)
+  /// await userDoc.modify((user) => user.copyWith(
+  ///   age: user.age + 1,              // Auto-detects -> FieldValue.increment(1)
+  ///   tags: [...user.tags, 'new'],    // Auto-detects -> FieldValue.arrayUnion(['new'])
+  /// ));
+  ///
+  /// // Without atomic operations
+  /// await userDoc.modify((user) => user.copyWith(
+  ///   name: 'Updated Name',
+  /// ), atomic: false);
+  /// ```
+  @override
+  Future<void> modify(T Function(T docData) modifier, {bool atomic = true}) =>
+      DocumentHandler.modify(ref, modifier, converter, documentIdField, atomic: atomic);
+
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// **Migration:**
+  /// ```dart
+  /// // Old way (deprecated)
+  /// await doc.incrementalModify((data) => data.copyWith(...));
+  ///
+  /// // New way (recommended)
+  /// await doc.modify((data) => data.copyWith(...)); // atomic: true by default
+  /// await doc.modify((data) => data.copyWith(...), atomic: true);
+  /// ```
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   @override
   Future<void> incrementalModify(T Function(T docData) modifier) =>
       DocumentHandler.incrementalModify(
@@ -63,11 +108,6 @@ class FirestoreDocument<S extends FirestoreSchema, T>
         converter,
         documentIdField,
       );
-
-  /// Modify a document using diff-based updates
-  @override
-  Future<void> modify(T Function(T docData) modifier) =>
-      DocumentHandler.modify(ref, modifier, converter, documentIdField);
 
   /// Delete this document
   @override

@@ -128,6 +128,52 @@ class FirestoreCollection<S extends FirestoreSchema, T>
     return AggregateCountQuery(newQuery);
   }
 
+  /// Modify all documents in this collection using diff-based updates.
+  ///
+  /// This method performs a read operation followed by batch update operations.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// **Important Notes:**
+  /// - **Performance**: This method has an additional read operation, making it slower than [patch]
+  /// - **Concurrency**: Firestore uses last-write-wins semantics. This read-modify-write
+  ///   operation is NOT transactional and may be subject to race conditions
+  /// - **Transactions**: For transactional updates, use transactions instead
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// // Update all users with atomic operations (default)
+  /// await db.users.modify((user) => user.copyWith(
+  ///   lastUpdated: FirestoreODM.serverTimestamp,
+  ///   version: user.version + 1, // Auto-detects -> FieldValue.increment(1)
+  /// ));
+  ///
+  /// // Update without atomic operations
+  /// await db.users.modify((user) => user.copyWith(
+  ///   status: 'migrated',
+  /// ), atomic: false);
+  /// ```
+  @override
+  Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true}) =>
+      QueryHandler.modify(query, documentIdField, converter, modifier, atomic: atomic);
+
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// **Migration:**
+  /// ```dart
+  /// // Old way (deprecated)
+  /// await collection.incrementalModify((data) => data.copyWith(...));
+  ///
+  /// // New way (recommended)
+  /// await collection.modify((data) => data.copyWith(...)); // atomic: true by default
+  /// await collection.modify((data) => data.copyWith(...), atomic: true);
+  /// ```
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   @override
   Future<void> incrementalModify(ModifierBuilder<T> modifier) =>
       QueryHandler.incrementalModify(
@@ -136,10 +182,6 @@ class FirestoreCollection<S extends FirestoreSchema, T>
         converter,
         modifier,
       );
-
-  @override
-  Future<void> modify(ModifierBuilder<T> modifier) =>
-      QueryHandler.modify(query, documentIdField, converter, modifier);
 
   @override
   Future<void> delete() => QueryHandler.delete(query);

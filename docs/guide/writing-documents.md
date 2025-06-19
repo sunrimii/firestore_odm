@@ -64,7 +64,7 @@ if (users.isNotEmpty) {
 
 The ODM provides three powerful and flexible methods for updating a single document.
 
-### `patch()` (For Atomic Updates)
+### `patch()` (Recommended for Best Performance)
 
 The `patch()` method is for making specific, atomic updates. This is the most efficient method for operations like incrementing a number, adding/removing elements from an array, or setting a server timestamp. It gives you a builder with methods for each field.
 
@@ -79,12 +79,19 @@ await userDoc.patch(($) => [
 ]);
 ```
 
-### `incrementalModify()` (Recommended)
+### `modify()` (Convenient but Slower)
 
-This is the "smartest" update method. It compares the current state of your document with the new state you provide and automatically uses atomic operations where possible. This gives you the convenience of working with model objects while still getting the performance benefits of atomic writes.
+This method compares the current state of your document with the new state you provide. It performs a read operation followed by an update operation, making it slightly slower than `patch()` due to the additional read. However, it's convenient when you need to read the current state before writing.
+
+**Important Notes:**
+- **Performance**: This method has an additional read operation, making it slower than `patch()`
+- **Concurrency**: Firestore uses last-write-wins semantics. This read-modify-write operation is NOT transactional and may be subject to race conditions
+- **Transactions**: For transactional updates, use transactions instead
+
+By default, `modify()` automatically detects and uses atomic operations where possible:
 
 ```dart
-await userDoc.incrementalModify((user) => user.copyWith(
+await userDoc.modify((user) => user.copyWith(
   // This will be converted to a FieldValue.increment(1) operation
   age: user.age + 1,
 
@@ -96,15 +103,31 @@ await userDoc.incrementalModify((user) => user.copyWith(
 ));
 ```
 
-### `modify()`
-
-This method also compares the current and new states of the document, but it performs simple field updates without converting them to atomic operations. It's useful for straightforward data changes where you don't need atomic behavior.
+You can disable atomic operations by setting `atomic: false`:
 
 ```dart
 await userDoc.modify((user) => user.copyWith(
   name: 'Jane Smith',
   isPremium: true,
+), atomic: false);
+```
+
+### `incrementalModify()` (Deprecated)
+
+> **⚠️ Deprecated**: Use `modify(atomic: true)` instead. This method will be removed in a future version.
+
+This method has been deprecated in favor of the enhanced `modify()` method with the `atomic` parameter.
+
+```dart
+// Old way (deprecated)
+await userDoc.incrementalModify((user) => user.copyWith(
+  age: user.age + 1,
 ));
+
+// New way (recommended)
+await userDoc.modify((user) => user.copyWith(
+  age: user.age + 1,
+), atomic: true); // atomic: true is the default
 ```
 
 ### `update()`

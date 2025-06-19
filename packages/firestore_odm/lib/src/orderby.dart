@@ -316,6 +316,49 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   Future<void> patch(PatchBuilder<T> patchBuilder) =>
       QueryHandler.patch(_query, _documentIdField, _converter, patchBuilder);
 
+  /// Modify multiple documents in this ordered query using diff-based updates.
+  ///
+  /// This method performs a read operation followed by batch update operations.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// **Important Notes:**
+  /// - **Performance**: This method has an additional read operation, making it slower than [patch]
+  /// - **Concurrency**: Firestore uses last-write-wins semantics. This read-modify-write
+  ///   operation is NOT transactional and may be subject to race conditions
+  /// - **Transactions**: For transactional updates, use transactions instead
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// // Update top users with atomic operations (default)
+  /// await db.users
+  ///   .orderBy(($) => $.score(descending: true))
+  ///   .limit(10)
+  ///   .modify((user) => user.copyWith(
+  ///     bonus: user.bonus + 100, // Auto-detects -> FieldValue.increment(100)
+  ///   ));
+  /// ```
+  @override
+  Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true}) =>
+      QueryHandler.modify(_query, _documentIdField, _converter, modifier, atomic: atomic);
+
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// **Migration:**
+  /// ```dart
+  /// // Old way (deprecated)
+  /// await orderedQuery.incrementalModify((data) => data.copyWith(...));
+  ///
+  /// // New way (recommended)
+  /// await orderedQuery.modify((data) => data.copyWith(...)); // atomic: true by default
+  /// await orderedQuery.modify((data) => data.copyWith(...), atomic: true);
+  /// ```
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   @override
   Future<void> incrementalModify(ModifierBuilder<T> modifier) =>
       QueryHandler.incrementalModify(
@@ -324,10 +367,6 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
         _converter,
         modifier,
       );
-
-  @override
-  Future<void> modify(ModifierBuilder<T> modifier) =>
-      QueryHandler.modify(_query, _documentIdField, _converter, modifier);
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(

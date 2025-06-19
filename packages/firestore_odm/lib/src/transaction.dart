@@ -120,6 +120,19 @@ class TransactionDocument<S extends FirestoreSchema, T>
     return snapshot;
   }
 
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// **Migration:**
+  /// ```dart
+  /// // Old way (deprecated)
+  /// await tx.doc.incrementalModify((data) => data.copyWith(...));
+  ///
+  /// // New way (recommended)
+  /// await tx.doc.modify((data) => data.copyWith(...)); // atomic: true by default
+  /// await tx.doc.modify((data) => data.copyWith(...), atomic: true);
+  /// ```
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   @override
   Future<void> incrementalModify(T Function(T docData) modifier) async {
     // Read the document and prepare the write operation
@@ -129,7 +142,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
       modifier,
       converter,
       documentIdField,
-      computeDiff,
+      computeDiffWithAtomicOperations,
     );
     if (patch.isNotEmpty) {
       // Defer the write operation
@@ -137,8 +150,37 @@ class TransactionDocument<S extends FirestoreSchema, T>
     }
   }
 
+  /// Modify a document within a transaction using diff-based updates.
+  ///
+  /// This method performs a read operation followed by an update operation within a transaction.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// **Important Notes:**
+  /// - **Transactions**: This operation is transactional and handles read-before-write correctly
+  /// - **Deferred Writes**: Write operations are automatically deferred until transaction commit
+  /// - **Performance**: Additional read operation impacts performance compared to [patch]
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// await db.runTransaction((tx) async {
+  ///   // With atomic operations (default)
+  ///   await tx.users('user1').modify((user) => user.copyWith(
+  ///     balance: user.balance - 100, // Auto-detects -> FieldValue.increment(-100)
+  ///   ));
+  ///
+  ///   // Without atomic operations
+  ///   await tx.users('user2').modify((user) => user.copyWith(
+  ///     status: 'processed',
+  ///   ), atomic: false);
+  /// });
+  /// ```
   @override
-  Future<void> modify(T Function(T docData) modifier) async {
+  Future<void> modify(T Function(T docData) modifier, {bool atomic = true}) async {
     // Read the document and prepare the write operation
     final snapshot = await _getSnapshot();
     final patch = DocumentHandler.processPatch(
@@ -146,7 +188,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
       modifier,
       converter,
       documentIdField,
-      computeDiffWithAtomicOperations,
+      atomic ? computeDiffWithAtomicOperations : computeDiff,
     );
     if (patch.isNotEmpty) {
       // Defer the write operation

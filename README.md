@@ -99,15 +99,15 @@ await userDoc.update({
 ```dart
 // ✅ ODM - Three smart update strategies
 
-// 1. Patch - Explicit atomic operations
+// 1. Patch - Explicit atomic operations (Best Performance)
 await userDoc.patch(($) => [
   $.profile.followers.increment(1),
   $.tags.add('verified'),
   $.lastLogin.serverTimestamp(),
 ]);
 
-// 2. IncrementalModify - Smart diff with atomic operations
-await userDoc.incrementalModify((user) => user.copyWith(
+// 2. Modify - Smart diff with atomic operations (Convenient)
+await userDoc.modify((user) => user.copyWith(
   age: user.age + 1,              // Auto-detects -> FieldValue.increment(1)
   tags: [...user.tags, 'expert'], // Auto-detects -> FieldValue.arrayUnion()
   lastLogin: FirestoreODM.serverTimestamp, // Server timestamp support
@@ -351,10 +351,15 @@ await userPosts.insert(Post(id: 'post1', title: 'Hello World!'));
 
 ### Bulk Operations
 ```dart
-// Update all premium users
+// Update all premium users using patch (best performance)
 await db.users
   .where(($) => $.isPremium(isEqualTo: true))
   .patch(($) => [$.points.increment(100)]);
+
+// Update all premium users using modify (convenient but slower)
+await db.users
+  .where(($) => $.isPremium(isEqualTo: true))
+  .modify((user) => user.copyWith(points: user.points + 100));
 
 // Delete inactive users
 await db.users
@@ -364,10 +369,10 @@ await db.users
 
 ### Server Timestamps & Auto-Generated IDs
 ```dart
-// Server timestamps using patch
+// Server timestamps using patch (best performance)
 await userDoc.patch(($) => [$.lastLogin.serverTimestamp()]);
 
-// Server timestamps using modify
+// Server timestamps using modify (convenient but slower)
 await userDoc.modify((user) => user.copyWith(
   lastLogin: FirestoreODM.serverTimestamp,
 ));

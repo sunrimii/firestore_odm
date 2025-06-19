@@ -324,25 +324,44 @@ class DocumentHandler {
     return {};
   }
 
+  /// Modify a document using diff-based updates.
+  ///
+  /// This method performs a read operation followed by an update operation.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// Note: Firestore uses last-write-wins semantics. This read-modify-write
+  /// operation is NOT transactional and may be subject to race conditions.
+  /// For transactional updates, use transactions.
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
   static Future<void> modify<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
     ModelConverter<T> converter,
-    String documentIdField,
-  ) async {
+    String documentIdField, {
+    bool atomic = true,
+  }) async {
     final currentData = await ref.get();
     final patch = processPatch(
       currentData,
       modifier,
       converter,
       documentIdField,
-      computeDiff,
+      atomic ? computeDiffWithAtomicOperations : computeDiff,
     );
     if (patch.isNotEmpty) {
       await ref.update(patch);
     }
   }
 
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// Migrate to: `modify(ref, modifier, converter, documentIdField, atomic: true)`
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   static Future<void> incrementalModify<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
@@ -735,12 +754,26 @@ abstract class QueryHandler {
   //   await batch.commit();
   // }
 
+  /// Modify multiple documents using diff-based updates.
+  ///
+  /// This method performs a read operation followed by batch update operations.
+  /// Performance is slightly worse than [patch] due to the additional read,
+  /// but convenient when you need to read the current state before writing.
+  ///
+  /// Note: Firestore uses last-write-wins semantics. This read-modify-write
+  /// operation is NOT transactional and may be subject to race conditions.
+  /// For transactional updates, use transactions.
+  ///
+  /// [atomic] - When true (default), automatically detects and uses atomic
+  /// operations like FieldValue.increment() and FieldValue.arrayUnion() where possible.
+  /// When false, performs simple field updates without atomic operations.
   static Future<void> modify<T>(
     firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
     ModelConverter<T> converter,
-    T Function(T) modifier,
-  ) async {
+    T Function(T) modifier, {
+    bool atomic = true,
+  }) async {
     final snapshot = await query.get();
     final batch = query.firestore.batch();
 
@@ -750,7 +783,7 @@ abstract class QueryHandler {
         modifier,
         converter,
         documentIdField,
-        computeDiff,
+        atomic ? computeDiffWithAtomicOperations : computeDiff,
       );
       if (patch.isNotEmpty) {
         final processedUpdateData = _replaceServerTimestamps(patch);
@@ -760,6 +793,11 @@ abstract class QueryHandler {
     await batch.commit();
   }
 
+  /// @deprecated Use [modify] with atomic parameter instead.
+  /// This method will be removed in a future version.
+  ///
+  /// Migrate to: `modify(query, documentIdField, converter, modifier, atomic: true)`
+  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
   static Future<void> incrementalModify<T>(
     firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
