@@ -1,3 +1,7 @@
+## 2.4.0
+
+ - **FEAT**: deprecate incrementalModify and enhance modify with atomic parameter. ([b1b95e1a](https://github.com/sylphxltd/firestore_odm/commit/b1b95e1a206ecde7faa54dd8e2d5514fe068b244))
+
 ## 2.3.1
 
  - **REFACTOR**: remove lazyBroadcast and use native Firestore streams. ([971b472f](https://github.com/sylphxltd/firestore_odm/commit/971b472f857bbea14d3523b967192dd44f4d0461))

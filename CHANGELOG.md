@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-06-20
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v2.4.0`](#firestore_odm---v240)
+
+---
+
+#### `firestore_odm` - `v2.4.0`
+
+ - **FEAT**: deprecate incrementalModify and enhance modify with atomic parameter. ([b1b95e1a](https://github.com/sylphxltd/firestore_odm/commit/b1b95e1a206ecde7faa54dd8e2d5514fe068b244))
+
+
 ## 2025-06-14
 
 ### Changes
