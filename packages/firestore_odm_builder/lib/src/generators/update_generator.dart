@@ -1,5 +1,6 @@
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
+import '../utils/string_helpers.dart';
 
 /// Generator for update builders and related classes
 class UpdateGenerator {
@@ -41,9 +42,23 @@ class UpdateGenerator {
 
     // Generate field assignments using JSON field names from analysis
     for (final field in analysis.updateableFields) {
-      buffer.writeln(
-        '    if (${field.parameterName} != null) data[\'${field.jsonFieldName}\'] = ${field.parameterName};',
-      );
+      final paramName = field.parameterName;
+      final jsonFieldName = field.jsonFieldName;
+      
+      // Check if field has custom toFirestore expression (JsonConverter)
+      if (field.customToFirestoreExpression != null) {
+        // Apply JsonConverter for toFirestore conversion
+        final toFirestoreExpr = field.customToFirestoreExpression!
+            .replaceAll('\$source', paramName);
+        buffer.writeln(
+          '    if ($paramName != null) data[\'$jsonFieldName\'] = $toFirestoreExpr;',
+        );
+      } else {
+        // Standard assignment without converter
+        buffer.writeln(
+          '    if ($paramName != null) data[\'$jsonFieldName\'] = $paramName;',
+        );
+      }
     }
 
     buffer.writeln(
@@ -59,6 +74,82 @@ class UpdateGenerator {
 
     buffer.writeln('}');
     buffer.writeln('');
+    
+    // Generate custom UpdateBuilder classes for fields with converters
+    generateConverterUpdateBuilders(buffer, analysis);
+  }
+
+  /// Generate custom UpdateBuilder classes for fields with converters
+  static void generateConverterUpdateBuilders(
+    StringBuffer buffer,
+    ModelAnalysis analysis,
+  ) {
+    final className = analysis.className;
+    
+    // Find fields with converters
+    final converterFields = analysis.updateableFields
+        .where((field) => field.customToFirestoreExpression != null)
+        .toList();
+    
+    for (final field in converterFields) {
+      final fieldName = field.parameterName;
+      final fieldType = field.dartType.getDisplayString();
+      final converterExpr = field.customToFirestoreExpression!;
+      
+      if (TypeAnalyzer.isMapType(field.dartType)) {
+        // Generate custom MapFieldUpdate for map fields with converters
+        final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(field.dartType);
+        
+        buffer.writeln('/// Custom MapFieldUpdate for ${fieldName} field with converter');
+        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate extends MapFieldUpdate<$fieldType, $keyType, $valueType> {');
+        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate({super.name, super.parent});');
+        buffer.writeln('');
+        buffer.writeln('  @override');
+        buffer.writeln('  UpdateOperation call($fieldType value) {');
+        
+        // Apply converter
+        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
+        buffer.writeln('    final convertedValue = $convertedExpr;');
+        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
+        buffer.writeln('  }');
+        buffer.writeln('}');
+        buffer.writeln('');
+      } else if (TypeAnalyzer.isIterableType(field.dartType)) {
+        // Generate custom ListFieldUpdate for iterable fields with converters
+        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(field.dartType);
+        
+        buffer.writeln('/// Custom ListFieldUpdate for ${fieldName} field with converter');
+        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate extends ListFieldUpdate<$fieldType, $elementTypeName> {');
+        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate({super.name, super.parent});');
+        buffer.writeln('');
+        buffer.writeln('  @override');
+        buffer.writeln('  UpdateOperation call($fieldType value) {');
+        
+        // Apply converter
+        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
+        buffer.writeln('    final convertedValue = $convertedExpr;');
+        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
+        buffer.writeln('  }');
+        buffer.writeln('}');
+        buffer.writeln('');
+      } else {
+        // Generate custom UpdateBuilder for non-iterable fields with converters
+        buffer.writeln('/// Custom UpdateBuilder for ${fieldName} field with converter');
+        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder extends DefaultUpdateBuilder<$fieldType> {');
+        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder({super.name, super.parent});');
+        buffer.writeln('');
+        buffer.writeln('  @override');
+        buffer.writeln('  UpdateOperation call($fieldType value) {');
+        
+        // Apply converter
+        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
+        buffer.writeln('    final convertedValue = $convertedExpr;');
+        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
+        buffer.writeln('  }');
+        buffer.writeln('}');
+        buffer.writeln('');
+      }
+    }
   }
 
   static void _generateFieldUpdateMethod(
@@ -73,7 +164,28 @@ class UpdateGenerator {
     // Generate field getter that returns a callable update instance
     buffer.writeln('  /// Update $fieldName field');
 
-    if (TypeAnalyzer.isMapType(fieldType)) {
+    // Check if field has converter (any type of converter)
+    if (field.customToFirestoreExpression != null) {
+      // Generate custom UpdateBuilder for fields with converters
+      if (TypeAnalyzer.isMapType(fieldType)) {
+        // Map types with converters
+        final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
+        buffer.writeln(
+          '  _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+        );
+      } else if (TypeAnalyzer.isIterableType(fieldType)) {
+        // Iterable types with converters
+        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
+        buffer.writeln(
+          '  _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+        );
+      } else {
+        // Other types with converters
+        buffer.writeln(
+          '  _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder(name: \'$jsonFieldName\', parent: this);',
+        );
+      }
+    } else if (TypeAnalyzer.isMapType(fieldType)) {
       final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
         '  MapFieldUpdate<$fieldType, $keyType, $valueType> get $fieldName => MapFieldUpdate(name: \'$jsonFieldName\', parent: this);',
