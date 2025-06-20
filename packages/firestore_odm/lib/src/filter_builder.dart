@@ -251,31 +251,58 @@ class UpdateBuilder<T> extends Node {
     final Map<String, List<dynamic>> arrayAdds = {};
     final Map<String, List<dynamic>> arrayRemoves = {};
     final Map<String, num> increments = {};
+    
+    // Track which fields have set operations to handle precedence
+    final Set<String> fieldsWithSetOperations = {};
 
+    // First pass: identify fields with set operations
+    for (final operation in operations) {
+      if (operation.type == UpdateOperationType.set ||
+          operation.type == UpdateOperationType.delete ||
+          operation.type == UpdateOperationType.serverTimestamp ||
+          operation.type == UpdateOperationType.objectMerge) {
+        fieldsWithSetOperations.add(operation.field);
+      }
+    }
+
+    // Second pass: process operations with precedence rules
     for (final operation in operations) {
       switch (operation.type) {
         case UpdateOperationType.set:
           updateMap[operation.field] = operation.value;
           break;
         case UpdateOperationType.increment:
+          // Increment operations are not affected by set operations
           increments[operation.field] =
               (increments[operation.field] ?? 0) + (operation.value as num);
           break;
         case UpdateOperationType.arrayAdd:
-          arrayAdds.putIfAbsent(operation.field, () => []).add(operation.value);
+          // Skip array operations if field has set operation
+          if (!fieldsWithSetOperations.contains(operation.field)) {
+            arrayAdds.putIfAbsent(operation.field, () => []).add(operation.value);
+          }
           break;
         case UpdateOperationType.arrayRemove:
-          arrayRemoves
-              .putIfAbsent(operation.field, () => [])
-              .add(operation.value);
+          // Skip array operations if field has set operation
+          if (!fieldsWithSetOperations.contains(operation.field)) {
+            arrayRemoves
+                .putIfAbsent(operation.field, () => [])
+                .add(operation.value);
+          }
           break;
         case UpdateOperationType.arrayAddAll:
-          final values = operation.value as List;
-          arrayAdds.putIfAbsent(operation.field, () => []).addAll(values);
+          // Skip array operations if field has set operation
+          if (!fieldsWithSetOperations.contains(operation.field)) {
+            final values = operation.value as List;
+            arrayAdds.putIfAbsent(operation.field, () => []).addAll(values);
+          }
           break;
         case UpdateOperationType.arrayRemoveAll:
-          final values = operation.value as List;
-          arrayRemoves.putIfAbsent(operation.field, () => []).addAll(values);
+          // Skip array operations if field has set operation
+          if (!fieldsWithSetOperations.contains(operation.field)) {
+            final values = operation.value as List;
+            arrayRemoves.putIfAbsent(operation.field, () => []).addAll(values);
+          }
           break;
         case UpdateOperationType.delete:
           updateMap[operation.field] = FieldValue.delete();

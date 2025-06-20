@@ -113,6 +113,64 @@ await userDoc.patch(($) => [
 ]);
 ```
 
+#### Operation Precedence and Behavior
+
+When using `patch()` with multiple operations on the same field, it's important to understand the precedence rules:
+
+**Set Operations Override Array Operations:**
+```dart
+await userDoc.patch(($) => [
+  $.tags.add('will-be-ignored'),        // Array operation
+  $.tags.addAll(['also-ignored']),      // Array operation
+  $.tags(['final', 'result']),          // Set operation - WINS!
+]);
+// Result: tags = ['final', 'result']
+// The set operation overrides all array operations on the same field
+```
+
+**Multiple Set Operations - Last One Wins:**
+```dart
+await userDoc.patch(($) => [
+  $.tags(['first']),                    // Set operation
+  $.tags(['second', 'wins']),           // Set operation - WINS!
+]);
+// Result: tags = ['second', 'wins']
+```
+
+**Array Operations Accumulate (when no set operations):**
+```dart
+await userDoc.patch(($) => [
+  $.tags.add('first'),                  // Array operation
+  $.tags.addAll(['second', 'third']),   // Array operation
+]);
+// Result: tags = [existing_tags..., 'first', 'second', 'third']
+// All array operations are applied together
+```
+
+**Mixed Add/Remove on Same Field - Not Allowed:**
+```dart
+// ❌ This will throw an error
+await userDoc.patch(($) => [
+  $.tags.add('new'),
+  $.tags.remove('old'),  // Error: Cannot mix add/remove on same field
+]);
+
+// ✅ Use separate patch calls instead
+await userDoc.patch(($) => [$.tags.remove('old')]);
+await userDoc.patch(($) => [$.tags.add('new')]);
+```
+
+**Different Operation Types Work Independently:**
+```dart
+await userDoc.patch(($) => [
+  $.age.increment(1),                   // Increment operation
+  $.tags.addAll(['new', 'tags']),       // Array operation
+  $.name('Updated Name'),               // Set operation
+  $.lastLogin.serverTimestamp(),        // Server timestamp
+]);
+// All operations are applied - they don't interfere with each other
+```
+
 ### `modify()` (Convenient but Slower)
 
 This method compares the current state of your document with the new state you provide. It performs a read operation followed by an update operation, making it slightly slower than `patch()` due to the additional read. However, it's convenient when you need to read the current state before writing.
