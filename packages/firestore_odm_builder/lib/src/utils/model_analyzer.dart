@@ -84,6 +84,7 @@ class ModelAnalysis {
 /// Analyzer for complete model structure including JSON field mapping
 class ModelAnalyzer {
   static final TypeChecker _jsonKeyChecker = TypeChecker.fromRuntime(JsonKey);
+  static final TypeChecker _jsonConverterChecker = TypeChecker.fromRuntime(JsonConverter);
 
   /// Analyze a complete model class and return structured information
   static ModelAnalysis? analyzeModel(ClassElement2 classElement) {
@@ -212,8 +213,8 @@ class ModelAnalyzer {
       }
     }
 
-    // Determine Firestore type
-    final firestoreType = _determineFirestoreType(fieldType);
+    // Determine Firestore type, considering @JsonConverter if present
+    final firestoreType = _determineFirestoreType(fieldType, element);
 
     return FieldInfo(
       parameterName: fieldName,
@@ -227,8 +228,30 @@ class ModelAnalyzer {
   }
 
   /// Determine the Firestore type for a Dart type
-  /// Based on official Firestore supported data types
-  static FirestoreType _determineFirestoreType(DartType dartType) {
+  /// Based on official Firestore supported data types and @JsonConverter annotations
+  static FirestoreType _determineFirestoreType(DartType dartType, Element element) {
+    // Check for @JsonConverter annotation and get the converted type
+    final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
+    DartType actualType = dartType;
+    
+    if (jsonConverter != null) {
+      // Get the JsonType from JsonConverter<DartType, JsonType>
+      final converterType = jsonConverter.type;
+      if (converterType != null && converterType is InterfaceType) {
+        final typeArguments = converterType.typeArguments;
+        if (typeArguments.length >= 2) {
+          // Use the JsonType (second argument) as the actual type
+          actualType = typeArguments[1];
+        }
+      }
+    }
+
+    // Process the actual type (either original dartType or converted JsonType)
+    return _processTypeToFirestoreType(actualType);
+  }
+
+  /// Process a Dart type to determine its Firestore type
+  static FirestoreType _processTypeToFirestoreType(DartType dartType) {
     // Handle nullable types by getting the underlying type
     final actualType = dartType.nullabilitySuffix == NullabilitySuffix.question
         ? (dartType as InterfaceType).element3.thisType
@@ -260,8 +283,8 @@ class ModelAnalyzer {
 
     // Handle collections
     if (actualType is InterfaceType) {
-      final element = actualType.element3;
-      final elementName = element.name3;
+      final typeElement = actualType.element3;
+      final elementName = typeElement.name3;
 
       if (elementName == 'List' || elementName == 'Set') {
         return FirestoreType.array;
