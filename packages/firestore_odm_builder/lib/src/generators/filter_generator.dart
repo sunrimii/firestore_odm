@@ -46,15 +46,15 @@ class FilterGenerator {
       buffer.writeln(
         '      StringFieldFilter(name: \'${field.parameterName}\', parent: this);',
       );
-    } else if (TypeAnalyzer.isIterableType(field.dartType)) {
-      buffer.writeln('  ArrayFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      ArrayFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
     } else if (TypeAnalyzer.isMapType(field.dartType)) {
       buffer.writeln('  MapFieldFilter get ${field.parameterName} =>');
       buffer.writeln(
         '      MapFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
+      );
+    } else if (TypeAnalyzer.isIterableType(field.dartType)) {
+      buffer.writeln('  ArrayFieldFilter get ${field.parameterName} =>');
+      buffer.writeln(
+        '      ArrayFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
       );
     } else if (TypeAnalyzer.isBoolType(field.dartType)) {
       buffer.writeln('  BoolFieldFilter get ${field.parameterName} =>');

@@ -73,17 +73,17 @@ class UpdateGenerator {
     // Generate field getter that returns a callable update instance
     buffer.writeln('  /// Update $fieldName field');
 
-    if (TypeAnalyzer.isIterableType(fieldType)) {
+    if (TypeAnalyzer.isMapType(fieldType)) {
+      final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
+      buffer.writeln(
+        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this);',
+      );
+    } else if (TypeAnalyzer.isIterableType(fieldType)) {
       final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
         fieldType,
       );
       buffer.writeln(
         '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isMapType(fieldType)) {
-      final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
-      buffer.writeln(
-        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isStringType(fieldType)) {
       buffer.writeln(
