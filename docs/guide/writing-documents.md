@@ -86,11 +86,14 @@ For adding or removing multiple elements at once, use `addAll()` and `removeAll(
 
 ```dart
 await userDoc.patch(($) => [
-  // Add multiple tags at once
-  $.tags.addAll(['premium', 'verified', 'active']),
+  // Add multiple tags at once - accepts any Iterable
+  $.tags.addAll(['premium', 'verified', 'active']),  // List
+  $.tags.addAll({'new', 'unique'}),                  // Set
+  $.tags.addAll(someIterable),                       // Any Iterable
   
-  // Remove multiple old tags at once
-  $.scores.removeAll([0, -1, -5]),
+  // Remove multiple old tags at once - accepts any Iterable
+  $.scores.removeAll([0, -1, -5]),                   // List
+  $.scores.removeAll({-10, -20}),                    // Set
   
   // Mix with other operations
   $.profile.followers.increment(10),

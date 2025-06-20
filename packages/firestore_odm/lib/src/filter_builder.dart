@@ -1055,8 +1055,8 @@ class ListFieldUpdate<T, E> extends CallableUpdate<T> {
   }
 
   /// Add multiple elements to array
-  UpdateOperation addAll(List<E> values) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayAddAll, values);
+  UpdateOperation addAll(Iterable<E> values) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayAddAll, values.toList());
   }
 
   /// Remove element from array
@@ -1065,8 +1065,8 @@ class ListFieldUpdate<T, E> extends CallableUpdate<T> {
   }
 
   /// Remove multiple elements from array
-  UpdateOperation removeAll(List<E> values) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemoveAll, values);
+  UpdateOperation removeAll(Iterable<E> values) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemoveAll, values.toList());
   }
 }
 
