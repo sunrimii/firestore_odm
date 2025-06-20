@@ -26,10 +26,20 @@ class FirestoreODM<T extends FirestoreSchema> {
   ///
   /// Value: DateTime.fromMillisecondsSinceEpoch(-8640000000000000) (an impossible timestamp that cannot be accidentally used)
   ///
+  /// ⚠️ **IMPORTANT:** This constant must be used exactly as-is. Any arithmetic operations
+  /// (like `FirestoreODM.serverTimestamp + Duration(days: 1)`) will create a regular
+  /// DateTime object instead of a server timestamp.
+  ///
   /// Example:
   /// ```dart
+  /// // ✅ Correct usage
   /// await userDoc.modify((user) => user.copyWith(
   ///   lastLogin: FirestoreODM.serverTimestamp, // Becomes server timestamp
+  /// ));
+  ///
+  /// // ❌ Incorrect - creates regular DateTime, not server timestamp
+  /// await userDoc.modify((user) => user.copyWith(
+  ///   expiryDate: FirestoreODM.serverTimestamp + Duration(days: 30),
   /// ));
   /// ```
   static DateTime get serverTimestamp => _currentServerTimestamp;

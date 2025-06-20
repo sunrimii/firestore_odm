@@ -43,3 +43,42 @@ await userDoc.patch(($) => [
 ```
 
 By providing these two mechanisms, the ODM ensures you can easily and safely use server-generated timestamps, whether you prefer working with model objects (`modify`) or explicit update operations (`patch`).
+
+## ⚠️ Important: Server Timestamp Arithmetic
+
+**Warning:** You cannot perform arithmetic operations on `FirestoreODM.serverTimestamp`.
+
+```dart
+// ❌ This will NOT work as expected
+FirestoreODM.serverTimestamp + Duration(days: 1)  // Results in a regular DateTime, not server timestamp
+
+// ❌ This will also NOT work
+FirestoreODM.serverTimestamp.add(Duration(hours: 1))  // Results in a regular DateTime
+```
+
+The `FirestoreODM.serverTimestamp` constant is a **sentinel value** that gets replaced with `FieldValue.serverTimestamp()` only when used exactly as-is. Any arithmetic operations will create a regular `DateTime` object instead of a server timestamp.
+
+### If you need "server timestamp + offset":
+
+1. **Use client-side calculation:**
+   ```dart
+   // Set to current time + 1 day (client time)
+   DateTime.now().add(Duration(days: 1))
+   ```
+
+2. **Two-step approach (separate operations):**
+   ```dart
+   // Step 1: Set server timestamp
+   await userDoc.patch(($) => [$.createdAt.serverTimestamp()]);
+   
+   // Step 2: Read and calculate offset
+   final user = await userDoc.get();
+   final expiryDate = user!.createdAt.add(Duration(days: 30));
+   await userDoc.patch(($) => [$.expiryDate(expiryDate)]);
+   ```
+
+   **Note:** This approach uses separate operations and may have potential race conditions. Unfortunately, you cannot use `patch` operations with server timestamps inside transactions, so this is the only viable approach for this pattern.
+
+3. **Use Firestore Rules or Cloud Functions** for server-side calculations.
+
+The key point: `FirestoreODM.serverTimestamp` must be used exactly as provided to work as a server timestamp.
