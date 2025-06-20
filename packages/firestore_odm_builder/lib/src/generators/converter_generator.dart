@@ -251,8 +251,9 @@ class ConverterGenerator {
       );
     }
 
-    // Regular List/Set conversion
-    return '$sourceExpression as List<${_getListElementType(field)}>';
+    // Regular List/Set conversion - handle List<dynamic> from Firestore
+    final elementType = _getListElementType(field);
+    return '($sourceExpression as List<dynamic>).cast<$elementType>()';
   }
 
   /// Generate List conversion to Firestore
@@ -285,8 +286,13 @@ class ConverterGenerator {
       );
     }
 
-    // Regular Map conversion
-    return '$sourceExpression as Map<String, ${_getMapValueType(field)}>';
+    // Regular Map conversion - handle Map<String, dynamic> from Firestore
+    final valueType = _getMapValueType(field);
+    if (valueType == 'dynamic') {
+      return '$sourceExpression as Map<String, dynamic>';
+    } else {
+      return '($sourceExpression as Map<String, dynamic>).cast<String, $valueType>()';
+    }
   }
 
   /// Generate Map conversion to Firestore
