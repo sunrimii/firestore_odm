@@ -40,8 +40,8 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
     for (final collection in collections) {
       final modelType = collection.modelType;
       if (modelType is InterfaceType) {
-        final classElement = modelType.element3 as ClassElement2?;
-        if (classElement != null) {
+        final classElement = modelType.element;
+        if (classElement is ClassElement) {
           // Use ModelAnalyzer to discover all nested types
           final nestedAnalyses = ModelAnalyzer.analyzeModelWithNestedTypes(
             classElement,

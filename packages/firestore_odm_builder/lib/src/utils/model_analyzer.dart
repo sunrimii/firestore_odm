@@ -10,22 +10,19 @@ import 'type_analyzer.dart';
 /// Based on official Firestore supported data types
 enum FirestoreType {
   // Primitive types
-  string,           // Text string
-  integer,          // 64-bit signed integer
-  double,           // 64-bit double precision floating-point
-  boolean,          // Boolean
-  timestamp,        // Date and time
-  bytes,            // Byte data
-  geoPoint,         // Geographical point
-  reference,        // Document reference
-  
+  string, // Text string
+  integer, // 64-bit signed integer
+  double, // 64-bit double precision floating-point
+  boolean, // Boolean
+  timestamp, // Date and time
+  bytes, // Byte data
+  geoPoint, // Geographical point
+  reference, // Document reference
   // Complex types
-  array,            // Array
-  map,              // Map (embedded object)
-  
+  array, // Array
+  map, // Map (embedded object)
   // Special values
-  null_,            // Null value
-  
+  null_, // Null value
   // For custom objects that will be serialized as maps
   object,
 }
@@ -88,14 +85,15 @@ class ModelAnalysis {
 /// Analyzer for complete model structure including JSON field mapping
 class ModelAnalyzer {
   static final TypeChecker _jsonKeyChecker = TypeChecker.fromRuntime(JsonKey);
-  static final TypeChecker _jsonConverterChecker = TypeChecker.fromRuntime(JsonConverter);
+  static final TypeChecker _jsonConverterChecker = TypeChecker.fromRuntime(
+    JsonConverter,
+  );
 
   /// Analyze a complete model class and return structured information
-  static ModelAnalysis? analyzeModel(ClassElement2 classElement) {
-
+  static ModelAnalysis? analyzeModel(ClassElement classElement) {
     try {
       // Get all fields from the class and its supertypes (excluding Object)
-      final fields = _getFields(classElement);
+      final fields = _getConstructorParameters(classElement);
 
       if (fields.isEmpty) {
         return null;
@@ -128,8 +126,10 @@ class ModelAnalyzer {
           isDocumentId: true,
           isNullable: existingField.isNullable,
           isOptional: existingField.isOptional,
-          customFromFirestoreExpression: existingField.customFromFirestoreExpression,
-          customToFirestoreExpression: existingField.customToFirestoreExpression,
+          customFromFirestoreExpression:
+              existingField.customFromFirestoreExpression,
+          customToFirestoreExpression:
+              existingField.customToFirestoreExpression,
         );
       }
 
@@ -139,7 +139,7 @@ class ModelAnalyzer {
           .toList();
 
       return ModelAnalysis(
-        className: classElement.name3!,
+        className: classElement.name,
         documentIdFieldName: documentIdFieldName,
         fields: fieldsMap,
         updateableFields: updateableFields,
@@ -161,37 +161,43 @@ class ModelAnalyzer {
   }
 
   /// Get all fields from the class and its supertypes (excluding Object)
-  static List<(String, DartType, Element)> _getFields(
-    ClassElement2 classElement,
+  static List<(String, DartType, Element)> _getConstructorParameters(
+    ClassElement classElement,
   ) {
-    final objectChecker = TypeChecker.fromRuntime(Object);
-    
-    // Get accessors from the current class and all supertypes
-    final allAccessors = <PropertyAccessorElement>[];
-    
-    // Add accessors from the current class and all supertypes (including current class)
-    final allTypes = [classElement.thisType, ...classElement.allSupertypes];
-    
-    allAccessors.addAll(
-      allTypes
-          .where((type) => !objectChecker.isExactlyType(type))
-          .expand((t) => t.element.accessors),
-    );
-    
-    // Filter accessors to only include valid model getters
-    return allAccessors
-        .where((f) => !f.isStatic && f.isPublic && f.isGetter)
-        .where((f) {
-          // Exclude standard Object methods even if overridden
-          if (_isObjectMethod(f.name)) {
-            return false;
-          }
-          
-          final jsonKey = _jsonKeyChecker.firstAnnotationOf(f);
+    // 搵 factory constructor
+    var constructor = classElement.constructors
+        .where((c) => c.isFactory && c.name.isEmpty)
+        .firstOrNull;
+
+    // 如果 factory constructor redirect 到另一個 constructor，追上去
+    if (constructor != null && constructor.redirectedConstructor != null) {
+      constructor = constructor.redirectedConstructor;
+    }
+
+    // 如果仲係冇，搵 default constructor
+    constructor ??= classElement.constructors
+        .where((c) => !c.isFactory && c.name.isEmpty)
+        .firstOrNull;
+
+    if (constructor == null) {
+      throw Exception('No suitable constructor found for ${classElement.name}');
+    }
+
+    return _extractParameters(constructor);
+  }
+
+  static List<(String, DartType, Element)> _extractParameters(
+    ConstructorElement constructor,
+  ) {
+    return constructor.parameters
+        .where((p) => p.isNamed) // Only named parameters
+        .where((p) {
+          // Check JsonKey annotations
+          final jsonKey = _jsonKeyChecker.firstAnnotationOf(p);
           if (jsonKey != null) {
             final jsonKeyConstantReader = ConstantReader(jsonKey);
 
-            // Check includeFromJson (default is true if not specified)
+            // Check includeFromJson
             bool includeFromJson = true;
             try {
               final includeFromJsonField = jsonKeyConstantReader.read(
@@ -204,7 +210,7 @@ class ModelAnalyzer {
               // Field not present, use default value true
             }
 
-            // Check includeToJson (default is true if not specified)
+            // Check includeToJson
             bool includeToJson = true;
             try {
               final includeToJsonField = jsonKeyConstantReader.read(
@@ -221,7 +227,7 @@ class ModelAnalyzer {
           }
           return true;
         })
-        .map((f) => (f.name, f.returnType, f))
+        .map((p) => (p.name, p.type, p))
         .toList();
   }
 
@@ -232,10 +238,10 @@ class ModelAnalyzer {
     Element element,
   ) {
     final isNullable = TypeAnalyzer.isNullableType(fieldType);
-    final isOptional = isNullable; // Accessors are optional if nullable
+    final isOptional = isNullable;
 
     // Determine JSON field name
-    String jsonFieldName = fieldName; // Default to field name
+    String jsonFieldName = fieldName;
 
     // Check for @JsonKey annotation
     final jsonKey = _jsonKeyChecker.firstAnnotationOf(element);
@@ -247,26 +253,74 @@ class ModelAnalyzer {
       }
     }
 
-    // Determine Firestore type, considering @JsonConverter if present
+    // Determine Firestore type
     final firestoreType = _determineFirestoreType(fieldType, element);
-    
-    // Generate custom conversion expressions for special types
+
+    // Generate custom conversion expressions
     final typeName = fieldType.getDisplayString(withNullability: false);
     String? customFromFirestoreExpression;
     String? customToFirestoreExpression;
-    
-    if (typeName.startsWith('IList<')) {
-      final elementType = _getElementType(fieldType);
-      customFromFirestoreExpression = '(\$source as List).map((e) => e as $elementType).toIList()';
-      customToFirestoreExpression = '\$source.toList()';
-    } else if (typeName.startsWith('ISet<')) {
-      final elementType = _getElementType(fieldType);
-      customFromFirestoreExpression = '(\$source as List).map((e) => e as $elementType).toISet()';
-      customToFirestoreExpression = '\$source.toList()';
-    } else if (typeName.startsWith('IMap<')) {
-      final valueType = _getMapValueType(fieldType);
-      customFromFirestoreExpression = '(\$source as Map).cast<String, $valueType>().toIMap()';
-      customToFirestoreExpression = '\$source.unlock';
+
+    // **新增：檢查 @JsonConverter 先**
+    final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
+    if (jsonConverter != null) {
+      // 搵到 @JsonConverter，用佢嘅方法
+      final converterConstantReader = ConstantReader(jsonConverter);
+
+      // 獲取 converter 的 class name
+      final converterType = jsonConverter.type;
+      if (converterType != null && converterType is InterfaceType) {
+        final converterClassName = converterType.element3.name3;
+
+        // 生成 converter 表達式
+        customFromFirestoreExpression =
+            'const $converterClassName().fromJson(\$source)';
+        customToFirestoreExpression =
+            'const $converterClassName().toJson(\$source)';
+      }
+    } else {
+      if (_hasGenericJsonSupport(fieldType)) {
+        // **處理泛型 JSON 類型**
+        if (fieldType is InterfaceType && fieldType.typeArguments.length >= 2) {
+          // Map-like: IMap<K, V> - 需要兩個 converter
+          final keyType = fieldType.typeArguments[0].getDisplayString(
+            withNullability: false,
+          );
+          final valueType = fieldType.typeArguments[1].getDisplayString(
+            withNullability: false,
+          );
+
+          final keyConverter =
+              TypeAnalyzer.isPrimitiveType(fieldType.typeArguments[0])
+              ? '(k) => k as $keyType'
+              : '(k) => $keyType.fromJson(k)';
+
+          final valueConverter =
+              TypeAnalyzer.isPrimitiveType(fieldType.typeArguments[1])
+              ? '(v) => v as $valueType'
+              : '(v) => $valueType.fromJson(v)';
+
+          customFromFirestoreExpression =
+              '$typeName.fromJson(\$source, $keyConverter, $valueConverter)';
+          customToFirestoreExpression = '\$source.toJson((k) => k, (v) => v)';
+        } else {
+          // List/Set-like: IList<T>, ISet<T> - 一個 converter
+          final elementType = _getGenericElementType(fieldType);
+          final elementDartType = _getElementDartType(fieldType);
+
+          final converter = TypeAnalyzer.isPrimitiveType(elementDartType)
+              ? '(e) => e as $elementType'
+              : '(e) => $elementType.fromJson(e)';
+
+          customFromFirestoreExpression =
+              '$typeName.fromJson(\$source, $converter)';
+          customToFirestoreExpression = '\$source.toJson((e) => e)';
+        }
+      } else if (_hasStandardJsonSupport(fieldType)) {
+        // 標準 JSON 處理
+        customFromFirestoreExpression = '$typeName.fromJson(\$source)';
+        customToFirestoreExpression = '\$source.toJson()';
+      }
     }
 
     return FieldInfo(
@@ -274,7 +328,7 @@ class ModelAnalyzer {
       jsonFieldName: jsonFieldName,
       dartType: fieldType,
       firestoreType: firestoreType,
-      isDocumentId: false, // Will be set later if this is the document ID field
+      isDocumentId: false,
       isNullable: isNullable,
       isOptional: isOptional,
       customFromFirestoreExpression: customFromFirestoreExpression,
@@ -282,9 +336,112 @@ class ModelAnalyzer {
     );
   }
 
+  static DartType _getElementDartType(DartType dartType) {
+    if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
+      final typeArgs = dartType.typeArguments;
+
+      // 根據 type arguments 數量決定用邊個
+      if (typeArgs.length >= 2) {
+        // Map-like，用 value type
+        return typeArgs[1];
+      } else {
+        // List/Set-like，用 element type
+        return typeArgs.first;
+      }
+    }
+
+    // Fallback to dynamic
+    return dartType; // 或者返回某個 dynamic type
+  }
+
+  /// 檢查 type 是否支援標準 JSON serialization
+  static bool _hasStandardJsonSupport(DartType dartType) {
+    if (dartType is! InterfaceType) {
+      return false;
+    }
+
+    final classElement = dartType.element;
+    if (classElement is! ClassElement) {
+      return false;
+    }
+
+    // 檢查有冇標準 toJson() 方法（無參數）
+    final hasToJson = classElement.methods.any(
+      (method) =>
+          method.name == 'toJson' &&
+          method.parameters.isEmpty &&
+          !method.isStatic,
+    );
+
+    // 檢查有冇標準 fromJson constructor 或 static method（一個參數）
+    final hasFromJsonConstructor = classElement.constructors.any(
+      (constructor) =>
+          constructor.name == 'fromJson' && constructor.parameters.length == 1,
+    );
+
+    final hasFromJsonMethod = classElement.methods.any(
+      (method) =>
+          method.name == 'fromJson' &&
+          method.isStatic &&
+          method.parameters.length == 1,
+    );
+
+    return hasToJson && (hasFromJsonConstructor || hasFromJsonMethod);
+  }
+
+  /// 檢查 type 是否支援泛型 JSON serialization
+  static bool _hasGenericJsonSupport(DartType dartType) {
+    if (dartType is! InterfaceType) {
+      return false;
+    }
+
+    final classElement = dartType.element;
+    if (classElement is! ClassElement) {
+      return false;
+    }
+
+    // 檢查有冇 fromJson constructor（2個或3個參數都接受）
+    final hasGenericFromJson = classElement.constructors.any(
+      (constructor) =>
+          constructor.name == 'fromJson' &&
+          (constructor.parameters.length == 2 ||
+              constructor.parameters.length == 3),
+    );
+
+    // 檢查有冇 toJson method（1個或2個參數都接受）
+    final hasGenericToJson = classElement.methods.any(
+      (method) =>
+          method.name == 'toJson' &&
+          (method.parameters.length == 1 || method.parameters.length == 2) &&
+          !method.isStatic,
+    );
+
+    return hasGenericFromJson && hasGenericToJson;
+  }
+
+  /// 獲取泛型類型嘅 element type（通用方法）
+  static String _getGenericElementType(DartType dartType) {
+    if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
+      final typeArgs = dartType.typeArguments;
+
+      // 根據 type arguments 數量決定用邊個
+      if (typeArgs.length == 1) {
+        // List<T>, Set<T>, IList<T>, ISet<T> 等 - 用第一個
+        return typeArgs.first.getDisplayString(withNullability: false);
+      } else if (typeArgs.length >= 2) {
+        // Map<K,V>, IMap<K,V> 等 - 用第二個 (value type)
+        return typeArgs[1].getDisplayString(withNullability: false);
+      }
+    }
+    return 'dynamic';
+  }
+
   /// Determine the Firestore type for a Dart type
   /// Based on official Firestore supported data types, @JsonConverter annotations, and toJson/fromJson methods
-  static FirestoreType _determineFirestoreType(DartType dartType, Element element) {
+  static FirestoreType _determineFirestoreType(
+    DartType dartType,
+    Element element,
+  ) {
     // First, check for @JsonConverter annotation
     final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
     if (jsonConverter != null) {
@@ -302,11 +459,10 @@ class ModelAnalyzer {
     // If no @JsonConverter, check if this is a custom object type with toJson/fromJson
     if (dartType is InterfaceType) {
       final typeName = dartType.getDisplayString(withNullability: false);
-      
+
       // Skip primitive and known types
       if (!TypeAnalyzer.isPrimitiveType(dartType) &&
           !_isKnownFirestoreType(typeName)) {
-        
         // Analyze based on what toJson would return for common immutable collection types
         // IList/ISet -> toJson returns List -> array
         if (typeName.startsWith('IList<') || typeName.startsWith('ISet<')) {
@@ -352,10 +508,12 @@ class ModelAnalyzer {
 
     // Handle special types that convert to different Firestore types
     if (typeName == 'Duration') {
-      return FirestoreType.integer; // Duration converts to milliseconds (integer)
+      return FirestoreType
+          .integer; // Duration converts to milliseconds (integer)
     }
     if (typeName == 'DateTime') {
-      return FirestoreType.timestamp; // DateTime converts to Firestore Timestamp
+      return FirestoreType
+          .timestamp; // DateTime converts to Firestore Timestamp
     }
 
     // Handle collections
@@ -363,8 +521,10 @@ class ModelAnalyzer {
       final typeElement = actualType.element3;
       final elementName = typeElement.name3;
 
-      if (elementName == 'List' || elementName == 'Set' ||
-          elementName == 'IList' || elementName == 'ISet') {
+      if (elementName == 'List' ||
+          elementName == 'Set' ||
+          elementName == 'IList' ||
+          elementName == 'ISet') {
         return FirestoreType.array;
       }
       if (elementName == 'Map' || elementName == 'IMap') {
@@ -401,7 +561,7 @@ class ModelAnalyzer {
 
   /// Analyze a model and all its nested types recursively
   static Map<String, ModelAnalysis> analyzeModelWithNestedTypes(
-    ClassElement2 rootClassElement,
+    ClassElement rootClassElement,
   ) {
     final Map<String, ModelAnalysis> allAnalyses = {};
     final Set<String> processedTypes = {};
@@ -413,11 +573,11 @@ class ModelAnalyzer {
 
   /// Recursively analyze a model and discover all nested custom types
   static void _analyzeModelRecursively(
-    ClassElement2 classElement,
+    ClassElement classElement,
     Map<String, ModelAnalysis> allAnalyses,
     Set<String> processedTypes,
   ) {
-    final typeName = classElement.name3!;
+    final typeName = classElement.name;
 
     // Skip if already processed
     if (processedTypes.contains(typeName)) {
@@ -447,24 +607,22 @@ class ModelAnalyzer {
     Map<String, ModelAnalysis> allAnalyses,
     Set<String> processedTypes,
   ) {
-
     // Handle nullable types
     final actualType = fieldType.nullabilitySuffix == NullabilitySuffix.question
-        ? (fieldType as InterfaceType).element3.thisType
+        ? (fieldType as InterfaceType).element.thisType
         : fieldType;
 
     if (actualType is InterfaceType) {
-      final element = actualType.element3;
+      final element = actualType.element;
 
       if (TypeAnalyzer.isPrimitiveType(actualType)) {
         return; // Skip primitive types
       }
 
-      _analyzeModelRecursively(
-        element as ClassElement2,
-        allAnalyses,
-        processedTypes,
-      );
+      if (element is ClassElement) {
+        // If it's a custom class, analyze it recursively
+        _analyzeModelRecursively(element, allAnalyses, processedTypes);
+      }
 
       // Handle generic types (List<T>, Map<K,V>)
       for (final typeArg in actualType.typeArguments) {
@@ -490,9 +648,13 @@ class ModelAnalyzer {
   }
 
   /// Get the appropriate FirestoreConverter for a given FirestoreType and DartType
-  static String getConverterForFirestoreType(FirestoreType firestoreType, DartType dartType, {bool isNullable = false}) {
+  static String getConverterForFirestoreType(
+    FirestoreType firestoreType,
+    DartType dartType, {
+    bool isNullable = false,
+  }) {
     String converter;
-    
+
     // Handle special cases based on Dart type first
     final typeName = dartType.getDisplayString(withNullability: false);
     if (typeName == 'Duration') {
@@ -525,49 +687,64 @@ class ModelAnalyzer {
           converter = 'const DocumentReferenceConverter()';
           break;
         case FirestoreType.array:
-          converter = 'null'; // Will be handled by ListConverter with element converter
+          converter =
+              'null'; // Will be handled by ListConverter with element converter
           break;
         case FirestoreType.map:
-          converter = 'null'; // Will be handled by MapConverter with value converter
+          converter =
+              'null'; // Will be handled by MapConverter with value converter
           break;
         case FirestoreType.null_:
           converter = 'null'; // Null values don't need conversion
           break;
         case FirestoreType.object:
           // For custom objects, use ObjectConverter with the type's fromJson/toJson
-          converter = 'ObjectConverter<$typeName>($typeName.fromJson, (obj) => obj.toJson())';
+          converter =
+              'ObjectConverter<$typeName>($typeName.fromJson, (obj) => obj.toJson())';
           break;
       }
     }
-    
+
     // Wrap with NullableConverter if needed
     if (isNullable && converter != 'null') {
       converter = 'NullableConverter($converter)';
     }
-    
+
     return converter;
   }
 
   /// Check if a type name represents a known Firestore type
   static bool _isKnownFirestoreType(String typeName) {
     const knownTypes = {
-      'String', 'int', 'double', 'bool', 'DateTime', 'Duration',
-      'List', 'Map', 'Set', 'Uint8List', 'GeoPoint', 'DocumentReference',
-      'Timestamp', 'Blob', 'FieldValue'
+      'String',
+      'int',
+      'double',
+      'bool',
+      'DateTime',
+      'Duration',
+      'List',
+      'Map',
+      'Set',
+      'Uint8List',
+      'GeoPoint',
+      'DocumentReference',
+      'Timestamp',
+      'Blob',
+      'FieldValue',
     };
-    
+
     // Check exact matches
     if (knownTypes.contains(typeName)) {
       return true;
     }
-    
+
     // Check generic types (e.g., List<String>, Map<String, dynamic>)
     for (final knownType in knownTypes) {
       if (typeName.startsWith('$knownType<')) {
         return true;
       }
     }
-    
+
     return false;
   }
 }

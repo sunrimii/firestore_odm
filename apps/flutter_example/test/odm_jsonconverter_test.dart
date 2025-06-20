@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:flutter_example/models/clean_list_length_model.dart';
+import 'package:flutter_example/models/list_length_model.dart';
 import 'package:flutter_example/test_schema.dart';
 
 void main() {
@@ -17,7 +17,7 @@ void main() {
 
     test('should convert IList to int and back with JsonConverter in ODM', () async {
       // Create model with IList data
-      final model = CleanListLengthModel(
+      final model = ListLengthModel(
         id: 'converter_test',
         name: 'JsonConverter Test',
         description: 'Testing IList to int conversion in ODM',
@@ -29,11 +29,11 @@ void main() {
       );
 
       // Save to Firestore using ODM
-      await odm.cleanListLengthModels(model.id).update(model);
+      await odm.listLengthModels(model.id).update(model);
 
       // Check raw Firestore data to verify conversion
       final rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(model.id)
           .get();
       final rawData = rawDoc.data()!;
@@ -44,7 +44,7 @@ void main() {
       expect(rawData['tags'], equals(['test', 'converter'])); // No conversion
 
       // Retrieve through ODM to verify back conversion
-      final retrieved = await odm.cleanListLengthModels(model.id).get();
+      final retrieved = await odm.listLengthModels(model.id).get();
       expect(retrieved, isNotNull);
 
       // Verify JsonConverter worked: int -> IList
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('should patch IList fields using chain syntax in ODM', () async {
-      final model = CleanListLengthModel(
+      final model = ListLengthModel(
         id: 'patch_test',
         name: 'Patch Test',
         description: 'Testing patch operations in ODM',
@@ -69,10 +69,10 @@ void main() {
         isActive: false,
       );
 
-      await odm.cleanListLengthModels(model.id).update(model);
+      await odm.listLengthModels(model.id).update(model);
 
       // Patch using chain syntax
-      await odm.cleanListLengthModels(model.id).patch(($) => [
+      await odm.listLengthModels(model.id).patch(($) => [
             $.items(['new', 'items', 'list'].toIList()),
             $.numbers([25, 25, 50].toIList()),
             $.tags(['updated', 'tags'].toIList()),
@@ -81,14 +81,14 @@ void main() {
           ]);
 
       // Verify patch worked
-      final patched = await odm.cleanListLengthModels(model.id).get();
+      final patched = await odm.listLengthModels(model.id).get();
       expect(patched, isNotNull);
       expect(patched!.priority, equals(2)); // Incremented
       expect(patched.isActive, isTrue);
 
       // Check raw data to verify JsonConverter during patch
       final rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(model.id)
           .get();
       final rawData = rawDoc.data()!;
@@ -102,7 +102,7 @@ void main() {
 
     test('should demonstrate back and forth conversion in ODM', () async {
       // Create initial model
-      var model = CleanListLengthModel(
+      var model = ListLengthModel(
         id: 'back_forth_test',
         name: 'Back and Forth Test',
         description: 'Testing bidirectional conversion in ODM',
@@ -114,11 +114,11 @@ void main() {
       );
 
       // Save to Firestore (List -> int conversion)
-      await odm.cleanListLengthModels(model.id).update(model);
+      await odm.listLengthModels(model.id).update(model);
       
       // Verify raw storage
       var rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(model.id)
           .get();
       var rawData = rawDoc.data()!;
@@ -127,7 +127,7 @@ void main() {
       expect(rawData['numbers'], equals(60)); // Sum stored
       
       // Retrieve from Firestore (int -> List conversion)
-      var retrieved = await odm.cleanListLengthModels(model.id).get();
+      var retrieved = await odm.listLengthModels(model.id).get();
       expect(retrieved, isNotNull);
       
       // Verify reconstruction
@@ -142,11 +142,11 @@ void main() {
         numbers: retrieved.numbers.add(40),
       );
       
-      await odm.cleanListLengthModels(updatedModel.id).update(updatedModel);
+      await odm.listLengthModels(updatedModel.id).update(updatedModel);
       
       // Verify updated raw storage
       rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(model.id)
           .get();
       rawData = rawDoc.data()!;
@@ -161,7 +161,7 @@ void main() {
 
     test('should handle edge cases in ODM operations', () async {
       // Test with empty lists
-      final emptyModel = CleanListLengthModel(
+      final emptyModel = ListLengthModel(
         id: 'empty_test',
         name: 'Empty Test',
         description: 'Testing empty lists in ODM',
@@ -172,10 +172,10 @@ void main() {
         isActive: false,
       );
 
-      await odm.cleanListLengthModels(emptyModel.id).update(emptyModel);
+      await odm.listLengthModels(emptyModel.id).update(emptyModel);
 
       final rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(emptyModel.id)
           .get();
       final rawData = rawDoc.data()!;
@@ -183,7 +183,7 @@ void main() {
       expect(rawData['items'], equals(0)); // Empty length
       expect(rawData['numbers'], equals(0)); // Empty sum
 
-      final retrieved = await odm.cleanListLengthModels(emptyModel.id).get();
+      final retrieved = await odm.listLengthModels(emptyModel.id).get();
       expect(retrieved!.items.isEmpty, isTrue);
       expect(retrieved.numbers.length, equals(1));
       expect(retrieved.numbers.first, equals(0));
@@ -192,7 +192,7 @@ void main() {
     });
 
     test('should handle large numbers in ODM operations', () async {
-      final largeModel = CleanListLengthModel(
+      final largeModel = ListLengthModel(
         id: 'large_test',
         name: 'Large Numbers Test',
         description: 'Testing large numbers in ODM',
@@ -203,10 +203,10 @@ void main() {
         isActive: true,
       );
 
-      await odm.cleanListLengthModels(largeModel.id).update(largeModel);
+      await odm.listLengthModels(largeModel.id).update(largeModel);
 
       final rawDoc = await fakeFirestore
-          .collection('cleanListLengthModels')
+          .collection('listLengthModels')
           .doc(largeModel.id)
           .get();
       final rawData = rawDoc.data()!;
@@ -214,7 +214,7 @@ void main() {
       expect(rawData['items'], equals(100)); // Large length
       expect(rawData['numbers'], equals(6000000)); // Large sum
 
-      final retrieved = await odm.cleanListLengthModels(largeModel.id).get();
+      final retrieved = await odm.listLengthModels(largeModel.id).get();
       expect(retrieved!.items.length, equals(100));
       expect(retrieved.numbers.first, equals(6000000));
 
