@@ -38,10 +38,10 @@ void main() {
       // Test single key operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Original methods
-        update.settings.setKey('notifications', 'enabled'),
-        update.settings.removeKey('language'),
+        update.settings.set('notifications', 'enabled'),
+        update.settings.remove('language'),
         // Dart Map-like aliases
-        update.settings.put('theme', 'dark'),
+        update.settings.set('theme', 'dark'),
         update.settings.remove('nonexistent'), // Should be safe
       ]);
 
@@ -81,13 +81,13 @@ void main() {
       // Test multiple key operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Add multiple entries at once
-        update.settings.putAll({
+        update.settings.addAll({
           'notifications': 'enabled',
           'autoSave': 'true',
           'version': '2.0',
         }),
         // Remove multiple keys at once
-        update.settings.removeAll(['oldSetting1', 'oldSetting2']),
+        update.settings.removeWhere(['oldSetting1', 'oldSetting2']),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();
@@ -135,13 +135,13 @@ void main() {
       // Test bulk operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Update multiple entries using MapEntry
-        update.settings.updateEntries([
+        update.settings.addEntries([
           MapEntry('theme', 'dark'),
           MapEntry('language', 'zh'),
           MapEntry('newFeature', 'enabled'),
         ]),
         // Merge operation for nested updates
-        update.settings.merge({
+        update.settings.addAll({
           'advanced': 'true',
           'beta': 'enabled',
         }),
@@ -193,9 +193,9 @@ void main() {
       // Test advanced operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Set multiple keys to the same value
-        update.settings.setKeysToValue(['feature1', 'feature2'], 'enabled'),
+        update.settings.setAll(['feature1', 'feature2'], 'enabled'),
         // Remove multiple keys using individual arguments
-        update.settings.removeKeys('setting1', 'setting2'),
+        update.settings.removeWhere(['setting1', 'setting2']),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();
@@ -238,10 +238,10 @@ void main() {
       // Test conditional operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Put if absent (will set since key doesn't exist)
-        update.settings.putIfAbsent('newSetting', 'defaultValue'),
+        update.settings.set('newSetting', 'defaultValue'),
         // Rename key operation - first remove old key, then set new key
-        update.settings.removeKey('oldKeyName'),
-        update.settings.setKey('newKeyName', 'importantValue'),
+        update.settings.remove('oldKeyName'),
+        update.settings.set('newKeyName', 'importantValue'),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();
@@ -286,19 +286,19 @@ void main() {
       // Test mixing different types of operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Single key operations
-        update.settings.setKey('notifications', 'enabled'),
-        update.settings.put('autoSave', 'true'),
+        update.settings.set('notifications', 'enabled'),
+        update.settings.set('autoSave', 'true'),
         update.settings.remove('oldFeature'),
         
         // Multiple key operations
-        update.settings.putAll({
+        update.settings.addAll({
           'version': '3.0',
           'beta': 'enabled',
         }),
-        update.settings.removeAll(['nonexistent1', 'nonexistent2']),
+        update.settings.removeWhere(['nonexistent1', 'nonexistent2']),
         
         // Advanced operations
-        update.settings.setKeysToValue(['feature1', 'feature2'], 'enabled'),
+        update.settings.setAll(['feature1', 'feature2'], 'enabled'),
         
         // Array operations on other fields
         update.tags.add('firestore'),
@@ -353,16 +353,16 @@ void main() {
       // Test edge cases
       await odm.immutableUsers(user.id).patch((update) => [
         // Empty operations should be safe
-        update.settings.putAll({}),
-        update.settings.removeAll([]),
-        update.settings.setKeysToValue([], 'value'),
-        
+        update.settings.addAll({}),
+        update.settings.removeWhere([]),
+        update.settings.setAll([], 'value'),
+
         // Operations on non-existent keys should be safe
         update.settings.remove('nonexistent'),
-        update.settings.removeAll(['nonexistent1', 'nonexistent2']),
+        update.settings.removeWhere(['nonexistent1', 'nonexistent2']),
         
         // Setting string values (null not supported for typed maps)
-        update.settings.setKey('emptyValue', ''),
+        update.settings.set('emptyValue', ''),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();
