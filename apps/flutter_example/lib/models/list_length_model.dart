@@ -1,4 +1,5 @@
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter_example/models/profile.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
@@ -50,6 +51,8 @@ abstract class ListLengthModel with _$ListLengthModel {
     @DocumentIdField() required String id,
     required String name,
     required String description,
+    
+    @Default(IListConst([])) IList<Profile> nestedProfiles,
     
     // IList<String> that gets converted to/from int (length)
     @ListLengthConverter()

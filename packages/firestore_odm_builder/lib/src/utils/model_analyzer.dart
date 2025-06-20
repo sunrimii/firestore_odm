@@ -56,6 +56,17 @@ class FieldInfo {
       'FieldInfo(param: $parameterName, json: $jsonFieldName, type: $dartType, firestoreType: $firestoreType, isDocId: $isDocumentId)';
 }
 
+/// Container for converter expressions
+class ConverterExpressions {
+  final String fromFirestore;
+  final String toFirestore;
+
+  const ConverterExpressions({
+    required this.fromFirestore,
+    required this.toFirestore,
+  });
+}
+
 /// Complete analysis of a model class
 class ModelAnalysis {
   final String className;
@@ -281,41 +292,9 @@ class ModelAnalyzer {
     } else {
       if (_hasGenericJsonSupport(fieldType)) {
         // **處理泛型 JSON 類型**
-        if (fieldType is InterfaceType && fieldType.typeArguments.length >= 2) {
-          // Map-like: IMap<K, V> - 需要兩個 converter
-          final keyType = fieldType.typeArguments[0].getDisplayString(
-            withNullability: false,
-          );
-          final valueType = fieldType.typeArguments[1].getDisplayString(
-            withNullability: false,
-          );
-
-          final keyConverter =
-              TypeAnalyzer.isPrimitiveType(fieldType.typeArguments[0])
-              ? '(k) => k as $keyType'
-              : '(k) => $keyType.fromJson(k)';
-
-          final valueConverter =
-              TypeAnalyzer.isPrimitiveType(fieldType.typeArguments[1])
-              ? '(v) => v as $valueType'
-              : '(v) => $valueType.fromJson(v)';
-
-          customFromFirestoreExpression =
-              '$typeName.fromJson(\$source, $keyConverter, $valueConverter)';
-          customToFirestoreExpression = '\$source.toJson((k) => k, (v) => v)';
-        } else {
-          // List/Set-like: IList<T>, ISet<T> - 一個 converter
-          final elementType = _getGenericElementType(fieldType);
-          final elementDartType = _getElementDartType(fieldType);
-
-          final converter = TypeAnalyzer.isPrimitiveType(elementDartType)
-              ? '(e) => e as $elementType'
-              : '(e) => $elementType.fromJson(e)';
-
-          customFromFirestoreExpression =
-              '$typeName.fromJson(\$source, $converter)';
-          customToFirestoreExpression = '\$source.toJson((e) => e)';
-        }
+        final converters = _generateGenericConverters(fieldType);
+        customFromFirestoreExpression = converters.fromFirestore;
+        customToFirestoreExpression = converters.toFirestore;
       } else if (_hasStandardJsonSupport(fieldType)) {
         // 標準 JSON 處理
         customFromFirestoreExpression = '$typeName.fromJson(\$source)';
@@ -746,5 +725,111 @@ class ModelAnalyzer {
     }
 
     return false;
+  }
+
+  /// Generate converter expressions for generic types (Map, List, Set)
+  static ConverterExpressions _generateGenericConverters(DartType fieldType) {
+    final typeName = fieldType.getDisplayString(withNullability: false);
+    
+    if (fieldType is InterfaceType && fieldType.typeArguments.length >= 2) {
+      // Map-like: IMap<K, V> - 需要兩個 converter
+      return _generateMapConverters(fieldType, typeName);
+    } else if (fieldType is InterfaceType) {
+      // List/Set-like: IList<T>, ISet<T> - 一個 converter
+      return _generateCollectionConverters(fieldType, typeName);
+    } else {
+      // Fallback for non-interface types
+      return ConverterExpressions(
+        fromFirestore: '$typeName.fromJson(\$source)',
+        toFirestore: '\$source.toJson()',
+      );
+    }
+  }
+
+  /// Generate converters for Map-like types
+  static ConverterExpressions _generateMapConverters(
+    InterfaceType fieldType,
+    String typeName,
+  ) {
+    final keyType = fieldType.typeArguments[0].getDisplayString(
+      withNullability: false,
+    );
+    final valueType = fieldType.typeArguments[1].getDisplayString(
+      withNullability: false,
+    );
+
+    final keyFromConverter = _generateFromConverter(
+      fieldType.typeArguments[0],
+      keyType,
+      'k',
+    );
+    final valueFromConverter = _generateFromConverter(
+      fieldType.typeArguments[1],
+      valueType,
+      'v',
+    );
+
+    final keyToConverter = _generateToConverter(
+      fieldType.typeArguments[0],
+      'k',
+    );
+    final valueToConverter = _generateToConverter(
+      fieldType.typeArguments[1],
+      'v',
+    );
+
+    final fromFirestore = '$typeName.fromJson(\$source, $keyFromConverter, $valueFromConverter)';
+    final toFirestore = '\$source.toJson($keyToConverter, $valueToConverter)';
+
+    return ConverterExpressions(
+      fromFirestore: fromFirestore,
+      toFirestore: toFirestore,
+    );
+  }
+
+  /// Generate converters for Collection-like types (List, Set)
+  static ConverterExpressions _generateCollectionConverters(
+    InterfaceType fieldType,
+    String typeName,
+  ) {
+    final elementType = _getGenericElementType(fieldType);
+    final elementDartType = _getElementDartType(fieldType);
+
+    final fromConverter = _generateFromConverter(
+      elementDartType,
+      elementType,
+      'e',
+    );
+    final toConverter = _generateToConverter(elementDartType, 'e');
+
+    final fromFirestore = '$typeName.fromJson(\$source, $fromConverter)';
+    final toFirestore = '\$source.toJson($toConverter)';
+
+    return ConverterExpressions(
+      fromFirestore: fromFirestore,
+      toFirestore: toFirestore,
+    );
+  }
+
+  /// Generate a from-converter function for a specific type
+  static String _generateFromConverter(
+    DartType dartType,
+    String typeName,
+    String paramName,
+  ) {
+    if (TypeAnalyzer.isPrimitiveType(dartType)) {
+      return '($paramName) => $paramName as $typeName';
+    } else {
+      return '($paramName) => $typeName.fromJson($paramName as Map<String, dynamic>)';
+    }
+  }
+
+  /// Generate a to-converter function for a specific type
+  static String _generateToConverter(DartType dartType, String paramName) {
+    if (TypeAnalyzer.isPrimitiveType(dartType)) {
+      return '($paramName) => $paramName';
+    } else {
+      return '($paramName) => $paramName.toJson()';
+    }
   }
 }
