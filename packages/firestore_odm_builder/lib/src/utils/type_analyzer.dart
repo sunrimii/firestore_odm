@@ -18,6 +18,7 @@ class TypeAnalyzer {
   static const TypeChecker _boolChecker = TypeChecker.fromRuntime(bool);
   static const TypeChecker _numChecker = TypeChecker.fromRuntime(num);
   static const TypeChecker _dateTimeChecker = TypeChecker.fromRuntime(DateTime);
+  static const TypeChecker _durationChecker = TypeChecker.fromRuntime(Duration);
 
   // TypeCheckers for collection types - use Iterable to support any iterable
   static const TypeChecker _iterableChecker = TypeChecker.fromRuntime(Iterable);
@@ -235,6 +236,11 @@ class TypeAnalyzer {
     final nonNullableType = _getNonNullableType(type);
     return _dateTimeChecker.isExactlyType(nonNullableType) ||
         nonNullableType.getDisplayString() == 'Timestamp';
+  }
+
+  /// Check if a type is Duration
+  static bool isDurationType(DartType type) {
+    return _durationChecker.isExactlyType(_getNonNullableType(type));
   }
 
   /// Get the element type of a List using proper type analysis

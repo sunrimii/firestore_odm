@@ -404,7 +404,7 @@ class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
   UpdateOperation call<T>(T value) {
     // This method is used to create a default update operation
     // It can be overridden in subclasses to provide specific behavior
-    return UpdateOperation('', UpdateOperationType.set, value);
+    return UpdateOperation($path, UpdateOperationType.set, value);
   }
 }
 
@@ -1072,6 +1072,22 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
       UpdateOperationType.serverTimestamp,
       null,
     );
+  }
+}
+
+/// Duration field callable updater
+class DurationFieldUpdate<T> extends DefaultUpdateBuilder<T> {
+  DurationFieldUpdate({super.name, super.parent});
+
+  /// Set duration value
+  @override
+  UpdateOperation call<V>(V value) {
+    // Convert Duration to microseconds for Firestore storage
+    dynamic firestoreValue = value;
+    if (value is Duration) {
+      firestoreValue = value.inMicroseconds;
+    }
+    return UpdateOperation($path, UpdateOperationType.set, firestoreValue);
   }
 }
 

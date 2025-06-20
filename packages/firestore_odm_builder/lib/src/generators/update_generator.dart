@@ -89,6 +89,10 @@ class UpdateGenerator {
       buffer.writeln(
         '  DateTimeFieldUpdate<$fieldType> get $fieldName => DateTimeFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
+    } else if (TypeAnalyzer.isDurationType(fieldType)) {
+      buffer.writeln(
+        '  DurationFieldUpdate<$fieldType> get $fieldName => DurationFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+      );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
       buffer.writeln(
         '  NumericFieldUpdate<$fieldType> get $fieldName => NumericFieldUpdate(name: \'$jsonFieldName\', parent: this);',
