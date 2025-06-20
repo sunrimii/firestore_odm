@@ -1,5 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter_example/models/list_length_model.dart';
 import 'models/user.dart';
 import 'models/post.dart';
 import 'models/simple_story.dart';
@@ -11,7 +12,7 @@ import 'models/json_key_user.dart';
 import 'models/dart_immutable_user.dart';
 import 'models/manual_user.dart';
 import 'models/task.dart';
-import 'models/list_length_model.dart';
+import 'models/clean_list_length_model.dart';
 
 part 'test_schema.odm.dart';
 
@@ -32,5 +33,7 @@ part 'test_schema.odm.dart';
   "manualUsers",
 ) // Manual toJson/fromJson implementation test
 @Collection<Task>("tasks") // Duration field test
-@Collection<ListLengthModel>("listLengthModels") // IList with JsonConverter test
+
+// @Collection<ListLengthModel>("listLengthModels") // IList with JsonConverter test
+@Collection<CleanListLengthModel>("cleanListLengthModels") // Clean IList with JsonConverter test
 final testSchema = _$TestSchema;
