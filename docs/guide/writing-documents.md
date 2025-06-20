@@ -62,7 +62,7 @@ if (users.isNotEmpty) {
 
 ## Updating a Document
 
-The ODM provides three powerful and flexible methods for updating a single document.
+The ODM provides two powerful and flexible methods for updating a single document.
 
 ### `patch()` (Recommended for Best Performance)
 
@@ -74,8 +74,42 @@ final userDoc = db.users('jane-doe');
 await userDoc.patch(($) => [
   $.profile.followers.increment(1),
   $.tags.add('active'), // Atomically adds 'active' to the 'tags' array
+  $.tags.remove('inactive'), // Atomically removes 'inactive' from the 'tags' array
   $.lastLogin.serverTimestamp(),
   $.name('Jane Smith'), // Also supports simple field sets
+]);
+```
+
+#### Array Bulk Operations
+
+For adding or removing multiple elements at once, use `addAll()` and `removeAll()`:
+
+```dart
+await userDoc.patch(($) => [
+  // Add multiple tags at once
+  $.tags.addAll(['premium', 'verified', 'active']),
+  
+  // Remove multiple old tags at once
+  $.scores.removeAll([0, -1, -5]),
+  
+  // Mix with other operations
+  $.profile.followers.increment(10),
+]);
+```
+
+**Important Notes:**
+- You cannot use both `addAll()` and `removeAll()` (or `add()` and `remove()`) on the same field in a single `patch()` operation due to Firestore limitations
+- For mixed operations on the same field, use separate `patch()` calls:
+
+```dart
+// First remove unwanted elements
+await userDoc.patch(($) => [
+  $.tags.removeAll(['old', 'deprecated']),
+]);
+
+// Then add new elements
+await userDoc.patch(($) => [
+  $.tags.addAll(['new', 'updated']),
 ]);
 ```
 

@@ -219,6 +219,8 @@ enum UpdateOperationType {
   increment, // Numeric increment/decrement
   arrayAdd, // Array add operation
   arrayRemove, // Array remove operation
+  arrayAddAll, // Array add multiple elements operation
+  arrayRemoveAll, // Array remove multiple elements operation
   delete, // Delete field
   serverTimestamp, // Server timestamp
   objectMerge, // Object merge update
@@ -267,6 +269,14 @@ class UpdateBuilder<T> extends Node {
               .putIfAbsent(operation.field, () => [])
               .add(operation.value);
           break;
+        case UpdateOperationType.arrayAddAll:
+          final values = operation.value as List;
+          arrayAdds.putIfAbsent(operation.field, () => []).addAll(values);
+          break;
+        case UpdateOperationType.arrayRemoveAll:
+          final values = operation.value as List;
+          arrayRemoves.putIfAbsent(operation.field, () => []).addAll(values);
+          break;
         case UpdateOperationType.delete:
           updateMap[operation.field] = FieldValue.delete();
           break;
@@ -286,13 +296,42 @@ class UpdateBuilder<T> extends Node {
       }
     }
 
-    // Handle fields with both add and remove operations by executing them sequentially
+    // Handle fields with both add and remove operations
+    // Note: Firestore doesn't support both arrayUnion and arrayRemove on the same field
+    // in a single update, but we can combine the operations by computing the net effect
     final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(
       arrayRemoves.keys.toSet(),
     );
-    if (fieldsWithBothOps.isNotEmpty) {
+    
+    for (final field in fieldsWithBothOps) {
+      final toAdd = arrayAdds[field]!;
+      final toRemove = arrayRemoves[field]!;
+      
+      // Remove items that are both added and removed (they cancel out)
+      final netAdd = toAdd.where((item) => !toRemove.contains(item)).toList();
+      final netRemove = toRemove.where((item) => !toAdd.contains(item)).toList();
+      
+      // Update the maps with net operations
+      if (netAdd.isNotEmpty) {
+        arrayAdds[field] = netAdd;
+      } else {
+        arrayAdds.remove(field);
+      }
+      
+      if (netRemove.isNotEmpty) {
+        arrayRemoves[field] = netRemove;
+      } else {
+        arrayRemoves.remove(field);
+      }
+    }
+    
+    // After computing net operations, check if we still have conflicts
+    final remainingConflicts = arrayAdds.keys.toSet().intersection(
+      arrayRemoves.keys.toSet(),
+    );
+    if (remainingConflicts.isNotEmpty) {
       throw ArgumentError(
-        'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $fieldsWithBothOps',
+        'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $remainingConflicts',
       );
     }
 
@@ -988,9 +1027,19 @@ class ListFieldUpdate<T, E> extends CallableUpdate<T> {
     return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
   }
 
+  /// Add multiple elements to array
+  UpdateOperation addAll(List<E> values) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayAddAll, values);
+  }
+
   /// Remove element from array
   UpdateOperation remove(E value) {
     return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
+  }
+
+  /// Remove multiple elements from array
+  UpdateOperation removeAll(List<E> values) {
+    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemoveAll, values);
   }
 }
 

@@ -97,12 +97,14 @@ await userDoc.update({
 ```
 
 ```dart
-// ✅ ODM - Three smart update strategies
+// ✅ ODM - Two smart update strategies
 
 // 1. Patch - Explicit atomic operations (Best Performance)
 await userDoc.patch(($) => [
   $.profile.followers.increment(1),
-  $.tags.add('verified'),
+  $.tags.add('verified'),              // Add single element
+  $.tags.addAll(['premium', 'active']), // Add multiple elements
+  $.scores.removeAll([0, -1]),         // Remove multiple elements
   $.lastLogin.serverTimestamp(),
 ]);
 
@@ -431,7 +433,7 @@ void main() {
 |---------|-------------------------|---------------|
 | **Type Safety** | ❌ Map<String, dynamic> everywhere | ✅ Strong types throughout |
 | **Query Building** | ❌ String-based, error-prone | ✅ Type-safe with IDE support |
-| **Data Updates** | ❌ Manual map construction | ✅ Three smart update strategies |
+| **Data Updates** | ❌ Manual map construction | ✅ Two smart update strategies |
 | **Aggregations** | ❌ Basic count only | ✅ Comprehensive + streaming |
 | **Pagination** | ❌ Manual, inconsistency risks | ✅ Smart Builder, zero risk |
 | **Transactions** | ❌ Manual read-before-write | ✅ Automatic deferred writes |
