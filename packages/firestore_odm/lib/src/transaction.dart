@@ -48,7 +48,7 @@ class TransactionContext<Schema extends FirestoreSchema> {
 class TransactionCollection<S extends FirestoreSchema, T> {
   final firestore.Transaction _transaction;
   final firestore.CollectionReference<Map<String, dynamic>> query;
-  final ModelConverter<T> converter;
+  final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> _context;
 
@@ -82,7 +82,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
         TransactionalDeletable {
   final firestore.Transaction _transaction;
   final firestore.DocumentReference<Map<String, dynamic>> ref;
-  final ModelConverter<T> converter;
+  final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> _context;
 
@@ -101,7 +101,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
     _context._cacheDocument(snapshot);
     if (!snapshot.exists) return null;
     return fromFirestoreData(
-      converter.fromJson,
+      converter.fromFirestore,
       snapshot.data()!,
       documentIdField,
       snapshot.id,

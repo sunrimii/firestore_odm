@@ -5,6 +5,7 @@ import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 import '../utils/string_helpers.dart';
 import '../utils/model_analyzer.dart';
+import 'converter_generator.dart';
 import 'filter_generator.dart';
 import 'order_by_generator.dart';
 import 'update_generator.dart';
@@ -46,9 +47,11 @@ class SchemaGenerator {
     // Generate the schema class
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
 
-    // Generate global converter instances for all model types
-    final allModelTypes = collections.map((c) => c.modelTypeName).toSet();
-    generateGlobalConverterInstances(buffer, allModelTypes);
+    // Generate converters for all model types
+    buffer.write(ConverterGenerator.generateAllConverters(modelAnalyses));
+    
+    // Generate converter constants
+    buffer.write(ConverterGenerator.generateConverterConstants(modelAnalyses));
 
     // Generate filter and order by builders for each model type
     buffer.writeln('// Starting to generate filter and order by selectors...');
@@ -93,22 +96,6 @@ class SchemaGenerator {
     return buffer.toString();
   }
 
-  /// Generate converter instances globally for all model types
-  static void generateGlobalConverterInstances(
-    StringBuffer buffer,
-    Set<String> modelTypes,
-  ) {
-    // Generate converter instances for each model type
-    for (final modelType in modelTypes) {
-      final converterName = '${_toLowerCamelCase(modelType)}Converter';
-      buffer.writeln('/// Generated converter for $modelType');
-      buffer.writeln('final $converterName = ModelConverter<$modelType>(');
-      buffer.writeln('  fromJson: (json) => $modelType.fromJson(json),');
-      buffer.writeln('  toJson: (instance) => instance.toJson(),');
-      buffer.writeln(');');
-      buffer.writeln('');
-    }
-  }
 
   /// Generate the schema class and const instance
   static void _generateSchemaClass(

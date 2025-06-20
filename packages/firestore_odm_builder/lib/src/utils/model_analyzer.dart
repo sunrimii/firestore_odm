@@ -143,16 +143,44 @@ class ModelAnalyzer {
     }
   }
 
+  /// Check if a method name is a standard Object method that should be excluded
+  static bool _isObjectMethod(String methodName) {
+    const objectMethods = {
+      'hashCode',
+      'toString',
+      'runtimeType',
+      'noSuchMethod',
+    };
+    return objectMethods.contains(methodName);
+  }
+
   /// Get all fields from the class and its supertypes (excluding Object)
   static List<(String, DartType, Element)> _getFields(
     ClassElement2 classElement,
   ) {
     final objectChecker = TypeChecker.fromRuntime(Object);
-    return classElement.allSupertypes
-        .where((supertype) => !objectChecker.isExactlyType(supertype))
-        .expand((t) => t.element.accessors)
+    
+    // Get accessors from the current class and all supertypes
+    final allAccessors = <PropertyAccessorElement>[];
+    
+    // Add accessors from the current class and all supertypes (including current class)
+    final allTypes = [classElement.thisType, ...classElement.allSupertypes];
+    
+    allAccessors.addAll(
+      allTypes
+          .where((type) => !objectChecker.isExactlyType(type))
+          .expand((t) => t.element.accessors),
+    );
+    
+    // Filter accessors to only include valid model getters
+    return allAccessors
         .where((f) => !f.isStatic && f.isPublic && f.isGetter)
         .where((f) {
+          // Exclude standard Object methods even if overridden
+          if (_isObjectMethod(f.name)) {
+            return false;
+          }
+          
           final jsonKey = _jsonKeyChecker.firstAnnotationOf(f);
           if (jsonKey != null) {
             final jsonKeyConstantReader = ConstantReader(jsonKey);
@@ -286,10 +314,11 @@ class ModelAnalyzer {
       final typeElement = actualType.element3;
       final elementName = typeElement.name3;
 
-      if (elementName == 'List' || elementName == 'Set') {
+      if (elementName == 'List' || elementName == 'Set' ||
+          elementName == 'IList' || elementName == 'ISet') {
         return FirestoreType.array;
       }
-      if (elementName == 'Map') {
+      if (elementName == 'Map' || elementName == 'IMap') {
         return FirestoreType.map;
       }
     }
@@ -393,5 +422,63 @@ class ModelAnalyzer {
         _processFieldTypeForNestedModels(typeArg, allAnalyses, processedTypes);
       }
     }
+  }
+
+  /// Get the appropriate FirestoreConverter for a given FirestoreType and DartType
+  static String getConverterForFirestoreType(FirestoreType firestoreType, DartType dartType, {bool isNullable = false}) {
+    String converter;
+    
+    // Handle special cases based on Dart type first
+    final typeName = dartType.getDisplayString(withNullability: false);
+    if (typeName == 'Duration') {
+      converter = 'const DurationConverter()';
+    } else {
+      // Handle based on FirestoreType
+      switch (firestoreType) {
+        case FirestoreType.string:
+          converter = 'null'; // No conversion needed for strings
+          break;
+        case FirestoreType.integer:
+          converter = 'null'; // No conversion needed for integers
+          break;
+        case FirestoreType.double:
+          converter = 'null'; // No conversion needed for doubles
+          break;
+        case FirestoreType.boolean:
+          converter = 'null'; // No conversion needed for booleans
+          break;
+        case FirestoreType.timestamp:
+          converter = 'const DateTimeConverter()';
+          break;
+        case FirestoreType.bytes:
+          converter = 'const BytesConverter()';
+          break;
+        case FirestoreType.geoPoint:
+          converter = 'const GeoPointConverter()';
+          break;
+        case FirestoreType.reference:
+          converter = 'const DocumentReferenceConverter()';
+          break;
+        case FirestoreType.array:
+          converter = 'null'; // Will be handled by ListConverter with element converter
+          break;
+        case FirestoreType.map:
+          converter = 'null'; // Will be handled by MapConverter with value converter
+          break;
+        case FirestoreType.null_:
+          converter = 'null'; // Null values don't need conversion
+          break;
+        case FirestoreType.object:
+          converter = 'null'; // Will be handled by ObjectConverter with custom fromJson/toJson
+          break;
+      }
+    }
+    
+    // Wrap with NullableConverter if needed
+    if (isNullable && converter != 'null') {
+      converter = 'NullableConverter($converter)';
+    }
+    
+    return converter;
   }
 }

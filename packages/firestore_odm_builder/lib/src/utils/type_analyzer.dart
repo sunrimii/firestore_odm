@@ -72,7 +72,8 @@ class TypeAnalyzer {
         _intChecker.isExactlyType(nonNullableType) ||
         _doubleChecker.isExactlyType(nonNullableType) ||
         _boolChecker.isExactlyType(nonNullableType) ||
-        _dateTimeChecker.isExactlyType(nonNullableType)) {
+        _dateTimeChecker.isExactlyType(nonNullableType) ||
+        _durationChecker.isExactlyType(nonNullableType)) {
       return true;
     }
 
@@ -86,6 +87,11 @@ class TypeAnalyzer {
       //       _doubleChecker.isExactlyType(elementType) ||
       //       _boolChecker.isExactlyType(elementType);
       // }
+    }
+
+    // Check for Map types - Maps are primitive types in Firestore (map type)
+    if (isMapType(nonNullableType)) {
+      return true;
     }
 
     return false;

@@ -157,7 +157,7 @@ abstract class QueryAggregatableHandler {
 
   static Stream<R> stream<T, R>(
     firestore.AggregateQuery query,
-    ModelConverter<T> _converter,
+    FirestoreConverter<T, Map<String, dynamic>> _converter,
     String _documentIdField,
     AggregateConfiguration<T, R> configuration,
   ) {
@@ -166,7 +166,7 @@ abstract class QueryAggregatableHandler {
         .map(
           (snapshot) => processQuerySnapshot(
             snapshot,
-            _converter.fromJson,
+            _converter.fromFirestore,
             _documentIdField,
           ),
         )
@@ -174,7 +174,7 @@ abstract class QueryAggregatableHandler {
           (data) => _calculateAggregationsFromSnapshot(
             data,
             configuration.operations,
-            _converter.toJson,
+            _converter.toFirestore,
           ),
         )
         .map((data) {
@@ -458,7 +458,7 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
   );
   
   /// Model converter for document serialization (used in streaming)
-  final ModelConverter<T> _converter;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
   
   /// The document ID field name (used in streaming)
   final String _documentIdField;

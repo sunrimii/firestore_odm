@@ -25,7 +25,7 @@ class FirestoreDocument<S extends FirestoreSchema, T>
         Deletable,
         Updatable<T> {
   /// The collection this document belongs to (nullable for fromRef constructor)
-  final ModelConverter<T> converter;
+  final FirestoreConverter<T, Map<String, dynamic>> converter;
 
   final String documentIdField;
 
@@ -38,7 +38,7 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   /// Stream of document snapshots
   @override
   Stream<T?> get stream =>
-      DocumentHandler.stream<T>(ref, converter.fromJson, documentIdField);
+      DocumentHandler.stream<T>(ref, converter.fromFirestore, documentIdField);
 
   /// Checks if the document exists
   @override
@@ -47,12 +47,12 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   /// Gets the document data
   @override
   Future<T?> get() =>
-      DocumentHandler.get(ref, converter.fromJson, documentIdField);
+      DocumentHandler.get(ref, converter.fromFirestore, documentIdField);
 
   /// Sets the document data
   @override
   Future<void> update(T state) =>
-      DocumentHandler.update(ref, state, converter.toJson, documentIdField);
+      DocumentHandler.update(ref, state, converter.toFirestore, documentIdField);
 
   /// Modify a document using diff-based updates.
   ///

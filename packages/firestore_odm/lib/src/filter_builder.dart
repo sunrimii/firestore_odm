@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:firestore_odm/src/field_selecter.dart';
+import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/types.dart';
 
 /// Filter types
@@ -401,7 +402,7 @@ class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
   /// Create a DefaultUpdateBuilder with optional name and parent for nested objects
   DefaultUpdateBuilder({super.name, super.parent});
 
-  UpdateOperation call<T>(T value) {
+  UpdateOperation call(T value) {
     // This method is used to create a default update operation
     // It can be overridden in subclasses to provide specific behavior
     return UpdateOperation($path, UpdateOperationType.set, value);
@@ -1077,17 +1078,17 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
 
 /// Duration field callable updater
 class DurationFieldUpdate<T> extends DefaultUpdateBuilder<T> {
+  static const _converter = DurationConverter();
+  
   DurationFieldUpdate({super.name, super.parent});
 
   /// Set duration value
   @override
-  UpdateOperation call<V>(V value) {
-    // Convert Duration to microseconds for Firestore storage
-    dynamic firestoreValue = value;
-    if (value is Duration) {
-      firestoreValue = value.inMicroseconds;
-    }
-    return UpdateOperation($path, UpdateOperationType.set, firestoreValue);
+  UpdateOperation call(T value) {
+    // Use DurationConverter for consistent conversion
+    return UpdateOperation($path, UpdateOperationType.set, value is Duration
+        ? _converter.toFirestore(value)
+        : null);
   }
 }
 

@@ -139,8 +139,8 @@ class BatchDocument<S extends FirestoreSchema, T>
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
   
   // ignore: unused_field
-  final ModelConverter<T> _converter; // Reserved for future functionality
-  
+  final FirestoreConverter<T, Map<String, dynamic>> _converter; // Reserved for future functionality
+
   // ignore: unused_field
   final String _documentIdField; // Reserved for future functionality
 
@@ -181,12 +181,12 @@ class BatchCollection<S extends FirestoreSchema, T>
     implements BatchInsertable<T>, BatchUpdatable<T>, BatchUpsertable<T> {
   final BatchContext<S> _context;
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
-  final ModelConverter<T> _converter;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
 
   BatchCollection({
     required firestore.CollectionReference<Map<String, dynamic>> collection,
-    required ModelConverter<T> converter,
+    required FirestoreConverter<T, Map<String, dynamic>> converter,
     required String documentIdField,
     required BatchContext<S> context,
   }) : _collection = collection,
@@ -205,7 +205,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void insert(T value) {
     final (data, documentId) = processObject(
-      _converter.toJson,
+      _converter.toFirestore,
       value,
       documentIdField: _documentIdField,
     );
@@ -227,7 +227,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void update(T value) {
     final (data, documentId) = processObject(
-      _converter.toJson,
+      _converter.toFirestore,
       value,
       documentIdField: _documentIdField,
     );
@@ -254,7 +254,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void upsert(T value) {
     final (data, documentId) = processObject(
-      _converter.toJson,
+      _converter.toFirestore,
       value,
       documentIdField: _documentIdField,
     );
@@ -298,14 +298,14 @@ abstract class BatchHandler {
     firestore.WriteBatch batch,
     BatchConfiguration<T> config,
     firestore.CollectionReference<Map<String, dynamic>> collection,
-    ModelConverter<T> converter,
+    FirestoreConverter<T, Map<String, dynamic>> converter,
     String documentIdField,
   ) {
     for (final operation in config.operations) {
       switch (operation) {
         case BatchInsertOperation insertOp:
           final (data, docId) = processObject(
-            (value) => converter.toJson(value as T),
+            (value) => converter.toFirestore(value as T),
             insertOp.value,
             documentIdField: documentIdField,
           );
@@ -316,7 +316,7 @@ abstract class BatchHandler {
           
         case BatchUpdateOperation updateOp:
           final (data, docId) = processObject(
-            (value) => converter.toJson(value as T),
+            (value) => converter.toFirestore(value as T),
             updateOp.value,
             documentIdField: documentIdField,
           );

@@ -133,7 +133,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
         Modifiable<T>,
         Aggregatable<S, T>,
         Deletable {
-  final ModelConverter<T> _converter;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
 
   final String _documentIdField;
 
@@ -144,7 +144,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   const OrderedQuery(
     firestore.Query<Map<String, dynamic>> _query,
-    ModelConverter<T> _converter,
+    FirestoreConverter<T, Map<String, dynamic>> _converter,
     String _documentIdField,
     OrderByConfiguration<T, O> orderByConfig,
   ) : _query = _query,
@@ -154,11 +154,11 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.get(_query, _converter.fromFirestore, _documentIdField);
 
   @override
   Stream<List<T>?> get stream =>
-      QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.stream(_query, _converter.fromFirestore, _documentIdField);
 
   @override
   OrderedQuery<S, T, O> limit(int limit) {

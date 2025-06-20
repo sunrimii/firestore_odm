@@ -13,12 +13,12 @@ abstract class QueryPaginationHandler {
   /// This ensures perfect consistency and type safety
   static List<dynamic> buildValuesFromObject<T, O extends Record>(
     T object,
-    ModelConverter<T> converter,
+    FirestoreConverter<T, Map<String, dynamic>> converter,
     OrderByBuilder<T, O> orderByBuilder,
     String documentIdFieldName,
   ) {
     // Convert object to Map for extraction
-    final objectMap = converter.toJson(object);
+    final objectMap = converter.toFirestore(object);
 
     // Create extraction-mode selector with the same object
     final extractionSelector = RootOrderByFieldExtractor<T>(objectMap);

@@ -26,7 +26,7 @@ class Query<S extends FirestoreSchema, T>
         Aggregatable<S, T>,
         Limitable,
         Deletable {
-  final ModelConverter<T> _converter;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
 
   /// The underlying Firestore query
@@ -36,11 +36,11 @@ class Query<S extends FirestoreSchema, T>
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.get(_query, _converter.fromFirestore, _documentIdField);
 
   @override
   Stream<List<T>> get stream =>
-      QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.stream(_query, _converter.fromFirestore, _documentIdField);
 
   @override
   Query<S, T> where(
