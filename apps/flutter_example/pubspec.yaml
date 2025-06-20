@@ -37,7 +37,7 @@ dependencies:
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
   fast_immutable_collections: ^11.0.4
-  firestore_odm: ^2.4.0
+  firestore_odm: ^2.5.0
 
 dev_dependencies:
   integration_test:

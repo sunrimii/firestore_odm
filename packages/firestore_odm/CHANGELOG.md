@@ -1,3 +1,8 @@
+## 2.5.0
+
+ - **FEAT**: enhance UpdateBuilder to respect operation precedence for set and array operations. ([a772c0d6](https://github.com/sylphxltd/firestore_odm/commit/a772c0d6fefdda6e7c1fbcf1faca221e906704ca))
+ - **FEAT**: implement arrayAddAll and arrayRemoveAll operations in UpdateBuilder and update documentation. ([df7da59c](https://github.com/sylphxltd/firestore_odm/commit/df7da59c1161a369de05a90cd9e4e0aa4ab72d54))
+
 ## 2.4.0
 
  - **FEAT**: deprecate incrementalModify and enhance modify with atomic parameter. ([b1b95e1a](https://github.com/sylphxltd/firestore_odm/commit/b1b95e1a206ecde7faa54dd8e2d5514fe068b244))

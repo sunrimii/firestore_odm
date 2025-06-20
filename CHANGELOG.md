@@ -15,6 +15,50 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v2.5.0`](#firestore_odm---v250)
+
+---
+
+#### `firestore_odm` - `v2.5.0`
+
+ - **FEAT**: enhance UpdateBuilder to respect operation precedence for set and array operations. ([a772c0d6](https://github.com/sylphxltd/firestore_odm/commit/a772c0d6fefdda6e7c1fbcf1faca221e906704ca))
+ - **FEAT**: implement arrayAddAll and arrayRemoveAll operations in UpdateBuilder and update documentation. ([df7da59c](https://github.com/sylphxltd/firestore_odm/commit/df7da59c1161a369de05a90cd9e4e0aa4ab72d54))
+
+
+## 2025-06-20
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v2.5.0`](#firestore_odm---v250)
+
+---
+
+#### `firestore_odm` - `v2.5.0`
+
+ - **FEAT**: add array bulk operations (addAll/removeAll) with proper operation precedence. ([NEW](https://github.com/sylphxltd/firestore_odm/commit/NEW))
+ - **FEAT**: implement operation precedence rules - set operations override array operations. ([NEW](https://github.com/sylphxltd/firestore_odm/commit/NEW))
+ - **DOCS**: add comprehensive documentation for patch operation behavior and precedence rules. ([NEW](https://github.com/sylphxltd/firestore_odm/commit/NEW))
+
+## 2025-06-20 (Previous)
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v2.4.0`](#firestore_odm---v240)
 
 ---
