@@ -6,11 +6,36 @@ import 'package:source_gen/source_gen.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'type_analyzer.dart';
 
+/// Firestore data type representation for Firestore ODM
+/// Based on official Firestore supported data types
+enum FirestoreType {
+  // Primitive types
+  string,           // Text string
+  integer,          // 64-bit signed integer
+  double,           // 64-bit double precision floating-point
+  boolean,          // Boolean
+  timestamp,        // Date and time
+  bytes,            // Byte data
+  geoPoint,         // Geographical point
+  reference,        // Document reference
+  
+  // Complex types
+  array,            // Array
+  map,              // Map (embedded object)
+  
+  // Special values
+  null_,            // Null value
+  
+  // For custom objects that will be serialized as maps
+  object,
+}
+
 /// Information about a field in a model
 class FieldInfo {
   final String parameterName;
   final String jsonFieldName;
   final DartType dartType;
+  final FirestoreType firestoreType;
   final bool isDocumentId;
   final bool isNullable;
   final bool isOptional;
@@ -19,6 +44,7 @@ class FieldInfo {
     required this.parameterName,
     required this.jsonFieldName,
     required this.dartType,
+    required this.firestoreType,
     required this.isDocumentId,
     required this.isNullable,
     required this.isOptional,
@@ -26,7 +52,7 @@ class FieldInfo {
 
   @override
   String toString() =>
-      'FieldInfo(param: $parameterName, json: $jsonFieldName, type: $dartType, isDocId: $isDocumentId)';
+      'FieldInfo(param: $parameterName, json: $jsonFieldName, type: $dartType, firestoreType: $firestoreType, isDocId: $isDocumentId)';
 }
 
 /// Complete analysis of a model class
@@ -93,6 +119,7 @@ class ModelAnalyzer {
           parameterName: existingField.parameterName,
           jsonFieldName: existingField.jsonFieldName,
           dartType: existingField.dartType,
+          firestoreType: existingField.firestoreType,
           isDocumentId: true,
           isNullable: existingField.isNullable,
           isOptional: existingField.isOptional,
@@ -185,14 +212,67 @@ class ModelAnalyzer {
       }
     }
 
+    // Determine Firestore type
+    final firestoreType = _determineFirestoreType(fieldType);
+
     return FieldInfo(
       parameterName: fieldName,
       jsonFieldName: jsonFieldName,
       dartType: fieldType,
+      firestoreType: firestoreType,
       isDocumentId: false, // Will be set later if this is the document ID field
       isNullable: isNullable,
       isOptional: isOptional,
     );
+  }
+
+  /// Determine the Firestore type for a Dart type
+  /// Based on official Firestore supported data types
+  static FirestoreType _determineFirestoreType(DartType dartType) {
+    // Handle nullable types by getting the underlying type
+    final actualType = dartType.nullabilitySuffix == NullabilitySuffix.question
+        ? (dartType as InterfaceType).element3.thisType
+        : dartType;
+
+    final typeName = actualType.getDisplayString(withNullability: false);
+
+    // Handle primitive types
+    if (TypeAnalyzer.isStringType(actualType)) {
+      return FirestoreType.string;
+    }
+    if (TypeAnalyzer.isIntType(actualType)) {
+      return FirestoreType.integer;
+    }
+    if (TypeAnalyzer.isDoubleType(actualType)) {
+      return FirestoreType.double;
+    }
+    if (TypeAnalyzer.isBoolType(actualType)) {
+      return FirestoreType.boolean;
+    }
+
+    // Handle special types that convert to different Firestore types
+    if (typeName == 'Duration') {
+      return FirestoreType.integer; // Duration converts to milliseconds (integer)
+    }
+    if (typeName == 'DateTime') {
+      return FirestoreType.timestamp; // DateTime converts to Firestore Timestamp
+    }
+
+    // Handle collections
+    if (actualType is InterfaceType) {
+      final element = actualType.element3;
+      final elementName = element.name3;
+
+      if (elementName == 'List' || elementName == 'Set') {
+        return FirestoreType.array;
+      }
+      if (elementName == 'Map') {
+        return FirestoreType.map;
+      }
+    }
+
+    // For custom objects, return object type (will be serialized as map)
+    return FirestoreType.object;
   }
 
   /// Find the document ID field from accessors
