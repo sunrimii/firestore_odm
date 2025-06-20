@@ -10,6 +10,7 @@ import 'models/immutable_user.dart';
 import 'models/json_key_user.dart';
 import 'models/dart_immutable_user.dart';
 import 'models/manual_user.dart';
+import 'models/task.dart';
 
 part 'test_schema.odm.dart';
 
@@ -29,4 +30,5 @@ part 'test_schema.odm.dart';
 @Collection<ManualUser>(
   "manualUsers",
 ) // Manual toJson/fromJson implementation test
+@Collection<Task>("tasks") // Duration field test
 final testSchema = _$TestSchema;
