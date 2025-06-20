@@ -397,6 +397,17 @@ class UpdateBuilder<T> extends Node {
   }
 }
 
+class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
+  /// Create a DefaultUpdateBuilder with optional name and parent for nested objects
+  DefaultUpdateBuilder({super.name, super.parent});
+
+  UpdateOperation call<T>(T value) {
+    // This method is used to create a default update operation
+    // It can be overridden in subclasses to provide specific behavior
+    return UpdateOperation('', UpdateOperationType.set, value);
+  }
+}
+
 class FieldNameOrDocumentId {
   final String? fieldName;
   final FieldPathType documentId = FieldPathType.documentId;
@@ -1015,130 +1026,70 @@ class DocumentIdFieldFilter extends CallableFilter {
   }
 }
 
-/// Callable update instances using Node-based architecture
-/// Base callable update class
-abstract class CallableUpdate<T> extends Node {
-  CallableUpdate({super.name, super.parent});
-
-  String get fieldPath => $path;
-}
-
-/// Boolean field callable updater
-class BoolFieldUpdate<T> extends CallableUpdate<T> {
-  BoolFieldUpdate({super.name, super.parent});
-
-  /// Set boolean value
-  UpdateOperation call(bool value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-}
-
-/// String field callable updater
-class StringFieldUpdate<T> extends CallableUpdate<T> {
-  StringFieldUpdate({super.name, super.parent});
-
-  /// Set string value
-  UpdateOperation call(String value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-}
-
 /// Numeric field callable updater
-class NumericFieldUpdate<T, N extends num?> extends CallableUpdate<T> {
+class NumericFieldUpdate<T extends num?> extends DefaultUpdateBuilder<T> {
   NumericFieldUpdate({super.name, super.parent});
 
-  /// Set numeric value
-  UpdateOperation call(N value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-
   /// Increment field value
-  UpdateOperation increment(N value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.increment, value);
+  UpdateOperation increment(T value) {
+    return UpdateOperation($path, UpdateOperationType.increment, value);
   }
 }
 
 /// List field callable updater
-class ListFieldUpdate<T, E> extends CallableUpdate<T> {
+class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
   ListFieldUpdate({super.name, super.parent});
-
-  /// Set list value
-  UpdateOperation call(List<E> value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayAdd, value);
+    return UpdateOperation($path, UpdateOperationType.arrayAdd, value);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayAddAll, values.toList());
+    return UpdateOperation($path, UpdateOperationType.arrayAddAll, values.toList());
   }
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemove, value);
+    return UpdateOperation($path, UpdateOperationType.arrayRemove, value);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
-    return UpdateOperation(fieldPath, UpdateOperationType.arrayRemoveAll, values.toList());
+    return UpdateOperation($path, UpdateOperationType.arrayRemoveAll, values.toList());
   }
 }
 
 /// DateTime field callable updater
-class DateTimeFieldUpdate<T> extends CallableUpdate<T> {
+class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
   DateTimeFieldUpdate({super.name, super.parent});
-
-  /// Set DateTime value
-  UpdateOperation call(DateTime value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
     return UpdateOperation(
-      fieldPath,
+      $path,
       UpdateOperationType.serverTimestamp,
       null,
     );
   }
 }
 
-/// Generic field callable updater (fallback)
-class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
-  GenericFieldUpdate({super.name, super.parent});
-
-  /// Set value
-  UpdateOperation call(V value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-}
-
 /// Map field callable updater with clean, consistent Dart Map-like operations
-class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
+class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   MapFieldUpdate({super.name, super.parent});
-
-  /// Set entire map value
-  UpdateOperation call(Map<K, V> value) {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, value);
-  }
-
-  // ===== Core Operations (Dart Map style) =====
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
-    final keyPath = '$fieldPath.$key';
+    final keyPath = '${$path}.$key';
     return UpdateOperation(keyPath, UpdateOperationType.set, value);
   }
 
   /// Remove a single key (like map.remove(key))
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
-    final keyPath = '$fieldPath.$key';
+    final keyPath = '${$path}.$key';
     return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
 
@@ -1149,7 +1100,7 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
     for (final entry in entries.entries) {
       entriesMap[entry.key.toString()] = entry.value;
     }
-    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
   }
 
   /// Add multiple entries from MapEntry iterable (more flexible)
@@ -1159,20 +1110,20 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
     for (final entry in entries) {
       entriesMap[entry.key.toString()] = entry.value;
     }
-    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
   }
 
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
     final keysList = keys.map((key) => key.toString()).toList();
-    return UpdateOperation(fieldPath, UpdateOperationType.mapRemoveAll, keysList);
+    return UpdateOperation($path, UpdateOperationType.mapRemoveAll, keysList);
   }
 
   /// Clear all entries (like map.clear())
   /// Usage: $.settings.clear()
   UpdateOperation clear() {
-    return UpdateOperation(fieldPath, UpdateOperationType.set, <String, dynamic>{});
+    return UpdateOperation($path, UpdateOperationType.set, <String, dynamic>{});
   }
 
   // ===== Convenience Methods =====
@@ -1184,7 +1135,7 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
     for (final key in keys) {
       entriesMap[key.toString()] = value;
     }
-    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
   }
 
   // ===== Legacy Aliases (for backward compatibility) =====

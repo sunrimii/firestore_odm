@@ -76,42 +76,31 @@ class UpdateGenerator {
     if (TypeAnalyzer.isMapType(fieldType)) {
       final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
       buffer.writeln(
-        '  MapFieldUpdate<$className, $keyType, $valueType> get $fieldName => MapFieldUpdate<$className, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this);',
+        '  MapFieldUpdate<$fieldType, $keyType, $valueType> get $fieldName => MapFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isIterableType(fieldType)) {
       final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
         fieldType,
       );
       buffer.writeln(
-        '  ListFieldUpdate<$className, $elementTypeName> get $fieldName => ListFieldUpdate<$className, $elementTypeName>(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isStringType(fieldType)) {
-      buffer.writeln(
-        '  StringFieldUpdate<$className> get $fieldName => StringFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isBoolType(fieldType)) {
-      buffer.writeln(
-        '  BoolFieldUpdate<$className> get $fieldName => BoolFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
+        '  ListFieldUpdate<$fieldType, $elementTypeName> get $fieldName => ListFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
       buffer.writeln(
-        '  DateTimeFieldUpdate<$className> get $fieldName => DateTimeFieldUpdate<$className>(name: \'$jsonFieldName\', parent: this);',
+        '  DateTimeFieldUpdate<$fieldType> get $fieldName => DateTimeFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  NumericFieldUpdate<$className, $typeString> get $fieldName => NumericFieldUpdate<$className, $typeString>(name: \'$jsonFieldName\', parent: this);',
+        '  NumericFieldUpdate<$fieldType> get $fieldName => NumericFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isCustomClass(fieldType)) {
       // Generate nested UpdateBuilder for custom class types
-      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  UpdateBuilder<$typeString> get $fieldName => UpdateBuilder<$typeString>(name: \'$jsonFieldName\', parent: this);',
+        '  UpdateBuilder<$fieldType> get $fieldName => UpdateBuilder(name: \'$jsonFieldName\', parent: this);',
       );
     } else {
-      final typeString = fieldType.getDisplayString();
       buffer.writeln(
-        '  GenericFieldUpdate<$className, $typeString> get $fieldName => GenericFieldUpdate<$className, $typeString>(name: \'$jsonFieldName\', parent: this);',
+        '  DefaultUpdateBuilder<$fieldType> get $fieldName => DefaultUpdateBuilder(name: \'$jsonFieldName\', parent: this);',
       );
     }
     buffer.writeln('');
