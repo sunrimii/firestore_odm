@@ -224,6 +224,8 @@ enum UpdateOperationType {
   delete, // Delete field
   serverTimestamp, // Server timestamp
   objectMerge, // Object merge update
+  mapPutAll, // Map put multiple entries operation
+  mapRemoveAll, // Map remove multiple keys operation
 }
 
 /// Represents a single update operation
@@ -318,6 +320,22 @@ class UpdateBuilder<T> extends Node {
                 ? entry.key
                 : '${operation.field}.${entry.key}';
             updateMap[fieldPath] = entry.value;
+          }
+          break;
+        case UpdateOperationType.mapPutAll:
+          // For map putAll, set multiple nested fields
+          final data = operation.value as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final keyPath = '${operation.field}.${entry.key}';
+            updateMap[keyPath] = entry.value;
+          }
+          break;
+        case UpdateOperationType.mapRemoveAll:
+          // For map removeAll, delete multiple nested fields
+          final keys = operation.value as List<String>;
+          for (final key in keys) {
+            final keyPath = '${operation.field}.$key';
+            updateMap[keyPath] = FieldValue.delete();
           }
           break;
       }
@@ -1099,7 +1117,7 @@ class GenericFieldUpdate<T, V> extends CallableUpdate<T> {
   }
 }
 
-/// Map field callable updater
+/// Map field callable updater with clean, consistent Dart Map-like operations
 class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
   MapFieldUpdate({super.name, super.parent});
 
@@ -1108,17 +1126,74 @@ class MapFieldUpdate<T, K, V> extends CallableUpdate<T> {
     return UpdateOperation(fieldPath, UpdateOperationType.set, value);
   }
 
-  /// Set a specific key in the map
-  /// Usage: $.profile.socialLinks.setKey("github", "username")
-  UpdateOperation setKey(K key, V value) {
+  // ===== Core Operations (Dart Map style) =====
+
+  /// Set a single key-value pair (like map[key] = value)
+  /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
+  UpdateOperation set(K key, V value) {
     final keyPath = '$fieldPath.$key';
     return UpdateOperation(keyPath, UpdateOperationType.set, value);
   }
 
-  /// Remove a specific key from the map
-  /// Usage: $.profile.socialLinks.removeKey("github")
-  UpdateOperation removeKey(K key) {
+  /// Remove a single key (like map.remove(key))
+  /// Usage: $.settings.remove('oldSetting')
+  UpdateOperation remove(K key) {
     final keyPath = '$fieldPath.$key';
     return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
+
+  /// Add multiple key-value pairs (like map.addAll(other))
+  /// Usage: $.settings.addAll({'theme': 'dark', 'language': 'en'})
+  UpdateOperation addAll(Map<K, V> entries) {
+    final entriesMap = <String, dynamic>{};
+    for (final entry in entries.entries) {
+      entriesMap[entry.key.toString()] = entry.value;
+    }
+    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+  }
+
+  /// Add multiple entries from MapEntry iterable (more flexible)
+  /// Usage: $.settings.addEntries([MapEntry('theme', 'dark'), MapEntry('lang', 'en')])
+  UpdateOperation addEntries(Iterable<MapEntry<K, V>> entries) {
+    final entriesMap = <String, dynamic>{};
+    for (final entry in entries) {
+      entriesMap[entry.key.toString()] = entry.value;
+    }
+    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+  }
+
+  /// Remove multiple keys at once
+  /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
+  UpdateOperation removeWhere(Iterable<K> keys) {
+    final keysList = keys.map((key) => key.toString()).toList();
+    return UpdateOperation(fieldPath, UpdateOperationType.mapRemoveAll, keysList);
+  }
+
+  /// Clear all entries (like map.clear())
+  /// Usage: $.settings.clear()
+  UpdateOperation clear() {
+    return UpdateOperation(fieldPath, UpdateOperationType.set, <String, dynamic>{});
+  }
+
+  // ===== Convenience Methods =====
+
+  /// Set multiple keys to the same value
+  /// Usage: $.permissions.setAll(['read', 'write'], true)
+  UpdateOperation setAll(Iterable<K> keys, V value) {
+    final entriesMap = <String, dynamic>{};
+    for (final key in keys) {
+      entriesMap[key.toString()] = value;
+    }
+    return UpdateOperation(fieldPath, UpdateOperationType.mapPutAll, entriesMap);
+  }
+
+  // ===== Legacy Aliases (for backward compatibility) =====
+
+  /// @deprecated Use set() instead
+  @Deprecated('Use set() instead for consistency with Dart Map')
+  UpdateOperation setKey(K key, V value) => set(key, value);
+
+  /// @deprecated Use remove() instead
+  @Deprecated('Use remove() instead for consistency with Dart Map')
+  UpdateOperation removeKey(K key) => remove(key);
 }
