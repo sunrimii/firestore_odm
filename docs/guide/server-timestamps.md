@@ -66,7 +66,53 @@ The `FirestoreODM.serverTimestamp` constant is a **sentinel value** that gets re
    DateTime.now().add(Duration(days: 1))
    ```
 
-2. **Two-step approach (separate operations):**
+2. **Model design with computed getter (recommended):**
+   Store the base timestamp and offset separately, then compute the final value:
+   
+   ```dart
+   @freezed
+   class User with _$User {
+     const factory User({
+       @DocumentIdField() required String id,
+       required String name,
+       DateTime? vipStartedAt, // When VIP started (server timestamp)
+       Duration? vipExpiryOffset, // How long VIP lasts
+     }) = _User;
+     
+     // Computed getter for VIP expiry date
+     DateTime? get vipExpiryDate {
+       if (vipStartedAt == null || vipExpiryOffset == null) return null;
+       return vipStartedAt!.add(vipExpiryOffset!);
+     }
+     
+     // Computed getter to check if VIP is still active
+     bool get isVipActive {
+       final expiryDate = vipExpiryDate;
+       if (expiryDate == null) return false;
+       return DateTime.now().isBefore(expiryDate);
+     }
+     
+     factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+   }
+   ```
+   
+   Usage:
+   ```dart
+   // Set server timestamp and Duration offset in one operation
+   await userDoc.patch(($) => [
+     $.vipStartedAt.serverTimestamp(), // Server sets exact start time
+     $.vipExpiryOffset(Duration(days: 30)), // VIP lasts 30 days
+   ]);
+   
+   // Access computed values
+   final user = await userDoc.get();
+   print('VIP expires at: ${user?.vipExpiryDate}'); // Automatically calculated
+   print('Is VIP active: ${user?.isVipActive}'); // true/false
+   ```
+
+   **Note:** Firestore ODM supports `Duration` type natively. Duration values are serialized to/from Firestore as microseconds (int64), ensuring precision and compatibility.
+
+3. **Two-step approach (separate operations):**
    ```dart
    // Step 1: Set server timestamp
    await userDoc.patch(($) => [$.createdAt.serverTimestamp()]);
@@ -79,6 +125,6 @@ The `FirestoreODM.serverTimestamp` constant is a **sentinel value** that gets re
 
    **Note:** This approach uses separate operations and may have potential race conditions. Unfortunately, you cannot use `patch` operations with server timestamps inside transactions, so this is the only viable approach for this pattern.
 
-3. **Use Firestore Rules or Cloud Functions** for server-side calculations.
+4. **Use Firestore Rules or Cloud Functions** for server-side calculations.
 
 The key point: `FirestoreODM.serverTimestamp` must be used exactly as provided to work as a server timestamp.
