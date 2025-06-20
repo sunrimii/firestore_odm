@@ -39,6 +39,8 @@ class FieldInfo {
   final bool isDocumentId;
   final bool isNullable;
   final bool isOptional;
+  final String? customFromFirestoreExpression;
+  final String? customToFirestoreExpression;
 
   const FieldInfo({
     required this.parameterName,
@@ -48,6 +50,8 @@ class FieldInfo {
     required this.isDocumentId,
     required this.isNullable,
     required this.isOptional,
+    this.customFromFirestoreExpression,
+    this.customToFirestoreExpression,
   });
 
   @override
@@ -124,6 +128,8 @@ class ModelAnalyzer {
           isDocumentId: true,
           isNullable: existingField.isNullable,
           isOptional: existingField.isOptional,
+          customFromFirestoreExpression: existingField.customFromFirestoreExpression,
+          customToFirestoreExpression: existingField.customToFirestoreExpression,
         );
       }
 
@@ -243,6 +249,25 @@ class ModelAnalyzer {
 
     // Determine Firestore type, considering @JsonConverter if present
     final firestoreType = _determineFirestoreType(fieldType, element);
+    
+    // Generate custom conversion expressions for special types
+    final typeName = fieldType.getDisplayString(withNullability: false);
+    String? customFromFirestoreExpression;
+    String? customToFirestoreExpression;
+    
+    if (typeName.startsWith('IList<')) {
+      final elementType = _getElementType(fieldType);
+      customFromFirestoreExpression = '(\$source as List).map((e) => e as $elementType).toIList()';
+      customToFirestoreExpression = '\$source.toList()';
+    } else if (typeName.startsWith('ISet<')) {
+      final elementType = _getElementType(fieldType);
+      customFromFirestoreExpression = '(\$source as List).map((e) => e as $elementType).toISet()';
+      customToFirestoreExpression = '\$source.toList()';
+    } else if (typeName.startsWith('IMap<')) {
+      final valueType = _getMapValueType(fieldType);
+      customFromFirestoreExpression = '(\$source as Map).cast<String, $valueType>().toIMap()';
+      customToFirestoreExpression = '\$source.unlock';
+    }
 
     return FieldInfo(
       parameterName: fieldName,
@@ -252,30 +277,54 @@ class ModelAnalyzer {
       isDocumentId: false, // Will be set later if this is the document ID field
       isNullable: isNullable,
       isOptional: isOptional,
+      customFromFirestoreExpression: customFromFirestoreExpression,
+      customToFirestoreExpression: customToFirestoreExpression,
     );
   }
 
   /// Determine the Firestore type for a Dart type
-  /// Based on official Firestore supported data types and @JsonConverter annotations
+  /// Based on official Firestore supported data types, @JsonConverter annotations, and toJson/fromJson methods
   static FirestoreType _determineFirestoreType(DartType dartType, Element element) {
-    // Check for @JsonConverter annotation and get the converted type
+    // First, check for @JsonConverter annotation
     final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
-    DartType actualType = dartType;
-    
     if (jsonConverter != null) {
       // Get the JsonType from JsonConverter<DartType, JsonType>
       final converterType = jsonConverter.type;
       if (converterType != null && converterType is InterfaceType) {
         final typeArguments = converterType.typeArguments;
         if (typeArguments.length >= 2) {
-          // Use the JsonType (second argument) as the actual type
-          actualType = typeArguments[1];
+          // Use the JsonType (second argument) to determine Firestore type
+          return _processTypeToFirestoreType(typeArguments[1]);
         }
       }
     }
 
-    // Process the actual type (either original dartType or converted JsonType)
-    return _processTypeToFirestoreType(actualType);
+    // If no @JsonConverter, check if this is a custom object type with toJson/fromJson
+    if (dartType is InterfaceType) {
+      final typeName = dartType.getDisplayString(withNullability: false);
+      
+      // Skip primitive and known types
+      if (!TypeAnalyzer.isPrimitiveType(dartType) &&
+          !_isKnownFirestoreType(typeName)) {
+        
+        // Analyze based on what toJson would return for common immutable collection types
+        // IList/ISet -> toJson returns List -> array
+        if (typeName.startsWith('IList<') || typeName.startsWith('ISet<')) {
+          return FirestoreType.array;
+        }
+        // IMap -> toJson returns Map -> map
+        else if (typeName.startsWith('IMap<')) {
+          return FirestoreType.map;
+        }
+        // Other custom objects with toJson/fromJson -> object
+        else {
+          return FirestoreType.object;
+        }
+      }
+    }
+
+    // Process the original Dart type to determine Firestore type
+    return _processTypeToFirestoreType(dartType);
   }
 
   /// Process a Dart type to determine its Firestore type
@@ -424,6 +473,22 @@ class ModelAnalyzer {
     }
   }
 
+  /// Get element type from List/Set type
+  static String _getElementType(DartType type) {
+    if (type is InterfaceType && type.typeArguments.isNotEmpty) {
+      return type.typeArguments.first.getDisplayString(withNullability: false);
+    }
+    return 'dynamic';
+  }
+
+  /// Get value type from Map type
+  static String _getMapValueType(DartType type) {
+    if (type is InterfaceType && type.typeArguments.length >= 2) {
+      return type.typeArguments[1].getDisplayString(withNullability: false);
+    }
+    return 'dynamic';
+  }
+
   /// Get the appropriate FirestoreConverter for a given FirestoreType and DartType
   static String getConverterForFirestoreType(FirestoreType firestoreType, DartType dartType, {bool isNullable = false}) {
     String converter;
@@ -469,7 +534,8 @@ class ModelAnalyzer {
           converter = 'null'; // Null values don't need conversion
           break;
         case FirestoreType.object:
-          converter = 'null'; // Will be handled by ObjectConverter with custom fromJson/toJson
+          // For custom objects, use ObjectConverter with the type's fromJson/toJson
+          converter = 'ObjectConverter<$typeName>($typeName.fromJson, (obj) => obj.toJson())';
           break;
       }
     }
@@ -480,5 +546,28 @@ class ModelAnalyzer {
     }
     
     return converter;
+  }
+
+  /// Check if a type name represents a known Firestore type
+  static bool _isKnownFirestoreType(String typeName) {
+    const knownTypes = {
+      'String', 'int', 'double', 'bool', 'DateTime', 'Duration',
+      'List', 'Map', 'Set', 'Uint8List', 'GeoPoint', 'DocumentReference',
+      'Timestamp', 'Blob', 'FieldValue'
+    };
+    
+    // Check exact matches
+    if (knownTypes.contains(typeName)) {
+      return true;
+    }
+    
+    // Check generic types (e.g., List<String>, Map<String, dynamic>)
+    for (final knownType in knownTypes) {
+      if (typeName.startsWith('$knownType<')) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

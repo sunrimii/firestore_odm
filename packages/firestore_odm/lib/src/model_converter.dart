@@ -143,19 +143,19 @@ class MapConverter<T, F> implements FirestoreConverter<Map<String, T>, Map<Strin
   }
 }
 
-/// Generic converter for custom objects using JsonDeserializer/JsonSerializer
-// class ObjectConverter<T> implements FirestoreConverter<T, Map<String, dynamic>> {
-//   final JsonDeserializer<T> fromJson;
-//   final JsonSerializer<T> toJson;
+/// Generic converter for custom objects using fromJson/toJson functions
+class ObjectConverter<T> implements FirestoreConverter<T, Map<String, dynamic>> {
+  final JsonDeserializer<T> fromJson;
+  final JsonSerializer<T> toJson;
   
-//   const ObjectConverter({required this.fromJson, required this.toJson});
+  const ObjectConverter({required this.fromJson, required this.toJson});
 
-//   @override
-//   T fromFirestore(Map<String, dynamic> data) => fromJson(data);
+  @override
+  T fromFirestore(Map<String, dynamic> data) => fromJson(data);
 
-//   @override
-//   Map<String, dynamic> toFirestore(T data) => toJson(data);
-// }
+  @override
+  Map<String, dynamic> toFirestore(T data) => toJson(data);
+}
 
 /// Converter for nullable types
 class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
@@ -177,53 +177,96 @@ class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
 }
 
 /// Converter for IList from fast_immutable_collections
-class IListConverter<T> implements FirestoreConverter<dynamic, List<T>> {
+class IListConverter<T> implements FirestoreConverter<dynamic, List<dynamic>> {
   const IListConverter();
   
   @override
-  dynamic fromFirestore(List<T> data) {
-    // This will be handled by the specific type system
-    return data;
+  dynamic fromFirestore(List<dynamic> data) {
+    // Convert List to IList using fast_immutable_collections
+    // This requires importing fast_immutable_collections
+    try {
+      // Use dynamic call to create IList
+      return (data as dynamic).toIList();
+    } catch (e) {
+      // Fallback: return the list as-is and let the generated code handle it
+      return data;
+    }
   }
   
   @override
-  List<T> toFirestore(dynamic data) {
-    // This will be handled by the specific type system
-    return data as List<T>;
+  List<dynamic> toFirestore(dynamic data) {
+    // Convert IList to regular List for Firestore
+    if (data is Iterable) {
+      return data.toList();
+    }
+    // If it's not an Iterable, try to convert it to an empty list or throw an error
+    if (data == null) {
+      return <dynamic>[];
+    }
+    throw ArgumentError('Expected Iterable but got ${data.runtimeType}');
   }
 }
 
 /// Converter for IMap from fast_immutable_collections
-class IMapConverter<K, V> implements FirestoreConverter<dynamic, Map<K, V>> {
+class IMapConverter<K, V> implements FirestoreConverter<dynamic, Map<String, dynamic>> {
   const IMapConverter();
   
   @override
-  dynamic fromFirestore(Map<K, V> data) {
+  dynamic fromFirestore(Map<String, dynamic> data) {
     // This will be handled by the specific type system
     return data;
   }
   
   @override
-  Map<K, V> toFirestore(dynamic data) {
-    // This will be handled by the specific type system
-    return data as Map<K, V>;
+  Map<String, dynamic> toFirestore(dynamic data) {
+    // Convert IMap to regular Map for Firestore
+    if (data == null) {
+      return <String, dynamic>{};
+    }
+    
+    // Handle any object that has forEach method (including IMap)
+    try {
+      final result = <String, dynamic>{};
+      // Use dynamic call to forEach to handle IMap and regular Map
+      (data as dynamic).forEach((key, value) {
+        result[key.toString()] = value;
+      });
+      return result;
+    } catch (e) {
+      // If forEach fails, try to convert as Map
+      if (data is Map) {
+        final result = <String, dynamic>{};
+        data.forEach((key, value) {
+          result[key.toString()] = value;
+        });
+        return result;
+      }
+      throw ArgumentError('Expected Map-like object but got ${data.runtimeType}');
+    }
   }
 }
 
 /// Converter for ISet from fast_immutable_collections
-class ISetConverter<T> implements FirestoreConverter<dynamic, List<T>> {
+class ISetConverter<T> implements FirestoreConverter<dynamic, List<dynamic>> {
   const ISetConverter();
   
   @override
-  dynamic fromFirestore(List<T> data) {
+  dynamic fromFirestore(List<dynamic> data) {
     // This will be handled by the specific type system
     return data;
   }
   
   @override
-  List<T> toFirestore(dynamic data) {
-    // This will be handled by the specific type system
-    return data as List<T>;
+  List<dynamic> toFirestore(dynamic data) {
+    // Convert ISet to regular List for Firestore
+    if (data is Iterable) {
+      return data.toList();
+    }
+    // If it's not an Iterable, try to convert it to an empty list or throw an error
+    if (data == null) {
+      return <dynamic>[];
+    }
+    throw ArgumentError('Expected Iterable but got ${data.runtimeType}');
   }
 }
 

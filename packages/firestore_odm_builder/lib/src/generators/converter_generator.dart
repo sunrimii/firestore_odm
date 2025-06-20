@@ -143,6 +143,12 @@ class ConverterGenerator {
         return _generateMapFromFirestoreConversion(field, sourceExpression);
         
       case FirestoreType.object:
+        // Check if this is actually a collection type that should use ObjectConverter
+        final dartTypeName = field.dartType.getDisplayString(withNullability: false);
+        if (dartTypeName.startsWith('IList<') || dartTypeName.startsWith('ISet<') ||
+            dartTypeName.startsWith('IMap<')) {
+          return 'ObjectConverter<$dartTypeName>($dartTypeName.fromJson, (obj) => obj.toJson()).fromFirestore($sourceExpression)';
+        }
         return _generateObjectFromFirestoreConversion(field, sourceExpression);
     }
   }
@@ -187,6 +193,12 @@ class ConverterGenerator {
         return _generateMapToFirestoreConversion(field, sourceExpression);
         
       case FirestoreType.object:
+        // Check if this is actually a collection type that should use ObjectConverter
+        final dartTypeName = field.dartType.getDisplayString(withNullability: false);
+        if (dartTypeName.startsWith('IList<') || dartTypeName.startsWith('ISet<') ||
+            dartTypeName.startsWith('IMap<')) {
+          return 'ObjectConverter<$dartTypeName>($dartTypeName.fromJson, (obj) => obj.toJson()).toFirestore($sourceExpression)';
+        }
         return _generateObjectToFirestoreConversion(field, sourceExpression);
     }
   }
@@ -196,14 +208,9 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final dartTypeName = field.dartType.getDisplayString(withNullability: false);
-    
-    // Handle ImmutableCollections
-    if (dartTypeName.startsWith('IList<')) {
-      return 'const IListConverter().fromFirestore($sourceExpression as List<dynamic>)';
-    }
-    if (dartTypeName.startsWith('ISet<')) {
-      return 'const ISetConverter().fromFirestore($sourceExpression as List<dynamic>)';
+    // Check if this field has custom conversion expression
+    if (field.customFromFirestoreExpression != null) {
+      return field.customFromFirestoreExpression!.replaceAll('\$source', sourceExpression);
     }
     
     // Regular List/Set conversion
@@ -215,14 +222,9 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final dartTypeName = field.dartType.getDisplayString(withNullability: false);
-    
-    // Handle ImmutableCollections
-    if (dartTypeName.startsWith('IList<')) {
-      return 'const IListConverter().toFirestore($sourceExpression)';
-    }
-    if (dartTypeName.startsWith('ISet<')) {
-      return 'const ISetConverter().toFirestore($sourceExpression)';
+    // Check if this field has custom conversion expression
+    if (field.customToFirestoreExpression != null) {
+      return field.customToFirestoreExpression!.replaceAll('\$source', sourceExpression);
     }
     
     // Regular List/Set conversion
@@ -234,11 +236,9 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final dartTypeName = field.dartType.getDisplayString(withNullability: false);
-    
-    // Handle ImmutableCollections
-    if (dartTypeName.startsWith('IMap<')) {
-      return 'const IMapConverter().fromFirestore($sourceExpression as Map<String, dynamic>)';
+    // Check if this field has custom conversion expression
+    if (field.customFromFirestoreExpression != null) {
+      return field.customFromFirestoreExpression!.replaceAll('\$source', sourceExpression);
     }
     
     // Regular Map conversion
@@ -250,11 +250,9 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final dartTypeName = field.dartType.getDisplayString(withNullability: false);
-    
-    // Handle ImmutableCollections
-    if (dartTypeName.startsWith('IMap<')) {
-      return 'const IMapConverter().toFirestore($sourceExpression)';
+    // Check if this field has custom conversion expression
+    if (field.customToFirestoreExpression != null) {
+      return field.customToFirestoreExpression!.replaceAll('\$source', sourceExpression);
     }
     
     // Regular Map conversion
