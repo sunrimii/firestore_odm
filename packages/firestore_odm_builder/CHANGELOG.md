@@ -1,3 +1,7 @@
+## 2.2.2
+
+ - **FIX**: IMap bug fixes and patch operations in UpdateBuilder. ([579476a4](https://github.com/sylphxltd/firestore_odm/commit/579476a4e9039fb1416ec8e2ac271c7e9cb3a3a6))
+
 ## 2.2.1
 
  - **REFACTOR**: remove debug print statements from model analysis and firestore generator. ([98217a66](https://github.com/sylphxltd/firestore_odm/commit/98217a662835489eddfe034aa3a48c6b5171c92c))

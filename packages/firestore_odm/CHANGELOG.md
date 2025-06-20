@@ -1,3 +1,8 @@
+## 2.6.0
+
+ - **FEAT**: add map operations for bulk updates and removals in UpdateBuilder. ([df9dee07](https://github.com/sylphxltd/firestore_odm/commit/df9dee076c53a74cc39cd97a75cc56de6f843e9e))
+ - **FEAT**: enhance iterable support in UpdateBuilder to accept any Iterable for addAll and removeAll operations. ([267b3223](https://github.com/sylphxltd/firestore_odm/commit/267b32233f62a1bed42e77b3734b9c2a13f33fda))
+
 ## 2.5.0
 
  - **FEAT**: enhance UpdateBuilder to respect operation precedence for set and array operations. ([a772c0d6](https://github.com/sylphxltd/firestore_odm/commit/a772c0d6fefdda6e7c1fbcf1faca221e906704ca))

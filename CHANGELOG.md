@@ -15,6 +15,33 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v2.6.0`](#firestore_odm---v260)
+ - [`firestore_odm_builder` - `v2.2.2`](#firestore_odm_builder---v222)
+
+---
+
+#### `firestore_odm` - `v2.6.0`
+
+ - **FEAT**: add map operations for bulk updates and removals in UpdateBuilder. ([df9dee07](https://github.com/sylphxltd/firestore_odm/commit/df9dee076c53a74cc39cd97a75cc56de6f843e9e))
+ - **FEAT**: enhance iterable support in UpdateBuilder to accept any Iterable for addAll and removeAll operations. ([267b3223](https://github.com/sylphxltd/firestore_odm/commit/267b32233f62a1bed42e77b3734b9c2a13f33fda))
+
+#### `firestore_odm_builder` - `v2.2.2`
+
+ - **FIX**: IMap bug fixes and patch operations in UpdateBuilder. ([579476a4](https://github.com/sylphxltd/firestore_odm/commit/579476a4e9039fb1416ec8e2ac271c7e9cb3a3a6))
+
+
+## 2025-06-20
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v2.5.0`](#firestore_odm---v250)
 
 ---
