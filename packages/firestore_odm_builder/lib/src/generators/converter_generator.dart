@@ -132,63 +132,8 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    if (field.customFromFirestoreExpression != null) {
-      return field.customFromFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    switch (field.firestoreType) {
-      case FirestoreType.string:
-      case FirestoreType.double:
-      case FirestoreType.boolean:
-      case FirestoreType.null_:
-        // Primitive types - direct cast
-        return '$sourceExpression as ${field.dartType.getDisplayString()}';
-
-      case FirestoreType.integer:
-        // Check if this is a Duration type (stored as int milliseconds)
-        final dartTypeName = field.dartType.getDisplayString(
-          withNullability: false,
-        );
-        if (dartTypeName == 'Duration') {
-          return 'const DurationConverter().fromFirestore($sourceExpression)';
-        }
-        // Regular integer
-        return '$sourceExpression as ${field.dartType.getDisplayString()}';
-
-      case FirestoreType.timestamp:
-        return 'const DateTimeConverter().fromFirestore($sourceExpression)';
-
-      case FirestoreType.bytes:
-        return 'const BytesConverter().fromFirestore($sourceExpression as Blob)';
-
-      case FirestoreType.geoPoint:
-        return '$sourceExpression as GeoPoint';
-
-      case FirestoreType.reference:
-        return '$sourceExpression as DocumentReference';
-
-      case FirestoreType.array:
-        return _generateListFromFirestoreConversion(field, sourceExpression);
-
-      case FirestoreType.map:
-        return _generateMapFromFirestoreConversion(field, sourceExpression);
-
-      case FirestoreType.object:
-
-        // Check if this is actually a collection type that should use ObjectConverter
-        final dartTypeName = field.dartType.getDisplayString(
-          withNullability: false,
-        );
-        if (dartTypeName.startsWith('IList<') ||
-            dartTypeName.startsWith('ISet<') ||
-            dartTypeName.startsWith('IMap<')) {
-          return 'ObjectConverter<$dartTypeName>($dartTypeName.fromJson, (obj) => obj.toJson()).fromFirestore($sourceExpression)';
-        }
-        return _generateObjectFromFirestoreConversion(field, sourceExpression);
-    }
+    // Use the new functional converter system
+    return field.generateFromFirestore(sourceExpression);
   }
 
   /// Generate non-null conversion to Firestore
@@ -196,137 +141,44 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    if (field.customToFirestoreExpression != null) {
-      return field.customToFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    switch (field.firestoreType) {
-      case FirestoreType.string:
-      case FirestoreType.double:
-      case FirestoreType.boolean:
-      case FirestoreType.null_:
-        // Primitive types - no conversion needed
-        return sourceExpression;
-
-      case FirestoreType.integer:
-        // Check if this is a Duration type (stored as int milliseconds)
-        final dartTypeName = field.dartType.getDisplayString(
-          withNullability: false,
-        );
-        if (dartTypeName == 'Duration') {
-          return 'const DurationConverter().toFirestore($sourceExpression!)';
-        }
-        // Regular integer
-        return sourceExpression;
-
-      case FirestoreType.timestamp:
-        return 'const DateTimeConverter().toFirestore($sourceExpression!)';
-
-      case FirestoreType.bytes:
-        return 'const BytesConverter().toFirestore($sourceExpression!)';
-
-      case FirestoreType.geoPoint:
-      case FirestoreType.reference:
-        // No conversion needed
-        return sourceExpression;
-
-      case FirestoreType.array:
-        return _generateListToFirestoreConversion(field, sourceExpression);
-
-      case FirestoreType.map:
-        return _generateMapToFirestoreConversion(field, sourceExpression);
-
-      case FirestoreType.object:
-
-        // Check if this is actually a collection type that should use ObjectConverter
-        final dartTypeName = field.dartType.getDisplayString(
-          withNullability: false,
-        );
-        if (dartTypeName.startsWith('IList<') ||
-            dartTypeName.startsWith('ISet<') ||
-            dartTypeName.startsWith('IMap<')) {
-          return 'ObjectConverter<$dartTypeName>($dartTypeName.fromJson, (obj) => obj.toJson()).toFirestore($sourceExpression)';
-        }
-
-        return _generateObjectToFirestoreConversion(field, sourceExpression);
-    }
+    // Use the new functional converter system
+    return field.generateToFirestore(sourceExpression);
   }
 
-  /// Generate List conversion from Firestore
+  /// Generate List conversion from Firestore (legacy - now handled by converter system)
   static String _generateListFromFirestoreConversion(
     FieldInfo field,
     String sourceExpression,
   ) {
-    // Check if this field has custom conversion expression
-    if (field.customFromFirestoreExpression != null) {
-      return field.customFromFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    // Regular List/Set conversion - handle List<dynamic> from Firestore
-    final elementType = _getListElementType(field);
-    return '($sourceExpression as List<dynamic>).cast<$elementType>()';
+    // Use the new functional converter system
+    return field.generateFromFirestore(sourceExpression);
   }
 
-  /// Generate List conversion to Firestore
+  /// Generate List conversion to Firestore (legacy - now handled by converter system)
   static String _generateListToFirestoreConversion(
     FieldInfo field,
     String sourceExpression,
   ) {
-    // Check if this field has custom conversion expression
-    if (field.customToFirestoreExpression != null) {
-      return field.customToFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    // Regular List/Set conversion
-    return sourceExpression;
+    // Use the new functional converter system
+    return field.generateToFirestore(sourceExpression);
   }
 
-  /// Generate Map conversion from Firestore
+  /// Generate Map conversion from Firestore (legacy - now handled by converter system)
   static String _generateMapFromFirestoreConversion(
     FieldInfo field,
     String sourceExpression,
   ) {
-    // Check if this field has custom conversion expression
-    if (field.customFromFirestoreExpression != null) {
-      return field.customFromFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    // Regular Map conversion - handle Map<String, dynamic> from Firestore
-    final valueType = _getMapValueType(field);
-    if (valueType == 'dynamic') {
-      return '$sourceExpression as Map<String, dynamic>';
-    } else {
-      return '($sourceExpression as Map<String, dynamic>).cast<String, $valueType>()';
-    }
+    // Use the new functional converter system
+    return field.generateFromFirestore(sourceExpression);
   }
 
-  /// Generate Map conversion to Firestore
+  /// Generate Map conversion to Firestore (legacy - now handled by converter system)
   static String _generateMapToFirestoreConversion(
     FieldInfo field,
     String sourceExpression,
   ) {
-    // Check if this field has custom conversion expression
-    if (field.customToFirestoreExpression != null) {
-      return field.customToFirestoreExpression!.replaceAll(
-        '\$source',
-        sourceExpression,
-      );
-    }
-
-    // Regular Map conversion
-    return sourceExpression;
+    // Use the new functional converter system
+    return field.generateToFirestore(sourceExpression);
   }
 
   /// Generate custom object conversion from Firestore

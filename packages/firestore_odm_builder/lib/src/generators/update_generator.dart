@@ -45,11 +45,10 @@ class UpdateGenerator {
       final paramName = field.parameterName;
       final jsonFieldName = field.jsonFieldName;
       
-      // Check if field has custom toFirestore expression (JsonConverter)
-      if (field.customToFirestoreExpression != null) {
-        // Apply JsonConverter for toFirestore conversion
-        final toFirestoreExpr = field.customToFirestoreExpression!
-            .replaceAll('\$source', paramName);
+      // Check if field has custom converter
+      if (field.converter is! DirectConverter) {
+        // Apply converter for toFirestore conversion
+        final toFirestoreExpr = field.generateToFirestore(paramName);
         buffer.writeln(
           '    if ($paramName != null) data[\'$jsonFieldName\'] = $toFirestoreExpr;',
         );
@@ -86,15 +85,18 @@ class UpdateGenerator {
   ) {
     final className = analysis.className;
     
-    // Find fields with converters
+    // Find fields with converters (excluding DateTime/Duration/Numeric which use specialized UpdateBuilders)
     final converterFields = analysis.updateableFields
-        .where((field) => field.customToFirestoreExpression != null)
+        .where((field) => field.converter is! DirectConverter)
+        .where((field) => !TypeAnalyzer.isDateTimeType(field.dartType))
+        .where((field) => !TypeAnalyzer.isDurationType(field.dartType))
+        .where((field) => !TypeAnalyzer.isNumericType(field.dartType))
         .toList();
     
     for (final field in converterFields) {
       final fieldName = field.parameterName;
       final fieldType = field.dartType.getDisplayString();
-      final converterExpr = field.customToFirestoreExpression!;
+      final converterExpr = field.generateToFirestore('\$source');
       
       if (TypeAnalyzer.isMapType(field.dartType)) {
         // Generate custom MapFieldUpdate for map fields with converters
@@ -107,8 +109,8 @@ class UpdateGenerator {
         buffer.writeln('  @override');
         buffer.writeln('  UpdateOperation call($fieldType value) {');
         
-        // Apply converter
-        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
+        // Apply converter using the new system
+        final convertedExpr = field.generateToFirestore('value');
         buffer.writeln('    final convertedValue = $convertedExpr;');
         buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
         buffer.writeln('  }');
@@ -125,8 +127,8 @@ class UpdateGenerator {
         buffer.writeln('  @override');
         buffer.writeln('  UpdateOperation call($fieldType value) {');
         
-        // Apply converter
-        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
+        // Apply converter using the new system
+        final convertedExpr = field.generateToFirestore('value');
         buffer.writeln('    final convertedValue = $convertedExpr;');
         buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
         buffer.writeln('  }');
@@ -164,9 +166,21 @@ class UpdateGenerator {
     // Generate field getter that returns a callable update instance
     buffer.writeln('  /// Update $fieldName field');
 
-    // Check if field has converter (any type of converter)
-    if (field.customToFirestoreExpression != null) {
-      // Generate custom UpdateBuilder for fields with converters
+    // Check field type first - DateTime/Duration/Numeric should always use their specialized UpdateBuilders
+    if (TypeAnalyzer.isDateTimeType(fieldType)) {
+      buffer.writeln(
+        '  DateTimeFieldUpdate<$fieldType> get $fieldName => DateTimeFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+      );
+    } else if (TypeAnalyzer.isDurationType(fieldType)) {
+      buffer.writeln(
+        '  DurationFieldUpdate<$fieldType> get $fieldName => DurationFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+      );
+    } else if (TypeAnalyzer.isNumericType(fieldType)) {
+      buffer.writeln(
+        '  NumericFieldUpdate<$fieldType> get $fieldName => NumericFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+      );
+    } else if (field.converter is! DirectConverter) {
+      // Generate custom UpdateBuilder for fields with converters (non-DateTime/Duration/Numeric)
       if (TypeAnalyzer.isMapType(fieldType)) {
         // Map types with converters
         final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
@@ -196,18 +210,6 @@ class UpdateGenerator {
       );
       buffer.writeln(
         '  ListFieldUpdate<$fieldType, $elementTypeName> get $fieldName => ListFieldUpdate(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isDateTimeType(fieldType)) {
-      buffer.writeln(
-        '  DateTimeFieldUpdate<$fieldType> get $fieldName => DateTimeFieldUpdate(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isDurationType(fieldType)) {
-      buffer.writeln(
-        '  DurationFieldUpdate<$fieldType> get $fieldName => DurationFieldUpdate(name: \'$jsonFieldName\', parent: this);',
-      );
-    } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      buffer.writeln(
-        '  NumericFieldUpdate<$fieldType> get $fieldName => NumericFieldUpdate(name: \'$jsonFieldName\', parent: this);',
       );
     } else if (TypeAnalyzer.isCustomClass(fieldType)) {
       // Generate nested UpdateBuilder for custom class types
