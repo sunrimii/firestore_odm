@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/src/firestore_odm.dart';
 
 typedef JsonDeserializer<T> = T Function(Map<String, dynamic>);
 typedef JsonSerializer<T> = Map<String, dynamic> Function(T);
@@ -33,7 +34,14 @@ class DateTimeConverter implements FirestoreConverter<DateTime, dynamic> {
   }
 
   @override
-  dynamic toFirestore(DateTime data) => Timestamp.fromDate(data);
+  dynamic toFirestore(DateTime data) {
+    // Check if this is the special server timestamp constant
+    // If so, return it as-is so _replaceServerTimestamps can handle it later
+    if (data == FirestoreODM.serverTimestamp) {
+      return data;
+    }
+    return Timestamp.fromDate(data);
+  }
 }
 
 /// Converter for Duration <-> int (microseconds)
