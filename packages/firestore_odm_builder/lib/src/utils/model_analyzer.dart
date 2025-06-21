@@ -73,12 +73,14 @@ class ModelAnalysis {
   final String? documentIdFieldName;
   final Map<String, FieldInfo> fields;
   final List<FieldInfo> updateableFields;
+  final bool hasManualSerialization;
 
   const ModelAnalysis({
     required this.className,
     required this.documentIdFieldName,
     required this.fields,
     required this.updateableFields,
+    required this.hasManualSerialization,
   });
 
   /// Get field by parameter name
@@ -90,7 +92,7 @@ class ModelAnalysis {
 
   @override
   String toString() =>
-      'ModelAnalysis(class: $className, docIdField: $documentIdFieldName, fields: ${fields.length})';
+      'ModelAnalysis(class: $className, docIdField: $documentIdFieldName, fields: ${fields.length}, hasManualSerialization: $hasManualSerialization)';
 }
 
 /// Analyzer for complete model structure including JSON field mapping
@@ -149,11 +151,15 @@ class ModelAnalyzer {
           .where((field) => !field.isDocumentId)
           .toList();
 
+      // Check if the class has manual serialization methods
+      final hasManualSerialization = _hasStandardJsonSupport(classElement.thisType);
+
       return ModelAnalysis(
         className: classElement.name,
         documentIdFieldName: documentIdFieldName,
         fields: fieldsMap,
         updateableFields: updateableFields,
+        hasManualSerialization: hasManualSerialization,
       );
     } catch (e) {
       return null;

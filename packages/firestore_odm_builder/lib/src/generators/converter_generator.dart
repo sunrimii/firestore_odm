@@ -22,50 +22,67 @@ class ConverterGenerator {
     buffer.writeln('  const $converterClassName();');
     buffer.writeln('');
 
-    // Generate fromFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $className fromFirestore(Map<String, dynamic> data) {');
-    buffer.writeln('    return $className(');
+    // Check if the class has manual serialization methods
+    if (analysis.hasManualSerialization) {
+      // Use manual toJson/fromJson methods
+      buffer.writeln('  @override');
+      buffer.writeln('  $className fromFirestore(Map<String, dynamic> data) {');
+      buffer.writeln('    return $className.fromJson(data);');
+      buffer.writeln('  }');
+      buffer.writeln('');
 
-    for (final field in analysis.fields.values) {
-      final paramName = field.parameterName;
-      final jsonFieldName = field.jsonFieldName;
+      buffer.writeln('  @override');
+      buffer.writeln('  Map<String, dynamic> toFirestore($className data) {');
+      buffer.writeln('    return data.toJson();');
+      buffer.writeln('  }');
+    } else {
+      // Generate field-by-field conversion
+      // Generate fromFirestore method
+      buffer.writeln('  @override');
+      buffer.writeln('  $className fromFirestore(Map<String, dynamic> data) {');
+      buffer.writeln('    return $className(');
 
-      buffer.write('      $paramName: ');
+      for (final field in analysis.fields.values) {
+        final paramName = field.parameterName;
+        final jsonFieldName = field.jsonFieldName;
 
-      // Generate field conversion based on FirestoreType
-      final conversion = _generateFieldFromFirestoreConversion(
-        field,
-        "data['$jsonFieldName']",
-      );
+        buffer.write('      $paramName: ');
 
-      buffer.writeln('$conversion,');
+        // Generate field conversion based on FirestoreType
+        final conversion = _generateFieldFromFirestoreConversion(
+          field,
+          "data['$jsonFieldName']",
+        );
+
+        buffer.writeln('$conversion,');
+      }
+
+      buffer.writeln('    );');
+      buffer.writeln('  }');
+      buffer.writeln('');
+
+      // Generate toFirestore method
+      buffer.writeln('  @override');
+      buffer.writeln('  Map<String, dynamic> toFirestore($className data) {');
+      buffer.writeln('    return {');
+
+      for (final field in analysis.fields.values) {
+        final paramName = field.parameterName;
+        final jsonFieldName = field.jsonFieldName;
+
+        // Generate field conversion based on FirestoreType
+        final conversion = _generateFieldToFirestoreConversion(
+          field,
+          'data.$paramName',
+        );
+
+        buffer.writeln("      '$jsonFieldName': $conversion,");
+      }
+
+      buffer.writeln('    };');
+      buffer.writeln('  }');
     }
-
-    buffer.writeln('    );');
-    buffer.writeln('  }');
-    buffer.writeln('');
-
-    // Generate toFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  Map<String, dynamic> toFirestore($className data) {');
-    buffer.writeln('    return {');
-
-    for (final field in analysis.fields.values) {
-      final paramName = field.parameterName;
-      final jsonFieldName = field.jsonFieldName;
-
-      // Generate field conversion based on FirestoreType
-      final conversion = _generateFieldToFirestoreConversion(
-        field,
-        'data.$paramName',
-      );
-
-      buffer.writeln("      '$jsonFieldName': $conversion,");
-    }
-
-    buffer.writeln('    };');
-    buffer.writeln('  }');
+    
     buffer.writeln('}');
     buffer.writeln('');
 
