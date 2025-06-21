@@ -9,11 +9,13 @@ abstract interface class Deletable {
   Future<void> delete();
 }
 
-/// Interface for deleting a single document within a transaction.
-abstract interface class TransactionalDeletable {
-  /// Deletes the document within an ongoing Firestore transaction.
+
+/// Interface for deleting a single document within a Firestore transaction.
+abstract interface class SynchronousDeletable {
+  /// Deletes the document from Firestore within an ongoing transaction.
   ///
-  /// This operation is atomic with other operations within the same transaction.
+  /// This operation is performed on the document reference as part of a
+  /// transaction. The transaction must be committed to apply the deletion.
   ///
   /// This method does not return a [Future] directly, as the transaction's
   /// completion (`transaction.commit()`) handles the overall result.

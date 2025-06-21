@@ -2,7 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
-import 'package:firestore_odm/src/interfaces/batchable.dart';
+import 'package:firestore_odm/src/interfaces/deletable.dart';
+import 'package:firestore_odm/src/interfaces/insertable.dart';
+import 'package:firestore_odm/src/interfaces/patchable.dart';
+import 'package:firestore_odm/src/interfaces/updatable.dart';
+import 'package:firestore_odm/src/interfaces/upsertable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/types.dart';
@@ -134,7 +138,7 @@ class BatchContext<S extends FirestoreSchema> {
 
 /// Batch document for handling document-level batch operations
 class BatchDocument<S extends FirestoreSchema, T>
-    implements BatchDeletable, BatchPatchable<T> {
+    implements SynchronousDeletable, SynchronousPatchable<T> {
   final BatchContext<S> _context;
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
   
@@ -177,8 +181,8 @@ class BatchDocument<S extends FirestoreSchema, T>
 }
 
 /// Batch collection for handling collection-level batch operations
-class BatchCollection<S extends FirestoreSchema, T> 
-    implements BatchInsertable<T>, BatchUpdatable<T>, BatchUpsertable<T> {
+class BatchCollection<S extends FirestoreSchema, T>
+    implements SynchronousInsertable<T>, SynchronousUpdatable<T>, SynchronousUpsertable<T> {
   final BatchContext<S> _context;
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;

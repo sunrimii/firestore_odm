@@ -77,9 +77,9 @@ class TransactionDocument<S extends FirestoreSchema, T>
     implements
         Gettable<T?>,
         Modifiable<T>,
-        TransactionalPatchable<T>,
+        SynchronousPatchable<T>,
         Existable,
-        TransactionalDeletable {
+        SynchronousDeletable {
   final firestore.Transaction _transaction;
   final firestore.DocumentReference<Map<String, dynamic>> ref;
   final FirestoreConverter<T, Map<String, dynamic>> converter;

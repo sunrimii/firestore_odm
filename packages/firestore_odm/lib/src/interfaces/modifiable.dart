@@ -45,7 +45,7 @@ abstract interface class Modifiable<T> {
 /// An interface for modifying existing documents within a Firestore transaction.
 ///
 /// [T] is the type of the model representing the document data.
-abstract interface class TransactionalModifiable<T> {
+abstract interface class SynchronousModifiable<T> {
   /// Modifies the document within an ongoing Firestore transaction.
   ///
   /// This method performs a read operation to get the current document data

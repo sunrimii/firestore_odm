@@ -31,7 +31,7 @@ abstract interface class Patchable<T> {
 /// within a Firestore transaction.
 ///
 /// [T] is the type of the model representing the document data.
-abstract interface class TransactionalPatchable<T> {
+abstract interface class SynchronousPatchable<T> {
   /// Patches the document within an ongoing Firestore transaction using a
   /// strongly-typed update builder.
   ///
