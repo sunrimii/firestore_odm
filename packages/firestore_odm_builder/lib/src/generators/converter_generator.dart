@@ -94,18 +94,8 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final isNullable = field.isNullable;
-
-    // Handle null values
-    if (isNullable) {
-      final nonNullConversion = _generateNonNullFromFirestoreConversion(
-        field,
-        sourceExpression,
-      );
-      return '$sourceExpression == null ? null : $nonNullConversion';
-    }
-
-    return _generateNonNullFromFirestoreConversion(field, sourceExpression);
+    // Use the new unified converter system which handles nullability internally
+    return field.generateFromFirestore(sourceExpression);
   }
 
   /// Generate conversion code for a field to Firestore
@@ -113,35 +103,7 @@ class ConverterGenerator {
     FieldInfo field,
     String sourceExpression,
   ) {
-    final isNullable = field.isNullable;
-
-    // Handle null values
-    if (isNullable) {
-      final nonNullConversion = _generateNonNullToFirestoreConversion(
-        field,
-        sourceExpression,
-      );
-      return '$sourceExpression == null ? null : $nonNullConversion';
-    }
-
-    return _generateNonNullToFirestoreConversion(field, sourceExpression);
-  }
-
-  /// Generate non-null conversion from Firestore
-  static String _generateNonNullFromFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
-    return field.generateFromFirestore(sourceExpression);
-  }
-
-  /// Generate non-null conversion to Firestore
-  static String _generateNonNullToFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
+    // Use the new unified converter system which handles nullability internally
     return field.generateToFirestore(sourceExpression);
   }
 

@@ -316,7 +316,7 @@ class TypeRegistry {
 
   /// Get or analyze a type
   TypeAnalysisResult getOrAnalyzeType(DartType dartType, Element? element) {
-    final typeKey = _getTypeKey(dartType);
+    final typeKey = _getTypeKey(dartType, element);
     
     if (_cache.containsKey(typeKey)) {
       return _cache[typeKey]!;
@@ -342,9 +342,19 @@ class TypeRegistry {
     return result;
   }
 
-  /// Generate a unique key for a type
-  String _getTypeKey(DartType dartType) {
-    return dartType.getDisplayString(withNullability: true);
+  /// Generate a unique key for a type including element annotations
+  String _getTypeKey(DartType dartType, Element? element) {
+    final typeString = dartType.getDisplayString(withNullability: true);
+    
+    // Include custom JsonConverter annotations in the key to avoid cache conflicts
+    if (element != null) {
+      final customConverter = _findCustomJsonConverter(element);
+      if (customConverter != null) {
+        return '$typeString@$customConverter';
+      }
+    }
+    
+    return typeString;
   }
 
   /// Analyze a type and return its analysis result
@@ -407,10 +417,11 @@ class TypeRegistry {
     for (final annotation in element.metadata) {
       final annotationType = annotation.computeConstantValue()?.type;
       if (annotationType is InterfaceType) {
-        final className = annotationType.element3.name3;
-        // Check if this class implements JsonConverter
-        if (_implementsJsonConverter(annotationType.element3)) {
-          return className;
+        final classElement = annotationType.element;
+        
+        // Check if this class implements JsonConverter interface
+        if (_implementsJsonConverter(classElement)) {
+          return classElement.name;
         }
       }
     }
@@ -418,8 +429,8 @@ class TypeRegistry {
   }
 
   /// Check if a class implements JsonConverter interface
-  bool _implementsJsonConverter(Element2 classElement) {
-    if (classElement is! ClassElement2) return false;
+  bool _implementsJsonConverter(Element classElement) {
+    if (classElement is! ClassElement) return false;
     
     // Check all interfaces and superclasses
     for (final interface in classElement.allSupertypes) {
