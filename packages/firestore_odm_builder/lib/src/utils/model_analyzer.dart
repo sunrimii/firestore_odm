@@ -919,7 +919,7 @@ class ModelAnalyzer {
     return null;
   }
 
-  /// 檢查 type 是否支援標準 JSON serialization
+  /// Check if type supports standard JSON serialization
   static bool _hasStandardJsonSupport(DartType dartType) {
     if (dartType is! InterfaceType) {
       return false;
@@ -930,31 +930,83 @@ class ModelAnalyzer {
       return false;
     }
 
-    // 檢查有冇標準 toJson() 方法（無參數）
-    final hasToJson = classElement.methods.any(
+    // Check for fromJson constructor or static method (one parameter)
+    final hasFromJson = _hasFromJsonMethod(classElement);
+
+    // Check for toJson method (no parameters) in class hierarchy
+    final hasToJson = _hasToJsonMethod(classElement);
+
+    return hasFromJson && hasToJson;
+  }
+
+  /// Check if class or its hierarchy has fromJson method
+  static bool _hasFromJsonMethod(ClassElement classElement) {
+  // Get all classes in hierarchy (current + supertypes, excluding Object)
+  final allClasses = [
+    classElement,
+    ...classElement.allSupertypes
+        .where((type) => type.element.name != 'Object')
+        .map((type) => type.element)
+        .whereType<ClassElement>()
+  ];
+
+  // Check if any class has fromJson
+  return allClasses.any((element) {
+    final hasConstructor = element.constructors.any(
+      (c) => c.name == 'fromJson' && c.parameters.length == 1,
+    );
+    
+    final hasStaticMethod = element.methods.any(
+      (m) => m.name == 'fromJson' && m.isStatic && m.parameters.length == 1,
+    );
+    
+    return hasConstructor || hasStaticMethod;
+  });
+}
+  /// Check if class or its hierarchy has toJson method
+  static bool _hasToJsonMethod(ClassElement classElement) {
+    // Check instance methods in current class
+    final hasToJsonMethod = classElement.methods.any(
       (method) =>
           method.name == 'toJson' &&
           method.parameters.isEmpty &&
           !method.isStatic,
     );
 
-    // 檢查有冇標準 fromJson constructor 或 static method（一個參數）
-    final hasFromJsonConstructor = classElement.constructors.any(
-      (constructor) =>
-          constructor.name == 'fromJson' && constructor.parameters.length == 1,
+    if (hasToJsonMethod) {
+      return true;
+    }
+
+    // Check mixins for toJson method (Freezed generates toJson in mixins)
+    final hasMixinWithToJson = classElement.mixins.any(
+      (mixin) {
+        final mixinElement = mixin.element;
+        return mixinElement.methods.any(
+          (method) =>
+              method.name == 'toJson' &&
+              method.parameters.isEmpty &&
+              !method.isStatic,
+        );
+      },
     );
 
-    final hasFromJsonMethod = classElement.methods.any(
-      (method) =>
-          method.name == 'fromJson' &&
-          method.isStatic &&
-          method.parameters.length == 1,
-    );
+    if (hasMixinWithToJson) {
+      return true;
+    }
 
-    return hasToJson && (hasFromJsonConstructor || hasFromJsonMethod);
+    // Check superclass
+    final supertype = classElement.supertype;
+    if (supertype != null && supertype.element.name != 'Object') {
+      final supertypeElement = supertype.element;
+      if (supertypeElement is ClassElement && _hasToJsonMethod(supertypeElement)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
-  /// 檢查 type 是否支援泛型 JSON serialization
+  /// Check if type supports generic JSON serialization
   static bool _hasGenericJsonSupport(DartType dartType) {
     if (dartType is! InterfaceType) {
       return false;
@@ -965,7 +1017,7 @@ class ModelAnalyzer {
       return false;
     }
 
-    // 檢查有冇 fromJson constructor（2個或3個參數都接受）
+    // Check for fromJson constructor (accepts 2 or 3 parameters)
     final hasGenericFromJson = classElement.constructors.any(
       (constructor) =>
           constructor.name == 'fromJson' &&
@@ -973,7 +1025,7 @@ class ModelAnalyzer {
               constructor.parameters.length == 3),
     );
 
-    // 檢查有冇 toJson method（1個或2個參數都接受）
+    // Check for toJson method (accepts 1 or 2 parameters)
     final hasGenericToJson = classElement.methods.any(
       (method) =>
           method.name == 'toJson' &&
