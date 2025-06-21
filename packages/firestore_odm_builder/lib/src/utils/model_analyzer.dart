@@ -187,12 +187,12 @@ class AnnotationConverter implements TypeConverter {
   
   @override
   String generateFromFirestore(String sourceExpression) {
-    return 'const $converterClassName().fromFirestore($sourceExpression)';
+    return 'const $converterClassName().fromJson($sourceExpression)';
   }
   
   @override
   String generateToFirestore(String sourceExpression) {
-    return 'const $converterClassName().toFirestore($sourceExpression)';
+    return 'const $converterClassName().toJson($sourceExpression)';
   }
 }
 
@@ -228,31 +228,35 @@ class FieldInfo {
   final String parameterName;
   final String jsonFieldName;
   final DartType dartType;
-  final FirestoreType firestoreType;
   final bool isDocumentId;
   final bool isNullable;
   final bool isOptional;
-  final TypeConverter converter;
+  final TypeAnalysisResult typeAnalysis;
 
   const FieldInfo({
     required this.parameterName,
     required this.jsonFieldName,
     required this.dartType,
-    required this.firestoreType,
     required this.isDocumentId,
     required this.isNullable,
     required this.isOptional,
-    required this.converter,
+    required this.typeAnalysis,
   });
+
+  /// Get Firestore type from type analysis
+  FirestoreType get firestoreType => typeAnalysis.firestoreType;
+  
+  /// Get converter from type analysis
+  TypeConverter get converter => typeAnalysis.converter;
 
   /// Generate conversion from Firestore
   String generateFromFirestore(String sourceExpression) {
-    return converter.generateFromFirestore(sourceExpression);
+    return typeAnalysis.converter.generateFromFirestore(sourceExpression);
   }
 
   /// Generate conversion to Firestore
   String generateToFirestore(String sourceExpression) {
-    return converter.generateToFirestore(sourceExpression);
+    return typeAnalysis.converter.generateToFirestore(sourceExpression);
   }
 
   @override
@@ -267,6 +271,7 @@ class ModelAnalysis {
   final Map<String, FieldInfo> fields;
   final List<FieldInfo> updateableFields;
   final bool hasManualSerialization;
+  final TypeAnalysisResult classTypeAnalysis;
 
   const ModelAnalysis({
     required this.className,
@@ -274,6 +279,7 @@ class ModelAnalysis {
     required this.fields,
     required this.updateableFields,
     required this.hasManualSerialization,
+    required this.classTypeAnalysis,
   });
 
   /// Get field by parameter name
@@ -363,19 +369,26 @@ class TypeRegistry {
 
     TypeConverter baseConverter;
 
-    // Check for @JsonConverter annotation first
+    // Check for custom JsonConverter annotations first (like @ListLengthConverter())
     if (element != null) {
-      final jsonConverter = ModelAnalyzer._jsonConverterChecker.firstAnnotationOf(element);
-      if (jsonConverter != null) {
-        final converterType = jsonConverter.type;
-        if (converterType != null && converterType is InterfaceType) {
-          final converterClassName = converterType.element3.name3!;
-          baseConverter = AnnotationConverter(converterClassName);
+      // Look for any annotation that implements JsonConverter
+      final customConverter = _findCustomJsonConverter(element);
+      if (customConverter != null) {
+        baseConverter = AnnotationConverter(customConverter);
+      } else {
+        // Check for standard @JsonConverter annotation
+        final jsonConverter = ModelAnalyzer._jsonConverterChecker.firstAnnotationOf(element);
+        if (jsonConverter != null) {
+          final converterType = jsonConverter.type;
+          if (converterType != null && converterType is InterfaceType) {
+            final converterClassName = converterType.element3.name3!;
+            baseConverter = AnnotationConverter(converterClassName);
+          } else {
+            baseConverter = _createDefaultConverter(dartType, firestoreType);
+          }
         } else {
           baseConverter = _createDefaultConverter(dartType, firestoreType);
         }
-      } else {
-        baseConverter = _createDefaultConverter(dartType, firestoreType);
       }
     } else {
       baseConverter = _createDefaultConverter(dartType, firestoreType);
@@ -387,6 +400,35 @@ class TypeRegistry {
     }
 
     return baseConverter;
+  }
+
+  /// Find custom JsonConverter annotation (like @ListLengthConverter())
+  String? _findCustomJsonConverter(Element element) {
+    for (final annotation in element.metadata) {
+      final annotationType = annotation.computeConstantValue()?.type;
+      if (annotationType is InterfaceType) {
+        final className = annotationType.element3.name3;
+        // Check if this class implements JsonConverter
+        if (_implementsJsonConverter(annotationType.element3)) {
+          return className;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Check if a class implements JsonConverter interface
+  bool _implementsJsonConverter(Element2 classElement) {
+    if (classElement is! ClassElement2) return false;
+    
+    // Check all interfaces and superclasses
+    for (final interface in classElement.allSupertypes) {
+      final interfaceName = interface.element.name;
+      if (interfaceName == 'JsonConverter') {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Create default converter based on type and firestore type
@@ -539,11 +581,10 @@ class ModelAnalyzer {
           parameterName: existingField.parameterName,
           jsonFieldName: existingField.jsonFieldName,
           dartType: existingField.dartType,
-          firestoreType: existingField.firestoreType,
           isDocumentId: true,
           isNullable: existingField.isNullable,
           isOptional: existingField.isOptional,
-          converter: existingField.converter,
+          typeAnalysis: existingField.typeAnalysis,
         );
       }
 
@@ -552,15 +593,16 @@ class ModelAnalyzer {
           .where((field) => !field.isDocumentId)
           .toList();
 
-      // Check if the class has manual serialization methods
-      final hasManualSerialization = _hasStandardJsonSupport(classElement.thisType);
+      // Get class type analysis
+      final classTypeAnalysis = registry.getOrAnalyzeType(classElement.thisType, classElement);
 
       return ModelAnalysis(
         className: classElement.name,
         documentIdFieldName: documentIdFieldName,
         fields: fieldsMap,
         updateableFields: updateableFields,
-        hasManualSerialization: hasManualSerialization,
+        hasManualSerialization: classTypeAnalysis.hasJsonSupport,
+        classTypeAnalysis: classTypeAnalysis,
       );
     } catch (e) {
       return null;
@@ -744,11 +786,10 @@ class ModelAnalyzer {
       parameterName: fieldName,
       jsonFieldName: jsonFieldName,
       dartType: fieldType,
-      firestoreType: typeResult.firestoreType,
       isDocumentId: false,
       isNullable: isNullable,
       isOptional: isOptional,
-      converter: typeResult.converter,
+      typeAnalysis: typeResult,
     );
   }
 
@@ -807,9 +848,6 @@ class ModelAnalyzer {
     final actualType = dartType.nullabilitySuffix == NullabilitySuffix.question
         ? (dartType as InterfaceType).element3.thisType
         : dartType;
-
-    final typeName = actualType.getDisplayString(withNullability: false);
-
     // Handle primitive types
     if (TypeAnalyzer.isStringType(actualType)) {
       return FirestoreType.string;
@@ -825,29 +863,22 @@ class ModelAnalyzer {
     }
 
     // Handle special types that convert to different Firestore types
-    if (typeName == 'Duration') {
+    if (TypeAnalyzer.isDurationType(actualType)) {
       return FirestoreType
           .integer; // Duration converts to milliseconds (integer)
     }
-    if (typeName == 'DateTime') {
+    if (TypeAnalyzer.isDateTimeType(actualType)) {
       return FirestoreType
           .timestamp; // DateTime converts to Firestore Timestamp
     }
 
+    if (TypeAnalyzer.isMapType(actualType)) {
+      return FirestoreType.map;
+    }
+    
     // Handle collections
-    if (actualType is InterfaceType) {
-      final typeElement = actualType.element3;
-      final elementName = typeElement.name3;
-
-      if (elementName == 'List' ||
-          elementName == 'Set' ||
-          elementName == 'IList' ||
-          elementName == 'ISet') {
-        return FirestoreType.array;
-      }
-      if (elementName == 'Map' || elementName == 'IMap') {
-        return FirestoreType.map;
-      }
+    if (TypeAnalyzer.isListType(actualType)) {
+      return FirestoreType.array;
     }
 
     // For custom objects, return object type (will be serialized as map)
