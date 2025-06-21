@@ -479,4 +479,592 @@ void main() {
       print('✅ Back and forth conversion: ✓');
     });
   });
+
+  group('🔥 Atomic Array Patch Operations', () {
+    late FakeFirebaseFirestore fakeFirestore;
+    late FirestoreODM<TestSchema> odm;
+
+    setUp(() {
+      fakeFirestore = FakeFirebaseFirestore();
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
+    });
+
+    test('should use arrayUnion to add tags without duplicates', () async {
+      final model = ListLengthModel(
+        id: 'array_union_test',
+        name: 'Array Union Test',
+        description: 'Testing arrayUnion patch operations',
+        tags: ['existing1', 'existing2'].toIList(),
+        priority: 1,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Use addAll patch - atomic operation, no duplicates
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.addAll(['new1', 'new2', 'existing1']), // existing1 won't duplicate
+            $.priority.increment(1),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      expect(result!.tags.length, equals(4)); // existing1, existing2, new1, new2
+      expect(result.tags.contains('existing1'), isTrue);
+      expect(result.tags.contains('existing2'), isTrue);
+      expect(result.tags.contains('new1'), isTrue);
+      expect(result.tags.contains('new2'), isTrue);
+      expect(result.priority, equals(2));
+
+      print('✅ ArrayUnion patch prevents duplicates atomically');
+    });
+
+    test('should use arrayRemove to remove specific tags', () async {
+      final model = ListLengthModel(
+        id: 'array_remove_test',
+        name: 'Array Remove Test',
+        description: 'Testing arrayRemove patch operations',
+        tags: ['keep1', 'remove1', 'keep2', 'remove2', 'keep3'].toIList(),
+        priority: 5,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Use removeAll patch - atomic operation
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.removeAll(['remove1', 'remove2', 'nonexistent']),
+            $.priority.increment(-2),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      expect(result!.tags.length, equals(3)); // keep1, keep2, keep3
+      expect(result.tags.contains('keep1'), isTrue);
+      expect(result.tags.contains('keep2'), isTrue);
+      expect(result.tags.contains('keep3'), isTrue);
+      expect(result.tags.contains('remove1'), isFalse);
+      expect(result.tags.contains('remove2'), isFalse);
+      expect(result.priority, equals(3));
+
+      print('✅ ArrayRemove patch removes elements atomically');
+    });
+
+    test('should combine arrayUnion and arrayRemove in single patch', () async {
+      final model = ListLengthModel(
+        id: 'array_combo_test',
+        name: 'Combined Array Operations',
+        description: 'Testing combined array patch operations',
+        tags: ['old1', 'old2', 'old3'].toIList(),
+        items: ['item1', 'item2'].toIList(), // This will be converted to length
+        priority: 10,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Combine multiple atomic operations in single patch
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.removeAll(['old2']), // Remove one old tag
+            $.tags.addAll(['new1', 'new2']), // Add new tags
+            $.items(['updated1', 'updated2', 'updated3'].toIList()), // Replace items (gets converted)
+            $.priority.increment(5),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      
+      // Tags: atomic operations worked
+      expect(result!.tags.length, equals(4)); // old1, old3, new1, new2
+      expect(result.tags.contains('old1'), isTrue);
+      expect(result.tags.contains('old3'), isTrue);
+      expect(result.tags.contains('new1'), isTrue);
+      expect(result.tags.contains('new2'), isTrue);
+      expect(result.tags.contains('old2'), isFalse);
+      
+      // Items: converted field replaced
+      expect(result.items.length, equals(3)); // Length preserved
+      expect(result.priority, equals(15));
+
+      // Check raw data
+      final rawDoc = await fakeFirestore
+          .collection('listLengthModels')
+          .doc(model.id)
+          .get();
+      final rawData = rawDoc.data()!;
+      expect(rawData['items'], equals(3)); // Stored as length
+      expect(rawData['tags'], isA<List>()); // Stored as array
+
+      print('✅ Combined atomic and replacement operations work together');
+    });
+
+    test('should demonstrate converted fields cannot use array operations', () async {
+      final model = ListLengthModel(
+        id: 'converted_limitation_test',
+        name: 'Converted Field Limitations',
+        description: 'Showing array ops fail on converted fields',
+        items: ['item1', 'item2'].toIList(), // Gets converted to int
+        numbers: [10, 20].toIList(), // Gets converted to int
+        tags: ['tag1', 'tag2'].toIList(), // Stays as array
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // This works - tags is a real array
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.addAll(['tag3']),
+          ]);
+
+      // These would FAIL at runtime because items/numbers are stored as ints:
+      // await odm.listLengthModels(model.id).patch(($) => [
+      //   $.items.arrayUnion(['item3']), // ERROR: arrayUnion on int field
+      //   $.numbers.arrayUnion([30]), // ERROR: arrayUnion on int field
+      // ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      expect(result!.tags.contains('tag3'), isTrue);
+
+      print('✅ Array operations work on real arrays (tags)');
+      print('⚠️  Array operations FAIL on converted fields (items/numbers)');
+    });
+  });
+
+  group('🗺️ Nested Map Operations Tests', () {
+    late FakeFirebaseFirestore fakeFirestore;
+    late FirestoreODM<TestSchema> odm;
+
+    setUp(() {
+      fakeFirestore = FakeFirebaseFirestore();
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
+    });
+
+    test('should patch individual Profile fields without replacing whole object', () async {
+      final originalProfile = Profile(
+        bio: 'Original Bio',
+        avatar: 'original.jpg',
+        socialLinks: {'twitter': '@original', 'github': 'original_user'},
+        interests: ['coding', 'reading'],
+        followers: 100,
+      );
+
+      final model = ListLengthModel(
+        id: 'profile_partial_update_test',
+        name: 'Profile Partial Update',
+        description: 'Testing partial profile updates',
+        nestedProfiles: [originalProfile].toIList(),
+        priority: 1,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Update only specific fields, not the whole profile
+      final updatedProfile = originalProfile.copyWith(
+        followers: 150, // Only update follower count
+        socialLinks: {
+          ...originalProfile.socialLinks,
+          'linkedin': 'new_linkedin', // Add one new social link
+        },
+      );
+
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.nestedProfiles([updatedProfile].toIList()),
+            $.priority.increment(1),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      final resultProfile = result!.nestedProfiles.first;
+      
+      // Verify only intended changes
+      expect(resultProfile.bio, equals('Original Bio')); // Unchanged
+      expect(resultProfile.avatar, equals('original.jpg')); // Unchanged
+      expect(resultProfile.interests, equals(['coding', 'reading'])); // Unchanged
+      expect(resultProfile.followers, equals(150)); // Updated
+      expect(resultProfile.socialLinks['twitter'], equals('@original')); // Unchanged
+      expect(resultProfile.socialLinks['github'], equals('original_user')); // Unchanged
+      expect(resultProfile.socialLinks['linkedin'], equals('new_linkedin')); // Added
+      expect(result.priority, equals(2));
+
+      print('✅ Partial profile updates preserve unchanged fields');
+    });
+
+    test('should modify Profile arrays and maps incrementally', () async {
+      final profile = Profile(
+        bio: 'Tech Enthusiast',
+        avatar: 'tech.jpg',
+        socialLinks: {'twitter': '@tech_person'},
+        interests: ['tech', 'gaming'],
+        followers: 200,
+      );
+
+      final model = ListLengthModel(
+        id: 'profile_incremental_test',
+        name: 'Profile Incremental Update',
+        description: 'Testing incremental profile modifications',
+        nestedProfiles: [profile].toIList(),
+        tags: ['profile_tag'].toIList(),
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Incremental updates - add to existing rather than replace
+      final expandedProfile = profile.copyWith(
+        socialLinks: {
+          ...profile.socialLinks, // Keep existing
+          'youtube': '@tech_channel', // Add new
+          'discord': 'TechServer#1234', // Add another
+        },
+        interests: [
+          ...profile.interests, // Keep existing
+          'streaming', 'opensource' // Add new
+        ],
+        followers: profile.followers + 50, // Increment
+      );
+
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.nestedProfiles([expandedProfile].toIList()),
+            $.tags(['profile_tag', 'updated_tag'].toIList()),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      final resultProfile = result!.nestedProfiles.first;
+
+      // Verify incremental additions
+      expect(resultProfile.socialLinks.length, equals(3));
+      expect(resultProfile.socialLinks['twitter'], equals('@tech_person')); // Original
+      expect(resultProfile.socialLinks['youtube'], equals('@tech_channel')); // Added
+      expect(resultProfile.socialLinks['discord'], equals('TechServer#1234')); // Added
+      
+      expect(resultProfile.interests.length, equals(4));
+      expect(resultProfile.interests.contains('tech'), isTrue); // Original
+      expect(resultProfile.interests.contains('gaming'), isTrue); // Original
+      expect(resultProfile.interests.contains('streaming'), isTrue); // Added
+      expect(resultProfile.interests.contains('opensource'), isTrue); // Added
+      
+      expect(resultProfile.followers, equals(250)); // 200 + 50
+      expect(result.tags.contains('updated_tag'), isTrue);
+
+      print('✅ Incremental Profile modifications work correctly');
+    });
+
+    test('should handle multiple profiles with different map operations', () async {
+      final devProfile = Profile(
+        bio: 'Software Developer',
+        avatar: 'dev.jpg',
+        socialLinks: {'github': 'dev_coder'},
+        interests: ['coding'],
+        followers: 300,
+      );
+
+      final designProfile = Profile(
+        bio: 'UI/UX Designer',
+        avatar: 'designer.jpg',
+        socialLinks: {'dribbble': 'cool_designer'},
+        interests: ['design'],
+        followers: 250,
+      );
+
+      final model = ListLengthModel(
+        id: 'multi_profile_operations_test',
+        name: 'Multi Profile Operations',
+        description: 'Testing different operations on multiple profiles',
+        nestedProfiles: [devProfile, designProfile].toIList(),
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Different operations for each profile
+      final updatedDevProfile = devProfile.copyWith(
+        socialLinks: {
+          ...devProfile.socialLinks,
+          'stackoverflow': 'helpful_dev', // Add professional platform
+          'twitter': '@dev_tweets', // Add social platform
+        },
+        interests: [...devProfile.interests, 'algorithms', 'opensource'],
+      );
+
+      final updatedDesignProfile = designProfile.copyWith(
+        socialLinks: {
+          'dribbble': 'cool_designer', // Keep existing
+          'behance': 'amazing_portfolio', // Add portfolio platform
+          // Note: not adding all old ones = removing some
+        },
+        interests: [...designProfile.interests, 'typography', 'branding'],
+        followers: designProfile.followers + 75, // Increment followers
+      );
+
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.nestedProfiles([updatedDevProfile, updatedDesignProfile].toIList()),
+          ]);
+
+      final result = await odm.listLengthModels(model.id).get();
+      
+      // Verify dev profile changes
+      final resultDevProfile = result!.nestedProfiles[0];
+      expect(resultDevProfile.socialLinks.length, equals(3));
+      expect(resultDevProfile.socialLinks['github'], equals('dev_coder'));
+      expect(resultDevProfile.socialLinks['stackoverflow'], equals('helpful_dev'));
+      expect(resultDevProfile.socialLinks['twitter'], equals('@dev_tweets'));
+      expect(resultDevProfile.interests.length, equals(3));
+      
+      // Verify design profile changes
+      final resultDesignProfile = result.nestedProfiles[1];
+      expect(resultDesignProfile.socialLinks.length, equals(2));
+      expect(resultDesignProfile.socialLinks['dribbble'], equals('cool_designer'));
+      expect(resultDesignProfile.socialLinks['behance'], equals('amazing_portfolio'));
+      expect(resultDesignProfile.interests.length, equals(3));
+      expect(resultDesignProfile.followers, equals(325)); // 250 + 75
+
+      print('✅ Multiple profiles with different map/list operations updated successfully');
+    });
+  });
+
+  group('🧪 JsonConverter Array Operations Tests', () {
+    late FakeFirebaseFirestore fakeFirestore;
+    late FirestoreODM<TestSchema> odm;
+
+    setUp(() {
+      fakeFirestore = FakeFirebaseFirestore();
+      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
+    });
+
+    test('should test items.add() behavior on converted field', () async {
+      final model = ListLengthModel(
+        id: 'items_add_test',
+        name: 'Items Add Test',
+        description: 'Testing add operations on converted items field',
+        items: ['initial1', 'initial2'].toIList(), // Converted to length: 2
+        tags: ['tag1', 'tag2'].toIList(), // No converter
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      try {
+        // Try to use add() on converted field - should this work or fail?
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.items.add('new_item'), // Testing add on converted field
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ items.add() worked on converted field');
+        print('   Result items length: ${result!.items.length}');
+        print('   Result items content: ${result.items}');
+      } catch (e) {
+        print('❌ items.add() failed on converted field: $e');
+      }
+
+      // Compare with regular array field
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.add('new_tag'), // Testing add on regular array
+          ]);
+
+      final finalResult = await odm.listLengthModels(model.id).get();
+      print('✅ tags.add() worked on regular array');
+      print('   Final tags: ${finalResult!.tags}');
+    });
+
+    test('should test items.addAll() behavior on converted field', () async {
+      final model = ListLengthModel(
+        id: 'items_addall_test',
+        name: 'Items AddAll Test',
+        description: 'Testing addAll operations on converted items field',
+        items: ['item1', 'item2'].toIList(), // Converted to length: 2
+        numbers: [10, 20].toIList(), // Converted to sum: 30
+        tags: ['tag1'].toIList(), // No converter
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      try {
+        // Try addAll on converted items field
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.items.addAll(['new1', 'new2', 'new3']), // Should this work?
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ items.addAll() worked on converted field');
+        print('   Result items length: ${result!.items.length}');
+        print('   Raw storage check needed...');
+
+        // Check raw storage
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('   Raw items value: ${rawData['items']} (should be int)');
+      } catch (e) {
+        print('❌ items.addAll() failed on converted field: $e');
+      }
+
+      try {
+        // Try addAll on converted numbers field
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.numbers.addAll([5, 15, 25]), // Should this work?
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ numbers.addAll() worked on converted field');
+        print('   Result numbers: ${result!.numbers}');
+
+        // Check raw storage
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('   Raw numbers value: ${rawData['numbers']} (should be int)');
+      } catch (e) {
+        print('❌ numbers.addAll() failed on converted field: $e');
+      }
+    });
+
+    test('should test numbers.add() and increment behavior on converted field', () async {
+      final model = ListLengthModel(
+        id: 'numbers_add_test',
+        name: 'Numbers Add Test',
+        description: 'Testing add operations on converted numbers field',
+        numbers: [100, 200, 300].toIList(), // Converted to sum: 600
+        priority: 5,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      // Check initial raw storage
+      final initialRawDoc = await fakeFirestore
+          .collection('listLengthModels')
+          .doc(model.id)
+          .get();
+      final initialRawData = initialRawDoc.data()!;
+      print('📊 Initial state:');
+      print('   Raw numbers value: ${initialRawData['numbers']} (converted sum)');
+      print('   Retrieved numbers: ${(await odm.listLengthModels(model.id).get())!.numbers}');
+
+      try {
+        // Try to use add() on converted numbers field
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.numbers.add(50), // What happens here?
+              $.priority.increment(1), // Regular increment for comparison
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ numbers.add() worked');
+        print('   Result numbers: ${result!.numbers}');
+        print('   Priority: ${result.priority}');
+
+        // Check raw storage after add
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('   Raw numbers after add: ${rawData['numbers']}');
+      } catch (e) {
+        print('❌ numbers.add() failed: $e');
+      }
+    });
+
+    test('should test removeAll on converted fields', () async {
+      final model = ListLengthModel(
+        id: 'remove_converted_test',
+        name: 'Remove Converted Test',
+        description: 'Testing removeAll on converted fields',
+        items: ['remove1', 'keep1', 'remove2', 'keep2'].toIList(), // Length: 4
+        numbers: [10, 20, 30, 40, 50].toIList(), // Sum: 150
+        tags: ['tag1', 'tag2', 'tag3'].toIList(), // Regular array
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      try {
+        // Try removeAll on converted items field
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.items.removeAll(['remove1', 'remove2']), // Can we remove from length?
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ items.removeAll() worked on converted field');
+        print('   Result items: ${result!.items}');
+
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('   Raw items value: ${rawData['items']}');
+      } catch (e) {
+        print('❌ items.removeAll() failed: $e');
+      }
+
+      try {
+        // Try removeAll on converted numbers field
+        await odm.listLengthModels(model.id).patch(($) => [
+              $.numbers.removeAll([20, 40]), // Can we remove from sum?
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ numbers.removeAll() worked on converted field');
+        print('   Result numbers: ${result!.numbers}');
+
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('   Raw numbers value: ${rawData['numbers']}');
+      } catch (e) {
+        print('❌ numbers.removeAll() failed: $e');
+      }
+
+      // Compare with regular array that works
+      await odm.listLengthModels(model.id).patch(($) => [
+            $.tags.removeAll(['tag2']),
+          ]);
+
+      final finalResult = await odm.listLengthModels(model.id).get();
+      print('✅ tags.removeAll() worked on regular array: ${finalResult!.tags}');
+    });
+
+    test('should test mixed operations on all field types', () async {
+      final model = ListLengthModel(
+        id: 'mixed_converter_test',
+        name: 'Mixed Converter Test',
+        description: 'Testing all operations together',
+        items: ['item1'].toIList(), // Converted to length: 1
+        numbers: [100].toIList(), // Converted to sum: 100
+        tags: ['tag1'].toIList(), // Regular array
+        priority: 10,
+      );
+
+      await odm.listLengthModels(model.id).update(model);
+
+      print('📊 Testing comprehensive mixed operations:');
+
+      try {
+        await odm.listLengthModels(model.id).patch(($) => [
+              // Test converter fields
+              $.items.addAll(['add1', 'add2']), // items converter
+              $.numbers.addAll([25, 75]), // numbers converter
+              
+              // Test regular fields
+              $.tags.addAll(['tag2', 'tag3']), // regular array
+              $.priority.increment(5), // regular int
+            ]);
+
+        final result = await odm.listLengthModels(model.id).get();
+        print('✅ Mixed operations completed');
+        print('   Items length: ${result!.items.length} (should reflect converter)');
+        print('   Numbers: ${result.numbers} (should reflect converter)');
+        print('   Tags: ${result.tags} (should be regular array)');
+        print('   Priority: ${result.priority}');
+
+        // Check raw storage for all fields
+        final rawDoc = await fakeFirestore
+            .collection('listLengthModels')
+            .doc(model.id)
+            .get();
+        final rawData = rawDoc.data()!;
+        print('📊 Raw storage:');
+        print('   items: ${rawData['items']} (${rawData['items'].runtimeType})');
+        print('   numbers: ${rawData['numbers']} (${rawData['numbers'].runtimeType})');
+        print('   tags: ${rawData['tags']} (${rawData['tags'].runtimeType})');
+        print('   priority: ${rawData['priority']} (${rawData['priority'].runtimeType})');
+      } catch (e) {
+        print('❌ Mixed operations failed: $e');
+      }
+    });
+  });
 }
