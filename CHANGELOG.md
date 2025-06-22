@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-06-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm_builder` - `v2.3.1`](#firestore_odm_builder---v231)
+
+---
+
+#### `firestore_odm_builder` - `v2.3.1`
+
+ - **FIX**(subcollections): implement path-specific isolation to prevent cross-collection access. ([95d31e58](https://github.com/sylphxltd/firestore_odm/commit/95d31e58d4bba91f7da2c9001ec23c7f5dabf809))
+ - **FIX**(generator): correct extension placement for nested subcollections. ([9f64c681](https://github.com/sylphxltd/firestore_odm/commit/9f64c681111171a9049683b00e6f567cda445baa))
+
+
 ## 2025-06-22
 
 ### Changes

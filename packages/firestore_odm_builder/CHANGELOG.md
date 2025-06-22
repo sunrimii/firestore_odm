@@ -1,3 +1,8 @@
+## 2.3.1
+
+ - **FIX**(subcollections): implement path-specific isolation to prevent cross-collection access. ([95d31e58](https://github.com/sylphxltd/firestore_odm/commit/95d31e58d4bba91f7da2c9001ec23c7f5dabf809))
+ - **FIX**(generator): correct extension placement for nested subcollections. ([9f64c681](https://github.com/sylphxltd/firestore_odm/commit/9f64c681111171a9049683b00e6f567cda445baa))
+
 ## 2.3.0
 
  - **REFACTOR**: improve JSON serialization support checks in ModelAnalyzer. ([407232c5](https://github.com/sylphxltd/firestore_odm/commit/407232c5d3ca48ffc7654cc97ae13442fbc237c9))
