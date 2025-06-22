@@ -77,7 +77,15 @@ class SchemaGenerator {
       modelAnalyses,
     );
 
-    // Generate document extensions for subcollections
+    // Generate unique document classes for each collection path
+    _generateUniqueDocumentClasses(
+      buffer,
+      schemaClassName,
+      collections,
+      modelAnalyses,
+    );
+
+    // Generate document extensions for subcollections (path-specific)
     _generateDocumentExtensions(
       buffer,
       schemaClassName,
@@ -149,12 +157,14 @@ class SchemaGenerator {
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
 
+      final collectionClassName = _generateDocumentClassName(collection.path).replaceAll('Document', 'Collection');
+      
       buffer.writeln('  /// Access ${collection.path} collection');
       buffer.writeln(
-        '  FirestoreCollection<$schemaClassName, ${collection.modelTypeName}> get $collectionName =>',
+        '  $collectionClassName get $collectionName =>',
       );
       buffer.writeln(
-        '    FirestoreCollection<$schemaClassName, ${collection.modelTypeName}>(',
+        '    $collectionClassName(',
       );
       buffer.writeln(
         '      query: firestore.collection(\'${collection.path}\'),',
@@ -268,6 +278,49 @@ class SchemaGenerator {
     buffer.writeln('');
   }
 
+  /// Generate unique document and collection classes for each collection path
+  static void _generateUniqueDocumentClasses(
+    StringBuffer buffer,
+    String schemaClassName,
+    List<SchemaCollectionInfo> collections,
+    Map<String, ModelAnalysis> modelAnalyses,
+  ) {
+    buffer.writeln('// Generated unique document and collection classes for each collection path');
+    
+    for (final collection in collections) {
+      final documentClassName = _generateDocumentClassName(collection.path);
+      final collectionClassName = documentClassName.replaceAll('Document', 'Collection');
+      final modelType = collection.modelTypeName;
+      
+      // Generate document class
+      buffer.writeln('/// Document class for ${collection.path} collection');
+      buffer.writeln('class $documentClassName extends FirestoreDocument<$schemaClassName, $modelType> {');
+      buffer.writeln('  $documentClassName(');
+      buffer.writeln('    super.ref,');
+      buffer.writeln('    super.converter,');
+      buffer.writeln('    super.documentIdField,');
+      buffer.writeln('  );');
+      buffer.writeln('}');
+      buffer.writeln('');
+      
+      // Generate collection class
+      buffer.writeln('/// Collection class for ${collection.path} collection');
+      buffer.writeln('class $collectionClassName extends FirestoreCollection<$schemaClassName, $modelType> {');
+      buffer.writeln('  $collectionClassName({');
+      buffer.writeln('    required super.query,');
+      buffer.writeln('    required super.converter,');
+      buffer.writeln('    required super.documentIdField,');
+      buffer.writeln('  });');
+      buffer.writeln('');
+      buffer.writeln('  /// Gets a document reference with the specified ID');
+      buffer.writeln('  @override');
+      buffer.writeln('  $documentClassName call(String id) =>');
+      buffer.writeln('    $documentClassName(query.doc(id), converter, documentIdField);');
+      buffer.writeln('}');
+      buffer.writeln('');
+    }
+  }
+
   /// Generate document extensions for subcollections
   static void _generateDocumentExtensions(
     StringBuffer buffer,
@@ -277,7 +330,7 @@ class SchemaGenerator {
   ) {
     final subcollections = collections.where((c) => c.isSubcollection).toList();
 
-    // Group subcollections by parent type
+    // Group subcollections by parent type and include path info
     final parentGroups = <String, List<SchemaCollectionInfo>>{};
     for (final subcol in subcollections) {
       final parentType = _getParentTypeFromPath(subcol.path, collections);
@@ -286,15 +339,25 @@ class SchemaGenerator {
       }
     }
 
-    for (final entry in parentGroups.entries) {
-      final parentType = entry.key;
+    // Group subcollections by their parent collection path
+    final pathGroups = <String, List<SchemaCollectionInfo>>{};
+    for (final subcol in subcollections) {
+      final parentPath = _getParentCollectionPath(subcol.path);
+      if (parentPath != null) {
+        pathGroups.putIfAbsent(parentPath, () => []).add(subcol);
+      }
+    }
+
+    for (final entry in pathGroups.entries) {
+      final parentPath = entry.key;
       final subcolsForParent = entry.value;
+      final parentDocumentClassName = _generateDocumentClassName(parentPath);
 
       buffer.writeln(
-        '/// Extension to access subcollections on $parentType document',
+        '/// Extension to access subcollections on $parentDocumentClassName',
       );
       buffer.writeln(
-        'extension ${schemaClassName}${parentType}DocumentExtensions on FirestoreDocument<$schemaClassName, $parentType> {',
+        'extension ${parentDocumentClassName}Extensions on $parentDocumentClassName {',
       );
 
       for (final subcol in subcolsForParent) {
@@ -309,12 +372,15 @@ class SchemaGenerator {
         final documentIdField = analysis?.documentIdFieldName;
         final documentIdFieldValue = documentIdField ?? 'id';
 
+        // Generate unique collection class name for this subcollection path
+        final subcollectionClassName = _generateDocumentClassName(subcol.path).replaceAll('Document', 'Collection');
+        
         buffer.writeln('  /// Access $subcollectionName subcollection');
         buffer.writeln(
-          '  FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}> get $getterName =>',
+          '  $subcollectionClassName get $getterName =>',
         );
         buffer.writeln(
-          '    FirestoreCollection<$schemaClassName, ${subcol.modelTypeName}>(',
+          '    $subcollectionClassName(',
         );
         buffer.writeln('      query: ref.collection(\'$subcollectionName\'),');
         buffer.writeln('      converter: $converterName,');
@@ -377,16 +443,36 @@ class SchemaGenerator {
     final segments = path.split('/');
     if (segments.length < 3) return null;
 
-    // For deeply nested collections, we need to find the immediate parent type
-    // For example: "users/*/posts/*/comments" -> parent should be Post (from "users/*/posts")
-    // Build the parent path by removing the last collection segment
+    // For subcollections like "users/*/posts", the parent collection is "users"
+    // For nested subcollections like "users/*/posts/*/comments", the parent collection is "users/*/posts"
+    // Build the parent path by removing the last segment (subcollection name)
     final parentSegments = segments.sublist(0, segments.length - 1);
     final parentPath = parentSegments.join('/');
     
-    // Find the collection that matches this parent path pattern
+    // First try to find exact match
     for (final collection in allCollections) {
       if (collection.path == parentPath) {
         return collection.modelTypeName;
+      }
+    }
+    
+    // If no exact match and parent path contains wildcards, try to find the base collection
+    // For example: "users/*" should match "users"
+    if (parentPath.contains('*')) {
+      // Remove wildcard segments and try to find base collection
+      final baseSegments = <String>[];
+      for (final segment in parentSegments) {
+        if (segment == '*') break;
+        baseSegments.add(segment);
+      }
+      
+      if (baseSegments.isNotEmpty) {
+        final basePath = baseSegments.join('/');
+        for (final collection in allCollections) {
+          if (collection.path == basePath && !collection.isSubcollection) {
+            return collection.modelTypeName;
+          }
+        }
       }
     }
 
@@ -532,5 +618,51 @@ class SchemaGenerator {
   static String _toLowerCamelCase(String text) {
     if (text.isEmpty) return text;
     return text[0].toLowerCase() + text.substring(1);
+  }
+
+  /// Get parent collection path from subcollection path
+  /// e.g., "users/*/posts" -> "users"
+  /// e.g., "posts/*/comments" -> "posts"
+  /// e.g., "users/*/posts/*/comments" -> "users/*/posts"
+  static String? _getParentCollectionPath(String subcollectionPath) {
+    final segments = subcollectionPath.split('/');
+    if (segments.length >= 3) {
+      // Return all segments except the last one (which is the subcollection name)
+      final parentSegments = segments.take(segments.length - 2).toList();
+      if (parentSegments.isNotEmpty) {
+        return parentSegments.join('/');
+      }
+    }
+    return null;
+  }
+
+  /// Generate document class name from collection path
+  /// e.g., "users" -> "UsersDocument", "users2" -> "Users2Document"
+  /// e.g., "users/*/posts" -> "Users_PostsDocument"
+  /// e.g., "users/*/posts/*/comments" -> "Users_Posts_CommentsDocument"
+  static String _generateDocumentClassName(String collectionPath) {
+    // Split path and filter out wildcards
+    final segments = collectionPath.split('/')
+        .where((segment) => segment != '*')
+        .toList();
+    
+    // Convert each segment to PascalCase and join with underscore
+    final capitalizedSegments = segments
+        .map((segment) => StringHelpers.capitalize(segment))
+        .toList();
+    
+    final className = capitalizedSegments.join('_');
+    return '${className}Document';
+  }
+
+  /// Get model type from collection path
+  /// e.g., "users" -> "User", "posts" -> "Post"
+  static String? _getModelTypeFromCollectionPath(String collectionPath, List<SchemaCollectionInfo> collections) {
+    for (final collection in collections) {
+      if (collection.path == collectionPath && !collection.isSubcollection) {
+        return collection.modelTypeName;
+      }
+    }
+    return null;
   }
 }

@@ -21,6 +21,7 @@ part 'test_schema.odm.dart';
 @Collection<User>("users")
 @Collection<Post>("posts")
 @Collection<Post>("users/*/posts") // User subcollection
+@Collection<User>("users2") // Second User collection WITHOUT posts subcollection
 @Collection<Comment>("comments") // Root comments collection
 @Collection<Comment>("posts/*/comments") // Comments on posts in main collection
 @Collection<Comment>("users/*/posts/*/comments") // Nested: Comments on user posts (DEEP NESTING)
