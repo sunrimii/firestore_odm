@@ -3,6 +3,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_example/models/list_length_model.dart';
 import 'models/user.dart';
 import 'models/post.dart';
+import 'models/comment.dart';
 import 'models/simple_story.dart';
 import 'models/shared_post.dart';
 import 'models/profile.dart';
@@ -20,6 +21,9 @@ part 'test_schema.odm.dart';
 @Collection<User>("users")
 @Collection<Post>("posts")
 @Collection<Post>("users/*/posts") // User subcollection
+@Collection<Comment>("comments") // Root comments collection
+@Collection<Comment>("posts/*/comments") // Comments on posts in main collection
+@Collection<Comment>("users/*/posts/*/comments") // Nested: Comments on user posts (DEEP NESTING)
 @Collection<SimpleStory>("simpleStories")
 @Collection<SharedPost>("sharedPosts") // Different path to avoid conflict
 @Collection<SharedPost>("users/*/sharedPosts") // Different subcollection path

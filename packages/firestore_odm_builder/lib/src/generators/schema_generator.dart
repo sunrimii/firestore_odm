@@ -377,10 +377,15 @@ class SchemaGenerator {
     final segments = path.split('/');
     if (segments.length < 3) return null;
 
-    // Find the parent collection that matches the pattern
-    final parentPath = segments[0];
+    // For deeply nested collections, we need to find the immediate parent type
+    // For example: "users/*/posts/*/comments" -> parent should be Post (from "users/*/posts")
+    // Build the parent path by removing the last collection segment
+    final parentSegments = segments.sublist(0, segments.length - 1);
+    final parentPath = parentSegments.join('/');
+    
+    // Find the collection that matches this parent path pattern
     for (final collection in allCollections) {
-      if (collection.path == parentPath && !collection.isSubcollection) {
+      if (collection.path == parentPath) {
         return collection.modelTypeName;
       }
     }
