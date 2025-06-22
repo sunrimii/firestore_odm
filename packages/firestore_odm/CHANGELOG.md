@@ -1,3 +1,16 @@
+## 2.7.0
+
+ - **REFACTOR**: replace batch operation interfaces with synchronous variants for improved transaction handling. ([aab9f767](https://github.com/sylphxltd/firestore_odm/commit/aab9f767612c90365cf022c6c4a1a1f048ec8f68))
+ - **REFACTOR**: remove IListConverter, IMapConverter, and ISetConverter implementations for cleaner code. ([374f5da2](https://github.com/sylphxltd/firestore_odm/commit/374f5da217e490377d4e67921519049e3ef7f6bb))
+ - **REFACTOR**: Firestore ODM to use FirestoreConverter instead of ModelConverter. ([40acf7dc](https://github.com/sylphxltd/firestore_odm/commit/40acf7dc20d5c76d724992457dca47bf2f688809))
+ - **FEAT**: Add detailed English comments to Firestore ODM interfaces. ([bce08cf3](https://github.com/sylphxltd/firestore_odm/commit/bce08cf32e550d16f0fc973cdad74f89a84ab9ad))
+ - **FEAT**: enhance DateTimeConverter to handle server timestamp constant. ([a3aa5ace](https://github.com/sylphxltd/firestore_odm/commit/a3aa5ace4d67487599b132a4117c805aee5a2b82))
+ - **FEAT**: enhance Firestore converters to support custom IList, ISet, and IMap types with dynamic conversion expressions. ([6e7456c0](https://github.com/sylphxltd/firestore_odm/commit/6e7456c0d4a2d2f10d4822207186bbd3429abdfd))
+ - **FEAT**: implement FirestoreConverter interface and add DateTimeConverter and DurationConverter classes. ([a6226eaf](https://github.com/sylphxltd/firestore_odm/commit/a6226eaf78283b7f9c1c3d1f44e7dc16f9df5f10))
+ - **FEAT**: add DurationFieldUpdate class and support for Duration type in update generator. ([5cca1de8](https://github.com/sylphxltd/firestore_odm/commit/5cca1de88bfd417172336f9ac5832be68bfc1e5b))
+ - **FEAT**: enhance update builder with DefaultUpdateBuilder and streamline field update methods. ([1b277aa0](https://github.com/sylphxltd/firestore_odm/commit/1b277aa03a5b543ef23fa9380e58b4e9796a4d67))
+ - **DOCS**: add warnings about arithmetic operations on server timestamps. ([03790b36](https://github.com/sylphxltd/firestore_odm/commit/03790b3615eb55e8bcb9dfeda726bcc53c7273d8))
+
 ## 2.6.0
 
  - **FEAT**: add map operations for bulk updates and removals in UpdateBuilder. ([df9dee07](https://github.com/sylphxltd/firestore_odm/commit/df9dee076c53a74cc39cd97a75cc56de6f843e9e))

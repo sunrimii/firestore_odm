@@ -1,3 +1,20 @@
+## 2.3.0
+
+ - **REFACTOR**: improve JSON serialization support checks in ModelAnalyzer. ([407232c5](https://github.com/sylphxltd/firestore_odm/commit/407232c5d3ca48ffc7654cc97ae13442fbc237c9))
+ - **REFACTOR**: streamline Firestore conversion methods and enhance type key generation with element annotations. ([3ff3aa2c](https://github.com/sylphxltd/firestore_odm/commit/3ff3aa2c6c90052e02bc8bcfede0074c146d6988))
+ - **REFACTOR**: Firestore ODM to use FirestoreConverter instead of ModelConverter. ([40acf7dc](https://github.com/sylphxltd/firestore_odm/commit/40acf7dc20d5c76d724992457dca47bf2f688809))
+ - **FIX**: list and map casting. ([349c29e9](https://github.com/sylphxltd/firestore_odm/commit/349c29e9e531ab4eb6873fc87a9f0f84799b53a8))
+ - **FEAT**: update AnnotationConverter to use fromJson and toJson methods; refactor FieldInfo and ModelAnalysis to utilize TypeAnalysisResult. ([7cf6784d](https://github.com/sylphxltd/firestore_odm/commit/7cf6784d1a9491495c9800b5c6c940c3f4ccfc78))
+ - **FEAT**: add support for manual serialization in ConverterGenerator. ([aa0ed533](https://github.com/sylphxltd/firestore_odm/commit/aa0ed53334398013d476749a5f0349ce976ff06f))
+ - **FEAT**: enhance UpdateGenerator to support custom toFirestore expressions for fields with converters. ([c9fd3091](https://github.com/sylphxltd/firestore_odm/commit/c9fd3091a288a8d1d33af616027e0577e4de0c19))
+ - **FEAT**: add nestedProfiles field to ListLengthModel and update JSON conversion logic. ([447a5f77](https://github.com/sylphxltd/firestore_odm/commit/447a5f77684382aa86b61c0f06889713b022706f))
+ - **FEAT**: add automatic JSON conversion support for generic collections. ([c115bcfb](https://github.com/sylphxltd/firestore_odm/commit/c115bcfb0ca237452b20736a5b64accafee933f6))
+ - **FEAT**: enhance Firestore converters to support custom IList, ISet, and IMap types with dynamic conversion expressions. ([6e7456c0](https://github.com/sylphxltd/firestore_odm/commit/6e7456c0d4a2d2f10d4822207186bbd3429abdfd))
+ - **FEAT**: enhance Firestore type determination by incorporating @JsonConverter support. ([213b2821](https://github.com/sylphxltd/firestore_odm/commit/213b28215b37540b68695121a344800c962cb2e3))
+ - **FEAT**: enhance FirestoreType enum and add Firestore type determination for Dart types. ([35c63402](https://github.com/sylphxltd/firestore_odm/commit/35c63402b0e90da4815716a63d9082bb9a5f6751))
+ - **FEAT**: add DurationFieldUpdate class and support for Duration type in update generator. ([5cca1de8](https://github.com/sylphxltd/firestore_odm/commit/5cca1de88bfd417172336f9ac5832be68bfc1e5b))
+ - **FEAT**: enhance update builder with DefaultUpdateBuilder and streamline field update methods. ([1b277aa0](https://github.com/sylphxltd/firestore_odm/commit/1b277aa03a5b543ef23fa9380e58b4e9796a4d67))
+
 ## 2.2.2
 
  - **FIX**: IMap bug fixes and patch operations in UpdateBuilder. ([579476a4](https://github.com/sylphxltd/firestore_odm/commit/579476a4e9039fb1416ec8e2ac271c7e9cb3a3a6))
