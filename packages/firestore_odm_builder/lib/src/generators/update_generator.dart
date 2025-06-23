@@ -38,7 +38,7 @@ class UpdateGenerator {
     }
 
     buffer.writeln('  }) {');
-    buffer.writeln('    final data = <String, dynamic>{};');
+    buffer.writeln('    final data = <String, dynamic>{');
 
     // Generate field assignments using JSON field names from analysis
     for (final field in analysis.updateableFields) {
@@ -48,18 +48,28 @@ class UpdateGenerator {
       // Check if field has custom converter
       if (field.converter is! DirectConverter) {
         // Apply converter for toFirestore conversion
-        final toFirestoreExpr = field.generateToFirestore(paramName);
+        String toFirestoreExpr = field.generateToFirestore(paramName);
+        
+        // If the field is nullable and the converter already has null check,
+        // remove the redundant null check since we already check it in the collection if
+        if (field.isNullable && toFirestoreExpr.contains('$paramName == null ? null :')) {
+          // Extract the non-null expression by removing the null check pattern
+          final pattern = '$paramName == null ? null : ';
+          toFirestoreExpr = toFirestoreExpr.replaceFirst(pattern, '');
+        }
+        
         buffer.writeln(
-          '    if ($paramName != null) data[\'$jsonFieldName\'] = $toFirestoreExpr;',
+          '      if ($paramName != null) \'$jsonFieldName\': $toFirestoreExpr,',
         );
       } else {
         // Standard assignment without converter
         buffer.writeln(
-          '    if ($paramName != null) data[\'$jsonFieldName\'] = $paramName;',
+          '      if ($paramName != null) \'$jsonFieldName\': $paramName,',
         );
       }
     }
 
+    buffer.writeln('    };');
     buffer.writeln(
       '    return UpdateOperation(\$path, UpdateOperationType.objectMerge, data);',
     );
