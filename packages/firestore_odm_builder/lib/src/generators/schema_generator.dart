@@ -33,7 +33,6 @@ class SchemaGenerator {
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
     Map<String, ModelAnalysis> modelAnalyses,
-    Map<String, TypeAnalysisResult> typeAnalyses,
   ) {
     final buffer = StringBuffer();
 
@@ -49,7 +48,7 @@ class SchemaGenerator {
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
 
     // Generate converters for all custom types discovered through type analysis
-    buffer.write(ConverterGenerator.generateConvertersForCustomTypes(typeAnalyses));
+    buffer.write(ConverterGenerator.generateConvertersForCustomTypes(modelAnalyses));
   
 
     // Generate filter and order by builders for each model type
@@ -489,6 +488,8 @@ class SchemaGenerator {
     Map<String, ModelAnalysis> modelAnalyses,
   ) {
     for (final analysis in modelAnalyses.values) {
+      if (!analysis.fields.entries.isNotEmpty) continue;
+
       // Generate FilterBuilder class using ModelAnalysis
       FilterGenerator.generateFilterSelectorClassFromAnalysis(buffer, analysis);
       buffer.writeln('');
@@ -671,7 +672,7 @@ class SchemaGenerator {
     // Extract base class name from potentially generic type name
     final baseClassName = _extractBaseClassName(modelTypeName);
     
-    if (analysis == null || !analysis.classTypeAnalysis.isGeneric) {
+    if (analysis == null || !analysis.isGeneric) {
       // Non-generic converter
       return 'const ${baseClassName}Converter()';
     }

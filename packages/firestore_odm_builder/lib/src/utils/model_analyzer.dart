@@ -2,9 +2,11 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'type_analyzer.dart';
 
 /// Firestore data type representation for Firestore ODM
 /// Based on official Firestore supported data types
@@ -28,9 +30,9 @@ enum FirestoreType {
 }
 
 /// Functional converter interface for type conversions
-abstract class TypeConverter {
-  String generateFromFirestore(String sourceExpression);
-  String generateToFirestore(String sourceExpression);
+sealed class TypeConverter {
+  Expression generateFromFirestore(Expression sourceExpression);
+  Expression generateToFirestore(Expression sourceExpression);
 }
 
 /// Direct converter for primitive types (no conversion needed)
@@ -40,13 +42,13 @@ class DirectConverter implements TypeConverter {
   const DirectConverter(this.dartTypeName);
 
   @override
-  String generateFromFirestore(String sourceExpression) {
-    return '$sourceExpression as $dartTypeName';
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return sourceExpression;
   }
 
   @override
-  String generateToFirestore(String sourceExpression) {
-    return sourceExpression;
+  Expression generateToFirestore(Expression sourceExpression) {
+    return sourceExpression; // No conversion needed for primitive types
   }
 }
 
@@ -61,58 +63,138 @@ class ConverterClassConverter implements TypeConverter {
   ]);
 
   @override
-  String generateFromFirestore(String sourceExpression) {
-    final args = _generateConverterArguments();
-    return '$converterClassName($args).fromFirestore($sourceExpression)';
+  Expression generateFromFirestore(Expression sourceExpression) {
+    final converterInstance = _createConverterInstance();
+    return converterInstance.property('fromFirestore').call([sourceExpression]);
   }
 
   @override
-  String generateToFirestore(String sourceExpression) {
-    final args = _generateConverterArguments();
-    return '$converterClassName($args).toFirestore($sourceExpression)';
+  Expression generateToFirestore(Expression sourceExpression) {
+    final converterInstance = _createConverterInstance();
+    return converterInstance.property('toFirestore').call([sourceExpression]);
   }
 
-  String _generateConverterArguments() {
+  Expression _createConverterInstance() {
+    final args = _generateConverterArguments();
+    return refer(converterClassName).call(args);
+  }
+
+  List<Expression> _generateConverterArguments() {
     return parameterConverters
-        .map((converter) {
-          if (converter is ConverterClassConverter) {
-            if (converter.parameterConverters.isEmpty) {
-              return '${converter.converterClassName}()';
-            } else {
-              final nestedArgs = converter._generateConverterArguments();
-              return '${converter.converterClassName}($nestedArgs)';
-            }
-          } else if (converter is DirectConverter) {
-            return 'PrimitiveConverter<${converter.dartTypeName}>()';
-          } else {
-            return 'PrimitiveConverter<dynamic>()';
-          }
-        })
-        .join(', ');
+        .map((converter) => _convertToExpression(converter))
+        .toList();
+  }
+
+  Expression _convertToExpression(TypeConverter converter) {
+    if (converter is ConverterClassConverter) {
+      return converter._createConverterInstance();
+    }
+    return refer('${converter.runtimeType}').call([]);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+
+    final otherConverter = other as ConverterClassConverter;
+    return converterClassName == otherConverter.converterClassName &&
+        parameterConverters.length ==
+            otherConverter.parameterConverters.length &&
+        parameterConverters.every(
+          (converter) => otherConverter.parameterConverters.contains(converter),
+        );
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(converterClassName, parameterConverters);
   }
 }
 
 /// Converter for generic types with element converters
 class JsonConverter implements TypeConverter {
-  final String typeName;
+  final Reference dartType;
   final List<TypeConverter> elementConverters;
+  final String? customFromJsonMethod;
+  final String? customToJsonMethod;
 
-  const JsonConverter(this.typeName, this.elementConverters);
+  const JsonConverter(
+    this.dartType,
+    this.elementConverters, {
+    this.customFromJsonMethod,
+    this.customToJsonMethod,
+  });
+
+  JsonConverter.fromTypeName(
+    String typeName,
+    this.elementConverters, {
+    this.customFromJsonMethod,
+    this.customToJsonMethod,
+  }) : dartType = refer(typeName);
 
   @override
-  String generateFromFirestore(String sourceExpression) {
-    final typeArgs = elementConverters
-        .map((e) => e.generateFromFirestore('e'))
-        .join(', ');
-    return '$typeName.fromJson($sourceExpression${typeArgs.isNotEmpty ? ', $typeArgs' : ''})';
+  Expression generateFromFirestore(Expression sourceExpression) {
+    final fromJsonMethod = customFromJsonMethod ?? 'fromJson';
+
+    if (elementConverters.isEmpty) {
+      // 簡單情況：MyClass.fromJson(sourceExpression)
+      return dartType.property(fromJsonMethod).call([sourceExpression]);
+    }
+
+    final converterLambdas = elementConverters.map((converter) {
+      return Method(
+        (b) => b
+          ..requiredParameters.add(Parameter((b) => b..name = 'e'))
+          ..body = converter.generateFromFirestore(refer('e')).code
+          ..lambda = true,
+      ).closure;
+    }).toList();
+
+    return dartType.property(fromJsonMethod).call([
+      sourceExpression,
+      ...converterLambdas,
+    ]);
   }
 
   @override
-  String generateToFirestore(String sourceExpression) {
-    final typeArgs = elementConverters
-        .map((e) => e.generateToFirestore('e'))
-        .join(', ');
-    return '$sourceExpression.toJson(${typeArgs.isNotEmpty ? '$typeArgs' : ''})';
+  Expression generateToFirestore(Expression sourceExpression) {
+    final toJsonMethod = customToJsonMethod ?? 'toJson';
+
+    if (elementConverters.isEmpty) {
+      // 簡單情況：sourceExpression.toJson()
+      return sourceExpression.property(toJsonMethod).call([]);
+    }
+
+    // 複雜情況：有元素轉換器
+    final converterLambdas = elementConverters.map((converter) {
+      return Method(
+        (b) => b
+          ..requiredParameters.add(Parameter((b) => b..name = 'e'))
+          ..body = converter.generateToFirestore(refer('e')).code
+          ..lambda = true,
+      ).closure;
+    }).toList();
+
+    return sourceExpression.property(toJsonMethod).call(converterLambdas);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+
+    final otherConverter = other as JsonConverter;
+    return dartType == otherConverter.dartType &&
+        elementConverters.length == otherConverter.elementConverters.length &&
+        elementConverters.every(
+          (converter) => otherConverter.elementConverters.contains(converter),
+        );
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(dartType, elementConverters);
   }
 }
 
@@ -123,44 +205,80 @@ class AnnotationConverter implements TypeConverter {
   const AnnotationConverter(this.converterClassName);
 
   @override
-  String generateFromFirestore(String sourceExpression) {
-    return '$converterClassName().fromJson($sourceExpression)';
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return refer(
+      converterClassName,
+    ).call([]).property('fromJson').call([sourceExpression]);
   }
 
   @override
-  String generateToFirestore(String sourceExpression) {
-    return '$converterClassName().toJson($sourceExpression)';
+  Expression generateToFirestore(Expression sourceExpression) {
+    return refer(
+      converterClassName,
+    ).call([]).property('toJson').call([sourceExpression]);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+
+    final otherConverter = other as AnnotationConverter;
+    return converterClassName == otherConverter.converterClassName;
+  }
+
+  @override
+  int get hashCode {
+    return converterClassName.hashCode;
   }
 }
 
-/// Nullable wrapper converter
-class NullableConverter implements TypeConverter {
+abstract class UnderlyingConverter implements TypeConverter {
   final TypeConverter innerConverter;
 
-  const NullableConverter(this.innerConverter);
+  const UnderlyingConverter(this.innerConverter);
 
   @override
-  String generateFromFirestore(String sourceExpression) {
-    final innerExpression = innerConverter.generateFromFirestore(
-      sourceExpression,
-    );
-    // Avoid double null checks if the inner converter already handles nulls
-    if (innerExpression.contains('== null ? null :')) {
-      return innerExpression;
-    }
-    return '$sourceExpression == null ? null : $innerExpression';
+  Expression generateFromFirestore(Expression sourceExpression);
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression);
+}
+
+/// Nullable wrapper converter
+class NullableConverter extends UnderlyingConverter {
+  const NullableConverter(super._converter);
+
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) {
+    final innerExpr = innerConverter.generateFromFirestore(sourceExpression);
+    return sourceExpression
+        .equalTo(literalNull)
+        .conditional(literalNull, innerExpr);
   }
 
   @override
-  String generateToFirestore(String sourceExpression) {
-    final innerExpression = innerConverter.generateToFirestore(
-      '$sourceExpression!',
+  Expression generateToFirestore(Expression sourceExpression) {
+    final innerExpr = innerConverter.generateToFirestore(
+      sourceExpression.nullChecked,
     );
-    // Avoid double null checks if the inner converter already handles nulls
-    if (innerExpression.contains('== null ? null :')) {
-      return innerExpression;
-    }
-    return '$sourceExpression == null ? null : $innerExpression';
+    return sourceExpression
+        .equalTo(literalNull)
+        .conditional(literalNull, innerExpr);
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(runtimeType, innerConverter);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+
+    final otherConverter = other as NullableConverter;
+    return innerConverter == otherConverter.innerConverter;
   }
 }
 
@@ -170,16 +288,15 @@ class FieldInfo {
   final String jsonFieldName;
   final DartType dartType;
   final bool isDocumentId;
-  final bool isNullable;
   final bool isOptional;
-  final TypeAnalysisResult typeAnalysis;
+
+  final ModelAnalysis typeAnalysis;
 
   const FieldInfo({
     required this.parameterName,
     required this.jsonFieldName,
     required this.dartType,
     required this.isDocumentId,
-    required this.isNullable,
     required this.isOptional,
     required this.typeAnalysis,
   });
@@ -191,12 +308,12 @@ class FieldInfo {
   TypeConverter get converter => typeAnalysis.converter;
 
   /// Generate conversion from Firestore
-  String generateFromFirestore(String sourceExpression) {
+  Expression generateFromFirestore(Expression sourceExpression) {
     return typeAnalysis.converter.generateFromFirestore(sourceExpression);
   }
 
   /// Generate conversion to Firestore
-  String generateToFirestore(String sourceExpression) {
+  Expression generateToFirestore(Expression sourceExpression) {
     return typeAnalysis.converter.generateToFirestore(sourceExpression);
   }
 
@@ -211,16 +328,18 @@ class ModelAnalysis {
   final String? documentIdFieldName;
   final Map<String, FieldInfo> fields;
   final List<FieldInfo> updateableFields;
-  final bool hasManualSerialization;
-  final TypeAnalysisResult classTypeAnalysis;
+  final DartType dartType;
+  final FirestoreType firestoreType;
+  final TypeConverter converter;
 
   const ModelAnalysis({
     required this.className,
     required this.documentIdFieldName,
     required this.fields,
     required this.updateableFields,
-    required this.hasManualSerialization,
-    required this.classTypeAnalysis,
+    required this.dartType,
+    required this.firestoreType,
+    required this.converter,
   });
 
   /// Get field by parameter name
@@ -230,25 +349,27 @@ class ModelAnalysis {
   FieldInfo? get documentIdField =>
       documentIdFieldName != null ? fields[documentIdFieldName] : null;
 
-  @override
-  String toString() =>
-      'ModelAnalysis(class: $className, docIdField: $documentIdFieldName, fields: ${fields.length}, hasManualSerialization: $hasManualSerialization)';
+  bool get isGeneric =>
+      dartType is InterfaceType &&
+      (dartType as InterfaceType).typeArguments.isNotEmpty;
+
+  List<String> get typeParameters => isGeneric
+      ? (dartType as InterfaceType).typeArguments
+            .map((e) => e.getDisplayString())
+            .toList()
+      : [];
 }
 
 /// Combined result of model and type analysis
 class AnalysisResult {
   final Map<String, ModelAnalysis> modelAnalyses;
-  final Map<String, TypeAnalysisResult> typeAnalyses;
 
-  const AnalysisResult({
-    required this.modelAnalyses,
-    required this.typeAnalyses,
-  });
+  const AnalysisResult({required this.modelAnalyses});
 
   /// Get all types that need converters (custom types - non-built-in Dart types)
-  Map<String, TypeAnalysisResult> get customTypes {
+  Map<String, ModelAnalysis> get customTypes {
     return Map.fromEntries(
-      typeAnalyses.entries.where(
+      modelAnalyses.entries.where(
         (entry) => !_isBuiltInDartType(entry.key), // Not a built-in Dart type
       ),
     );
@@ -292,155 +413,473 @@ class AnalysisResult {
   }
 }
 
-/// Type analysis result with caching
-class TypeAnalysisResult {
-  final FirestoreType firestoreType;
-  final TypeConverter converter;
-  final bool hasJsonSupport;
-  final bool hasGenericJsonSupport;
-  final bool isGeneric;
-  final List<String> typeParameters;
+// /// Registry for caching type analysis results
+// class TypeRegistry {
+//   final Map<String, ModelAnalysis> _cache = {};
+//   final Map<String, ModelAnalysis> _modelCache = {};
 
-  const TypeAnalysisResult({
-    required this.firestoreType,
-    required this.converter,
-    required this.hasJsonSupport,
-    required this.hasGenericJsonSupport,
-    required this.isGeneric,
-    required this.typeParameters,
-  });
-}
+//   /// Get or analyze a type
+//   ModelAnalysis getOrAnalyzeType(DartType dartType, Element? element) {
+//     final typeKey = _getTypeKey(dartType, element);
 
-/// Registry for caching type analysis results
-class TypeRegistry {
-  final Map<String, TypeAnalysisResult> _cache = {};
-  final Map<String, ModelAnalysis> _modelCache = {};
+//     if (_cache.containsKey(typeKey)) {
+//       return _cache[typeKey]!;
+//     }
 
-  /// Get or analyze a type
-  TypeAnalysisResult getOrAnalyzeType(DartType dartType, Element? element) {
-    final typeKey = _getTypeKey(dartType, element);
+//     final result = _analyzeType(dartType, element);
+//     _cache[typeKey] = result;
+//     return result;
+//   }
 
-    if (_cache.containsKey(typeKey)) {
-      return _cache[typeKey]!;
+//   /// Get or analyze a model
+//   ModelAnalysis? getOrAnalyzeModel(ClassElement classElement) {
+//     final className = classElement.name;
+
+//     if (_modelCache.containsKey(className)) {
+//       return _modelCache[className];
+//     }
+
+//     final result = ModelAnalyzer._analyzeModelInternal(classElement, this);
+//     if (result != null) {
+//       _modelCache[className] = result;
+//     }
+//     return result;
+//   }
+
+//   /// Generate a unique key for a type including element annotations
+//   String _getTypeKey(DartType dartType, Element? element) {
+//     final typeString = dartType.getDisplayString(withNullability: true);
+
+//     // Include custom JsonConverter annotations in the key to avoid cache conflicts
+//     if (element != null) {
+//       final customConverter = _findCustomJsonConverter(element);
+//       if (customConverter != null) {
+//         return '$typeString@$customConverter';
+//       }
+//     }
+
+//     return typeString;
+//   }
+
+//   /// Analyze a type and return its analysis result
+//   TypeAnalysisResult _analyzeType(DartType dartType, Element? element) {
+//     final firestoreType = ModelAnalyzer._determineFirestoreType(
+//       dartType,
+//       element,
+//     );
+//     final converter = _createConverter(dartType, element, firestoreType);
+//     final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
+//     final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
+//       dartType,
+//     );
+
+//     // Determine if this type is generic
+//     bool isGeneric = false;
+//     List<String> typeParameters = [];
+
+//     if (dartType is InterfaceType) {
+//       isGeneric = dartType.typeArguments.isNotEmpty;
+//       if (isGeneric) {
+//         typeParameters = dartType.typeArguments
+//             .map((arg) => arg.getDisplayString(withNullability: false))
+//             .toList();
+//       }
+//     }
+
+//     return TypeAnalysisResult(
+//       firestoreType: firestoreType,
+//       converter: converter,
+//       hasJsonSupport: hasJsonSupport,
+//       hasGenericJsonSupport: hasGenericJsonSupport,
+//       isGeneric: isGeneric,
+//       typeParameters: typeParameters,
+//     );
+//   }
+
+//   /// Create appropriate converter for a type
+
+//   /// Analyze all types recursively and return all type analyses
+//   Map<String, TypeAnalysisResult> analyzeAllTypesRecursively(
+//     DartType rootType,
+//   ) {
+//     final Map<Object, TypeAnalysisResult> allTypeAnalyses = {};
+//     final Set<Object> processedTypes = {};
+
+//     _analyzeTypeRecursively(rootType, allTypeAnalyses, processedTypes);
+
+//     // Convert back to String key Map for final result
+//     final Map<String, TypeAnalysisResult> result = {};
+//     for (final entry in allTypeAnalyses.entries) {
+//       String keyName;
+//       if (entry.key is InterfaceElement2) {
+//         keyName = (entry.key as InterfaceElement2).name3!;
+//       } else {
+//         keyName = entry.key.toString();
+//       }
+//       result[keyName] = entry.value;
+//     }
+
+//     return result;
+//   }
+
+//   /// Recursively analyze a type and discover all nested types
+//   void _analyzeTypeRecursively(
+//     DartType dartType,
+//     Map<Object, TypeAnalysisResult> allTypeAnalyses,
+//     Set<Object> processedTypes,
+//   ) {
+//     // Skip type parameters (like T, K, V) - only analyze concrete types
+//     if (dartType is TypeParameterType) {
+//       return;
+//     }
+
+//     // Use element as key for interface types to avoid conflicts and deduplicate generics
+//     Object keyObject;
+//     if (dartType is InterfaceType) {
+//       // Use element directly as key - this naturally deduplicates
+//       // IList<String> and IList<int> to the same IList element
+//       keyObject = dartType.element3;
+//     } else {
+//       // For non-interface types, use the type string
+//       keyObject = dartType.getDisplayString(withNullability: false);
+//     }
+
+//     // Skip if already processed
+//     if (processedTypes.contains(keyObject)) {
+//       return;
+//     }
+//     processedTypes.add(keyObject);
+
+//     // Analyze the current type
+//     TypeAnalysisResult typeAnalysis;
+//     if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
+//       // For generic types, manually create a generic analysis
+//       final baseAnalysis = getOrAnalyzeType(dartType, null);
+
+//       // Generate generic type parameter names based on argument count
+//       final argCount = dartType.typeArguments.length;
+//       List<String> typeParameters;
+
+//       if (argCount == 1) {
+//         typeParameters = ['T'];
+//       } else if (argCount == 2) {
+//         typeParameters = ['K', 'V'];
+//       } else {
+//         typeParameters = List.generate(argCount, (i) => 'T${i + 1}');
+//       }
+
+//       // Override with generic analysis
+//       typeAnalysis = TypeAnalysisResult(
+//         firestoreType: baseAnalysis.firestoreType,
+//         converter: baseAnalysis.converter,
+//         hasJsonSupport: baseAnalysis.hasJsonSupport,
+//         hasGenericJsonSupport: baseAnalysis.hasGenericJsonSupport,
+//         isGeneric: true,
+//         typeParameters: typeParameters,
+//       );
+//     } else {
+//       typeAnalysis = getOrAnalyzeType(dartType, null);
+//     }
+//     allTypeAnalyses[keyObject] = typeAnalysis;
+
+//     // Process nested types if this is a generic type
+//     if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
+//       for (final typeArg in dartType.typeArguments) {
+//         // Skip type parameters (like T, K, V) - only analyze concrete types
+//         if (typeArg is! TypeParameterType) {
+//           _analyzeTypeRecursively(typeArg, allTypeAnalyses, processedTypes);
+//         }
+//       }
+//     }
+//   }
+// }
+
+/// Analyzer for complete model structure including JSON field mapping
+class ModelAnalyzer {
+  static final TypeChecker _jsonKeyChecker = TypeChecker.fromRuntime(JsonKey);
+  static final TypeChecker _jsonConverterChecker = TypeChecker.fromRuntime(
+    JsonConverter,
+  );
+
+  static final TypeChecker _durationChecker = TypeChecker.fromRuntime(Duration);
+
+  static final TypeChecker _dateTimeChecker = TypeChecker.fromRuntime(DateTime);
+
+  static final Map<String, ModelAnalysis> _analyzed = {};
+
+  /// Analyze a complete model class and return structured information
+  static ModelAnalysis analyzeModel(DartType type, Element? element) {
+    final className = type.name!;
+    if (_analyzed.containsKey(className)) {
+      return _analyzed[className]!;
     }
-
-    final result = _analyzeType(dartType, element);
-    _cache[typeKey] = result;
+    final result = _analyzeModelInternal(type, element);
+    _analyzed[className] = result;
     return result;
   }
 
-  /// Get or analyze a model
-  ModelAnalysis? getOrAnalyzeModel(ClassElement classElement) {
-    final className = classElement.name;
+  /// Internal method for analyzing a model with a given registry
+  static ModelAnalysis _analyzeModelInternal(DartType type, Element? element) {
+    // Get all fields from the class and its supertypes (excluding Object)
+    final fields = element is ClassElement
+        ? _getConstructorParameters(element)
+        : <(String, DartType, Element)>[];
 
-    if (_modelCache.containsKey(className)) {
-      return _modelCache[className];
+    // Analyze all fields
+    final Map<String, FieldInfo> fieldsMap = {};
+
+    for (final (fieldName, fieldType, element) in fields) {
+      final fieldInfo = _analyzeFieldFromAccessor(
+        fieldName,
+        fieldType,
+        element,
+      );
+      fieldsMap[fieldName] = fieldInfo;
     }
 
-    final result = ModelAnalyzer._analyzeModelInternal(classElement, this);
-    if (result != null) {
-      _modelCache[className] = result;
-    }
-    return result;
-  }
+    // Find document ID field using logic
+    final documentIdFieldName = _getDocumentIdFieldFromAccessors(fields);
 
-  /// Generate a unique key for a type including element annotations
-  String _getTypeKey(DartType dartType, Element? element) {
-    final typeString = dartType.getDisplayString(withNullability: true);
-
-    // Include custom JsonConverter annotations in the key to avoid cache conflicts
-    if (element != null) {
-      final customConverter = _findCustomJsonConverter(element);
-      if (customConverter != null) {
-        return '$typeString@$customConverter';
-      }
+    // Mark document ID field
+    if (documentIdFieldName != null &&
+        fieldsMap.containsKey(documentIdFieldName)) {
+      final existingField = fieldsMap[documentIdFieldName]!;
+      fieldsMap[documentIdFieldName] = FieldInfo(
+        parameterName: existingField.parameterName,
+        jsonFieldName: existingField.jsonFieldName,
+        dartType: existingField.dartType,
+        isDocumentId: true,
+        isOptional: existingField.isOptional,
+        typeAnalysis: existingField.typeAnalysis,
+      );
     }
 
-    return typeString;
-  }
+    // Get updateable fields (non-document-ID fields)
+    final updateableFields = fieldsMap.values
+        .where((field) => !field.isDocumentId)
+        .toList();
+    // _createConverter(dartType, element, firestoreType);
+    //     final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
+    //     final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
+    //       dartType,
+    //     );
 
-  /// Analyze a type and return its analysis result
-  TypeAnalysisResult _analyzeType(DartType dartType, Element? element) {
-    final firestoreType = ModelAnalyzer._determineFirestoreType(
-      dartType,
-      element,
-    );
-    final converter = _createConverter(dartType, element, firestoreType);
-    final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
-    final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
-      dartType,
-    );
-
-    // Determine if this type is generic
-    bool isGeneric = false;
-    List<String> typeParameters = [];
-
-    if (dartType is InterfaceType) {
-      isGeneric = dartType.typeArguments.isNotEmpty;
-      if (isGeneric) {
-        typeParameters = dartType.typeArguments
-            .map((arg) => arg.getDisplayString(withNullability: false))
-            .toList();
-      }
-    }
-
-    return TypeAnalysisResult(
-      firestoreType: firestoreType,
-      converter: converter,
-      hasJsonSupport: hasJsonSupport,
-      hasGenericJsonSupport: hasGenericJsonSupport,
-      isGeneric: isGeneric,
-      typeParameters: typeParameters,
+    return ModelAnalysis(
+      className: type.getDisplayString(withNullability: false),
+      documentIdFieldName: documentIdFieldName,
+      fields: fieldsMap,
+      updateableFields: updateableFields,
+      dartType: type,
+      firestoreType: _processTypeToFirestoreType(type),
+      converter: _createConverter(type, type.element),
     );
   }
 
-  /// Create appropriate converter for a type
-  TypeConverter _createConverter(
-    DartType dartType,
-    Element? element,
-    FirestoreType firestoreType,
-  ) {
-    final typeName = dartType.getDisplayString(withNullability: false);
+  static AnalysisResult analyzeModels(Iterable<DartType> types) {
+    for (final type in types) {
+      analyzeModel(type, type.element);
+    }
+    return AnalysisResult(modelAnalyses: _analyzed);
+  }
+
+  // /// Analyze a model and all its nested types recursively
+  // static AnalysisResult analyzeModelWithNestedTypes(
+  //   ClassElement rootClassElement,
+  // ) {
+  //   final registry = TypeRegistry();
+  //   final Map<String, ModelAnalysis> modelAnalyses = {};
+  //   final Map<String, TypeAnalysisResult> typeAnalyses = {};
+
+  //   // First analyze the root model
+  //   final rootAnalysis = registry.getOrAnalyzeModel(rootClassElement);
+  //   if (rootAnalysis != null) {
+  //     modelAnalyses[rootClassElement.name] = rootAnalysis;
+
+  //     // Add the root model's type analysis
+  //     final rootTypeAnalysis = registry.getOrAnalyzeType(
+  //       rootClassElement.thisType,
+  //       rootClassElement,
+  //     );
+  //     typeAnalyses[rootClassElement.name] = rootTypeAnalysis;
+
+  //     // Then use TypeRegistry to analyze all nested types in the model's fields
+  //     for (final field in rootAnalysis.fields.values) {
+  //       final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(
+  //         field.dartType,
+  //       );
+
+  //       // Add all type analyses
+  //       typeAnalyses.addAll(nestedTypeAnalyses);
+
+  //       // Convert type analyses to model analyses for custom class types
+  //       for (final entry in nestedTypeAnalyses.entries) {
+  //         final typeName = entry.key;
+  //         final typeAnalysis = entry.value;
+
+  //         // Only create model analysis for user-defined custom classes with fields and document IDs
+  //         // Skip generic collection types (IList, IMap, ISet) - they only need TypeAnalysisResult for converters
+  //         if (typeAnalysis.firestoreType == FirestoreType.object &&
+  //             !typeAnalysis.isGeneric && // Skip generic types like IList<T>
+  //             !modelAnalyses.containsKey(typeName)) {
+  //           // Try to find the ClassElement for this type
+  //           if (field.dartType is InterfaceType) {
+  //             final interfaceType = field.dartType as InterfaceType;
+  //             final element = interfaceType.element;
+
+  //             if (element is ClassElement && element.name == typeName) {
+  //               final nestedModelAnalysis = registry.getOrAnalyzeModel(element);
+  //               if (nestedModelAnalysis != null) {
+  //                 modelAnalyses[typeName] = nestedModelAnalysis;
+
+  //                 // Recursively analyze the fields of this nested model to discover even deeper types
+  //                 for (final nestedField in nestedModelAnalysis.fields.values) {
+  //                   final deeperNestedTypeAnalyses = registry
+  //                       .analyzeAllTypesRecursively(nestedField.dartType);
+  //                   typeAnalyses.addAll(deeperNestedTypeAnalyses);
+
+  //                   // Process these deeper nested types as well
+  //                   for (final deeperEntry
+  //                       in deeperNestedTypeAnalyses.entries) {
+  //                     final deeperTypeName = deeperEntry.key;
+  //                     final deeperTypeAnalysis = deeperEntry.value;
+
+  //                     if (deeperTypeAnalysis.firestoreType ==
+  //                             FirestoreType.object &&
+  //                         !deeperTypeAnalysis.isGeneric &&
+  //                         !modelAnalyses.containsKey(deeperTypeName)) {
+  //                       // Try to find ClassElement for this deeper nested type and recursively analyze it
+  //                       _tryRecursiveAnalysis(
+  //                         deeperTypeName,
+  //                         nestedField.dartType,
+  //                         modelAnalyses,
+  //                         typeAnalyses,
+  //                         registry,
+  //                       );
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return AnalysisResult(
+  //     modelAnalyses: modelAnalyses,
+  //     typeAnalyses: typeAnalyses,
+  //   );
+  // }
+
+  // /// Try to recursively analyze a deeper nested type
+  // static void _tryRecursiveAnalysis(
+  //   String typeName,
+  //   DartType fieldType,
+  //   Map<String, ModelAnalysis> modelAnalyses,
+  //   TypeRegistry registry,
+  // ) {
+  //   // For deeper nested types, we need to search through the entire type hierarchy
+  //   // This is a simplified approach - in a production system, this would need more robust element resolution
+
+  //   if (fieldType is InterfaceType) {
+  //     final element = fieldType.element;
+
+  //     // Check if this element matches our target type name
+  //     if (element is ClassElement && element.name == typeName) {
+  //       final deeperModelAnalysis = registry.getOrAnalyzeModel(element);
+  //       if (deeperModelAnalysis != null) {
+  //         modelAnalyses[typeName] = deeperModelAnalysis;
+
+  //         // Continue even deeper recursion for fields of this model
+  //         for (final deeperField in deeperModelAnalysis.fields.values) {
+  //           final evenDeeperTypeAnalyses = registry.analyzeAllTypesRecursively(
+  //             deeperField.dartType,
+  //           );
+  //           typeAnalyses.addAll(evenDeeperTypeAnalyses);
+
+  //           // Process even deeper nested types
+  //           for (final evenDeeperEntry in evenDeeperTypeAnalyses.entries) {
+  //             final evenDeeperTypeName = evenDeeperEntry.key;
+  //             final evenDeeperTypeAnalysis = evenDeeperEntry.value;
+
+  //             if (evenDeeperTypeAnalysis.firestoreType ==
+  //                     FirestoreType.object &&
+  //                 !evenDeeperTypeAnalysis.isGeneric &&
+  //                 !modelAnalyses.containsKey(evenDeeperTypeName)) {
+  //               // Try one more level of recursion
+  //               _tryRecursiveAnalysis(
+  //                 evenDeeperTypeName,
+  //                 deeperField.dartType,
+  //                 modelAnalyses,
+  //                 typeAnalyses,
+  //                 registry,
+  //               );
+  //             }
+  //           }
+  //         }
+  //       }
+  //       return;
+  //     }
+
+  //     // Also check type arguments for nested custom types
+  //     for (final typeArg in fieldType.typeArguments) {
+  //       if (typeArg is InterfaceType) {
+  //         final argElement = typeArg.element;
+  //         if (argElement is ClassElement && argElement.name == typeName) {
+  //           final deeperModelAnalysis = registry.getOrAnalyzeModel(argElement);
+  //           if (deeperModelAnalysis != null) {
+  //             modelAnalyses[typeName] = deeperModelAnalysis;
+  //           }
+  //           return;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  static TypeConverter _createConverter(DartType dartType, Element? element) {
     final isNullable = TypeAnalyzer.isNullableType(dartType);
-
-    TypeConverter baseConverter;
 
     // Check for custom JsonConverter annotations first (like @ListLengthConverter())
     if (element != null) {
       // Look for any annotation that implements JsonConverter
       final customConverter = _findCustomJsonConverter(element);
       if (customConverter != null) {
-        baseConverter = AnnotationConverter(customConverter);
-      } else {
-        // Check for standard @JsonConverter annotation
-        final jsonConverter = ModelAnalyzer._jsonConverterChecker
-            .firstAnnotationOf(element);
-        if (jsonConverter != null) {
-          final converterType = jsonConverter.type;
-          if (converterType != null && converterType is InterfaceType) {
-            final converterClassName = converterType.element3.name3!;
-            baseConverter = AnnotationConverter(converterClassName);
-          } else {
-            baseConverter = _createDefaultConverter(dartType, firestoreType);
-          }
-        } else {
-          baseConverter = _createDefaultConverter(dartType, firestoreType);
+        return AnnotationConverter(customConverter);
+      }
+
+      // Check for standard @JsonConverter annotation
+      final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
+      if (jsonConverter != null) {
+        final converterType = jsonConverter.type;
+        if (converterType != null && converterType is InterfaceType) {
+          final converterClassName = converterType.element3.name3!;
+          return AnnotationConverter(converterClassName);
         }
       }
-    } else {
-      baseConverter = _createDefaultConverter(dartType, firestoreType);
+
+      // Check for generic JsonConverter support
+      if (dartType is InterfaceType && _hasJsonSupport(dartType)) {
+        final typeParams = dartType.typeArguments
+            .map((t) => analyzeModel(t, t.element).converter)
+            .toList();
+        return JsonConverter(refer(dartType.element.name), typeParams);
+      }
     }
+
+    final converter = _createDefaultConverter(dartType);
 
     // Wrap with nullable converter if needed
     if (isNullable) {
-      return NullableConverter(baseConverter);
+      return NullableConverter(converter);
     }
 
-    return baseConverter;
+    // If no custom converter found, create default converter based on type
+    return converter;
   }
 
   /// Find custom JsonConverter annotation (like @ListLengthConverter())
-  String? _findCustomJsonConverter(Element element) {
+  static String? _findCustomJsonConverter(Element element) {
     for (final annotation in element.metadata) {
       final annotationType = annotation.computeConstantValue()?.type;
       if (annotationType is InterfaceType) {
@@ -456,7 +895,7 @@ class TypeRegistry {
   }
 
   /// Check if a class implements JsonConverter interface
-  bool _implementsJsonConverter(Element classElement) {
+  static bool _implementsJsonConverter(Element classElement) {
     if (classElement is! ClassElement) return false;
 
     // Check all interfaces and superclasses
@@ -469,7 +908,7 @@ class TypeRegistry {
     return false;
   }
 
-  String getBaseTypeName(DartType type) {
+  static String getBaseTypeName(DartType type) {
     if (type is InterfaceType) {
       return type.element3.name3!;
     }
@@ -480,410 +919,52 @@ class TypeRegistry {
   }
 
   /// Create default converter based on type and firestore type
-  TypeConverter _createDefaultConverter(
-    DartType dartType,
-    FirestoreType firestoreType,
-  ) {
-    final typeName = dartType.getDisplayString(withNullability: false);
-    // Handle dynamic type specially
-    if (typeName == 'dynamic') {
-      return DirectConverter(typeName);
+  static TypeConverter _createDefaultConverter(DartType dartType) {
+    if (dartType.isDartCoreDouble ||
+        dartType.isDartCoreInt ||
+        dartType.isDartCoreString ||
+        dartType.isDartCoreBool) {
+      return ConverterClassConverter('PrimitiveConverter');
     }
 
-    switch (firestoreType) {
-      case FirestoreType.string:
-      case FirestoreType.boolean:
-      case FirestoreType.double:
-        return DirectConverter(typeName);
-
-      case FirestoreType.integer:
-        if (typeName == 'Duration') {
-          return ConverterClassConverter('DurationConverter');
-        }
-        return DirectConverter(typeName);
-
-      case FirestoreType.timestamp:
-        return ConverterClassConverter('DateTimeConverter');
-
-      case FirestoreType.bytes:
-        return ConverterClassConverter('BytesConverter');
-
-      case FirestoreType.geoPoint:
-      case FirestoreType.reference:
-        return DirectConverter(typeName);
-
-      case FirestoreType.array:
-      case FirestoreType.map:
-      case FirestoreType.object:
-        final baseTypeName = getBaseTypeName(dartType);
-        return ConverterClassConverter(
-          '${baseTypeName}Converter',
-          dartType is InterfaceType
-              ? dartType.typeArguments.map((arg) {
-                  final argAnalysis = getOrAnalyzeType(arg, null);
-                  return argAnalysis.converter;
-                }).toList()
-              : [],
-        );
-      case FirestoreType.null_:
-        return DirectConverter(typeName);
-    }
-  }
-
-  /// Analyze all types recursively and return all type analyses
-  Map<String, TypeAnalysisResult> analyzeAllTypesRecursively(
-    DartType rootType,
-  ) {
-    final Map<Object, TypeAnalysisResult> allTypeAnalyses = {};
-    final Set<Object> processedTypes = {};
-
-    _analyzeTypeRecursively(rootType, allTypeAnalyses, processedTypes);
-
-    // Convert back to String key Map for final result
-    final Map<String, TypeAnalysisResult> result = {};
-    for (final entry in allTypeAnalyses.entries) {
-      String keyName;
-      if (entry.key is InterfaceElement2) {
-        keyName = (entry.key as InterfaceElement2).name3!;
-      } else {
-        keyName = entry.key.toString();
-      }
-      result[keyName] = entry.value;
+    if (_durationChecker.isExactlyType(dartType)) {
+      return ConverterClassConverter('DurationConverter');
     }
 
-    return result;
-  }
-
-  /// Recursively analyze a type and discover all nested types
-  void _analyzeTypeRecursively(
-    DartType dartType,
-    Map<Object, TypeAnalysisResult> allTypeAnalyses,
-    Set<Object> processedTypes,
-  ) {
-    // Skip type parameters (like T, K, V) - only analyze concrete types
-    if (dartType is TypeParameterType) {
-      return;
+    if (_dateTimeChecker.isExactlyType(dartType)) {
+      return ConverterClassConverter('DateTimeConverter');
     }
 
-    // Use element as key for interface types to avoid conflicts and deduplicate generics
-    Object keyObject;
-    if (dartType is InterfaceType) {
-      // Use element directly as key - this naturally deduplicates
-      // IList<String> and IList<int> to the same IList element
-      keyObject = dartType.element3;
-    } else {
-      // For non-interface types, use the type string
-      keyObject = dartType.getDisplayString(withNullability: false);
-    }
-
-    // Skip if already processed
-    if (processedTypes.contains(keyObject)) {
-      return;
-    }
-    processedTypes.add(keyObject);
-
-    // Analyze the current type
-    TypeAnalysisResult typeAnalysis;
-    if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
-      // For generic types, manually create a generic analysis
-      final baseAnalysis = getOrAnalyzeType(dartType, null);
-
-      // Generate generic type parameter names based on argument count
-      final argCount = dartType.typeArguments.length;
-      List<String> typeParameters;
-
-      if (argCount == 1) {
-        typeParameters = ['T'];
-      } else if (argCount == 2) {
-        typeParameters = ['K', 'V'];
-      } else {
-        typeParameters = List.generate(argCount, (i) => 'T${i + 1}');
-      }
-
-      // Override with generic analysis
-      typeAnalysis = TypeAnalysisResult(
-        firestoreType: baseAnalysis.firestoreType,
-        converter: baseAnalysis.converter,
-        hasJsonSupport: baseAnalysis.hasJsonSupport,
-        hasGenericJsonSupport: baseAnalysis.hasGenericJsonSupport,
-        isGeneric: true,
-        typeParameters: typeParameters,
-      );
-    } else {
-      typeAnalysis = getOrAnalyzeType(dartType, null);
-    }
-    allTypeAnalyses[keyObject] = typeAnalysis;
-
-    // Process nested types if this is a generic type
-    if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
-      for (final typeArg in dartType.typeArguments) {
-        // Skip type parameters (like T, K, V) - only analyze concrete types
-        if (typeArg is! TypeParameterType) {
-          _analyzeTypeRecursively(typeArg, allTypeAnalyses, processedTypes);
-        }
-      }
-    }
-  }
-}
-
-/// Analyzer for complete model structure including JSON field mapping
-class ModelAnalyzer {
-  static final TypeChecker _jsonKeyChecker = TypeChecker.fromRuntime(JsonKey);
-  static final TypeChecker _jsonConverterChecker = TypeChecker.fromRuntime(
-    JsonConverter,
-  );
-
-  /// Analyze a complete model class and return structured information
-  static ModelAnalysis? analyzeModel(ClassElement classElement) {
-    final registry = TypeRegistry();
-    return registry.getOrAnalyzeModel(classElement);
-  }
-
-  /// Internal method for analyzing a model with a given registry
-  static ModelAnalysis? _analyzeModelInternal(
-    ClassElement classElement,
-    TypeRegistry registry,
-  ) {
-    try {
-      // Get all fields from the class and its supertypes (excluding Object)
-      final fields = _getConstructorParameters(classElement);
-
-      if (fields.isEmpty) {
-        return null;
-      }
-
-      // Analyze all fields
-      final Map<String, FieldInfo> fieldsMap = {};
-
-      for (final (fieldName, fieldType, element) in fields) {
-        final fieldInfo = _analyzeFieldFromAccessor(
-          fieldName,
-          fieldType,
-          element,
-          registry,
-        );
-        fieldsMap[fieldName] = fieldInfo;
-      }
-
-      // Find document ID field using logic
-      final documentIdFieldName = _getDocumentIdFieldFromAccessors(fields);
-
-      // Mark document ID field
-      if (documentIdFieldName != null &&
-          fieldsMap.containsKey(documentIdFieldName)) {
-        final existingField = fieldsMap[documentIdFieldName]!;
-        fieldsMap[documentIdFieldName] = FieldInfo(
-          parameterName: existingField.parameterName,
-          jsonFieldName: existingField.jsonFieldName,
-          dartType: existingField.dartType,
-          isDocumentId: true,
-          isNullable: existingField.isNullable,
-          isOptional: existingField.isOptional,
-          typeAnalysis: existingField.typeAnalysis,
-        );
-      }
-
-      // Get updateable fields (non-document-ID fields)
-      final updateableFields = fieldsMap.values
-          .where((field) => !field.isDocumentId)
-          .toList();
-
-      // Get class type analysis
-      final classTypeAnalysis = registry.getOrAnalyzeType(
-        classElement.thisType,
-        classElement,
-      );
-
-      return ModelAnalysis(
-        className: classElement.name,
-        documentIdFieldName: documentIdFieldName,
-        fields: fieldsMap,
-        updateableFields: updateableFields,
-        hasManualSerialization: classTypeAnalysis.hasJsonSupport,
-        classTypeAnalysis: classTypeAnalysis,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Analyze a model and all its nested types recursively
-  static AnalysisResult analyzeModelWithNestedTypes(
-    ClassElement rootClassElement,
-  ) {
-    final registry = TypeRegistry();
-    final Map<String, ModelAnalysis> modelAnalyses = {};
-    final Map<String, TypeAnalysisResult> typeAnalyses = {};
-
-    // First analyze the root model
-    final rootAnalysis = registry.getOrAnalyzeModel(rootClassElement);
-    if (rootAnalysis != null) {
-      modelAnalyses[rootClassElement.name] = rootAnalysis;
-
-      // Add the root model's type analysis
-      final rootTypeAnalysis = registry.getOrAnalyzeType(
-        rootClassElement.thisType,
-        rootClassElement,
-      );
-      typeAnalyses[rootClassElement.name] = rootTypeAnalysis;
-
-      // Then use TypeRegistry to analyze all nested types in the model's fields
-      for (final field in rootAnalysis.fields.values) {
-        final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(
-          field.dartType,
-        );
-
-        // Add all type analyses
-        typeAnalyses.addAll(nestedTypeAnalyses);
-
-        // Convert type analyses to model analyses for custom class types
-        for (final entry in nestedTypeAnalyses.entries) {
-          final typeName = entry.key;
-          final typeAnalysis = entry.value;
-
-          // Only create model analysis for user-defined custom classes with fields and document IDs
-          // Skip generic collection types (IList, IMap, ISet) - they only need TypeAnalysisResult for converters
-          if (typeAnalysis.firestoreType == FirestoreType.object &&
-              !typeAnalysis.isGeneric && // Skip generic types like IList<T>
-              !modelAnalyses.containsKey(typeName)) {
-            // Try to find the ClassElement for this type
-            if (field.dartType is InterfaceType) {
-              final interfaceType = field.dartType as InterfaceType;
-              final element = interfaceType.element;
-
-              if (element is ClassElement && element.name == typeName) {
-                final nestedModelAnalysis = registry.getOrAnalyzeModel(element);
-                if (nestedModelAnalysis != null) {
-                  modelAnalyses[typeName] = nestedModelAnalysis;
-
-                  // Recursively analyze the fields of this nested model to discover even deeper types
-                  for (final nestedField in nestedModelAnalysis.fields.values) {
-                    final deeperNestedTypeAnalyses = registry
-                        .analyzeAllTypesRecursively(nestedField.dartType);
-                    typeAnalyses.addAll(deeperNestedTypeAnalyses);
-
-                    // Process these deeper nested types as well
-                    for (final deeperEntry
-                        in deeperNestedTypeAnalyses.entries) {
-                      final deeperTypeName = deeperEntry.key;
-                      final deeperTypeAnalysis = deeperEntry.value;
-
-                      if (deeperTypeAnalysis.firestoreType ==
-                              FirestoreType.object &&
-                          !deeperTypeAnalysis.isGeneric &&
-                          !modelAnalyses.containsKey(deeperTypeName)) {
-                        // Try to find ClassElement for this deeper nested type and recursively analyze it
-                        _tryRecursiveAnalysis(
-                          deeperTypeName,
-                          nestedField.dartType,
-                          modelAnalyses,
-                          typeAnalyses,
-                          registry,
-                        );
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return AnalysisResult(
-      modelAnalyses: modelAnalyses,
-      typeAnalyses: typeAnalyses,
+    final baseTypeName = getBaseTypeName(dartType);
+    return ConverterClassConverter(
+      '${baseTypeName}Converter',
+      dartType is InterfaceType
+          ? dartType.typeArguments.map((arg) {
+              final argAnalysis = analyzeModel(arg, arg.element);
+              return argAnalysis.converter;
+            }).toList()
+          : [],
     );
-  }
-
-  /// Try to recursively analyze a deeper nested type
-  static void _tryRecursiveAnalysis(
-    String typeName,
-    DartType fieldType,
-    Map<String, ModelAnalysis> modelAnalyses,
-    Map<String, TypeAnalysisResult> typeAnalyses,
-    TypeRegistry registry,
-  ) {
-    // For deeper nested types, we need to search through the entire type hierarchy
-    // This is a simplified approach - in a production system, this would need more robust element resolution
-
-    if (fieldType is InterfaceType) {
-      final element = fieldType.element;
-
-      // Check if this element matches our target type name
-      if (element is ClassElement && element.name == typeName) {
-        final deeperModelAnalysis = registry.getOrAnalyzeModel(element);
-        if (deeperModelAnalysis != null) {
-          modelAnalyses[typeName] = deeperModelAnalysis;
-
-          // Continue even deeper recursion for fields of this model
-          for (final deeperField in deeperModelAnalysis.fields.values) {
-            final evenDeeperTypeAnalyses = registry.analyzeAllTypesRecursively(
-              deeperField.dartType,
-            );
-            typeAnalyses.addAll(evenDeeperTypeAnalyses);
-
-            // Process even deeper nested types
-            for (final evenDeeperEntry in evenDeeperTypeAnalyses.entries) {
-              final evenDeeperTypeName = evenDeeperEntry.key;
-              final evenDeeperTypeAnalysis = evenDeeperEntry.value;
-
-              if (evenDeeperTypeAnalysis.firestoreType ==
-                      FirestoreType.object &&
-                  !evenDeeperTypeAnalysis.isGeneric &&
-                  !modelAnalyses.containsKey(evenDeeperTypeName)) {
-                // Try one more level of recursion
-                _tryRecursiveAnalysis(
-                  evenDeeperTypeName,
-                  deeperField.dartType,
-                  modelAnalyses,
-                  typeAnalyses,
-                  registry,
-                );
-              }
-            }
-          }
-        }
-        return;
-      }
-
-      // Also check type arguments for nested custom types
-      for (final typeArg in fieldType.typeArguments) {
-        if (typeArg is InterfaceType) {
-          final argElement = typeArg.element;
-          if (argElement is ClassElement && argElement.name == typeName) {
-            final deeperModelAnalysis = registry.getOrAnalyzeModel(argElement);
-            if (deeperModelAnalysis != null) {
-              modelAnalyses[typeName] = deeperModelAnalysis;
-            }
-            return;
-          }
-        }
-      }
-    }
   }
 
   /// Get all fields from the class and its supertypes (excluding Object)
   static List<(String, DartType, Element)> _getConstructorParameters(
-    ClassElement classElement,
+    ClassElement element,
   ) {
-    // 搵 factory constructor
-    var constructor = classElement.constructors
+    var constructor = element.constructors
         .where((c) => c.isFactory && c.name.isEmpty)
         .firstOrNull;
 
-    // 如果 factory constructor redirect 到另一個 constructor，追上去
     if (constructor != null && constructor.redirectedConstructor != null) {
       constructor = constructor.redirectedConstructor;
     }
 
-    // 如果仲係冇，搵 default constructor
-    constructor ??= classElement.constructors
+    constructor ??= element.constructors
         .where((c) => !c.isFactory && c.name.isEmpty)
         .firstOrNull;
 
     if (constructor == null) {
-      throw Exception('No suitable constructor found for ${classElement.name}');
+      throw Exception('No suitable constructor found for ${element.name}');
     }
 
     return _extractParameters(constructor);
@@ -939,7 +1020,6 @@ class ModelAnalyzer {
     String fieldName,
     DartType fieldType,
     Element element,
-    TypeRegistry registry,
   ) {
     final isNullable = TypeAnalyzer.isNullableType(fieldType);
     final isOptional = isNullable;
@@ -958,66 +1038,14 @@ class ModelAnalyzer {
     }
 
     // Get type analysis result from registry
-    final typeResult = registry.getOrAnalyzeType(fieldType, element);
-
     return FieldInfo(
       parameterName: fieldName,
       jsonFieldName: jsonFieldName,
-      dartType: fieldType,
       isDocumentId: false,
-      isNullable: isNullable,
+      dartType: fieldType,
       isOptional: isOptional,
-      typeAnalysis: typeResult,
+      typeAnalysis: analyzeModel(fieldType, element),
     );
-  }
-
-  /// Determine the Firestore type for a Dart type
-  /// Based on official Firestore supported data types, @JsonConverter annotations, and toJson/fromJson methods
-  static FirestoreType _determineFirestoreType(
-    DartType dartType,
-    Element? element,
-  ) {
-    // First, check for @JsonConverter annotation
-    if (element != null) {
-      final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
-      if (jsonConverter != null) {
-        // Get the JsonType from JsonConverter<DartType, JsonType>
-        final converterType = jsonConverter.type;
-        if (converterType != null && converterType is InterfaceType) {
-          final typeArguments = converterType.typeArguments;
-          if (typeArguments.length >= 2) {
-            // Use the JsonType (second argument) to determine Firestore type
-            return _processTypeToFirestoreType(typeArguments[1]);
-          }
-        }
-      }
-    }
-
-    // If no @JsonConverter, check if this is a custom object type with toJson/fromJson
-    if (dartType is InterfaceType) {
-      final typeName = dartType.getDisplayString(withNullability: false);
-
-      // Skip primitive and known types
-      if (!TypeAnalyzer.isPrimitiveType(dartType) &&
-          !_isKnownFirestoreType(typeName)) {
-        // Analyze based on what toJson would return for common immutable collection types
-        // IList/ISet -> toJson returns List -> array
-        if (typeName.startsWith('IList<') || typeName.startsWith('ISet<')) {
-          return FirestoreType.array;
-        }
-        // IMap -> toJson returns Map -> map
-        else if (typeName.startsWith('IMap<')) {
-          return FirestoreType.map;
-        }
-        // Other custom objects with toJson/fromJson -> object
-        else {
-          return FirestoreType.object;
-        }
-      }
-    }
-
-    // Process the original Dart type to determine Firestore type
-    return _processTypeToFirestoreType(dartType);
   }
 
   /// Process a Dart type to determine its Firestore type
@@ -1087,7 +1115,7 @@ class ModelAnalyzer {
   }
 
   /// Check if type supports standard JSON serialization
-  static bool _hasStandardJsonSupport(DartType dartType) {
+  static bool _hasJsonSupport(DartType dartType) {
     if (dartType is! InterfaceType) {
       return false;
     }
@@ -1103,18 +1131,13 @@ class ModelAnalyzer {
     // Check for toJson method (no parameters) in class hierarchy
     final hasToJson = _hasToJsonMethod(classElement);
 
-    // Debug output for ManualUser2
-    if (classElement.name == 'ManualUser2') {
-      print(
-        'DEBUG: ManualUser2 - hasFromJson: $hasFromJson, hasToJson: $hasToJson',
-      );
-    }
-
     return hasFromJson && hasToJson;
   }
 
   /// Check if class or its hierarchy has fromJson method
   static bool _hasFromJsonMethod(ClassElement classElement) {
+    final typeParameterCount = classElement.typeParameters.length;
+
     // Get all classes in hierarchy (current + supertypes, excluding Object)
     final allClasses = [
       classElement,
@@ -1127,11 +1150,18 @@ class ModelAnalyzer {
     // Check if any class has fromJson
     return allClasses.any((element) {
       final hasConstructor = element.constructors.any(
-        (c) => c.name == 'fromJson' && c.parameters.length == 1,
+        (c) =>
+            c.name == 'fromJson' &&
+            c.parameters.length ==
+                typeParameterCount + 1, // +1 for the context parameter
       );
 
       final hasStaticMethod = element.methods.any(
-        (m) => m.name == 'fromJson' && m.isStatic && m.parameters.length == 1,
+        (m) =>
+            m.name == 'fromJson' &&
+            m.isStatic &&
+            m.parameters.length ==
+                typeParameterCount + 1, // +1 for the context parameter
       );
 
       return hasConstructor || hasStaticMethod;
@@ -1140,11 +1170,13 @@ class ModelAnalyzer {
 
   /// Check if class or its hierarchy has toJson method
   static bool _hasToJsonMethod(ClassElement classElement) {
+    final typeParameterCount = classElement.typeParameters.length;
+
     // Check instance methods in current class
     final hasToJsonMethod = classElement.methods.any(
       (method) =>
           method.name == 'toJson' &&
-          method.parameters.isEmpty &&
+          method.parameters.length == typeParameterCount &&
           !method.isStatic,
     );
 

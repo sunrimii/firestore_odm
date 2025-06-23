@@ -2,439 +2,212 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:code_builder/code_builder.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/model_analyzer.dart';
 import '../utils/string_helpers.dart';
 
+abstract class Template {
+  String toString();
+}
+
+class ConverterTemplate implements Template {
+  const ConverterTemplate(this.analysis);
+
+  final ModelAnalysis analysis;
+
+  String get className {
+    final className = analysis.dartType.element?.name;
+    if (className == null) {
+      throw ArgumentError('Type analysis must have a valid Dart type name');
+    }
+    return className;
+  }
+
+  String get classTypeParametersString {
+    final typeParams = List.generate(
+      analysis.typeParameters.length,
+      (i) => 'T$i, R$i',
+    );
+    if (typeParams.isEmpty) return '';
+    return '<${typeParams.join(', ')}>';
+  }
+
+  String get typeParametersString {
+    final typeParams = List.generate(
+      analysis.typeParameters.length,
+      (i) => 'T$i',
+    );
+    if (typeParams.isEmpty) return '';
+    return '<${typeParams.join(', ')}>';
+  }
+
+  String get fromTypeName => '${className}${typeParametersString}';
+  String get toTypeName => switch (analysis.firestoreType) {
+    FirestoreType.string => 'String',
+    FirestoreType.integer => 'int',
+    FirestoreType.double => 'double',
+    FirestoreType.boolean => 'bool',
+    FirestoreType.timestamp => 'Timestamp',
+    FirestoreType.bytes => 'Uint8List',
+    FirestoreType.geoPoint => 'GeoPoint',
+    FirestoreType.reference => 'DocumentReference',
+    FirestoreType.array => 'List<dynamic>',
+    FirestoreType.map => 'Map<String, dynamic>',
+    FirestoreType.object => 'Map<String, dynamic>',
+    FirestoreType.null_ => 'dynamic',
+  };
+
+  List<Field> _buildFields() {
+    return List.generate(
+      analysis.typeParameters.length,
+      (i) => Field(
+        (b) => b
+          ..name = 'converter$i'
+          ..type = refer('FirestoreConverter<T$i, dynamic>')
+          ..modifier = FieldModifier.final$,
+      ),
+    );
+  }
+
+  Constructor _buildConstructor() {
+    return Constructor(
+      (b) => b
+        ..constant = true
+        ..requiredParameters.addAll(
+          List.generate(
+            analysis.typeParameters.length,
+            (i) => Parameter(
+              (b) => b
+                ..name = 'converter$i'
+                ..toThis = true,
+            ),
+          ),
+        ),
+    );
+  }
+
+  List<Method> _buildMethods() {
+    return [_buildFromFirestoreMethod(), _buildToFirestoreMethod()];
+  }
+
+  Method _buildFromFirestoreMethod() {
+    return Method(
+      (b) => b
+        ..name = 'fromFirestore'
+        ..annotations.add(refer('override'))
+        ..returns = refer(fromTypeName)
+        ..requiredParameters.add(
+          Parameter(
+            (b) => b
+              ..name = 'data'
+              ..type = refer(toTypeName),
+          ),
+        )
+        ..body = analysis.converter
+            .generateFromFirestore(refer('data'))
+            .returned
+            .statement,
+    );
+  }
+
+  Method _buildToFirestoreMethod() {
+    return Method(
+      (b) => b
+        ..name = 'toFirestore'
+        ..annotations.add(refer('override'))
+        ..returns = refer(toTypeName)
+        ..requiredParameters.add(
+          Parameter(
+            (b) => b
+              ..name = 'data'
+              ..type = refer(fromTypeName),
+          ),
+        )
+        ..body = analysis.converter
+            .generateToFirestore(refer('data'))
+            .returned
+            .statement,
+    );
+  }
+
+  List<Reference> _buildTypeParameters() {
+    return List.generate(analysis.typeParameters.length, (i) => refer('T$i'));
+  }
+
+  
+  Class toClass() {
+    return Class(
+      (b) => b
+        ..name = '${className}Converter'
+        ..types.addAll(_buildTypeParameters()) // 用 types 屬性
+        ..implements.add(
+          refer('FirestoreConverter<$fromTypeName, $toTypeName>'),
+        )
+        ..docs.add('/// Generated converter for $className')
+        ..fields.addAll(_buildFields())
+        ..constructors.add(_buildConstructor())
+        ..methods.addAll(_buildMethods()),
+    );
+  }
+
+  @override
+  String toString() {
+    return toClass().accept(DartEmitter()).toString();
+  }
+}
+
 /// Generator for Firestore converters for custom types
 class ConverterGenerator {
-  /// Generate converter class for a custom model
-  static String generateConverterClass(ModelAnalysis analysis) {
-    final className = analysis.className;
-    
-    // Check if this is a generic type
-    if (analysis.classTypeAnalysis.isGeneric) {
-      return _generateGenericConverter(analysis);
-    }
-    
-    final converterClassName = '${className}Converter';
-    final buffer = StringBuffer();
-
-    // Generate converter class
-    buffer.writeln('/// Generated converter for $className');
-    buffer.writeln(
-      'class $converterClassName implements FirestoreConverter<$className, Map<String, dynamic>> {',
-    );
-    buffer.writeln('  const $converterClassName();');
-    buffer.writeln('');
-
-    // Check if the class has manual serialization methods
-    if (className == 'ManualUser2') {
-      print('DEBUG: $className - hasManualSerialization: ${analysis.hasManualSerialization}');
-    }
-    
-    if (analysis.hasManualSerialization) {
-      // Use manual toJson/fromJson methods
-      buffer.writeln('  @override');
-      buffer.writeln('  $className fromFirestore(Map<String, dynamic> data) {');
-      buffer.writeln('    return $className.fromJson(data);');
-      buffer.writeln('  }');
-      buffer.writeln('');
-
-      buffer.writeln('  @override');
-      buffer.writeln('  Map<String, dynamic> toFirestore($className data) {');
-      buffer.writeln('    return data.toJson();');
-      buffer.writeln('  }');
-    } else {
-      // Generate field-by-field conversion
-      // Generate fromFirestore method
-      buffer.writeln('  @override');
-      buffer.writeln('  $className fromFirestore(Map<String, dynamic> data) {');
-      buffer.writeln('    return $className(');
-
-      for (final field in analysis.fields.values) {
-        final paramName = field.parameterName;
-        final jsonFieldName = field.jsonFieldName;
-
-        buffer.write('      $paramName: ');
-
-        // Generate field conversion based on FirestoreType
-        final conversion = _generateFieldFromFirestoreConversion(
-          field,
-          "data['$jsonFieldName']",
-        );
-
-        buffer.writeln('$conversion,');
-      }
-
-      buffer.writeln('    );');
-      buffer.writeln('  }');
-      buffer.writeln('');
-
-      // Generate toFirestore method
-      buffer.writeln('  @override');
-      buffer.writeln('  Map<String, dynamic> toFirestore($className data) {');
-      buffer.writeln('    return {');
-
-      for (final field in analysis.fields.values) {
-        final paramName = field.parameterName;
-        final jsonFieldName = field.jsonFieldName;
-
-        // Generate field conversion based on FirestoreType
-        final conversion = _generateFieldToFirestoreConversion(
-          field,
-          'data.$paramName',
-        );
-
-        buffer.writeln("      '$jsonFieldName': $conversion,");
-      }
-
-      buffer.writeln('    };');
-      buffer.writeln('  }');
-    }
-    
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    return buffer.toString();
-  }
-
-  /// Generate conversion code for a field from Firestore
-  static String _generateFieldFromFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new unified converter system which handles nullability internally
-    return field.generateFromFirestore(sourceExpression);
-  }
-
-  /// Generate conversion code for a field to Firestore
-  static String _generateFieldToFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new unified converter system which handles nullability internally
-    return field.generateToFirestore(sourceExpression);
-  }
-
-  /// Generate List conversion from Firestore (legacy - now handled by converter system)
-  static String _generateListFromFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
-    return field.generateFromFirestore(sourceExpression);
-  }
-
-  /// Generate List conversion to Firestore (legacy - now handled by converter system)
-  static String _generateListToFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
-    return field.generateToFirestore(sourceExpression);
-  }
-
-  /// Generate Map conversion from Firestore (legacy - now handled by converter system)
-  static String _generateMapFromFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
-    return field.generateFromFirestore(sourceExpression);
-  }
-
-  /// Generate Map conversion to Firestore (legacy - now handled by converter system)
-  static String _generateMapToFirestoreConversion(
-    FieldInfo field,
-    String sourceExpression,
-  ) {
-    // Use the new functional converter system
-    return field.generateToFirestore(sourceExpression);
-  }
-
-
-
   /// Generate converters for custom types discovered through type analysis
-  static String generateConvertersForCustomTypes(Map<String, TypeAnalysisResult> typeAnalyses) {
+  static String generateConvertersForCustomTypes(
+    Map<String, ModelAnalysis> typeAnalyses,
+  ) {
     final buffer = StringBuffer();
+    final seen = <TypeConverter>{};
 
-    for (final entry in typeAnalyses.entries) {
-      final typeName = entry.key;
-      final typeAnalysis = entry.value;
-      
-      // Generate converters for all custom types
-      buffer.write(_generateTypeConverter(typeName, typeAnalysis));
-    }
+    for (final typeAnalysis in typeAnalyses.values) {
+      final converter = typeAnalysis.converter;
+      for (final typeConverter in runAllConverters(converter)) {
+        print(
+          'DEBUG: Found converter $typeConverter for ${typeAnalysis.dartType.getDisplayString(withNullability: false)}',
+        );
+        if (seen.contains(typeConverter)) continue;
 
-    return buffer.toString();
-  }
+        seen.add(typeConverter);
 
-  /// Generate converter for a specific type based on its analysis
-  static String _generateTypeConverter(String typeName, TypeAnalysisResult typeAnalysis) {
-    final converterClassName = '${typeName}Converter';
-    final firestoreTypeName = _getFirestoreTypeName(typeAnalysis.firestoreType);
-    final buffer = StringBuffer();
+        // Skip if the type is primitive or has no converter
+        if (typeConverter is ConverterClassConverter) continue;
 
-    // Generate converter class header
-    buffer.writeln('/// Generated converter for $typeName');
-    
-    if (typeAnalysis.isGeneric) {
-      // Generic type with type parameters
-      final typeParams = typeAnalysis.typeParameters;
-      final typeParamsString = '<${typeParams.join(', ')}>';
-      
-      buffer.writeln(
-        'class $converterClassName$typeParamsString implements FirestoreConverter<$typeName$typeParamsString, $firestoreTypeName> {',
-      );
-      
-      // Generate constructor fields for converters
-      _generateGenericConstructor(buffer, converterClassName, typeParams);
-      
-      // Generate methods
-      _generateGenericMethods(buffer, typeName, typeParamsString, typeParams, firestoreTypeName);
-    } else {
-      // Non-generic type
-      buffer.writeln(
-        'class $converterClassName implements FirestoreConverter<$typeName, $firestoreTypeName> {',
-      );
-      buffer.writeln('  const $converterClassName();');
-      buffer.writeln('');
-
-      // Generate methods based on FirestoreType and JSON support
-      _generateNonGenericMethods(buffer, typeName, typeAnalysis.firestoreType, firestoreTypeName, typeAnalysis.hasJsonSupport);
-    }
-    
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    return buffer.toString();
-  }
-  
-  /// Get the Dart type name for a FirestoreType
-  static String _getFirestoreTypeName(FirestoreType firestoreType) {
-    switch (firestoreType) {
-      case FirestoreType.string:
-        return 'String';
-      case FirestoreType.integer:
-        return 'int';
-      case FirestoreType.double:
-        return 'double';
-      case FirestoreType.boolean:
-        return 'bool';
-      case FirestoreType.timestamp:
-        return 'Timestamp';
-      case FirestoreType.bytes:
-        return 'Uint8List';
-      case FirestoreType.geoPoint:
-        return 'GeoPoint';
-      case FirestoreType.reference:
-        return 'DocumentReference';
-      case FirestoreType.array:
-        return 'List<dynamic>';
-      case FirestoreType.map:
-      case FirestoreType.object:
-        return 'Map<String, dynamic>';
-      case FirestoreType.null_:
-        return 'dynamic';
-    }
-  }
-  
-  /// Generate constructor for generic types
-  static void _generateGenericConstructor(StringBuffer buffer, String converterClassName, List<String> typeParams) {
-    if (typeParams.length == 1) {
-      // Single type parameter (e.g., IList<T>, ISet<T>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.valueConverter);');
-    } else if (typeParams.length == 2) {
-      // Two type parameters (e.g., IMap<K, V>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> keyConverter;');
-      buffer.writeln('  final FirestoreConverter<${typeParams[1]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.keyConverter, this.valueConverter);');
-    } else {
-      // General case for multiple type parameters
-      for (int i = 0; i < typeParams.length; i++) {
-        buffer.writeln('  final FirestoreConverter<${typeParams[i]}, dynamic> converter$i;');
+        // Generate converter class for this type
+        buffer.write(ConverterTemplate(typeAnalysis));
       }
-      final constructorParams = List.generate(typeParams.length, (i) => 'this.converter$i').join(', ');
-      buffer.writeln('  const $converterClassName($constructorParams);');
     }
-    buffer.writeln('');
-  }
-  
-  /// Generate methods for generic types
-  static void _generateGenericMethods(StringBuffer buffer, String typeName, String typeParamsString, List<String> typeParams, String firestoreTypeName) {
-    // Generate fromFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $typeName$typeParamsString fromFirestore($firestoreTypeName data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return $typeName.fromJson(data, (e) => valueConverter.fromFirestore(e));');
-    } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return $typeName.fromJson(data, (k) => keyConverter.fromFirestore(k), (v) => valueConverter.fromFirestore(v));');
-    } else {
-      // General case - this would need more specific implementation based on the type
-      buffer.writeln('    throw UnimplementedError("Generic types with ${typeParams.length} parameters not yet supported");');
-    }
-    buffer.writeln('  }');
-    buffer.writeln('');
 
-    // Generate toFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $firestoreTypeName toFirestore($typeName$typeParamsString data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter - add cast since toJson returns Object
-      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e)) as $firestoreTypeName;');
-    } else if (typeParams.length == 2) {
-      // Two type parameters - add cast since toJson returns Object
-      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v)) as $firestoreTypeName;');
-    } else {
-      // General case
-      buffer.writeln('    throw UnimplementedError("Generic types with ${typeParams.length} parameters not yet supported");');
-    }
-    buffer.writeln('  }');
+    return buffer.toString();
   }
-  
-  /// Generate methods for non-generic types
-  static void _generateNonGenericMethods(StringBuffer buffer, String typeName, FirestoreType firestoreType, String firestoreTypeName, bool hasJsonSupport) {
-    // Generate fromFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $typeName fromFirestore($firestoreTypeName data) {');
-    
-    switch (firestoreType) {
-      case FirestoreType.object:
-      case FirestoreType.map:
-        if (hasJsonSupport) {
-          buffer.writeln('    return $typeName.fromJson(data);');
-        } else {
-          // For types without JSON support, need field-by-field conversion
-          // TODO: This should be implemented with ModelAnalysis for proper field-by-field conversion
-          buffer.writeln('    throw UnimplementedError(\'$typeName does not support fromJson. Please add toJson/fromJson methods or use @JsonSerializable.\');');
+
+  static Iterable<TypeConverter> runAllConverters(
+    TypeConverter converter,
+  ) sync* {
+    yield converter;
+    switch (converter) {
+      case UnderlyingConverter underlyingConverter:
+        yield* runAllConverters(underlyingConverter.innerConverter);
+        break;
+      case ConverterClassConverter converterClassConverter:
+        for (final elementConverter
+            in converterClassConverter.parameterConverters) {
+          yield* runAllConverters(elementConverter);
         }
         break;
-      case FirestoreType.array:
-        if (hasJsonSupport) {
-          buffer.writeln('    return $typeName.fromJson(data);');
-        } else {
-          buffer.writeln('    throw UnimplementedError(\'$typeName does not support fromJson for arrays.\');');
+      case JsonConverter jsonConverter:
+        for (final elementConverter in jsonConverter.elementConverters) {
+          yield* runAllConverters(elementConverter);
         }
         break;
       default:
-        // For primitive types, direct cast
-        buffer.writeln('    return data as $typeName;');
-        break;
     }
-    buffer.writeln('  }');
-    buffer.writeln('');
-
-    // Generate toFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $firestoreTypeName toFirestore($typeName data) {');
-    
-    switch (firestoreType) {
-      case FirestoreType.object:
-      case FirestoreType.map:
-      case FirestoreType.array:
-        if (hasJsonSupport) {
-          buffer.writeln('    return data.toJson();');
-        } else {
-          // For types without JSON support, need field-by-field conversion
-          // TODO: This should be implemented with ModelAnalysis for proper field-by-field conversion
-          buffer.writeln('    throw UnimplementedError(\'$typeName does not support toJson. Please add toJson/fromJson methods or use @JsonSerializable.\');');
-        }
-        break;
-      default:
-        // For primitive types, direct return
-        buffer.writeln('    return data;');
-        break;
-    }
-    buffer.writeln('  }');
   }
-
-
-
-  /// Generate generic converter for types with type parameters
-  static String _generateGenericConverter(ModelAnalysis analysis) {
-    final className = analysis.className;
-    final typeParams = analysis.classTypeAnalysis.typeParameters;
-    final typeParamsString = '<${typeParams.join(', ')}>';
-    final converterClassName = '${className}Converter';
-
-    final buffer = StringBuffer();
-
-    // Generate true generic converter with converter parameters
-    buffer.writeln('/// Generated converter for $className$typeParamsString');
-    buffer.writeln(
-      'class $converterClassName$typeParamsString implements FirestoreConverter<$className$typeParamsString, Map<String, dynamic>> {',
-    );
-    
-    // Generate constructor fields for converters
-    if (typeParams.length == 1) {
-      // Single type parameter (e.g., IList<T>, ISet<T>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.valueConverter);');
-    } else if (typeParams.length == 2) {
-      // Two type parameters (e.g., IMap<K, V>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> keyConverter;');
-      buffer.writeln('  final FirestoreConverter<${typeParams[1]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.keyConverter, this.valueConverter);');
-    } else {
-      // General case for multiple type parameters
-      for (int i = 0; i < typeParams.length; i++) {
-        buffer.writeln('  final FirestoreConverter<${typeParams[i]}, dynamic> converter$i;');
-      }
-      final constructorParams = List.generate(typeParams.length, (i) => 'this.converter$i').join(', ');
-      buffer.writeln('  const $converterClassName($constructorParams);');
-    }
-    
-    buffer.writeln('');
-
-    // Generate fromFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $className$typeParamsString fromFirestore(dynamic data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return $className.fromJson(data, (e) => valueConverter.fromFirestore(e));');
-    } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return $className.fromJson(data, (k) => keyConverter.fromFirestore(k), (v) => valueConverter.fromFirestore(v));');
-    } else {
-      // General case
-      final paramConverters = typeParams.asMap().entries
-          .map((entry) => '(p${entry.key}) => converter${entry.key}.fromFirestore(p${entry.key})')
-          .join(', ');
-      buffer.writeln('    return $className.fromJson(data, $paramConverters);');
-    }
-    
-    buffer.writeln('  }');
-    buffer.writeln('');
-
-    // Generate toFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  dynamic toFirestore($className$typeParamsString data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e));');
-    } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v));');
-    } else {
-      // General case
-      final paramConverters = typeParams.asMap().entries
-          .map((entry) => '(p${entry.key}) => converter${entry.key}.toFirestore(p${entry.key})')
-          .join(', ');
-      buffer.writeln('    return data.toJson($paramConverters);');
-    }
-    
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    return buffer.toString();
-  }
-
 }

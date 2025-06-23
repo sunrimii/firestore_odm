@@ -1,3 +1,5 @@
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -8,15 +10,8 @@ class AggregateGenerator {
     StringBuffer buffer,
     ModelAnalysis analysis,
   ) {
-    final className = analysis.className;
-    final isGeneric = analysis.classTypeAnalysis.isGeneric;
-    final typeParameters = analysis.classTypeAnalysis.typeParameters;
-    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
-    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
-
-    buffer.writeln('/// Generated AggregateFieldSelector for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}AggregateFieldSelectorExtension$typeParamsString on AggregateFieldSelector<$classNameWithTypeParams> {',
+      'extension ${NameUtil.getName(analysis.dartType, postfix: 'AggregateFieldSelectorExtension')} on AggregateFieldSelector<${NameUtil.getName(analysis.dartType)}> {',
     );
     buffer.writeln('');
 

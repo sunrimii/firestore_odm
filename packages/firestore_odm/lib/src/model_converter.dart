@@ -19,7 +19,7 @@ class PrimitiveConverter<T> implements FirestoreConverter<T, T> {
   const PrimitiveConverter();
   
   @override
-  T fromFirestore(T data) => data as T;
+  T fromFirestore(T data) => data;
   
   @override
   T toFirestore(T data) => data;

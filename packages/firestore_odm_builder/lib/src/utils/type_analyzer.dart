@@ -158,6 +158,10 @@ class TypeAnalyzer {
       return true;
     }
 
+    if (_immutableSetChecker.isAssignableFromType(_getNonNullableType(type))) {
+      return true;
+    }
+
     return false;
   }
 

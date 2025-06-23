@@ -1,4 +1,6 @@
 import 'package:analyzer/dart/element/type.dart';
+import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 import '../utils/string_helpers.dart';
@@ -15,15 +17,8 @@ class UpdateGenerator {
       return;
     }
 
-    final className = analysis.className;
-    final isGeneric = analysis.classTypeAnalysis.isGeneric;
-    final typeParameters = analysis.classTypeAnalysis.typeParameters;
-    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
-    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
-
-    buffer.writeln('/// Generated UpdateBuilder for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}UpdateBuilder$typeParamsString on UpdateBuilder<$classNameWithTypeParams> {',
+      'extension ${NameUtil.getName(analysis.dartType, postfix: 'UpdateBuilder')} on UpdateBuilder<${NameUtil.getName(analysis.dartType)}> {',
     );
     buffer.writeln('');
 
@@ -52,7 +47,7 @@ class UpdateGenerator {
       // Make all parameters optional for object merge operations
       final dartTypeString = field.dartType.getDisplayString();
       // If the type is already nullable, use it as-is, otherwise make it nullable
-      final optionalType = field.isNullable
+      final optionalType = field.isOptional
           ? dartTypeString
           : '$dartTypeString?';
       buffer.writeln('    $optionalType ${field.parameterName},');
@@ -74,11 +69,11 @@ class UpdateGenerator {
       // Check if field has custom converter
       if (field.converter is! DirectConverter) {
         // Apply converter for toFirestore conversion
-        String toFirestoreExpr = field.generateToFirestore(paramName);
-        
-        // If the field is nullable and the converter already has null check,
+        String toFirestoreExpr = field.generateToFirestore(refer(field.parameterName)).accept(DartEmitter()).toString();
+
+        // If the field is optional and the converter already has null check,
         // remove the redundant null check since we already check it in the collection if
-        if (field.isNullable && toFirestoreExpr.contains('$paramName == null ? null :')) {
+        if (field.isOptional && toFirestoreExpr.contains('$paramName == null ? null :')) {
           // Extract the non-null expression by removing the null check pattern
           final pattern = '$paramName == null ? null : ';
           toFirestoreExpr = toFirestoreExpr.replaceFirst(pattern, '');
@@ -109,7 +104,7 @@ class UpdateGenerator {
         continue;
       }
       
-      _generateFieldUpdateMethod(buffer, className, field);
+      _generateFieldUpdateMethod(buffer, field);
     }
 
     buffer.writeln('}');
@@ -121,7 +116,6 @@ class UpdateGenerator {
 
   static void _generateFieldUpdateMethod(
     StringBuffer buffer,
-    String className,
     FieldInfo field,
   ) {
     final fieldType = field.dartType;
@@ -150,7 +144,7 @@ class UpdateGenerator {
         // Map types with converters - use MapFieldUpdate with converter
         final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
         final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field.generateToFirestore('value');
+        final converterExpr = field.generateToFirestore(refer('value')).accept(DartEmitter()).toString();
         buffer.writeln(
           '  MapFieldUpdate<$fieldTypeString, $keyType, $valueType> get $fieldName => MapFieldUpdate<$fieldTypeString, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );
@@ -158,14 +152,14 @@ class UpdateGenerator {
         // Iterable types with converters - use ListFieldUpdate with converter
         final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
         final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field.generateToFirestore('value');
+        final converterExpr = field.generateToFirestore(refer('value')).accept(DartEmitter()).toString();
         buffer.writeln(
           '  ListFieldUpdate<$fieldTypeString, $elementTypeName> get $fieldName => ListFieldUpdate<$fieldTypeString, $elementTypeName>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );
       } else {
         // Other types with converters - use DefaultUpdateBuilder with converter
         final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field.generateToFirestore('value');
+        final converterExpr = field.generateToFirestore(refer('value')).accept(DartEmitter()).toString();
         buffer.writeln(
           '  DefaultUpdateBuilder<$fieldTypeString> get $fieldName => DefaultUpdateBuilder<$fieldTypeString>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );

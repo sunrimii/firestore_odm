@@ -34,9 +34,13 @@ class OrderByGenerator {
     ModelAnalysis analysis,
   ) {
     // ModelAnalysis is only created for custom classes, so no primitive type check needed
-    final className = analysis.className;
-    final isGeneric = analysis.classTypeAnalysis.isGeneric;
-    final typeParameters = analysis.classTypeAnalysis.typeParameters;
+    final className = analysis.dartType.element?.name;
+    if (className == null) {
+      throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
+    }
+    
+    final isGeneric = analysis.isGeneric;
+    final typeParameters = analysis.typeParameters;
     final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
     final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
 
