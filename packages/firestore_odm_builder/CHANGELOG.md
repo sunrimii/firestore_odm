@@ -1,3 +1,7 @@
+## 2.3.2
+
+ - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))
+
 ## 2.3.1
 
  - **FIX**(subcollections): implement path-specific isolation to prevent cross-collection access. ([95d31e58](https://github.com/sylphxltd/firestore_odm/commit/95d31e58d4bba91f7da2c9001ec23c7f5dabf809))

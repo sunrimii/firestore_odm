@@ -1,3 +1,7 @@
+## 2.7.1
+
+ - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))
+
 ## 2.7.0
 
  - **REFACTOR**: replace batch operation interfaces with synchronous variants for improved transaction handling. ([aab9f767](https://github.com/sylphxltd/firestore_odm/commit/aab9f767612c90365cf022c6c4a1a1f048ec8f68))

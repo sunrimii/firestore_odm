@@ -15,6 +15,32 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v2.7.1`](#firestore_odm---v271)
+ - [`firestore_odm_builder` - `v2.3.2`](#firestore_odm_builder---v232)
+
+---
+
+#### `firestore_odm` - `v2.7.1`
+
+ - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))
+
+#### `firestore_odm_builder` - `v2.3.2`
+
+ - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))
+
+
+## 2025-06-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm_builder` - `v2.3.1`](#firestore_odm_builder---v231)
 
 ---
