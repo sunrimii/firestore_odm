@@ -29,7 +29,7 @@ class MapConverter<K, V> implements FirestoreConverter<Map<K, V>, Map<String, dy
   final FirestoreConverter<K, String> keyConverter;
   final FirestoreConverter<V, dynamic> valueConverter;
 
-  const MapConverter({required this.keyConverter, required this.valueConverter});
+  const MapConverter(this.keyConverter, this.valueConverter);
 
   @override
   Map<K, V> fromFirestore(Map<String, dynamic> data) {
@@ -47,7 +47,7 @@ class MapConverter<K, V> implements FirestoreConverter<Map<K, V>, Map<String, dy
 class ListConverter<T> implements FirestoreConverter<List<T>, List<dynamic>> {
   final FirestoreConverter<T, dynamic> elementConverter;
 
-  const ListConverter({required this.elementConverter});
+  const ListConverter(this.elementConverter);
 
   @override
   List<T> fromFirestore(List<dynamic> data) {
