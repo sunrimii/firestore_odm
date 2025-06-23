@@ -575,24 +575,9 @@ class TypeRegistry {
         return DirectConverter(typeName);
 
       case FirestoreType.array:
-        return _createGenericConverter(dartType);
-
       case FirestoreType.map:
-        return _createGenericConverter(dartType);
-
       case FirestoreType.object:
-        // Check if this is a generic type that needs parameter converters
-        if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
-          // For generic types, create converter with parameter converters
-          final baseTypeName = getBaseTypeName(dartType);
-          final parameterConverters = dartType.typeArguments.map((arg) {
-            final argAnalysis = getOrAnalyzeType(arg, null);
-            return argAnalysis.converter;
-          }).toList();
-          return ConverterClassConverter('${baseTypeName}Converter', parameterConverters);
-        } else {
-          return ConverterClassConverter('${getBaseTypeName(dartType)}Converter');
-        }
+        return _createGenericConverter(dartType);
       case FirestoreType.null_:
         return DirectConverter(typeName);
     }
@@ -1160,6 +1145,11 @@ if (fieldType is InterfaceType) {
 
     // Check for toJson method (no parameters) in class hierarchy
     final hasToJson = _hasToJsonMethod(classElement);
+
+    // Debug output for ManualUser2
+    if (classElement.name == 'ManualUser2') {
+      print('DEBUG: ManualUser2 - hasFromJson: $hasFromJson, hasToJson: $hasToJson');
+    }
 
     return hasFromJson && hasToJson;
   }
