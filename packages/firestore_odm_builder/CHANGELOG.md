@@ -1,3 +1,8 @@
+## 2.3.3
+
+ - **FIX**(update_generator): enhance deprecation notice for update method and clarify usage of patch operations. ([519cb496](https://github.com/sylphxltd/firestore_odm/commit/519cb49609cb4f1bc2032ef9bb4ca4a38195411b))
+ - **FIX**(update_generator): optimize null checks and improve data assignment in update method. ([8ee14379](https://github.com/sylphxltd/firestore_odm/commit/8ee143793ad433b4a24350bcb6eda291a5b1bb81))
+
 ## 2.3.2
 
  - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))

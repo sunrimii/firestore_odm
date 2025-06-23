@@ -15,6 +15,28 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_builder` - `v2.3.3`](#firestore_odm_builder---v233)
+
+---
+
+#### `firestore_odm_builder` - `v2.3.3`
+
+ - **FIX**(update_generator): enhance deprecation notice for update method and clarify usage of patch operations. ([519cb496](https://github.com/sylphxltd/firestore_odm/commit/519cb49609cb4f1bc2032ef9bb4ca4a38195411b))
+ - **FIX**(update_generator): optimize null checks and improve data assignment in update method. ([8ee14379](https://github.com/sylphxltd/firestore_odm/commit/8ee143793ad433b4a24350bcb6eda291a5b1bb81))
+
+
+## 2025-06-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v2.7.1`](#firestore_odm---v271)
  - [`firestore_odm_builder` - `v2.3.2`](#firestore_odm_builder---v232)
 
