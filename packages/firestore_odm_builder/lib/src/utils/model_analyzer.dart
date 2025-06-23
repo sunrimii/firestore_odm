@@ -826,6 +826,26 @@ class ModelAnalyzer {
                 final nestedModelAnalysis = registry.getOrAnalyzeModel(element);
                 if (nestedModelAnalysis != null) {
                   modelAnalyses[typeName] = nestedModelAnalysis;
+                  
+                  // Recursively analyze the fields of this nested model to discover even deeper types
+                  for (final nestedField in nestedModelAnalysis.fields.values) {
+                    final deeperNestedTypeAnalyses = registry.analyzeAllTypesRecursively(nestedField.dartType);
+                    typeAnalyses.addAll(deeperNestedTypeAnalyses);
+                    
+                    // Process these deeper nested types as well
+                    for (final deeperEntry in deeperNestedTypeAnalyses.entries) {
+                      final deeperTypeName = deeperEntry.key;
+                      final deeperTypeAnalysis = deeperEntry.value;
+                      
+                      if (deeperTypeAnalysis.firestoreType == FirestoreType.object &&
+                          !deeperTypeAnalysis.isGeneric &&
+                          !modelAnalyses.containsKey(deeperTypeName)) {
+                        
+                        // Try to find ClassElement for this deeper nested type and recursively analyze it
+                        _tryRecursiveAnalysis(deeperTypeName, nestedField.dartType, modelAnalyses, typeAnalyses, registry);
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -833,12 +853,72 @@ class ModelAnalyzer {
         }
       }
     }
+return AnalysisResult(
+  modelAnalyses: modelAnalyses,
+  typeAnalyses: typeAnalyses,
+);
+}
 
-    return AnalysisResult(
-      modelAnalyses: modelAnalyses,
-      typeAnalyses: typeAnalyses,
-    );
+/// Try to recursively analyze a deeper nested type
+static void _tryRecursiveAnalysis(
+String typeName,
+DartType fieldType,
+Map<String, ModelAnalysis> modelAnalyses,
+Map<String, TypeAnalysisResult> typeAnalyses,
+TypeRegistry registry,
+) {
+// For deeper nested types, we need to search through the entire type hierarchy
+// This is a simplified approach - in a production system, this would need more robust element resolution
+
+if (fieldType is InterfaceType) {
+  final element = fieldType.element;
+  
+  // Check if this element matches our target type name
+  if (element is ClassElement && element.name == typeName) {
+    final deeperModelAnalysis = registry.getOrAnalyzeModel(element);
+    if (deeperModelAnalysis != null) {
+      modelAnalyses[typeName] = deeperModelAnalysis;
+      
+      // Continue even deeper recursion for fields of this model
+      for (final deeperField in deeperModelAnalysis.fields.values) {
+        final evenDeeperTypeAnalyses = registry.analyzeAllTypesRecursively(deeperField.dartType);
+        typeAnalyses.addAll(evenDeeperTypeAnalyses);
+        
+        // Process even deeper nested types
+        for (final evenDeeperEntry in evenDeeperTypeAnalyses.entries) {
+          final evenDeeperTypeName = evenDeeperEntry.key;
+          final evenDeeperTypeAnalysis = evenDeeperEntry.value;
+          
+          if (evenDeeperTypeAnalysis.firestoreType == FirestoreType.object &&
+              !evenDeeperTypeAnalysis.isGeneric &&
+              !modelAnalyses.containsKey(evenDeeperTypeName)) {
+            
+            // Try one more level of recursion
+            _tryRecursiveAnalysis(evenDeeperTypeName, deeperField.dartType, modelAnalyses, typeAnalyses, registry);
+          }
+        }
+      }
+    }
+    return;
   }
+  
+  // Also check type arguments for nested custom types
+  for (final typeArg in fieldType.typeArguments) {
+    if (typeArg is InterfaceType) {
+      final argElement = typeArg.element;
+      if (argElement is ClassElement && argElement.name == typeName) {
+        final deeperModelAnalysis = registry.getOrAnalyzeModel(argElement);
+        if (deeperModelAnalysis != null) {
+          modelAnalyses[typeName] = deeperModelAnalysis;
+        }
+        return;
+      }
+    }
+  }
+}
+}
+
+
 
 
   /// Get all fields from the class and its supertypes (excluding Object)
