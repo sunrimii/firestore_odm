@@ -24,9 +24,20 @@ class UpdateGenerator {
 
     // Generate strongly-typed named parameter update method
     buffer.writeln('  /// Update with strongly-typed named parameters');
+    buffer.writeln('  ///');
+    buffer.writeln('  /// @deprecated This copyWith-style API will be removed in a future major version.');
+    buffer.writeln('  /// Use patch operations instead:');
+    buffer.writeln('  /// ```dart');
+    buffer.writeln('  /// // Instead of: update(name: "John", age: 25)');
+    buffer.writeln('  /// // Use: userDoc.patch((\$) => [\$.name("John"), \$.age(25)])');
+    buffer.writeln('  /// ```');
+    buffer.writeln('  ///');
+    buffer.writeln('  /// Note: This API cannot distinguish between "field not specified" and "field set to null",');
+    buffer.writeln('  /// which prevents setting nullable fields to null when they have a current value.');
+    buffer.writeln('  @Deprecated(\'Use patch operations instead. Will be removed in next major version.\')');
     buffer.writeln('  UpdateOperation call({');
 
-    // Generate named parameters for all updateable fields
+    // Generate named parameters for all updateable fields with proper types
     for (final field in analysis.updateableFields) {
       // Make all parameters optional for object merge operations
       final dartTypeString = field.dartType.getDisplayString();
