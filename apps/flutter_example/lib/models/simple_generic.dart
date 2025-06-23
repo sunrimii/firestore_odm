@@ -4,7 +4,7 @@ part 'simple_generic.freezed.dart';
 part 'simple_generic.g.dart';
 
 @Freezed(genericArgumentFactories: true)
-class SimpleGeneric<T> with _$SimpleGeneric<T> {
+abstract class SimpleGeneric<T> with _$SimpleGeneric<T> {
   const factory SimpleGeneric({
     required String id,
     required T value,

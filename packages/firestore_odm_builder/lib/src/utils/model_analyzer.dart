@@ -692,7 +692,10 @@ class TypeRegistry {
     // Process nested types if this is a generic type
     if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
       for (final typeArg in dartType.typeArguments) {
-        _analyzeTypeRecursively(typeArg, allTypeAnalyses, processedTypes);
+        // Skip type parameters (like T, K, V) - only analyze concrete types
+        if (typeArg is! TypeParameterType) {
+          _analyzeTypeRecursively(typeArg, allTypeAnalyses, processedTypes);
+        }
       }
     }
   
@@ -793,6 +796,10 @@ class ModelAnalyzer {
 
       // Then use TypeRegistry to analyze all nested types in the model's fields
       for (final field in rootAnalysis.fields.values) {
+        // Skip type parameters (like T, K, V) - only analyze concrete types
+        if (field.dartType is TypeParameterType) {
+          continue;
+        }
         final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(field.dartType);
         
         // Add all type analyses

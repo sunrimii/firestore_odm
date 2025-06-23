@@ -9,9 +9,14 @@ class AggregateGenerator {
     ModelAnalysis analysis,
   ) {
     final className = analysis.className;
-    buffer.writeln('/// Generated AggregateFieldSelector for $className');
+    final isGeneric = analysis.classTypeAnalysis.isGeneric;
+    final typeParameters = analysis.classTypeAnalysis.typeParameters;
+    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
+    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
+
+    buffer.writeln('/// Generated AggregateFieldSelector for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}AggregateFieldSelectorExtension on AggregateFieldSelector<${className}> {',
+      'extension ${className}AggregateFieldSelectorExtension$typeParamsString on AggregateFieldSelector<$classNameWithTypeParams> {',
     );
     buffer.writeln('');
 

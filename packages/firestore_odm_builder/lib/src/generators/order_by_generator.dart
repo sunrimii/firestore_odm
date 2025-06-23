@@ -35,11 +35,15 @@ class OrderByGenerator {
   ) {
     // ModelAnalysis is only created for custom classes, so no primitive type check needed
     final className = analysis.className;
+    final isGeneric = analysis.classTypeAnalysis.isGeneric;
+    final typeParameters = analysis.classTypeAnalysis.typeParameters;
+    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
+    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
 
     // Generate OrderByFieldSelector extension
-    buffer.writeln('/// Generated OrderByFieldSelector for $className');
+    buffer.writeln('/// Generated OrderByFieldSelector for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}OrderByFieldSelectorExtension on OrderByFieldSelector<$className> {',
+      'extension ${className}OrderByFieldSelectorExtension$typeParamsString on OrderByFieldSelector<$classNameWithTypeParams> {',
     );
 
     // Generate field selectors from analysis

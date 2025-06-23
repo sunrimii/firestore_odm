@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/element/type.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 import '../utils/string_helpers.dart';
@@ -15,10 +16,14 @@ class UpdateGenerator {
     }
 
     final className = analysis.className;
+    final isGeneric = analysis.classTypeAnalysis.isGeneric;
+    final typeParameters = analysis.classTypeAnalysis.typeParameters;
+    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
+    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
 
-    buffer.writeln('/// Generated UpdateBuilder for $className');
+    buffer.writeln('/// Generated UpdateBuilder for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}UpdateBuilder on UpdateBuilder<${className}> {',
+      'extension ${className}UpdateBuilder$typeParamsString on UpdateBuilder<$classNameWithTypeParams> {',
     );
     buffer.writeln('');
 
@@ -39,6 +44,11 @@ class UpdateGenerator {
 
     // Generate named parameters for all updateable fields with proper types
     for (final field in analysis.updateableFields) {
+      // Skip type parameters (like T, K, V) - only process concrete types
+      if (field.dartType is TypeParameterType) {
+        continue;
+      }
+      
       // Make all parameters optional for object merge operations
       final dartTypeString = field.dartType.getDisplayString();
       // If the type is already nullable, use it as-is, otherwise make it nullable
@@ -53,6 +63,11 @@ class UpdateGenerator {
 
     // Generate field assignments using JSON field names from analysis
     for (final field in analysis.updateableFields) {
+      // Skip type parameters (like T, K, V) - only process concrete types
+      if (field.dartType is TypeParameterType) {
+        continue;
+      }
+      
       final paramName = field.parameterName;
       final jsonFieldName = field.jsonFieldName;
       
@@ -89,6 +104,11 @@ class UpdateGenerator {
 
     // Generate individual field update methods
     for (final field in analysis.updateableFields) {
+      // Skip type parameters (like T, K, V) - only process concrete types
+      if (field.dartType is TypeParameterType) {
+        continue;
+      }
+      
       _generateFieldUpdateMethod(buffer, className, field);
     }
 

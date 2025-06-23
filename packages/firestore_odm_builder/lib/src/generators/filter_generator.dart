@@ -83,9 +83,14 @@ class FilterGenerator {
     ModelAnalysis analysis,
   ) {
     final className = analysis.className;
-    buffer.writeln('/// Generated FilterSelector for $className');
+    final isGeneric = analysis.classTypeAnalysis.isGeneric;
+    final typeParameters = analysis.classTypeAnalysis.typeParameters;
+    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
+    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
+    
+    buffer.writeln('/// Generated FilterSelector for $classNameWithTypeParams');
     buffer.writeln(
-      'extension ${className}FilterSelectorExtension on FilterSelector<${className}> {',
+      'extension ${className}FilterSelectorExtension$typeParamsString on FilterSelector<$classNameWithTypeParams> {',
     );
     buffer.writeln('');
 
