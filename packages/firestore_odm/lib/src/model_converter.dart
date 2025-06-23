@@ -207,13 +207,13 @@ class FirestoreConverters {
   /// Create a list converter with optional element converter
   static ListConverter<T> list<T>({
     FirestoreConverter<T, dynamic> elementConverter = const PrimitiveConverter(),
-  }) => ListConverter<T>(elementConverter: elementConverter);
+  }) => ListConverter<T>(elementConverter);
 
   /// Create a map converter with optional key and value converters
   static MapConverter<K, V> map<K, V>({
     FirestoreConverter<K, String> keyConverter = const PrimitiveConverter(),
     FirestoreConverter<V, dynamic> valueConverter = const PrimitiveConverter(),
-  }) => MapConverter<K, V>(keyConverter: keyConverter, valueConverter: valueConverter);
+  }) => MapConverter<K, V>(keyConverter, valueConverter);
 
   /// Create an object converter using JsonDeserializer and JsonSerializer
   // static ObjectConverter<T> object<T>({
