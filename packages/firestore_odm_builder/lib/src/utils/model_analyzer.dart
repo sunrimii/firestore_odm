@@ -640,6 +640,11 @@ class TypeRegistry {
     Map<Object, TypeAnalysisResult> allTypeAnalyses,
     Set<Object> processedTypes,
   ) {
+    // Skip type parameters (like T, K, V) - only analyze concrete types
+    if (dartType is TypeParameterType) {
+      return;
+    }
+    
     // Use element as key for interface types to avoid conflicts and deduplicate generics
     Object keyObject;
     if (dartType is InterfaceType) {
@@ -796,10 +801,6 @@ class ModelAnalyzer {
 
       // Then use TypeRegistry to analyze all nested types in the model's fields
       for (final field in rootAnalysis.fields.values) {
-        // Skip type parameters (like T, K, V) - only analyze concrete types
-        if (field.dartType is TypeParameterType) {
-          continue;
-        }
         final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(field.dartType);
         
         // Add all type analyses
