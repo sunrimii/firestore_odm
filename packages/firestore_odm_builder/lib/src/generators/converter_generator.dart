@@ -281,11 +281,11 @@ class ConverterGenerator {
     buffer.writeln('  $firestoreTypeName toFirestore($typeName$typeParamsString data) {');
     
     if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e));');
+      // Single type parameter - add cast since toJson returns Object
+      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e)) as $firestoreTypeName;');
     } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v));');
+      // Two type parameters - add cast since toJson returns Object
+      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v)) as $firestoreTypeName;');
     } else {
       // General case
       buffer.writeln('    throw UnimplementedError("Generic types with ${typeParams.length} parameters not yet supported");');
