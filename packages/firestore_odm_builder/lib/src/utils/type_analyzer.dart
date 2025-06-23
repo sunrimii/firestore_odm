@@ -31,6 +31,7 @@ class TypeAnalyzer {
   static const TypeChecker _immutableListChecker = TypeChecker.fromRuntime(
     IList,
   );
+  static const TypeChecker _immutableSetChecker = TypeChecker.fromRuntime(ISet);
 
   /// Find the document ID field in a constructor
   /// First looks for fields with @DocumentIdField() annotation.
@@ -108,7 +109,8 @@ class TypeAnalyzer {
           _getNonNullableType(type),
         ) ||
         _immutableMapChecker.isAssignableFromType(_getNonNullableType(type)) ||
-        _immutableListChecker.isAssignableFromType(_getNonNullableType(type))) {
+        _immutableListChecker.isAssignableFromType(_getNonNullableType(type)) ||
+        _immutableSetChecker.isAssignableFromType(_getNonNullableType(type))) {
       return true;
     }
     return false;
@@ -145,6 +147,7 @@ class TypeAnalyzer {
   }
 
   /// Check if a type is a List type (specifically List, not just any iterable)
+  /// This includes ISet since sets are stored as arrays in Firestore
   static bool isListType(DartType type) {
     if (_listChecker.isAssignableFromType(_getNonNullableType(type))) {
       return true;

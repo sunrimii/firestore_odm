@@ -36,17 +36,28 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
 
     // 2. Extract model types and their ClassElement2 instances directly from annotations
     final Map<String, ModelAnalysis> allModelAnalyses = {};
+    final Map<String, TypeAnalysisResult> allTypeAnalyses = {};
+    final Set<String> processedTypes = {};
 
     for (final collection in collections) {
       final modelType = collection.modelType;
       if (modelType is InterfaceType) {
         final classElement = modelType.element;
         if (classElement is ClassElement) {
+          final typeName = classElement.name;
+          
+          // Skip if already processed
+          if (processedTypes.contains(typeName)) {
+            continue;
+          }
+          processedTypes.add(typeName);
+          
           // Use ModelAnalyzer to discover all nested types
-          final nestedAnalyses = ModelAnalyzer.analyzeModelWithNestedTypes(
+          final analysisResult = ModelAnalyzer.analyzeModelWithNestedTypes(
             classElement,
           );
-          allModelAnalyses.addAll(nestedAnalyses);
+          allModelAnalyses.addAll(analysisResult.modelAnalyses);
+          allTypeAnalyses.addAll(analysisResult.customTypes);
         }
       }
     }
@@ -56,6 +67,7 @@ class FirestoreGenerator extends GeneratorForAnnotation<Schema> {
       element,
       collections,
       allModelAnalyses,
+      allTypeAnalyses,
     );
   }
 

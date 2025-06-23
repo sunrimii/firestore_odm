@@ -33,6 +33,7 @@ class SchemaGenerator {
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
     Map<String, ModelAnalysis> modelAnalyses,
+    Map<String, TypeAnalysisResult> typeAnalyses,
   ) {
     final buffer = StringBuffer();
 
@@ -47,11 +48,9 @@ class SchemaGenerator {
     // Generate the schema class
     _generateSchemaClass(buffer, schemaClassName, schemaConstName);
 
-    // Generate converters for all model types
-    buffer.write(ConverterGenerator.generateAllConverters(modelAnalyses));
-    
-    // Generate converter constants
-    buffer.write(ConverterGenerator.generateConverterConstants(modelAnalyses));
+    // Generate converters for all custom types discovered through type analysis
+    buffer.write(ConverterGenerator.generateConvertersForCustomTypes(typeAnalyses));
+  
 
     // Generate filter and order by builders for each model type
     buffer.writeln('// Starting to generate filter and order by selectors...');
@@ -665,4 +664,5 @@ class SchemaGenerator {
     }
     return null;
   }
+
 }
