@@ -13,6 +13,7 @@ import 'models/json_key_user.dart';
 import 'models/dart_immutable_user.dart';
 import 'models/manual_user.dart';
 import 'models/task.dart';
+import 'models/simple_generic.dart';
 
 part 'test_schema.odm.dart';
 
@@ -40,4 +41,5 @@ part 'test_schema.odm.dart';
 @Collection<ListLengthModel>(
   "listLengthModels",
 ) // IList with JsonConverter test
+@Collection<StringGeneric>("stringGenerics") // Generic collection test
 final testSchema = _$TestSchema;
