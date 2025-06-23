@@ -581,7 +581,18 @@ class TypeRegistry {
         return _createGenericConverter(dartType);
 
       case FirestoreType.object:
-        return ConverterClassConverter('${getBaseTypeName(dartType)}Converter');
+        // Check if this is a generic type that needs parameter converters
+        if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
+          // For generic types, create converter with parameter converters
+          final baseTypeName = getBaseTypeName(dartType);
+          final parameterConverters = dartType.typeArguments.map((arg) {
+            final argAnalysis = getOrAnalyzeType(arg, null);
+            return argAnalysis.converter;
+          }).toList();
+          return ConverterClassConverter('${baseTypeName}Converter', parameterConverters);
+        } else {
+          return ConverterClassConverter('${getBaseTypeName(dartType)}Converter');
+        }
       case FirestoreType.null_:
         return DirectConverter(typeName);
     }

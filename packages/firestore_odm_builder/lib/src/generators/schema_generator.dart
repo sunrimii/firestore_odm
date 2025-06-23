@@ -148,11 +148,10 @@ class SchemaGenerator {
 
     for (final collection in rootCollections) {
       final collectionName = StringHelpers.camelCase(collection.path);
-      final converterName =
-          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
-
       // Get document ID field from model analysis
-      final analysis = modelAnalyses[collection.modelTypeName];
+      final baseClassName = _extractBaseClassName(collection.modelTypeName);
+      final analysis = modelAnalyses[collection.modelTypeName] ?? modelAnalyses[baseClassName];
+      final converterName = _generateConverterCall(collection.modelTypeName, analysis);
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
 
@@ -199,11 +198,11 @@ class SchemaGenerator {
 
     for (final collection in rootCollections) {
       final collectionName = StringHelpers.camelCase(collection.path);
-      final converterName =
-          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
+      final baseClassName = _extractBaseClassName(collection.modelTypeName);
+      final analysis = modelAnalyses[collection.modelTypeName] ?? modelAnalyses[baseClassName];
+      final converterName = _generateConverterCall(collection.modelTypeName, analysis);
 
       // Get document ID field from model analysis
-      final analysis = modelAnalyses[collection.modelTypeName];
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
 
@@ -248,11 +247,11 @@ class SchemaGenerator {
 
     for (final collection in rootCollections) {
       final collectionName = StringHelpers.camelCase(collection.path);
-      final converterName =
-          '${_toLowerCamelCase(collection.modelTypeName)}Converter';
-
+      
       // Get document ID field from model analysis
-      final analysis = modelAnalyses[collection.modelTypeName];
+      final baseClassName = _extractBaseClassName(collection.modelTypeName);
+      final analysis = modelAnalyses[collection.modelTypeName] ?? modelAnalyses[baseClassName];
+      final converterName = _generateConverterCall(collection.modelTypeName, analysis);
       final documentIdField = analysis?.documentIdFieldName;
       final documentIdFieldValue = documentIdField ?? 'id';
 
@@ -362,8 +361,9 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = StringHelpers.camelCase(subcollectionName);
-        final converterName =
-            '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
+        final subcolBaseClassName = _extractBaseClassName(subcol.modelTypeName);
+        final subcolAnalysis = modelAnalyses[subcol.modelTypeName] ?? modelAnalyses[subcolBaseClassName];
+        final converterName = _generateConverterCall(subcol.modelTypeName, subcolAnalysis);
 
         // Find the class element for this model type to get document ID field
         final analysis = modelAnalyses[subcol.modelTypeName];
@@ -585,8 +585,9 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = StringHelpers.camelCase(subcollectionName);
-        final converterName =
-            '${_toLowerCamelCase(subcol.modelTypeName)}Converter';
+        final subcolBaseClassName = _extractBaseClassName(subcol.modelTypeName);
+        final subcolAnalysis = modelAnalyses[subcol.modelTypeName] ?? modelAnalyses[subcolBaseClassName];
+        final converterName = _generateConverterCall(subcol.modelTypeName, subcolAnalysis);
 
         // Find the class element for this model type to get document ID field
         final analysis = modelAnalyses[subcol.modelTypeName];
@@ -663,6 +664,70 @@ class SchemaGenerator {
       }
     }
     return null;
+  }
+
+  /// Generate converter call based on whether the type is generic or not
+  static String _generateConverterCall(String modelTypeName, ModelAnalysis? analysis) {
+    // Extract base class name from potentially generic type name
+    final baseClassName = _extractBaseClassName(modelTypeName);
+    
+    if (analysis == null || !analysis.classTypeAnalysis.isGeneric) {
+      // Non-generic converter
+      return 'const ${baseClassName}Converter()';
+    }
+    
+    // Generic converter - need to extract type parameters from modelTypeName
+    final typeArgs = _extractTypeArguments(modelTypeName);
+    if (typeArgs.isNotEmpty) {
+      final args = typeArgs.map((typeArg) {
+        // For primitive types, use PrimitiveConverter
+        if (_isPrimitiveType(typeArg)) {
+          return 'const PrimitiveConverter<$typeArg>()';
+        } else {
+          // For custom types, use their converter
+          return 'const ${typeArg}Converter()';
+        }
+      }).join(', ');
+      return 'const ${baseClassName}Converter($args)';
+    }
+    
+    // Fallback for generic types without parameter converters
+    return 'const ${baseClassName}Converter()';
+  }
+
+  /// Extract type arguments from generic type name
+  /// e.g., "SimpleGeneric<String>" -> ["String"]
+  /// e.g., "Map<String, int>" -> ["String", "int"]
+  static List<String> _extractTypeArguments(String typeName) {
+    final startIndex = typeName.indexOf('<');
+    final endIndex = typeName.lastIndexOf('>');
+    
+    if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
+      return [];
+    }
+    
+    final typeArgsString = typeName.substring(startIndex + 1, endIndex);
+    // Simple split by comma, could be enhanced for nested generics
+    return typeArgsString.split(',').map((s) => s.trim()).toList();
+  }
+
+  /// Check if a type is a primitive type
+  static bool _isPrimitiveType(String typeName) {
+    const primitiveTypes = {
+      'String', 'int', 'double', 'bool', 'num',
+      'DateTime', 'Duration', 'dynamic', 'Object'
+    };
+    return primitiveTypes.contains(typeName);
+  }
+
+  /// Extract base class name from generic type name
+  /// e.g., "SimpleGeneric<String>" -> "SimpleGeneric"
+  static String _extractBaseClassName(String typeName) {
+    final genericIndex = typeName.indexOf('<');
+    if (genericIndex == -1) {
+      return typeName;
+    }
+    return typeName.substring(0, genericIndex);
   }
 
 }
