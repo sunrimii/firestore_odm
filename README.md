@@ -174,8 +174,8 @@ await db.runTransaction((tx) async {
   final receiver = await tx.users('user2').get();
   
   // Writes are automatically deferred until the end
-  await tx.users('user1').patch(($) => [$.balance.increment(-100)]);
-  await tx.users('user2').patch(($) => [$.balance.increment(100)]);
+  tx.users('user1').patch(($) => [$.balance.increment(-100)]);
+  tx.users('user2').patch(($) => [$.balance.increment(100)]);
 });
 ```
 
