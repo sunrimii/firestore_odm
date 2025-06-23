@@ -182,6 +182,19 @@ class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
   }
 }
 
+class DefaultConverter<T, F> implements FirestoreConverter<T, F> {
+  final T Function(F) fromJson;
+  final F Function(T) toJson;
+
+  const DefaultConverter({required this.fromJson, required this.toJson});
+
+  @override
+  T fromFirestore(F data) => fromJson(data);
+
+  @override
+  F toFirestore(T data) => toJson(data);
+}
+
 
 /// Predefined converter instances for common types
 class FirestoreConverters {
