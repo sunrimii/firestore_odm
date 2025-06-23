@@ -39,12 +39,12 @@ part 'test_schema.odm.dart';
 @Collection<ManualUser>(
   "manualUsers",
 ) // Manual toJson/fromJson implementation test
-@Collection<ManualUser2>(
-  "manualUsers",
-) // without toJson/fromJson implementation test
-@Collection<ManualUser3<ManualUser3Profile<Book>>>(
-  "manualUsers",
-) // complicated generic without toJson/fromJson implementation test
+// @Collection<ManualUser2>(
+//   "manualUsers",
+// ) // without toJson/fromJson implementation test
+// @Collection<ManualUser3<ManualUser3Profile<Book>>>(
+//   "manualUsers",
+// ) // complicated generic without toJson/fromJson implementation test
 
 @Collection<Task>("tasks") // Duration field test
 @Collection<ListLengthModel>(

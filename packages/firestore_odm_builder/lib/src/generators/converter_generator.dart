@@ -28,6 +28,10 @@ class ConverterGenerator {
     buffer.writeln('');
 
     // Check if the class has manual serialization methods
+    if (className == 'ManualUser2') {
+      print('DEBUG: $className - hasManualSerialization: ${analysis.hasManualSerialization}');
+    }
+    
     if (analysis.hasManualSerialization) {
       // Use manual toJson/fromJson methods
       buffer.writeln('  @override');
@@ -196,8 +200,8 @@ class ConverterGenerator {
       buffer.writeln('  const $converterClassName();');
       buffer.writeln('');
 
-      // Generate methods based on FirestoreType
-      _generateNonGenericMethods(buffer, typeName, typeAnalysis.firestoreType, firestoreTypeName);
+      // Generate methods based on FirestoreType and JSON support
+      _generateNonGenericMethods(buffer, typeName, typeAnalysis.firestoreType, firestoreTypeName, typeAnalysis.hasJsonSupport);
     }
     
     buffer.writeln('}');
@@ -294,7 +298,7 @@ class ConverterGenerator {
   }
   
   /// Generate methods for non-generic types
-  static void _generateNonGenericMethods(StringBuffer buffer, String typeName, FirestoreType firestoreType, String firestoreTypeName) {
+  static void _generateNonGenericMethods(StringBuffer buffer, String typeName, FirestoreType firestoreType, String firestoreTypeName, bool hasJsonSupport) {
     // Generate fromFirestore method
     buffer.writeln('  @override');
     buffer.writeln('  $typeName fromFirestore($firestoreTypeName data) {');
@@ -302,10 +306,20 @@ class ConverterGenerator {
     switch (firestoreType) {
       case FirestoreType.object:
       case FirestoreType.map:
-        buffer.writeln('    return $typeName.fromJson(data);');
+        if (hasJsonSupport) {
+          buffer.writeln('    return $typeName.fromJson(data);');
+        } else {
+          // For types without JSON support, need field-by-field conversion
+          // TODO: This should be implemented with ModelAnalysis for proper field-by-field conversion
+          buffer.writeln('    throw UnimplementedError(\'$typeName does not support fromJson. Please add toJson/fromJson methods or use @JsonSerializable.\');');
+        }
         break;
       case FirestoreType.array:
-        buffer.writeln('    return $typeName.fromJson(data);');
+        if (hasJsonSupport) {
+          buffer.writeln('    return $typeName.fromJson(data);');
+        } else {
+          buffer.writeln('    throw UnimplementedError(\'$typeName does not support fromJson for arrays.\');');
+        }
         break;
       default:
         // For primitive types, direct cast
@@ -323,7 +337,13 @@ class ConverterGenerator {
       case FirestoreType.object:
       case FirestoreType.map:
       case FirestoreType.array:
-        buffer.writeln('    return data.toJson();');
+        if (hasJsonSupport) {
+          buffer.writeln('    return data.toJson();');
+        } else {
+          // For types without JSON support, need field-by-field conversion
+          // TODO: This should be implemented with ModelAnalysis for proper field-by-field conversion
+          buffer.writeln('    throw UnimplementedError(\'$typeName does not support toJson. Please add toJson/fromJson methods or use @JsonSerializable.\');');
+        }
         break;
       default:
         // For primitive types, direct return
