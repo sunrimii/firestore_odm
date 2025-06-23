@@ -167,37 +167,170 @@ class ConverterGenerator {
 
   /// Generate converter for a specific type based on its analysis
   static String _generateTypeConverter(String typeName, TypeAnalysisResult typeAnalysis) {
-    // Check if this is a generic type that needs special handling
-    if (typeAnalysis.isGeneric) {
-      return _generateGenericTypeConverter(typeName, typeAnalysis);
-    }
-    
     final converterClassName = '${typeName}Converter';
+    final firestoreTypeName = _getFirestoreTypeName(typeAnalysis.firestoreType);
     final buffer = StringBuffer();
 
-    // Generate converter class
+    // Generate converter class header
     buffer.writeln('/// Generated converter for $typeName');
-    buffer.writeln(
-      'class $converterClassName implements FirestoreConverter<$typeName, Map<String, dynamic>> {',
-    );
-    buffer.writeln('  const $converterClassName();');
-    buffer.writeln('');
+    
+    if (typeAnalysis.isGeneric) {
+      // Generic type with type parameters
+      final typeParams = typeAnalysis.typeParameters;
+      final typeParamsString = '<${typeParams.join(', ')}>';
+      
+      buffer.writeln(
+        'class $converterClassName$typeParamsString implements FirestoreConverter<$typeName$typeParamsString, $firestoreTypeName> {',
+      );
+      
+      // Generate constructor fields for converters
+      _generateGenericConstructor(buffer, converterClassName, typeParams);
+      
+      // Generate methods
+      _generateGenericMethods(buffer, typeName, typeParamsString, typeParams, firestoreTypeName);
+    } else {
+      // Non-generic type
+      buffer.writeln(
+        'class $converterClassName implements FirestoreConverter<$typeName, $firestoreTypeName> {',
+      );
+      buffer.writeln('  const $converterClassName();');
+      buffer.writeln('');
 
-    // Use manual toJson/fromJson methods since this is a custom type
-    buffer.writeln('  @override');
-    buffer.writeln('  $typeName fromFirestore(Map<String, dynamic> data) {');
-    buffer.writeln('    return $typeName.fromJson(data);');
-    buffer.writeln('  }');
-    buffer.writeln('');
-
-    buffer.writeln('  @override');
-    buffer.writeln('  Map<String, dynamic> toFirestore($typeName data) {');
-    buffer.writeln('    return data.toJson();');
-    buffer.writeln('  }');
+      // Generate methods based on FirestoreType
+      _generateNonGenericMethods(buffer, typeName, typeAnalysis.firestoreType, firestoreTypeName);
+    }
+    
     buffer.writeln('}');
     buffer.writeln('');
 
     return buffer.toString();
+  }
+  
+  /// Get the Dart type name for a FirestoreType
+  static String _getFirestoreTypeName(FirestoreType firestoreType) {
+    switch (firestoreType) {
+      case FirestoreType.string:
+        return 'String';
+      case FirestoreType.integer:
+        return 'int';
+      case FirestoreType.double:
+        return 'double';
+      case FirestoreType.boolean:
+        return 'bool';
+      case FirestoreType.timestamp:
+        return 'Timestamp';
+      case FirestoreType.bytes:
+        return 'Uint8List';
+      case FirestoreType.geoPoint:
+        return 'GeoPoint';
+      case FirestoreType.reference:
+        return 'DocumentReference';
+      case FirestoreType.array:
+        return 'List<dynamic>';
+      case FirestoreType.map:
+      case FirestoreType.object:
+        return 'Map<String, dynamic>';
+      case FirestoreType.null_:
+        return 'dynamic';
+    }
+  }
+  
+  /// Generate constructor for generic types
+  static void _generateGenericConstructor(StringBuffer buffer, String converterClassName, List<String> typeParams) {
+    if (typeParams.length == 1) {
+      // Single type parameter (e.g., IList<T>, ISet<T>)
+      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> valueConverter;');
+      buffer.writeln('  const $converterClassName(this.valueConverter);');
+    } else if (typeParams.length == 2) {
+      // Two type parameters (e.g., IMap<K, V>)
+      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> keyConverter;');
+      buffer.writeln('  final FirestoreConverter<${typeParams[1]}, dynamic> valueConverter;');
+      buffer.writeln('  const $converterClassName(this.keyConverter, this.valueConverter);');
+    } else {
+      // General case for multiple type parameters
+      for (int i = 0; i < typeParams.length; i++) {
+        buffer.writeln('  final FirestoreConverter<${typeParams[i]}, dynamic> converter$i;');
+      }
+      final constructorParams = List.generate(typeParams.length, (i) => 'this.converter$i').join(', ');
+      buffer.writeln('  const $converterClassName($constructorParams);');
+    }
+    buffer.writeln('');
+  }
+  
+  /// Generate methods for generic types
+  static void _generateGenericMethods(StringBuffer buffer, String typeName, String typeParamsString, List<String> typeParams, String firestoreTypeName) {
+    // Generate fromFirestore method
+    buffer.writeln('  @override');
+    buffer.writeln('  $typeName$typeParamsString fromFirestore($firestoreTypeName data) {');
+    
+    if (typeParams.length == 1) {
+      // Single type parameter
+      buffer.writeln('    return $typeName.fromJson(data, (e) => valueConverter.fromFirestore(e));');
+    } else if (typeParams.length == 2) {
+      // Two type parameters
+      buffer.writeln('    return $typeName.fromJson(data, (k) => keyConverter.fromFirestore(k), (v) => valueConverter.fromFirestore(v));');
+    } else {
+      // General case - this would need more specific implementation based on the type
+      buffer.writeln('    throw UnimplementedError("Generic types with ${typeParams.length} parameters not yet supported");');
+    }
+    buffer.writeln('  }');
+    buffer.writeln('');
+
+    // Generate toFirestore method
+    buffer.writeln('  @override');
+    buffer.writeln('  $firestoreTypeName toFirestore($typeName$typeParamsString data) {');
+    
+    if (typeParams.length == 1) {
+      // Single type parameter
+      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e));');
+    } else if (typeParams.length == 2) {
+      // Two type parameters
+      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v));');
+    } else {
+      // General case
+      buffer.writeln('    throw UnimplementedError("Generic types with ${typeParams.length} parameters not yet supported");');
+    }
+    buffer.writeln('  }');
+  }
+  
+  /// Generate methods for non-generic types
+  static void _generateNonGenericMethods(StringBuffer buffer, String typeName, FirestoreType firestoreType, String firestoreTypeName) {
+    // Generate fromFirestore method
+    buffer.writeln('  @override');
+    buffer.writeln('  $typeName fromFirestore($firestoreTypeName data) {');
+    
+    switch (firestoreType) {
+      case FirestoreType.object:
+      case FirestoreType.map:
+        buffer.writeln('    return $typeName.fromJson(data);');
+        break;
+      case FirestoreType.array:
+        buffer.writeln('    return $typeName.fromJson(data);');
+        break;
+      default:
+        // For primitive types, direct cast
+        buffer.writeln('    return data as $typeName;');
+        break;
+    }
+    buffer.writeln('  }');
+    buffer.writeln('');
+
+    // Generate toFirestore method
+    buffer.writeln('  @override');
+    buffer.writeln('  $firestoreTypeName toFirestore($typeName data) {');
+    
+    switch (firestoreType) {
+      case FirestoreType.object:
+      case FirestoreType.map:
+      case FirestoreType.array:
+        buffer.writeln('    return data.toJson();');
+        break;
+      default:
+        // For primitive types, direct return
+        buffer.writeln('    return data;');
+        break;
+    }
+    buffer.writeln('  }');
   }
 
 
@@ -214,7 +347,7 @@ class ConverterGenerator {
     // Generate true generic converter with converter parameters
     buffer.writeln('/// Generated converter for $className$typeParamsString');
     buffer.writeln(
-      'class $converterClassName$typeParamsString implements FirestoreConverter<$className$typeParamsString, dynamic> {',
+      'class $converterClassName$typeParamsString implements FirestoreConverter<$className$typeParamsString, Map<String, dynamic>> {',
     );
     
     // Generate constructor fields for converters
@@ -277,79 +410,6 @@ class ConverterGenerator {
       buffer.writeln('    return data.toJson($paramConverters);');
     }
     
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln('');
-
-    return buffer.toString();
-  }
-
-  /// Generate converter for generic types like IList<T>, IMap<K,V>, etc.
-  static String _generateGenericTypeConverter(String typeName, TypeAnalysisResult typeAnalysis) {
-    final typeParams = typeAnalysis.typeParameters;
-    final typeParamsString = '<${typeParams.join(', ')}>';
-    final converterClassName = '${typeName}Converter';
-
-    final buffer = StringBuffer();
-
-    // Generate true generic converter with converter parameters
-    buffer.writeln('/// Generated converter for $typeName$typeParamsString');
-    buffer.writeln(
-      'class $converterClassName$typeParamsString implements FirestoreConverter<$typeName$typeParamsString, dynamic> {',
-    );
-    
-    // Generate constructor fields for converters
-    if (typeParams.length == 1) {
-      // Single type parameter (e.g., IList<T>, ISet<T>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.valueConverter);');
-    } else if (typeParams.length == 2) {
-      // Two type parameters (e.g., IMap<K, V>)
-      buffer.writeln('  final FirestoreConverter<${typeParams[0]}, dynamic> keyConverter;');
-      buffer.writeln('  final FirestoreConverter<${typeParams[1]}, dynamic> valueConverter;');
-      buffer.writeln('  const $converterClassName(this.keyConverter, this.valueConverter);');
-    } else {
-      // General case for multiple type parameters
-      for (int i = 0; i < typeParams.length; i++) {
-        buffer.writeln('  final FirestoreConverter<${typeParams[i]}, dynamic> converter$i;');
-      }
-      final constructorParams = List.generate(typeParams.length, (i) => 'this.converter$i').join(', ');
-      buffer.writeln('  const $converterClassName($constructorParams);');
-    }
-    
-    buffer.writeln('');
-
-    // Generate fromFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  $typeName$typeParamsString fromFirestore(dynamic data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return $typeName.fromJson(data, (e) => valueConverter.fromFirestore(e));');
-    } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return $typeName.fromJson(data, (k) => keyConverter.fromFirestore(k), (v) => valueConverter.fromFirestore(v));');
-    } else {
-      // General case - would need more complex handling
-      buffer.writeln('    throw UnimplementedError("Generic converters with ${typeParams.length} parameters not yet implemented");');
-    }
-    buffer.writeln('  }');
-    buffer.writeln('');
-
-    // Generate toFirestore method
-    buffer.writeln('  @override');
-    buffer.writeln('  dynamic toFirestore($typeName$typeParamsString data) {');
-    
-    if (typeParams.length == 1) {
-      // Single type parameter
-      buffer.writeln('    return data.toJson((e) => valueConverter.toFirestore(e));');
-    } else if (typeParams.length == 2) {
-      // Two type parameters
-      buffer.writeln('    return data.toJson((k) => keyConverter.toFirestore(k), (v) => valueConverter.toFirestore(v));');
-    } else {
-      // General case
-      buffer.writeln('    throw UnimplementedError("Generic converters with ${typeParams.length} parameters not yet implemented");');
-    }
     buffer.writeln('  }');
     buffer.writeln('}');
     buffer.writeln('');
