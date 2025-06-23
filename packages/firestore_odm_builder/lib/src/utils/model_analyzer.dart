@@ -36,14 +36,14 @@ abstract class TypeConverter {
 /// Direct converter for primitive types (no conversion needed)
 class DirectConverter implements TypeConverter {
   final String dartTypeName;
-  
+
   const DirectConverter(this.dartTypeName);
-  
+
   @override
   String generateFromFirestore(String sourceExpression) {
     return '$sourceExpression as $dartTypeName';
   }
-  
+
   @override
   String generateToFirestore(String sourceExpression) {
     return sourceExpression;
@@ -54,195 +54,108 @@ class DirectConverter implements TypeConverter {
 class ConverterClassConverter implements TypeConverter {
   final String converterClassName;
   final List<TypeConverter> parameterConverters;
-  
-  const ConverterClassConverter(this.converterClassName, [this.parameterConverters = const []]);
-  
-  @override
-  String generateFromFirestore(String sourceExpression) {
-    if (parameterConverters.isEmpty) {
-      return 'const $converterClassName().fromFirestore($sourceExpression)';
-    } else {
-      final args = _generateConverterArguments();
-      return 'const $converterClassName($args).fromFirestore($sourceExpression)';
-    }
-  }
-  
-  @override
-  String generateToFirestore(String sourceExpression) {
-    if (parameterConverters.isEmpty) {
-      return 'const $converterClassName().toFirestore($sourceExpression)';
-    } else {
-      final args = _generateConverterArguments();
-      return 'const $converterClassName($args).toFirestore($sourceExpression)';
-    }
-  }
-  
-  String _generateConverterArguments() {
-    return parameterConverters.map((converter) {
-      if (converter is ConverterClassConverter) {
-        if (converter.parameterConverters.isEmpty) {
-          return 'const ${converter.converterClassName}()';
-        } else {
-          final nestedArgs = converter._generateConverterArguments();
-          return 'const ${converter.converterClassName}($nestedArgs)';
-        }
-      } else if (converter is DirectConverter) {
-        return 'const PrimitiveConverter<${converter.dartTypeName}>()';
-      } else {
-        return 'const PrimitiveConverter<dynamic>()';
-      }
-    }).join(', ');
-  }
-}
 
-/// Converter for JSON serializable objects
-class JsonConverter implements TypeConverter {
-  final String typeName;
-  
-  const JsonConverter(this.typeName);
-  
+  const ConverterClassConverter(
+    this.converterClassName, [
+    this.parameterConverters = const [],
+  ]);
+
   @override
   String generateFromFirestore(String sourceExpression) {
-    return '$typeName.fromJson($sourceExpression as Map<String, dynamic>)';
+    final args = _generateConverterArguments();
+    return '$converterClassName($args).fromFirestore($sourceExpression)';
   }
-  
+
   @override
   String generateToFirestore(String sourceExpression) {
-    return '$sourceExpression.toJson()';
+    final args = _generateConverterArguments();
+    return '$converterClassName($args).toFirestore($sourceExpression)';
+  }
+
+  String _generateConverterArguments() {
+    return parameterConverters
+        .map((converter) {
+          if (converter is ConverterClassConverter) {
+            if (converter.parameterConverters.isEmpty) {
+              return '${converter.converterClassName}()';
+            } else {
+              final nestedArgs = converter._generateConverterArguments();
+              return '${converter.converterClassName}($nestedArgs)';
+            }
+          } else if (converter is DirectConverter) {
+            return 'PrimitiveConverter<${converter.dartTypeName}>()';
+          } else {
+            return 'PrimitiveConverter<dynamic>()';
+          }
+        })
+        .join(', ');
   }
 }
 
 /// Converter for generic types with element converters
-class GenericConverter implements TypeConverter {
+class JsonConverter implements TypeConverter {
   final String typeName;
   final List<TypeConverter> elementConverters;
-  
-  const GenericConverter(this.typeName, this.elementConverters);
-  
+
+  const JsonConverter(this.typeName, this.elementConverters);
+
   @override
   String generateFromFirestore(String sourceExpression) {
-    if (elementConverters.length == 1) {
-      // Collection types (List, Set, IList, ISet)
-      final elementConverter = elementConverters.first;
-      if (elementConverter is DirectConverter) {
-        // For primitive element types, use cast
-        final elementTypeName = elementConverter.dartTypeName;
-        if (typeName.startsWith('IList<') || typeName.startsWith('ISet<')) {
-          // Immutable collections need proper conversion
-          return '$typeName.fromJson($sourceExpression, (e) => e as $elementTypeName)';
-        }
-        return '($sourceExpression as List<dynamic>).cast<$elementTypeName>()';
-      } else {
-        // For complex element types, use map
-        final converterFunction = '(e) => ${elementConverter.generateFromFirestore('e')}';
-        return '$typeName.fromJson($sourceExpression, $converterFunction)';
-      }
-    } else if (elementConverters.length == 2) {
-      // Map types (Map, IMap)
-      final keyConverter = elementConverters[0];
-      final valueConverter = elementConverters[1];
-      
-      if (keyConverter is DirectConverter && valueConverter is DirectConverter) {
-        // For primitive key-value types, use cast
-        final keyTypeName = keyConverter.dartTypeName;
-        final valueTypeName = valueConverter.dartTypeName;
-        // Special case for Map<String, dynamic> - no conversion needed
-        if (keyTypeName == 'String' && valueTypeName == 'dynamic') {
-          return '$sourceExpression as Map<String, dynamic>';
-        }
-        if (typeName.startsWith('IMap<')) {
-          // Immutable maps need proper conversion
-          return '$typeName.fromJson($sourceExpression, (k) => k as $keyTypeName, (v) => v as $valueTypeName)';
-        }
-        return '($sourceExpression as Map<String, dynamic>).cast<$keyTypeName, $valueTypeName>()';
-      } else {
-        // For complex types, use converters
-        final keyConverterFunction = '(k) => ${keyConverter.generateFromFirestore('k')}';
-        final valueConverterFunction = '(v) => ${valueConverter.generateFromFirestore('v')}';
-        return '$typeName.fromJson($sourceExpression, $keyConverterFunction, $valueConverterFunction)';
-      }
-    }
-    throw ArgumentError('Unsupported number of element converters: ${elementConverters.length}');
+    final typeArgs = elementConverters
+        .map((e) => e.generateFromFirestore('e'))
+        .join(', ');
+    return '$typeName.fromJson($sourceExpression${typeArgs.isNotEmpty ? ', $typeArgs' : ''})';
   }
-  
+
   @override
   String generateToFirestore(String sourceExpression) {
-    if (elementConverters.length == 1) {
-      // Collection types
-      final elementConverter = elementConverters.first;
-      if (elementConverter is DirectConverter) {
-        // For primitive element types, check if it's an immutable collection
-        if (typeName.startsWith('IList<') || typeName.startsWith('ISet<')) {
-          // Immutable collections need toJson conversion even for primitives
-          return '$sourceExpression.toJson((e) => e)';
-        }
-        // Regular collections with primitives need no conversion
-        return sourceExpression;
-      } else {
-        // For complex element types, use map
-        final converterFunction = '(e) => ${elementConverter.generateToFirestore('e')}';
-        return '$sourceExpression.toJson($converterFunction)';
-      }
-    } else if (elementConverters.length == 2) {
-      // Map types
-      final keyConverter = elementConverters[0];
-      final valueConverter = elementConverters[1];
-      
-      if (keyConverter is DirectConverter && valueConverter is DirectConverter) {
-        // For primitive key-value types, check if it's an immutable map
-        if (typeName.startsWith('IMap<')) {
-          // Immutable maps need toJson conversion even for primitives
-          return '$sourceExpression.toJson((k) => k, (v) => v)';
-        }
-        // Regular maps with primitives need no conversion
-        return sourceExpression;
-      } else {
-        // For complex types, use converters
-        final keyConverterFunction = '(k) => ${keyConverter.generateToFirestore('k')}';
-        final valueConverterFunction = '(v) => ${valueConverter.generateToFirestore('v')}';
-        return '$sourceExpression.toJson($keyConverterFunction, $valueConverterFunction)';
-      }
-    }
-    throw ArgumentError('Unsupported number of element converters: ${elementConverters.length}');
+    final typeArgs = elementConverters
+        .map((e) => e.generateToFirestore('e'))
+        .join(', ');
+    return '$sourceExpression.toJson(${typeArgs.isNotEmpty ? '$typeArgs' : ''})';
   }
 }
 
 /// Converter for custom JsonConverter annotations
 class AnnotationConverter implements TypeConverter {
   final String converterClassName;
-  
+
   const AnnotationConverter(this.converterClassName);
-  
+
   @override
   String generateFromFirestore(String sourceExpression) {
-    return 'const $converterClassName().fromJson($sourceExpression)';
+    return '$converterClassName().fromJson($sourceExpression)';
   }
-  
+
   @override
   String generateToFirestore(String sourceExpression) {
-    return 'const $converterClassName().toJson($sourceExpression)';
+    return '$converterClassName().toJson($sourceExpression)';
   }
 }
 
 /// Nullable wrapper converter
 class NullableConverter implements TypeConverter {
   final TypeConverter innerConverter;
-  
+
   const NullableConverter(this.innerConverter);
-  
+
   @override
   String generateFromFirestore(String sourceExpression) {
-    final innerExpression = innerConverter.generateFromFirestore(sourceExpression);
+    final innerExpression = innerConverter.generateFromFirestore(
+      sourceExpression,
+    );
     // Avoid double null checks if the inner converter already handles nulls
     if (innerExpression.contains('== null ? null :')) {
       return innerExpression;
     }
     return '$sourceExpression == null ? null : $innerExpression';
   }
-  
+
   @override
   String generateToFirestore(String sourceExpression) {
-    final innerExpression = innerConverter.generateToFirestore('$sourceExpression!');
+    final innerExpression = innerConverter.generateToFirestore(
+      '$sourceExpression!',
+    );
     // Avoid double null checks if the inner converter already handles nulls
     if (innerExpression.contains('== null ? null :')) {
       return innerExpression;
@@ -273,7 +186,7 @@ class FieldInfo {
 
   /// Get Firestore type from type analysis
   FirestoreType get firestoreType => typeAnalysis.firestoreType;
-  
+
   /// Get converter from type analysis
   TypeConverter get converter => typeAnalysis.converter;
 
@@ -335,8 +248,8 @@ class AnalysisResult {
   /// Get all types that need converters (custom types - non-built-in Dart types)
   Map<String, TypeAnalysisResult> get customTypes {
     return Map.fromEntries(
-      typeAnalyses.entries.where((entry) =>
-        !_isBuiltInDartType(entry.key) // Not a built-in Dart type
+      typeAnalyses.entries.where(
+        (entry) => !_isBuiltInDartType(entry.key), // Not a built-in Dart type
       ),
     );
   }
@@ -344,29 +257,39 @@ class AnalysisResult {
   /// Check if a type name represents a built-in Dart type
   bool _isBuiltInDartType(String typeName) {
     const builtInTypes = {
-      'String', 'int', 'double', 'bool', 'num',
-      'DateTime', 'Duration', 'Uri',
-      'dynamic', 'Object', 'void', 'Null',
+      'String',
+      'int',
+      'double',
+      'bool',
+      'num',
+      'DateTime',
+      'Duration',
+      'Uri',
+      'dynamic',
+      'Object',
+      'void',
+      'Null',
     };
-    
+
     const typesWithExistingConverters = {
-      'List', 'Map', 'Set', // These have universal converters in model_converter.dart
+      'List',
+      'Map',
+      'Set', // These have universal converters in model_converter.dart
       'Uint8List', 'GeoPoint', 'DocumentReference',
     };
-    
+
     // Check exact matches for primitive types
     if (builtInTypes.contains(typeName)) {
       return true;
     }
-    
+
     // Check for types that already have universal converters
     if (typesWithExistingConverters.contains(typeName)) {
       return true;
     }
-    
+
     return false;
   }
-
 }
 
 /// Type analysis result with caching
@@ -396,7 +319,7 @@ class TypeRegistry {
   /// Get or analyze a type
   TypeAnalysisResult getOrAnalyzeType(DartType dartType, Element? element) {
     final typeKey = _getTypeKey(dartType, element);
-    
+
     if (_cache.containsKey(typeKey)) {
       return _cache[typeKey]!;
     }
@@ -409,7 +332,7 @@ class TypeRegistry {
   /// Get or analyze a model
   ModelAnalysis? getOrAnalyzeModel(ClassElement classElement) {
     final className = classElement.name;
-    
+
     if (_modelCache.containsKey(className)) {
       return _modelCache[className];
     }
@@ -424,7 +347,7 @@ class TypeRegistry {
   /// Generate a unique key for a type including element annotations
   String _getTypeKey(DartType dartType, Element? element) {
     final typeString = dartType.getDisplayString(withNullability: true);
-    
+
     // Include custom JsonConverter annotations in the key to avoid cache conflicts
     if (element != null) {
       final customConverter = _findCustomJsonConverter(element);
@@ -432,25 +355,32 @@ class TypeRegistry {
         return '$typeString@$customConverter';
       }
     }
-    
+
     return typeString;
   }
 
   /// Analyze a type and return its analysis result
   TypeAnalysisResult _analyzeType(DartType dartType, Element? element) {
-    final firestoreType = ModelAnalyzer._determineFirestoreType(dartType, element);
+    final firestoreType = ModelAnalyzer._determineFirestoreType(
+      dartType,
+      element,
+    );
     final converter = _createConverter(dartType, element, firestoreType);
     final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
-    final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(dartType);
-    
+    final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
+      dartType,
+    );
+
     // Determine if this type is generic
     bool isGeneric = false;
     List<String> typeParameters = [];
-    
+
     if (dartType is InterfaceType) {
       isGeneric = dartType.typeArguments.isNotEmpty;
       if (isGeneric) {
-        typeParameters = dartType.typeArguments.map((arg) => arg.getDisplayString(withNullability: false)).toList();
+        typeParameters = dartType.typeArguments
+            .map((arg) => arg.getDisplayString(withNullability: false))
+            .toList();
       }
     }
 
@@ -465,7 +395,11 @@ class TypeRegistry {
   }
 
   /// Create appropriate converter for a type
-  TypeConverter _createConverter(DartType dartType, Element? element, FirestoreType firestoreType) {
+  TypeConverter _createConverter(
+    DartType dartType,
+    Element? element,
+    FirestoreType firestoreType,
+  ) {
     final typeName = dartType.getDisplayString(withNullability: false);
     final isNullable = TypeAnalyzer.isNullableType(dartType);
 
@@ -479,7 +413,8 @@ class TypeRegistry {
         baseConverter = AnnotationConverter(customConverter);
       } else {
         // Check for standard @JsonConverter annotation
-        final jsonConverter = ModelAnalyzer._jsonConverterChecker.firstAnnotationOf(element);
+        final jsonConverter = ModelAnalyzer._jsonConverterChecker
+            .firstAnnotationOf(element);
         if (jsonConverter != null) {
           final converterType = jsonConverter.type;
           if (converterType != null && converterType is InterfaceType) {
@@ -510,7 +445,7 @@ class TypeRegistry {
       final annotationType = annotation.computeConstantValue()?.type;
       if (annotationType is InterfaceType) {
         final classElement = annotationType.element;
-        
+
         // Check if this class implements JsonConverter interface
         if (_implementsJsonConverter(classElement)) {
           return classElement.name;
@@ -523,7 +458,7 @@ class TypeRegistry {
   /// Check if a class implements JsonConverter interface
   bool _implementsJsonConverter(Element classElement) {
     if (classElement is! ClassElement) return false;
-    
+
     // Check all interfaces and superclasses
     for (final interface in classElement.allSupertypes) {
       final interfaceName = interface.element.name;
@@ -545,9 +480,12 @@ class TypeRegistry {
   }
 
   /// Create default converter based on type and firestore type
-  TypeConverter _createDefaultConverter(DartType dartType, FirestoreType firestoreType) {
+  TypeConverter _createDefaultConverter(
+    DartType dartType,
+    FirestoreType firestoreType,
+  ) {
     final typeName = dartType.getDisplayString(withNullability: false);
-// Handle dynamic type specially
+    // Handle dynamic type specially
     if (typeName == 'dynamic') {
       return DirectConverter(typeName);
     }
@@ -577,28 +515,25 @@ class TypeRegistry {
       case FirestoreType.array:
       case FirestoreType.map:
       case FirestoreType.object:
-        return _createGenericConverter(dartType);
+        final baseTypeName = getBaseTypeName(dartType);
+        return ConverterClassConverter(
+          '${baseTypeName}Converter',
+          dartType is InterfaceType
+              ? dartType.typeArguments.map((arg) {
+                  final argAnalysis = getOrAnalyzeType(arg, null);
+                  return argAnalysis.converter;
+                }).toList()
+              : [],
+        );
       case FirestoreType.null_:
         return DirectConverter(typeName);
     }
   }
 
-  /// Create converter for generic types with custom JSON support
-  TypeConverter _createGenericConverter(DartType dartType) {
-    final typeName = dartType.getDisplayString(withNullability: false);
-    
-    if (dartType is InterfaceType) {
-      return GenericConverter(typeName, dartType.typeArguments.map((arg) {
-        final argAnalysis = getOrAnalyzeType(arg, null);
-        return argAnalysis.converter;
-      }).toList());
-    }
-
-    return JsonConverter(typeName);
-  }
-
   /// Analyze all types recursively and return all type analyses
-  Map<String, TypeAnalysisResult> analyzeAllTypesRecursively(DartType rootType) {
+  Map<String, TypeAnalysisResult> analyzeAllTypesRecursively(
+    DartType rootType,
+  ) {
     final Map<Object, TypeAnalysisResult> allTypeAnalyses = {};
     final Set<Object> processedTypes = {};
 
@@ -629,7 +564,7 @@ class TypeRegistry {
     if (dartType is TypeParameterType) {
       return;
     }
-    
+
     // Use element as key for interface types to avoid conflicts and deduplicate generics
     Object keyObject;
     if (dartType is InterfaceType) {
@@ -652,11 +587,11 @@ class TypeRegistry {
     if (dartType is InterfaceType && dartType.typeArguments.isNotEmpty) {
       // For generic types, manually create a generic analysis
       final baseAnalysis = getOrAnalyzeType(dartType, null);
-      
+
       // Generate generic type parameter names based on argument count
       final argCount = dartType.typeArguments.length;
       List<String> typeParameters;
-      
+
       if (argCount == 1) {
         typeParameters = ['T'];
       } else if (argCount == 2) {
@@ -664,7 +599,7 @@ class TypeRegistry {
       } else {
         typeParameters = List.generate(argCount, (i) => 'T${i + 1}');
       }
-      
+
       // Override with generic analysis
       typeAnalysis = TypeAnalysisResult(
         firestoreType: baseAnalysis.firestoreType,
@@ -688,7 +623,6 @@ class TypeRegistry {
         }
       }
     }
-  
   }
 }
 
@@ -706,7 +640,10 @@ class ModelAnalyzer {
   }
 
   /// Internal method for analyzing a model with a given registry
-  static ModelAnalysis? _analyzeModelInternal(ClassElement classElement, TypeRegistry registry) {
+  static ModelAnalysis? _analyzeModelInternal(
+    ClassElement classElement,
+    TypeRegistry registry,
+  ) {
     try {
       // Get all fields from the class and its supertypes (excluding Object)
       final fields = _getConstructorParameters(classElement);
@@ -752,7 +689,10 @@ class ModelAnalyzer {
           .toList();
 
       // Get class type analysis
-      final classTypeAnalysis = registry.getOrAnalyzeType(classElement.thisType, classElement);
+      final classTypeAnalysis = registry.getOrAnalyzeType(
+        classElement.thisType,
+        classElement,
+      );
 
       return ModelAnalysis(
         className: classElement.name,
@@ -779,55 +719,67 @@ class ModelAnalyzer {
     final rootAnalysis = registry.getOrAnalyzeModel(rootClassElement);
     if (rootAnalysis != null) {
       modelAnalyses[rootClassElement.name] = rootAnalysis;
-      
+
       // Add the root model's type analysis
-      final rootTypeAnalysis = registry.getOrAnalyzeType(rootClassElement.thisType, rootClassElement);
+      final rootTypeAnalysis = registry.getOrAnalyzeType(
+        rootClassElement.thisType,
+        rootClassElement,
+      );
       typeAnalyses[rootClassElement.name] = rootTypeAnalysis;
 
       // Then use TypeRegistry to analyze all nested types in the model's fields
       for (final field in rootAnalysis.fields.values) {
-        final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(field.dartType);
-        
+        final nestedTypeAnalyses = registry.analyzeAllTypesRecursively(
+          field.dartType,
+        );
+
         // Add all type analyses
         typeAnalyses.addAll(nestedTypeAnalyses);
-        
+
         // Convert type analyses to model analyses for custom class types
         for (final entry in nestedTypeAnalyses.entries) {
           final typeName = entry.key;
           final typeAnalysis = entry.value;
-          
+
           // Only create model analysis for user-defined custom classes with fields and document IDs
           // Skip generic collection types (IList, IMap, ISet) - they only need TypeAnalysisResult for converters
           if (typeAnalysis.firestoreType == FirestoreType.object &&
               !typeAnalysis.isGeneric && // Skip generic types like IList<T>
               !modelAnalyses.containsKey(typeName)) {
-            
             // Try to find the ClassElement for this type
             if (field.dartType is InterfaceType) {
               final interfaceType = field.dartType as InterfaceType;
               final element = interfaceType.element;
-              
+
               if (element is ClassElement && element.name == typeName) {
                 final nestedModelAnalysis = registry.getOrAnalyzeModel(element);
                 if (nestedModelAnalysis != null) {
                   modelAnalyses[typeName] = nestedModelAnalysis;
-                  
+
                   // Recursively analyze the fields of this nested model to discover even deeper types
                   for (final nestedField in nestedModelAnalysis.fields.values) {
-                    final deeperNestedTypeAnalyses = registry.analyzeAllTypesRecursively(nestedField.dartType);
+                    final deeperNestedTypeAnalyses = registry
+                        .analyzeAllTypesRecursively(nestedField.dartType);
                     typeAnalyses.addAll(deeperNestedTypeAnalyses);
-                    
+
                     // Process these deeper nested types as well
-                    for (final deeperEntry in deeperNestedTypeAnalyses.entries) {
+                    for (final deeperEntry
+                        in deeperNestedTypeAnalyses.entries) {
                       final deeperTypeName = deeperEntry.key;
                       final deeperTypeAnalysis = deeperEntry.value;
-                      
-                      if (deeperTypeAnalysis.firestoreType == FirestoreType.object &&
+
+                      if (deeperTypeAnalysis.firestoreType ==
+                              FirestoreType.object &&
                           !deeperTypeAnalysis.isGeneric &&
                           !modelAnalyses.containsKey(deeperTypeName)) {
-                        
                         // Try to find ClassElement for this deeper nested type and recursively analyze it
-                        _tryRecursiveAnalysis(deeperTypeName, nestedField.dartType, modelAnalyses, typeAnalyses, registry);
+                        _tryRecursiveAnalysis(
+                          deeperTypeName,
+                          nestedField.dartType,
+                          modelAnalyses,
+                          typeAnalyses,
+                          registry,
+                        );
                       }
                     }
                   }
@@ -838,73 +790,78 @@ class ModelAnalyzer {
         }
       }
     }
-return AnalysisResult(
-  modelAnalyses: modelAnalyses,
-  typeAnalyses: typeAnalyses,
-);
-}
+    return AnalysisResult(
+      modelAnalyses: modelAnalyses,
+      typeAnalyses: typeAnalyses,
+    );
+  }
 
-/// Try to recursively analyze a deeper nested type
-static void _tryRecursiveAnalysis(
-String typeName,
-DartType fieldType,
-Map<String, ModelAnalysis> modelAnalyses,
-Map<String, TypeAnalysisResult> typeAnalyses,
-TypeRegistry registry,
-) {
-// For deeper nested types, we need to search through the entire type hierarchy
-// This is a simplified approach - in a production system, this would need more robust element resolution
+  /// Try to recursively analyze a deeper nested type
+  static void _tryRecursiveAnalysis(
+    String typeName,
+    DartType fieldType,
+    Map<String, ModelAnalysis> modelAnalyses,
+    Map<String, TypeAnalysisResult> typeAnalyses,
+    TypeRegistry registry,
+  ) {
+    // For deeper nested types, we need to search through the entire type hierarchy
+    // This is a simplified approach - in a production system, this would need more robust element resolution
 
-if (fieldType is InterfaceType) {
-  final element = fieldType.element;
-  
-  // Check if this element matches our target type name
-  if (element is ClassElement && element.name == typeName) {
-    final deeperModelAnalysis = registry.getOrAnalyzeModel(element);
-    if (deeperModelAnalysis != null) {
-      modelAnalyses[typeName] = deeperModelAnalysis;
-      
-      // Continue even deeper recursion for fields of this model
-      for (final deeperField in deeperModelAnalysis.fields.values) {
-        final evenDeeperTypeAnalyses = registry.analyzeAllTypesRecursively(deeperField.dartType);
-        typeAnalyses.addAll(evenDeeperTypeAnalyses);
-        
-        // Process even deeper nested types
-        for (final evenDeeperEntry in evenDeeperTypeAnalyses.entries) {
-          final evenDeeperTypeName = evenDeeperEntry.key;
-          final evenDeeperTypeAnalysis = evenDeeperEntry.value;
-          
-          if (evenDeeperTypeAnalysis.firestoreType == FirestoreType.object &&
-              !evenDeeperTypeAnalysis.isGeneric &&
-              !modelAnalyses.containsKey(evenDeeperTypeName)) {
-            
-            // Try one more level of recursion
-            _tryRecursiveAnalysis(evenDeeperTypeName, deeperField.dartType, modelAnalyses, typeAnalyses, registry);
+    if (fieldType is InterfaceType) {
+      final element = fieldType.element;
+
+      // Check if this element matches our target type name
+      if (element is ClassElement && element.name == typeName) {
+        final deeperModelAnalysis = registry.getOrAnalyzeModel(element);
+        if (deeperModelAnalysis != null) {
+          modelAnalyses[typeName] = deeperModelAnalysis;
+
+          // Continue even deeper recursion for fields of this model
+          for (final deeperField in deeperModelAnalysis.fields.values) {
+            final evenDeeperTypeAnalyses = registry.analyzeAllTypesRecursively(
+              deeperField.dartType,
+            );
+            typeAnalyses.addAll(evenDeeperTypeAnalyses);
+
+            // Process even deeper nested types
+            for (final evenDeeperEntry in evenDeeperTypeAnalyses.entries) {
+              final evenDeeperTypeName = evenDeeperEntry.key;
+              final evenDeeperTypeAnalysis = evenDeeperEntry.value;
+
+              if (evenDeeperTypeAnalysis.firestoreType ==
+                      FirestoreType.object &&
+                  !evenDeeperTypeAnalysis.isGeneric &&
+                  !modelAnalyses.containsKey(evenDeeperTypeName)) {
+                // Try one more level of recursion
+                _tryRecursiveAnalysis(
+                  evenDeeperTypeName,
+                  deeperField.dartType,
+                  modelAnalyses,
+                  typeAnalyses,
+                  registry,
+                );
+              }
+            }
+          }
+        }
+        return;
+      }
+
+      // Also check type arguments for nested custom types
+      for (final typeArg in fieldType.typeArguments) {
+        if (typeArg is InterfaceType) {
+          final argElement = typeArg.element;
+          if (argElement is ClassElement && argElement.name == typeName) {
+            final deeperModelAnalysis = registry.getOrAnalyzeModel(argElement);
+            if (deeperModelAnalysis != null) {
+              modelAnalyses[typeName] = deeperModelAnalysis;
+            }
+            return;
           }
         }
       }
     }
-    return;
   }
-  
-  // Also check type arguments for nested custom types
-  for (final typeArg in fieldType.typeArguments) {
-    if (typeArg is InterfaceType) {
-      final argElement = typeArg.element;
-      if (argElement is ClassElement && argElement.name == typeName) {
-        final deeperModelAnalysis = registry.getOrAnalyzeModel(argElement);
-        if (deeperModelAnalysis != null) {
-          modelAnalyses[typeName] = deeperModelAnalysis;
-        }
-        return;
-      }
-    }
-  }
-}
-}
-
-
-
 
   /// Get all fields from the class and its supertypes (excluding Object)
   static List<(String, DartType, Element)> _getConstructorParameters(
@@ -1096,7 +1053,7 @@ if (fieldType is InterfaceType) {
     if (TypeAnalyzer.isMapType(actualType)) {
       return FirestoreType.map;
     }
-    
+
     // Handle collections
     if (TypeAnalyzer.isListType(actualType)) {
       return FirestoreType.array;
@@ -1148,7 +1105,9 @@ if (fieldType is InterfaceType) {
 
     // Debug output for ManualUser2
     if (classElement.name == 'ManualUser2') {
-      print('DEBUG: ManualUser2 - hasFromJson: $hasFromJson, hasToJson: $hasToJson');
+      print(
+        'DEBUG: ManualUser2 - hasFromJson: $hasFromJson, hasToJson: $hasToJson',
+      );
     }
 
     return hasFromJson && hasToJson;
@@ -1156,28 +1115,29 @@ if (fieldType is InterfaceType) {
 
   /// Check if class or its hierarchy has fromJson method
   static bool _hasFromJsonMethod(ClassElement classElement) {
-  // Get all classes in hierarchy (current + supertypes, excluding Object)
-  final allClasses = [
-    classElement,
-    ...classElement.allSupertypes
-        .where((type) => type.element.name != 'Object')
-        .map((type) => type.element)
-        .whereType<ClassElement>()
-  ];
+    // Get all classes in hierarchy (current + supertypes, excluding Object)
+    final allClasses = [
+      classElement,
+      ...classElement.allSupertypes
+          .where((type) => type.element.name != 'Object')
+          .map((type) => type.element)
+          .whereType<ClassElement>(),
+    ];
 
-  // Check if any class has fromJson
-  return allClasses.any((element) {
-    final hasConstructor = element.constructors.any(
-      (c) => c.name == 'fromJson' && c.parameters.length == 1,
-    );
-    
-    final hasStaticMethod = element.methods.any(
-      (m) => m.name == 'fromJson' && m.isStatic && m.parameters.length == 1,
-    );
-    
-    return hasConstructor || hasStaticMethod;
-  });
-}
+    // Check if any class has fromJson
+    return allClasses.any((element) {
+      final hasConstructor = element.constructors.any(
+        (c) => c.name == 'fromJson' && c.parameters.length == 1,
+      );
+
+      final hasStaticMethod = element.methods.any(
+        (m) => m.name == 'fromJson' && m.isStatic && m.parameters.length == 1,
+      );
+
+      return hasConstructor || hasStaticMethod;
+    });
+  }
+
   /// Check if class or its hierarchy has toJson method
   static bool _hasToJsonMethod(ClassElement classElement) {
     // Check instance methods in current class
@@ -1193,17 +1153,15 @@ if (fieldType is InterfaceType) {
     }
 
     // Check mixins for toJson method (Freezed generates toJson in mixins)
-    final hasMixinWithToJson = classElement.mixins.any(
-      (mixin) {
-        final mixinElement = mixin.element;
-        return mixinElement.methods.any(
-          (method) =>
-              method.name == 'toJson' &&
-              method.parameters.isEmpty &&
-              !method.isStatic,
-        );
-      },
-    );
+    final hasMixinWithToJson = classElement.mixins.any((mixin) {
+      final mixinElement = mixin.element;
+      return mixinElement.methods.any(
+        (method) =>
+            method.name == 'toJson' &&
+            method.parameters.isEmpty &&
+            !method.isStatic,
+      );
+    });
 
     if (hasMixinWithToJson) {
       return true;
@@ -1213,7 +1171,8 @@ if (fieldType is InterfaceType) {
     final supertype = classElement.supertype;
     if (supertype != null && supertype.element.name != 'Object') {
       final supertypeElement = supertype.element;
-      if (supertypeElement is ClassElement && _hasToJsonMethod(supertypeElement)) {
+      if (supertypeElement is ClassElement &&
+          _hasToJsonMethod(supertypeElement)) {
         return true;
       }
     }
