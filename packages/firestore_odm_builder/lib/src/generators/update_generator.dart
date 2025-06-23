@@ -74,85 +74,9 @@ class UpdateGenerator {
     buffer.writeln('}');
     buffer.writeln('');
     
-    // Generate custom UpdateBuilder classes for fields with converters
-    generateConverterUpdateBuilders(buffer, analysis);
+    // No longer need to generate custom UpdateBuilder classes - using converter parameter instead
   }
 
-  /// Generate custom UpdateBuilder classes for fields with converters
-  static void generateConverterUpdateBuilders(
-    StringBuffer buffer,
-    ModelAnalysis analysis,
-  ) {
-    final className = analysis.className;
-    
-    // Find fields with converters (excluding DateTime/Duration/Numeric which use specialized UpdateBuilders)
-    final converterFields = analysis.updateableFields
-        .where((field) => field.converter is! DirectConverter)
-        .where((field) => !TypeAnalyzer.isDateTimeType(field.dartType))
-        .where((field) => !TypeAnalyzer.isDurationType(field.dartType))
-        .where((field) => !TypeAnalyzer.isNumericType(field.dartType))
-        .toList();
-    
-    for (final field in converterFields) {
-      final fieldName = field.parameterName;
-      final fieldType = field.dartType.getDisplayString();
-      final converterExpr = field.generateToFirestore('\$source');
-      
-      if (TypeAnalyzer.isMapType(field.dartType)) {
-        // Generate custom MapFieldUpdate for map fields with converters
-        final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(field.dartType);
-        
-        buffer.writeln('/// Custom MapFieldUpdate for ${fieldName} field with converter');
-        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate extends MapFieldUpdate<$fieldType, $keyType, $valueType> {');
-        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate({super.name, super.parent});');
-        buffer.writeln('');
-        buffer.writeln('  @override');
-        buffer.writeln('  UpdateOperation call($fieldType value) {');
-        
-        // Apply converter using the new system
-        final convertedExpr = field.generateToFirestore('value');
-        buffer.writeln('    final convertedValue = $convertedExpr;');
-        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
-        buffer.writeln('  }');
-        buffer.writeln('}');
-        buffer.writeln('');
-      } else if (TypeAnalyzer.isIterableType(field.dartType)) {
-        // Generate custom ListFieldUpdate for iterable fields with converters
-        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(field.dartType);
-        
-        buffer.writeln('/// Custom ListFieldUpdate for ${fieldName} field with converter');
-        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate extends ListFieldUpdate<$fieldType, $elementTypeName> {');
-        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate({super.name, super.parent});');
-        buffer.writeln('');
-        buffer.writeln('  @override');
-        buffer.writeln('  UpdateOperation call($fieldType value) {');
-        
-        // Apply converter using the new system
-        final convertedExpr = field.generateToFirestore('value');
-        buffer.writeln('    final convertedValue = $convertedExpr;');
-        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
-        buffer.writeln('  }');
-        buffer.writeln('}');
-        buffer.writeln('');
-      } else {
-        // Generate custom UpdateBuilder for non-iterable fields with converters
-        buffer.writeln('/// Custom UpdateBuilder for ${fieldName} field with converter');
-        buffer.writeln('class _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder extends DefaultUpdateBuilder<$fieldType> {');
-        buffer.writeln('  _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder({super.name, super.parent});');
-        buffer.writeln('');
-        buffer.writeln('  @override');
-        buffer.writeln('  UpdateOperation call($fieldType value) {');
-        
-        // Apply converter
-        final convertedExpr = converterExpr.replaceAll('\$source', 'value');
-        buffer.writeln('    final convertedValue = $convertedExpr;');
-        buffer.writeln('    return UpdateOperation(\$path, UpdateOperationType.set, convertedValue);');
-        buffer.writeln('  }');
-        buffer.writeln('}');
-        buffer.writeln('');
-      }
-    }
-  }
 
   static void _generateFieldUpdateMethod(
     StringBuffer buffer,
@@ -182,21 +106,27 @@ class UpdateGenerator {
     } else if (field.converter is! DirectConverter) {
       // Generate custom UpdateBuilder for fields with converters (non-DateTime/Duration/Numeric)
       if (TypeAnalyzer.isMapType(fieldType)) {
-        // Map types with converters
+        // Map types with converters - use MapFieldUpdate with converter
         final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
+        final fieldTypeString = fieldType.getDisplayString();
+        final converterExpr = field.generateToFirestore('value');
         buffer.writeln(
-          '  _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}MapFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+          '  MapFieldUpdate<$fieldTypeString, $keyType, $valueType> get $fieldName => MapFieldUpdate<$fieldTypeString, $keyType, $valueType>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );
       } else if (TypeAnalyzer.isIterableType(fieldType)) {
-        // Iterable types with converters
+        // Iterable types with converters - use ListFieldUpdate with converter
         final elementTypeName = TypeAnalyzer.getIterableElementTypeName(fieldType);
+        final fieldTypeString = fieldType.getDisplayString();
+        final converterExpr = field.generateToFirestore('value');
         buffer.writeln(
-          '  _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}ListFieldUpdate(name: \'$jsonFieldName\', parent: this);',
+          '  ListFieldUpdate<$fieldTypeString, $elementTypeName> get $fieldName => ListFieldUpdate<$fieldTypeString, $elementTypeName>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );
       } else {
-        // Other types with converters
+        // Other types with converters - use DefaultUpdateBuilder with converter
+        final fieldTypeString = fieldType.getDisplayString();
+        final converterExpr = field.generateToFirestore('value');
         buffer.writeln(
-          '  _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder get $fieldName => _${className}${StringHelpers.capitalize(fieldName)}UpdateBuilder(name: \'$jsonFieldName\', parent: this);',
+          '  DefaultUpdateBuilder<$fieldTypeString> get $fieldName => DefaultUpdateBuilder<$fieldTypeString>(name: \'$jsonFieldName\', parent: this, converter: (value) => $converterExpr);',
         );
       }
     } else if (TypeAnalyzer.isMapType(fieldType)) {
