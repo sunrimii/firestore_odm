@@ -488,7 +488,7 @@ class SchemaGenerator {
     Map<String, ModelAnalysis> modelAnalyses,
   ) {
     for (final analysis in modelAnalyses.values) {
-      if (!analysis.fields.entries.isNotEmpty) continue;
+      if (analysis.fields.isEmpty) continue;
 
       // Generate FilterBuilder class using ModelAnalysis
       FilterGenerator.generateFilterSelectorClassFromAnalysis(buffer, analysis);
