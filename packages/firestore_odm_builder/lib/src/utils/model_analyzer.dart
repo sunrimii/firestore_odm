@@ -330,9 +330,9 @@ class ModelAnalysis {
       dartType is InterfaceType &&
       (dartType as InterfaceType).typeArguments.isNotEmpty;
 
-  List<String> get typeParameters => isGeneric
-      ? (dartType as InterfaceType).typeArguments
-            .map((e) => e.getDisplayString())
+  List<Reference> get typeParameters => isGeneric
+      ? (dartType as InterfaceType).element3.typeParameters2
+            .map((e) => refer(e.name3!))
             .toList()
       : [];
 }
@@ -590,7 +590,17 @@ class ModelAnalyzer {
     if (_analyzed.containsKey(className)) {
       return _analyzed[className]!;
     }
-    final result = _analyzeModelInternal(type, element);
+    
+    // Ensure we use the correct ClassElement for user-defined InterfaceTypes
+    Element? correctElement = element;
+    if (type is InterfaceType &&
+        type.element is ClassElement &&
+        !type.element.library.isInSdk &&
+        !_isBuiltInType(className)) {
+      correctElement = type.element;
+    }
+    
+    final result = _analyzeModelInternal(type, correctElement);
     _analyzed[className] = result;
     return result;
   }
@@ -653,10 +663,75 @@ class ModelAnalyzer {
   }
 
   static AnalysisResult analyzeModels(Iterable<DartType> types) {
+    // First analyze all root types
     for (final type in types) {
       analyzeModel(type, type.element);
     }
+    
+    // Then analyze all nested types recursively
+    _analyzeNestedTypes();
+    
     return AnalysisResult(modelAnalyses: _analyzed);
+  }
+
+  /// Analyze all nested types from already analyzed models
+  static void _analyzeNestedTypes() {
+    final analyzedNames = Set<String>.from(_analyzed.keys);
+    
+    for (final analysis in _analyzed.values.toList()) {
+      _discoverNestedTypes(analysis, analyzedNames);
+    }
+  }
+
+  /// Discover and analyze nested types in a model's fields
+  static void _discoverNestedTypes(ModelAnalysis analysis, Set<String> processedTypes) {
+    for (final field in analysis.fields.values) {
+      _analyzeFieldType(field.dartType, processedTypes);
+    }
+  }
+
+  /// Analyze a field type and its nested types recursively
+  static void _analyzeFieldType(DartType type, Set<String> processedTypes) {
+    // Handle interface types (classes)
+    if (type is InterfaceType) {
+      final element = type.element;
+      final typeName = element.name;
+      
+      // Skip if already processed or is a built-in type
+      if (processedTypes.contains(typeName) ||
+          _isBuiltInType(typeName)) {
+        return;
+      }
+      
+      // Only analyze ClassElements that are user-defined types
+      if (element is ClassElement && !element.library.isInSdk) {
+        // Ensure we don't have a cached analysis with wrong element
+        _analyzed.remove(typeName);
+        
+        // Analyze this nested type with the correct ClassElement
+        final nestedAnalysis = analyzeModel(type, element);
+        processedTypes.add(typeName);
+        
+        // Recursively analyze fields of this nested type
+        _discoverNestedTypes(nestedAnalysis, processedTypes);
+      }
+      
+      // Also analyze type arguments for generic types
+      for (final typeArg in type.typeArguments) {
+        _analyzeFieldType(typeArg, processedTypes);
+      }
+    }
+  }
+
+  /// Check if a type is a built-in Dart/Flutter type that we should skip
+  static bool _isBuiltInType(String typeName) {
+    const builtInTypes = {
+      'String', 'int', 'double', 'bool', 'DateTime', 'Duration',
+      'List', 'Set', 'Map', 'Iterable', 'Future', 'Stream',
+      'IList', 'ISet', 'IMap', // Fast immutable collections
+      'Timestamp', 'GeoPoint', 'DocumentReference', // Firestore types
+    };
+    return builtInTypes.contains(typeName);
   }
 
   // /// Analyze a model and all its nested types recursively
