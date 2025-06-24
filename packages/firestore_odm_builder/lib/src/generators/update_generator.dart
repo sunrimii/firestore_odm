@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/generators/converter_service.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
@@ -47,6 +48,7 @@ class UpdateGenerator {
         continue;
       }
 
+      print('Generating update method for ${field.parameterName}');
       methods.add(_generateFieldUpdateMethod(field));
     }
 
@@ -165,250 +167,72 @@ class UpdateGenerator {
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonFieldName;
 
-    // Check field type first - DateTime/Duration/Numeric should always use their specialized UpdateBuilders
-    if (TypeAnalyzer.isDateTimeType(fieldType)) {
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+    final returnType = TypeAnalyzer.isDateTimeType(fieldType)
+        ? TypeReference(
             (b) => b
               ..symbol = 'DateTimeFieldUpdate'
-              ..types.add(
-                refer(fieldType.getDisplayString(withNullability: false)),
-              ),
+              ..types.add(fieldType.reference),
           )
-          ..body = refer('DateTimeFieldUpdate').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else if (TypeAnalyzer.isDurationType(fieldType)) {
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+        : TypeAnalyzer.isDurationType(fieldType)
+        ? TypeReference(
             (b) => b
               ..symbol = 'DurationFieldUpdate'
-              ..types.add(
-                refer(fieldType.getDisplayString(withNullability: false)),
-              ),
+              ..types.add(fieldType.reference),
           )
-          ..body = refer('DurationFieldUpdate').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else if (TypeAnalyzer.isNumericType(fieldType)) {
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+        : TypeAnalyzer.isNumericType(fieldType)
+        ? TypeReference(
             (b) => b
               ..symbol = 'NumericFieldUpdate'
-              ..types.add(
-                refer(fieldType.getDisplayString(withNullability: false)),
-              ),
+              ..types.add(fieldType.reference),
           )
-          ..body = refer('NumericFieldUpdate').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else if (field.converter is! DirectConverter) {
-      // Generate custom UpdateBuilder for fields with converters (non-DateTime/Duration/Numeric)
-      if (TypeAnalyzer.isMapType(fieldType)) {
-        // Map types with converters - use MapFieldUpdate with converter
-        final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
-        final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field
-            .generateToFirestore(refer('value'))
-            .accept(DartEmitter())
-            .toString();
-
-        return Method(
-          (b) => b
-            ..docs.add('/// Update $fieldName field')
-            ..type = MethodType.getter
-            ..name = fieldName
-            ..lambda = true
-            ..returns = TypeReference(
-              (b) => b
-                ..symbol = 'MapFieldUpdate'
-                ..types.addAll([
-                  refer(fieldTypeString),
-                  refer(keyType),
-                  refer(valueType),
-                ]),
-            )
-            ..body = refer('MapFieldUpdate').newInstance([], {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
-              'converter': Method(
-                (b) => b
-                  ..lambda = true
-                  ..requiredParameters.add(Parameter((b) => b..name = 'value'))
-                  ..body = Code(converterExpr),
-              ).closure,
-            }).code,
-        );
-      } else if (TypeAnalyzer.isIterableType(fieldType)) {
-        // Iterable types with converters - use ListFieldUpdate with converter
-        final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
-          fieldType,
-        );
-        final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field
-            .generateToFirestore(refer('value'))
-            .accept(DartEmitter())
-            .toString();
-
-        return Method(
-          (b) => b
-            ..docs.add('/// Update $fieldName field')
-            ..type = MethodType.getter
-            ..name = fieldName
-            ..lambda = true
-            ..returns = TypeReference(
-              (b) => b
-                ..symbol = 'ListFieldUpdate'
-                ..types.addAll([
-                  refer(fieldTypeString),
-                  refer(elementTypeName),
-                ]),
-            )
-            ..body = refer('ListFieldUpdate').newInstance([], {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
-              'converter': Method(
-                (b) => b
-                  ..lambda = true
-                  ..requiredParameters.add(Parameter((b) => b..name = 'value'))
-                  ..body = Code(converterExpr),
-              ).closure,
-            }).code,
-        );
-      } else {
-        // Other types with converters - use DefaultUpdateBuilder with converter
-        final fieldTypeString = fieldType.getDisplayString();
-        final converterExpr = field
-            .generateToFirestore(refer('value'))
-            .accept(DartEmitter())
-            .toString();
-
-        return Method(
-          (b) => b
-            ..docs.add('/// Update $fieldName field')
-            ..type = MethodType.getter
-            ..name = fieldName
-            ..lambda = true
-            ..returns = TypeReference(
-              (b) => b
-                ..symbol = 'DefaultUpdateBuilder'
-                ..types.add(refer(fieldTypeString)),
-            )
-            ..body = refer('DefaultUpdateBuilder').newInstance([], {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
-              'converter': Method(
-                (b) => b
-                  ..lambda = true
-                  ..requiredParameters.add(Parameter((b) => b..name = 'value'))
-                  ..body = Code(converterExpr),
-              ).closure,
-            }).code,
-        );
-      }
-    } else if (TypeAnalyzer.isMapType(fieldType)) {
-      final (keyType, valueType) = TypeAnalyzer.getMapTypeNames(fieldType);
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+        : TypeAnalyzer.isMapType(fieldType)
+        ? TypeReference(
             (b) => b
               ..symbol = 'MapFieldUpdate'
               ..types.addAll([
-                refer(fieldType.getDisplayString(withNullability: false)),
-                refer(keyType),
-                refer(valueType),
+                fieldType.reference,
+                TypeAnalyzer.getMapKeyType(fieldType).reference,
+                TypeAnalyzer.getMapValueType(fieldType).reference,
               ]),
           )
-          ..body = refer('MapFieldUpdate').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else if (TypeAnalyzer.isIterableType(fieldType)) {
-      final elementTypeName = TypeAnalyzer.getIterableElementTypeName(
-        fieldType,
-      );
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+        : TypeAnalyzer.isIterableType(fieldType)
+        ? TypeReference(
             (b) => b
               ..symbol = 'ListFieldUpdate'
               ..types.addAll([
-                refer(fieldType.getDisplayString(withNullability: false)),
-                refer(elementTypeName),
+                fieldType.reference,
+                TypeAnalyzer.getIterableElementType(fieldType)!.reference,
               ]),
           )
-          ..body = refer('ListFieldUpdate').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else if (TypeAnalyzer.isCustomClass(fieldType)) {
-      // Generate nested UpdateBuilder for custom class types
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
-            (b) => b
-              ..symbol = 'UpdateBuilder'
-              ..types.add(
-                refer(fieldType.getDisplayString(withNullability: false)),
-              ),
-          )
-          ..body = refer('UpdateBuilder').newInstance([], {
-            'name': literalString(jsonFieldName),
-            'parent': refer('this'),
-          }).code,
-      );
-    } else {
-      return Method(
-        (b) => b
-          ..docs.add('/// Update $fieldName field')
-          ..type = MethodType.getter
-          ..name = fieldName
-          ..lambda = true
-          ..returns = TypeReference(
+        : TypeReference(
             (b) => b
               ..symbol = 'DefaultUpdateBuilder'
               ..types.add(fieldType.reference),
-          )
-          ..body = refer('DefaultUpdateBuilder').newInstance([], {
+          );
+
+    final converterService = converterServiceSignal.get();
+    final analysis = ModelAnalyzer.analyzeModel(field.dartType, field.element);
+    final converter = converterService.get(analysis);
+
+    final bodyExpression = TypeAnalyzer.isDurationType(fieldType)
+        ? returnType.newInstance([], {
             'name': literalString(jsonFieldName),
             'parent': refer('this'),
-          }).code,
-      );
-    }
+          })
+        : returnType.newInstance([], {
+            'name': literalString(jsonFieldName),
+            'parent': refer('this'),
+            'converter': converter.instance,
+          });
+
+    return Method(
+      (b) => b
+        ..docs.add('/// Update $fieldName field')
+        ..type = MethodType.getter
+        ..name = fieldName
+        ..lambda = true
+        ..returns = returnType
+        ..body = bodyExpression.code,
+    );
   }
 }

@@ -101,7 +101,7 @@ class OrderByGenerator {
     for (final field in analysis.fields.values) {
       final fieldType = field.dartType;
 
-      if (analysis.documentIdFieldName == field.parameterName) {
+      if (field.isDocumentId) {
         // Document ID field
         methods.add(_generateDocumentIdFieldSelector(field));
       } else if (TypeAnalyzer.isCustomClass(fieldType)) {

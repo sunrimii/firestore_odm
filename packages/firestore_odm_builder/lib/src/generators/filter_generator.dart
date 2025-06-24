@@ -7,10 +7,7 @@ import '../utils/model_analyzer.dart';
 /// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
   /// Generate document ID filter getter method
-  static Method _generateDocumentIdFilterGetter(
-    String documentIdField,
-    FieldInfo field,
-  ) {
+  static Method _generateDocumentIdFilterGetter(FieldInfo field) {
     return Method(
       (b) => b
         ..docs.add('/// Filter by document ID (${field.jsonFieldName} field)')
@@ -27,8 +24,10 @@ class FilterGenerator {
 
   /// Generate nested filter getter method
   static Method _generateNestedFilterGetter(FieldInfo field) {
-    final nestedTypeName = field.dartType.getDisplayString(withNullability: false);
-    
+    final nestedTypeName = field.dartType.getDisplayString(
+      withNullability: false,
+    );
+
     return Method(
       (b) => b
         ..docs.add('/// Access nested ${field.parameterName} filters')
@@ -39,12 +38,10 @@ class FilterGenerator {
             ..symbol = 'FilterSelector'
             ..types.add(refer(nestedTypeName)),
         )
-        ..body = refer('FilterSelector')
-            .newInstance([], {
-              'name': literalString(field.jsonFieldName),
-              'parent': refer('this'),
-            })
-            .code,
+        ..body = refer('FilterSelector').newInstance([], {
+          'name': literalString(field.jsonFieldName),
+          'parent': refer('this'),
+        }).code,
     );
   }
 
@@ -56,7 +53,8 @@ class FilterGenerator {
     // Determine the appropriate filter type based on field type
     if (TypeAnalyzer.isStringType(field.dartType)) {
       filterType = 'StringFieldFilter';
-      fieldName = field.parameterName; // Note: using parameterName for string type
+      fieldName =
+          field.parameterName; // Note: using parameterName for string type
     } else if (TypeAnalyzer.isMapType(field.dartType)) {
       filterType = 'MapFieldFilter';
       fieldName = field.jsonFieldName;
@@ -99,11 +97,13 @@ class FilterGenerator {
     if (className == null) {
       throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
     }
-    
+
     final isGeneric = analysis.isGeneric;
     final typeParameters = analysis.typeParameters;
     final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
-    final classNameWithTypeParams = isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
+    final classNameWithTypeParams = isGeneric
+        ? '$className<${typeParameterNames.join(', ')}>'
+        : className;
 
     // Create the target type (FilterSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -121,12 +121,9 @@ class FilterGenerator {
     // Generate methods for all fields
     final methods = <Method>[];
     for (final field in analysis.fields.values) {
-      if (field.parameterName == analysis.documentIdFieldName) {
+      if (field.isDocumentId) {
         // Document ID field
-        methods.add(_generateDocumentIdFilterGetter(
-          analysis.documentIdFieldName!,
-          field,
-        ));
+        methods.add(_generateDocumentIdFilterGetter(field));
       } else {
         // Regular field
         methods.add(_generateFieldGetter(field));

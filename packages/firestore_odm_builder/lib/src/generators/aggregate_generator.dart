@@ -77,7 +77,7 @@ class AggregateGenerator {
     final methods = <Method>[];
     for (final field in analysis.fields.values) {
       // Skip document ID field
-      if (field.parameterName == analysis.documentIdFieldName) continue;
+      if (field.isDocumentId) continue;
 
       final fieldType = field.dartType;
 
