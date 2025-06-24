@@ -58,10 +58,7 @@ class ConverterTemplate implements Template {
     FirestoreType.object => 'Map<String, dynamic>',
     FirestoreType.null_ => 'dynamic',
   };
-  TypeReference get toType => TypeReference(
-    (b) => b
-      ..symbol = toTypeName
-  );
+  TypeReference get toType => TypeReference((b) => b..symbol = toTypeName);
 
   static Expression _fromJsonBody(TypeConverter converter, Expression source) {
     switch (converter) {
@@ -131,14 +128,18 @@ class ConverterTemplate implements Template {
   Class toClass() {
     return Class(
       (b) => b
-        ..docs.add('/// Generated converter for ${analysis.dartType.element?.name}')
+        ..docs.add(
+          '/// Generated converter for ${analysis.dartType.element?.name}',
+        )
         ..name = '${className}Converter'
         ..types.addAll(_buildTypeParameters()) // 用 types 屬性
-        ..implements.add(TypeReference(
-          (b) => b
-            ..symbol = 'FirestoreConverter'
-            ..types.addAll([fromType, refer(toTypeName)]),
-        ))
+        ..implements.add(
+          TypeReference(
+            (b) => b
+              ..symbol = 'FirestoreConverter'
+              ..types.addAll([fromType, refer(toTypeName)]),
+          ),
+        )
         ..constructors.add(_buildConstructor())
         ..fields.addAll(
           List.generate(
@@ -178,7 +179,10 @@ class ConverterTemplate implements Template {
                     ..type = fromType,
                 ),
               )
-              ..body = _toJsonBody(analysis.converter, refer('data')).asA(toType).code,
+              ..body = _toJsonBody(
+                analysis.converter,
+                refer('data'),
+              ).asA(toType).code,
           ),
         ]),
     );
@@ -258,6 +262,7 @@ class ConverterGenerator {
       if (converter is ConverterClassConverter ||
           converter is NullableConverter)
         continue;
+
       buffer.write(
         ConverterTemplate(analysis).toClass().accept(DartEmitter()).toString(),
       );

@@ -252,8 +252,11 @@ class SchemaGenerator {
     specs.addAll(_generateSchemaClassAndConstant(schemaClassName, schemaConstName));
 
     // Generate converters for all custom types discovered through type analysis
-    // Note: ConverterGenerator.generateConvertersForCustomTypes returns a String, so we need to parse it or change the API
-    // For now, let's skip this and handle it separately if needed
+    final convertersCode = ConverterGenerator.generateConvertersForCustomTypes(modelAnalyses);
+    if (convertersCode.isNotEmpty) {
+      // Add the generated converter code as raw code to the library
+      specs.add(Code(convertersCode));
+    }
 
     // Generate filter and order by builders for each model type
     specs.addAll(_generateFilterAndOrderBySelectors(modelAnalyses));
