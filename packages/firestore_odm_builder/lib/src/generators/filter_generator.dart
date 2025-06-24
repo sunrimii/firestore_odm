@@ -1,85 +1,98 @@
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:code_builder/code_builder.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
-/// Generator for filter builders and filter classes
+/// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
-  static void _generateDocumentIdFilterGetter(
-    StringBuffer buffer,
+  /// Generate document ID filter getter method
+  static Method _generateDocumentIdFilterGetter(
     String documentIdField,
     FieldInfo field,
   ) {
-    buffer.writeln(
-      '  /// Filter by document ID (${field.jsonFieldName} field)',
+    return Method(
+      (b) => b
+        ..docs.add('/// Filter by document ID (${field.jsonFieldName} field)')
+        ..type = MethodType.getter
+        ..name = field.parameterName
+        ..lambda = true
+        ..returns = refer('DocumentIdFieldFilter')
+        ..body = refer('DocumentIdFieldFilter').newInstance([], {
+          'name': literalString(field.jsonFieldName),
+          'parent': refer('this'),
+        }).code,
     );
-    buffer.writeln('  DocumentIdFieldFilter get ${field.parameterName} =>');
-    buffer.writeln(
-      '      DocumentIdFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-    );
-    buffer.writeln('');
   }
 
-  static void _generateNestedFilterGetter(
-    StringBuffer buffer,
-    FieldInfo field,
-  ) {
-    final nestedTypeName = field.dartType.getDisplayString(
-      withNullability: false,
+  /// Generate nested filter getter method
+  static Method _generateNestedFilterGetter(FieldInfo field) {
+    final nestedTypeName = field.dartType.getDisplayString(withNullability: false);
+    
+    return Method(
+      (b) => b
+        ..docs.add('/// Access nested ${field.parameterName} filters')
+        ..type = MethodType.getter
+        ..name = field.parameterName
+        ..returns = TypeReference(
+          (b) => b
+            ..symbol = 'FilterSelector'
+            ..types.add(refer(nestedTypeName)),
+        )
+        ..body = refer('FilterSelector')
+            .newInstance([], {
+              'name': literalString(field.jsonFieldName),
+              'parent': refer('this'),
+            })
+            .code,
     );
-
-    buffer.writeln('  /// Access nested ${field.parameterName} filters');
-    buffer.writeln(
-      '  FilterSelector<${nestedTypeName}> get ${field.parameterName} {',
-    );
-    buffer.writeln(
-      '    return FilterSelector<${nestedTypeName}>(name: \'${field.jsonFieldName}\', parent: this);',
-    );
-    buffer.writeln('  }');
-    buffer.writeln('');
   }
 
-  static void _generateFieldGetter(StringBuffer buffer, FieldInfo field) {
-    buffer.writeln('  /// Filter by ${field.parameterName}');
+  /// Generate field getter method based on field type
+  static Method _generateFieldGetter(FieldInfo field) {
+    final String filterType;
+    final String fieldName;
 
-    // Use appropriate callable filter based on type using TypeChecker
+    // Determine the appropriate filter type based on field type
     if (TypeAnalyzer.isStringType(field.dartType)) {
-      buffer.writeln('  StringFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      StringFieldFilter(name: \'${field.parameterName}\', parent: this);',
-      );
+      filterType = 'StringFieldFilter';
+      fieldName = field.parameterName; // Note: using parameterName for string type
     } else if (TypeAnalyzer.isMapType(field.dartType)) {
-      buffer.writeln('  MapFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      MapFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
+      filterType = 'MapFieldFilter';
+      fieldName = field.jsonFieldName;
     } else if (TypeAnalyzer.isIterableType(field.dartType)) {
-      buffer.writeln('  ArrayFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      ArrayFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
+      filterType = 'ArrayFieldFilter';
+      fieldName = field.jsonFieldName;
     } else if (TypeAnalyzer.isBoolType(field.dartType)) {
-      buffer.writeln('  BoolFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      BoolFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
+      filterType = 'BoolFieldFilter';
+      fieldName = field.jsonFieldName;
     } else if (TypeAnalyzer.isDateTimeType(field.dartType)) {
-      buffer.writeln('  DateTimeFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      DateTimeFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
+      filterType = 'DateTimeFieldFilter';
+      fieldName = field.jsonFieldName;
     } else if (TypeAnalyzer.isNumericType(field.dartType)) {
-      buffer.writeln('  NumericFieldFilter get ${field.parameterName} =>');
-      buffer.writeln(
-        '      NumericFieldFilter(name: \'${field.jsonFieldName}\', parent: this);',
-      );
+      filterType = 'NumericFieldFilter';
+      fieldName = field.jsonFieldName;
     } else {
-      _generateNestedFilterGetter(buffer, field);
+      // For nested types, return the nested filter getter
+      return _generateNestedFilterGetter(field);
     }
-    buffer.writeln('');
+
+    return Method(
+      (b) => b
+        ..docs.add('/// Filter by ${field.parameterName}')
+        ..type = MethodType.getter
+        ..name = field.parameterName
+        ..lambda = true
+        ..returns = refer(filterType)
+        ..body = refer(filterType).newInstance([], {
+          'name': literalString(fieldName),
+          'parent': refer('this'),
+        }).code,
+    );
   }
 
-  /// Generate filter selector class using ModelAnalysis instead of constructor
-  static void generateFilterSelectorClassFromAnalysis(
-    StringBuffer buffer,
+  /// Generate filter selector extension using ModelAnalysis
+  static Extension generateFilterSelectorClassFromAnalysis(
     ModelAnalysis analysis,
   ) {
     final className = analysis.dartType.element?.name;
@@ -89,29 +102,45 @@ class FilterGenerator {
     
     final isGeneric = analysis.isGeneric;
     final typeParameters = analysis.typeParameters;
-    final typeParamsString = isGeneric ? '<${typeParameters.join(', ')}>' : '';
-    final classNameWithTypeParams = isGeneric ? '$className$typeParamsString' : className;
-    
-    buffer.writeln('/// Generated FilterSelector for $classNameWithTypeParams');
-    buffer.writeln(
-      'extension ${className}FilterSelectorExtension$typeParamsString on FilterSelector<$classNameWithTypeParams> {',
-    );
-    buffer.writeln('');
+    final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
+    final classNameWithTypeParams = isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
 
-    // Generate field getters from analysis
+    // Create the target type (FilterSelector<ClassName<T>>)
+    final targetType = TypeReference(
+      (b) => b
+        ..symbol = 'FilterSelector'
+        ..types.add(
+          TypeReference(
+            (b) => b
+              ..symbol = className
+              ..types.addAll(typeParameters),
+          ),
+        ),
+    );
+
+    // Generate methods for all fields
+    final methods = <Method>[];
     for (final field in analysis.fields.values) {
-      // Skip document ID field as it's handled separately above
       if (field.parameterName == analysis.documentIdFieldName) {
-        _generateDocumentIdFilterGetter(
-          buffer,
+        // Document ID field
+        methods.add(_generateDocumentIdFilterGetter(
           analysis.documentIdFieldName!,
           field,
-        );
+        ));
       } else {
-        _generateFieldGetter(buffer, field);
+        // Regular field
+        methods.add(_generateFieldGetter(field));
       }
     }
 
-    buffer.writeln('}');
+    // Create extension
+    return Extension(
+      (b) => b
+        ..name = '${className}FilterSelectorExtension'
+        ..types.addAll(typeParameters)
+        ..on = targetType
+        ..docs.add('/// Generated FilterSelector for $classNameWithTypeParams')
+        ..methods.addAll(methods),
+    );
   }
 }
