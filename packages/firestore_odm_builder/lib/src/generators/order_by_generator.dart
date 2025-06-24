@@ -78,6 +78,8 @@ class OrderByGenerator {
     }
 
     final typeParameters = analysis.typeParameters;
+    final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
+    final classNameWithTypeParams = analysis.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
 
     // Create the target type (OrderByFieldSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -118,7 +120,7 @@ class OrderByGenerator {
         ..types.addAll(typeParameters)
         ..on = targetType
         ..docs.add(
-          '/// Generated OrderByFieldSelector for ${analysis.dartType}',
+          '/// Generated OrderByFieldSelector for $classNameWithTypeParams',
         )
         ..methods.addAll(methods),
     );
