@@ -3,6 +3,7 @@ import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/converters/handlers/json_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
@@ -50,6 +51,34 @@ class DirectConverter implements TypeConverter {
   Expression generateToFirestore(Expression sourceExpression) {
     return sourceExpression; // No conversion needed for primitive types
   }
+}
+
+class VariableConverterClassConverter implements TypeConverter {
+  final Reference variableName;
+
+  const VariableConverterClassConverter(this.variableName);
+
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return variableName.property('fromFirestore').call([sourceExpression]);
+  }
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression) {
+    return variableName.property('toFirestore').call([sourceExpression]);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+
+    final otherConverter = other as VariableConverterClassConverter;
+    return variableName == otherConverter.variableName;
+  }
+
+  @override
+  int get hashCode => variableName.hashCode;
 }
 
 /// Converter using a specific converter class (handles both generic and non-generic)
@@ -114,7 +143,8 @@ class ConverterClassConverter implements TypeConverter {
 
 /// Converter for generic types with element converters
 class JsonConverter implements TypeConverter {
-  final Reference dartType;
+  final JsonConverterHandler handler = const JsonConverterHandler();
+  final TypeReference dartType;
   final List<TypeConverter> elementConverters;
   final String? customFromJsonMethod;
   final String? customToJsonMethod;
@@ -126,75 +156,22 @@ class JsonConverter implements TypeConverter {
     this.customToJsonMethod,
   });
 
-  JsonConverter.fromTypeName(
-    String typeName,
-    this.elementConverters, {
-    this.customFromJsonMethod,
-    this.customToJsonMethod,
-  }) : dartType = refer(typeName);
-
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
-    final fromJsonMethod = customFromJsonMethod ?? 'fromJson';
-
-    if (elementConverters.isEmpty) {
-      // 簡單情況：MyClass.fromJson(sourceExpression)
-      return dartType.property(fromJsonMethod).call([sourceExpression]);
-    }
-
-    final converterLambdas = elementConverters.map((converter) {
-      return Method(
-        (b) => b
-          ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = converter.generateFromFirestore(refer('e')).code
-          ..lambda = true,
-      ).closure;
-    }).toList();
-
-    return dartType.property(fromJsonMethod).call([
+    return handler.fromJson(
+      dartType,
       sourceExpression,
-      ...converterLambdas,
-    ]);
+      elementConverters,
+    );
   }
 
   @override
   Expression generateToFirestore(Expression sourceExpression) {
-    final toJsonMethod = customToJsonMethod ?? 'toJson';
-
-    if (elementConverters.isEmpty) {
-      // 簡單情況：sourceExpression.toJson()
-      return sourceExpression.property(toJsonMethod).call([]);
-    }
-
-    // 複雜情況：有元素轉換器
-    final converterLambdas = elementConverters.map((converter) {
-      return Method(
-        (b) => b
-          ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = converter.generateToFirestore(refer('e')).code
-          ..lambda = true,
-      ).closure;
-    }).toList();
-
-    return sourceExpression.property(toJsonMethod).call(converterLambdas);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-
-    final otherConverter = other as JsonConverter;
-    return dartType == otherConverter.dartType &&
-        elementConverters.length == otherConverter.elementConverters.length &&
-        elementConverters.every(
-          (converter) => otherConverter.elementConverters.contains(converter),
-        );
-  }
-
-  @override
-  int get hashCode {
-    return Object.hash(dartType, elementConverters);
+    return handler.toJson(
+      dartType,
+      sourceExpression,
+      elementConverters,
+    );
   }
 }
 
@@ -863,7 +840,7 @@ class ModelAnalyzer {
         final typeParams = dartType.typeArguments
             .map((t) => analyzeModel(t, t.element).converter)
             .toList();
-        return JsonConverter(refer(dartType.element.name), typeParams);
+        return JsonConverter(dartType.reference, typeParams);
       }
     }
 

@@ -193,6 +193,7 @@ class DefaultConverter<T, F> implements FirestoreConverter<T, F> {
 
   @override
   F toFirestore(T data) => toJson(data);
+
 }
 
 

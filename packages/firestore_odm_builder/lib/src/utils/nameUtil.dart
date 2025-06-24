@@ -35,14 +35,20 @@ class NameUtil {
 }
 
 extension DartTypeExtension on DartType {
-  Reference get reference {
+  TypeReference get reference {
     final element = this.element;
-    if (element == null) return refer('dynamic');
+    if (element == null) return TypeReference((b) => b..symbol = 'dynamic');
     
     final name = element.name!;
     final library = element.library;
     final uri = library?.source.uri.toString();
     
-    return refer(name, uri);
+    return TypeReference((b) => b
+      ..symbol = name
+      ..url = uri);
   }
+}
+
+extension StringUtils on String {
+  String lowerFirst() => isEmpty ? this : this[0].toLowerCase() + substring(1);
 }

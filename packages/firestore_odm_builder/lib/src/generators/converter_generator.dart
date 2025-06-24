@@ -59,96 +59,86 @@ class ConverterTemplate implements Template {
     FirestoreType.null_ => 'dynamic',
   };
 
-  List<Field> _buildFields() {
-    return List.generate(
-      analysis.typeParameters.length,
-      (i) => Field(
-        (b) => b
-          ..name = 'converter$i'
-          ..type = refer('FirestoreConverter<T$i, dynamic>')
-          ..modifier = FieldModifier.final$,
-      ),
-    );
+  static Expression _fromJsonBody(TypeConverter converter, Expression source) {
+    switch (converter) {
+      case UnderlyingConverter underlyingConverter:
+        return underlyingConverter.innerConverter.generateFromFirestore(source);
+      case ConverterClassConverter converterClassConverter:
+        return converterClassConverter.generateFromFirestore(source);
+      case JsonConverter jsonConverter:
+        return jsonConverter.handler.fromJson(converter.dartType, source, List.generate(converter.elementConverters.length, (i) => VariableConverterClassConverter(
+          refer('converter$i'),
+        )));
+      default:
+        throw ArgumentError('Unsupported converter type: ${converter.runtimeType}');
+    }
+  }
+
+  static Expression _toJsonBody(TypeConverter converter, Expression source) {
+    switch (converter) {
+      case UnderlyingConverter underlyingConverter:
+        return underlyingConverter.innerConverter.generateToFirestore(source);
+      case ConverterClassConverter converterClassConverter:
+        return converterClassConverter.generateToFirestore(source);
+      case JsonConverter jsonConverter:
+        return jsonConverter.handler.toJson(converter.dartType, source, List.generate(converter.elementConverters.length, (i) => VariableConverterClassConverter(
+          refer('converter$i'),
+        )));
+      default:
+        throw ArgumentError('Unsupported converter type: ${converter.runtimeType}');
+    }
   }
 
   Constructor _buildConstructor() {
     return Constructor(
       (b) => b
         ..constant = true
+        ..initializers.add(
+          refer('super').call([], {
+            'fromJson': Method(
+              (b) => b
+                ..lambda = true
+                ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                ..body = _fromJsonBody(analysis.converter, refer('data')).code,
+            ).closure,
+            'toJson': Method(
+              (b) => b
+                ..lambda = true
+                ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                ..body = _toJsonBody(analysis.converter, refer('data')).code,
+            ).closure,
+          }).code,
+        )
         ..requiredParameters.addAll(
           List.generate(
             analysis.typeParameters.length,
             (i) => Parameter(
               (b) => b
                 ..name = 'converter$i'
-                ..toThis = true,
+                ..type = refer('FirestoreConverter<T$i, dynamic>'),
             ),
           ),
         ),
     );
   }
 
-  List<Method> _buildMethods() {
-    return [_buildFromFirestoreMethod(), _buildToFirestoreMethod()];
-  }
-
-  Method _buildFromFirestoreMethod() {
-    return Method(
-      (b) => b
-        ..name = 'fromFirestore'
-        ..annotations.add(refer('override'))
-        ..returns = refer(fromTypeName)
-        ..requiredParameters.add(
-          Parameter(
-            (b) => b
-              ..name = 'data'
-              ..type = refer(toTypeName),
-          ),
-        )
-        ..body = analysis.converter
-            .generateFromFirestore(refer('data'))
-            .returned
-            .statement,
-    );
-  }
-
-  Method _buildToFirestoreMethod() {
-    return Method(
-      (b) => b
-        ..name = 'toFirestore'
-        ..annotations.add(refer('override'))
-        ..returns = refer(toTypeName)
-        ..requiredParameters.add(
-          Parameter(
-            (b) => b
-              ..name = 'data'
-              ..type = refer(fromTypeName),
-          ),
-        )
-        ..body = analysis.converter
-            .generateToFirestore(refer('data'))
-            .returned
-            .statement,
-    );
-  }
 
   List<Reference> _buildTypeParameters() {
     return List.generate(analysis.typeParameters.length, (i) => refer('T$i'));
   }
 
-  
   Class toClass() {
     return Class(
       (b) => b
         ..name = '${className}Converter'
         ..types.addAll(_buildTypeParameters()) // 用 types 屬性
-        ..implements.add(
-          refer('FirestoreConverter<$fromTypeName, $toTypeName>'),
+        ..extend = TypeReference(
+          (b) => b
+            ..symbol = 'DefaultConverter'
+            ..types.addAll([refer(fromTypeName), refer(toTypeName)]),
         )
-        ..docs.add('/// Generated converter for $className')
-        ..fields.addAll(_buildFields())
-        ..constructors.add(_buildConstructor())
-        ..methods.addAll(_buildMethods()),
+        ..docs.add('/// Generated converter for ${analysis.dartType}')
+        ..constructors.add(_buildConstructor()),
     );
   }
 
@@ -160,29 +150,88 @@ class ConverterTemplate implements Template {
 
 /// Generator for Firestore converters for custom types
 class ConverterGenerator {
+  static Field generateConverterVariable(
+    String name,
+    ModelAnalysis analysis,
+    TypeConverter converter,
+  ) {
+    final fromType = analysis.dartType.reference;
+    final toTypeName = switch (analysis.firestoreType) {
+      FirestoreType.string => 'String',
+      FirestoreType.integer => 'int',
+      FirestoreType.double => 'double',
+      FirestoreType.boolean => 'bool',
+      FirestoreType.timestamp => 'Timestamp',
+      FirestoreType.bytes => 'Uint8List',
+      FirestoreType.geoPoint => 'GeoPoint',
+      FirestoreType.reference => 'DocumentReference',
+      FirestoreType.array => 'List<dynamic>',
+      FirestoreType.map => 'Map<String, dynamic>',
+      FirestoreType.object => 'Map<String, dynamic>',
+      FirestoreType.null_ => 'dynamic',
+    };
+    return Field(
+      (b) => b
+        ..docs.add('/// Converter for $name')
+        ..name = '_\$${name.lowerFirst()}Converter'
+        ..modifier = FieldModifier.final$
+        ..assignment =
+            TypeReference(
+              (b) => b
+                ..symbol = 'DefaultConverter'
+                ..types.addAll([fromType, refer(toTypeName)]),
+            ).call([], {
+              'fromJson': Method(
+                (b) => b
+                  ..lambda = true
+                  ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                  ..body = fromType.property('fromJson').call([
+                    refer('data'),
+                  ]).code,
+              ).closure,
+              'toJson': Method(
+                (b) => b
+                  ..lambda = true
+                  ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                  ..body = refer('data').property('toJson').call([]).code,
+              ).closure,
+            }).code,
+    );
+  }
+
   /// Generate converters for custom types discovered through type analysis
   static String generateConvertersForCustomTypes(
     Map<String, ModelAnalysis> typeAnalyses,
   ) {
     final buffer = StringBuffer();
-    final seen = <TypeConverter>{};
+    final seen = <String>{};
 
-    for (final typeAnalysis in typeAnalyses.values) {
-      final converter = typeAnalysis.converter;
-      for (final typeConverter in runAllConverters(converter)) {
-        print(
-          'DEBUG: Found converter $typeConverter for ${typeAnalysis.dartType.getDisplayString(withNullability: false)}',
-        );
-        if (seen.contains(typeConverter)) continue;
+    for (final analysis in typeAnalyses.values) {
+      final converter = analysis.converter;
+      final classname = analysis.dartType.element?.name;
+      if (classname == null) continue;
+      if (seen.contains(classname)) continue;
+      seen.add(classname);
 
-        seen.add(typeConverter);
+      if (converter is ConverterClassConverter) continue;
+      buffer.write(
+        ConverterTemplate(analysis).toClass().accept(DartEmitter()).toString(),
+      );
+      // buffer.write(generateConverterVariable(classname, analysis, converter).accept(DartEmitter()).toString());
 
-        // Skip if the type is primitive or has no converter
-        if (typeConverter is ConverterClassConverter) continue;
+      // for (final typeConverter in runAllConverters(converter)) {
+      //   if (seen.contains(typeConverter)) continue;
 
-        // Generate converter class for this type
-        buffer.write(ConverterTemplate(typeAnalysis));
-      }
+      //   seen.add(typeConverter);
+
+      //   // Skip if the type is primitive or has no converter
+      //   if (typeConverter is ConverterClassConverter) continue;
+
+      //   buffer.write(generateConverterVariable(typeConverter).accept(DartEmitter()).toString());
+
+      //   // Generate converter class for this type
+      //   // buffer.write(generateConverterVariable(typeAnalysis));
+      // }
     }
 
     return buffer.toString();
