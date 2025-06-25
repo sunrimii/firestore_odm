@@ -1,5 +1,3 @@
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';

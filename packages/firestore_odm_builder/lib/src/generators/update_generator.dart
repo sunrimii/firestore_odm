@@ -4,7 +4,6 @@ import 'package:firestore_odm_builder/src/generators/converter_service.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
-import '../utils/string_helpers.dart';
 
 /// Generator for update builders and related classes using code_builder
 class UpdateGenerator {

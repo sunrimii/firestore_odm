@@ -203,8 +203,8 @@ void main() {
       
       // Check keys set to same value
       expect(result!.settings['feature1'], equals('enabled'));
-      expect(result!.settings['feature2'], equals('enabled'));
-      expect(result!.settings['feature3'], equals('enabled')); // Unchanged
+      expect(result.settings['feature2'], equals('enabled'));
+      expect(result.settings['feature3'], equals('enabled')); // Unchanged
       
       // Check removed keys
       expect(result.settings.containsKey('setting1'), isFalse);

@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 
 import '../utils/string_helpers.dart';
 import '../utils/model_analyzer.dart';

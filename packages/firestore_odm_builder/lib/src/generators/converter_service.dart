@@ -3,7 +3,6 @@ import 'package:code_builder/code_builder.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/generators/generater.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
-import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 import 'package:signals/signals.dart';
 

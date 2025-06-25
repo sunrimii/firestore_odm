@@ -1,11 +1,9 @@
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_builder/src/generators/schema_generator.dart';
-import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
 
 /// Generator for Firestore ODM using source_gen
 class FirestoreGenerator extends GeneratorForAnnotation<Schema> {

@@ -128,8 +128,8 @@ void main() {
       final updatedUser = await odm.users('mixed_operations_user').get();
       expect(updatedUser, isNotNull);
       expect(updatedUser!.tags, containsAll(['keep', 'new1', 'new2']));
-      expect(updatedUser!.tags, isNot(contains('old1')));
-      expect(updatedUser!.tags, isNot(contains('old2')));
+      expect(updatedUser.tags, isNot(contains('old1')));
+      expect(updatedUser.tags, isNot(contains('old2')));
       expect(updatedUser.scores, containsAll([10, 20, 30, 40, 50]));
       expect(updatedUser.profile.interests, containsAll(['tech', 'music', 'sports']));
       expect(updatedUser.profile.interests, isNot(contains('remove_me')));
@@ -171,8 +171,8 @@ void main() {
       final updatedUser = await odm.users('sequential_operations_user').get();
       expect(updatedUser, isNotNull);
       expect(updatedUser!.tags, containsAll(['keep1', 'keep2', 'add1', 'add2']));
-      expect(updatedUser!.tags, isNot(contains('remove1')));
-      expect(updatedUser!.tags, isNot(contains('remove2')));
+      expect(updatedUser.tags, isNot(contains('remove1')));
+      expect(updatedUser.tags, isNot(contains('remove2')));
 
       print('✅ Sequential operations work correctly');
     });

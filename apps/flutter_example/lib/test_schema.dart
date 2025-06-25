@@ -1,8 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_example/models/list_length_model.dart';
-import 'package:flutter_example/models/manual_user2.dart';
-import 'package:flutter_example/models/manual_user3.dart';
 import 'models/user.dart';
 import 'models/post.dart';
 import 'models/comment.dart';
