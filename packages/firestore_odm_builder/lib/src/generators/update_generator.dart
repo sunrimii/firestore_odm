@@ -48,7 +48,6 @@ class UpdateGenerator {
         continue;
       }
 
-      print('Generating update method for ${field.parameterName}');
       methods.add(_generateFieldUpdateMethod(field));
     }
 
