@@ -1087,10 +1087,18 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
 class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
   DurationFieldUpdate({super.name, super.parent})
     : super(
-        converter:
-            NullableConverter(DurationConverter())
-                as FirestoreConverter<T, dynamic>,
+        converter: _getDurationConverter<T>(),
       );
+
+  static FirestoreConverter<T, dynamic> _getDurationConverter<T extends Duration?>() {
+    if (null is T) {
+      // T is nullable (Duration?)
+      return NullableConverter(DurationConverter()) as FirestoreConverter<T, dynamic>;
+    } else {
+      // T is non-nullable (Duration)
+      return DurationConverter() as FirestoreConverter<T, dynamic>;
+    }
+  }
 
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
