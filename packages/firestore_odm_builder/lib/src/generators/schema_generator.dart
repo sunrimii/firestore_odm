@@ -38,11 +38,10 @@ class SchemaGenerator {
   static String generateSchemaCode(
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final library = Library(
       (b) => b.body.addAll(
-        _generateAllLibraryMembers(variableElement, collections, modelAnalyses),
+        _generateAllLibraryMembers(variableElement, collections),
       ),
     );
 
@@ -178,14 +177,20 @@ class SchemaGenerator {
   static List<Spec> _generateAllLibraryMembers(
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final specs = <Spec>[];
     final subscriptions = <StreamSubscription>{};
     // register generators
     final converterService = converterServiceSignal.get();
     subscriptions.add(converterService.specs.listen(specs.add));
-
+    final analysisResult = ModelAnalyzer.analyzeModels(
+      collections
+          .map((c) => c.modelType)
+          .whereType<InterfaceType>()
+          .toList(),
+    );
+    final modelAnalyses = analysisResult.modelAnalyses;
+    
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
     final schemaClassName = StringHelpers.capitalize(variableName);

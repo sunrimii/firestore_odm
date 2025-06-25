@@ -64,8 +64,22 @@ class UpdateGenerator {
     final fieldType = field.dartType;
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonFieldName;
-    print('Generating update method for field: $fieldName, type: $fieldType, typeRef: ${fieldType.reference}');
-    final returnType = TypeAnalyzer.isDateTimeType(fieldType)
+    
+    // Check if field has a JsonConverter that changes the type
+    final expectedType = ConverterService.getExpectedType(field.firestoreType);
+    final converterService = converterServiceSignal.get();
+    final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
+    final converter = converterService.get(analysis);
+    if (field.parameterName == 'numbers' || field.parameterName == 'settings') {
+      print('Field $fieldName: expected type: $expectedType, original converter: ${analysis.converter}, converter type: ${converter}, converter: ${converter.toType} changed: ${expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)}');
+    }
+    final returnType = expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)
+        ? TypeReference(
+            (b) => b
+              ..symbol = 'DefaultUpdateBuilder'
+              ..types.add(fieldType.reference),
+          )
+        : TypeAnalyzer.isDateTimeType(fieldType)
         ? TypeReference(
             (b) => b
               ..symbol = 'DateTimeFieldUpdate'
@@ -107,12 +121,8 @@ class UpdateGenerator {
               ..symbol = 'DefaultUpdateBuilder'
               ..types.add(fieldType.reference),
           );
-    print('Return type for $fieldName: $returnType (str: ${returnType.accept(DartEmitter(useNullSafetySyntax : true))})');
-    final converterService = converterServiceSignal.get();
-    final analysis = ModelAnalyzer.analyzeModel(field.dartType, field.element);
-    final converter = converterService.get(analysis);
 
-    final bodyExpression = TypeAnalyzer.isDurationType(fieldType)
+    final bodyExpression = returnType.symbol == 'DurationFieldUpdate'
         ? returnType.newInstance([], {
             'name': literalString(jsonFieldName),
             'parent': refer('this'),

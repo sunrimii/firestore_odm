@@ -1,7 +1,9 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/generators/converter_service.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
@@ -104,7 +106,8 @@ class CustomConverter implements TypeConverter {
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
-    final analysis = ModelAnalyzer.analyzeModel(element.thisType, element);
+    final analysis = ModelAnalyzer.analyze(element.thisType, element);
+    // final converterService = converterServiceSignal.get();
     return element.reference.newInstance(
       [],
       Map.fromEntries(
@@ -122,6 +125,7 @@ class CustomConverter implements TypeConverter {
 
   @override
   Expression generateToFirestore(Expression sourceExpression) {
+    final converterService = converterServiceSignal.get();
     // to map
     return literalMap(
       Map.fromEntries(
@@ -141,11 +145,13 @@ class CustomConverter implements TypeConverter {
 /// Converter using a specific converter class (handles both generic and non-generic)
 class ConverterClassConverter implements TypeConverter {
   final Expression instance;
+  final TypeReference toType;
 
-  const ConverterClassConverter(this.instance);
+  const ConverterClassConverter(this.instance, this.toType);
 
   ConverterClassConverter.fromClassName(
-    String converterClassName, [
+    String converterClassName,
+    TypeReference fieldType, [
     List<TypeConverter> parameterConverters = const [],
   ]) : this(
          refer(converterClassName).call(
@@ -153,6 +159,7 @@ class ConverterClassConverter implements TypeConverter {
                .map((converter) => _convertToExpression(converter))
                .toList(),
          ),
+         fieldType,
        );
 
   @override
@@ -169,15 +176,6 @@ class ConverterClassConverter implements TypeConverter {
     }
     return refer('${converter.runtimeType}').call([]);
   }
-}
-
-class BuiltInConverter extends ConverterClassConverter {
-  const BuiltInConverter(super.instance);
-
-  BuiltInConverter.fromClassName(
-    String converterClassName, [
-    List<TypeConverter> parameterConverters = const [],
-  ]) : super.fromClassName(converterClassName, parameterConverters);
 }
 
 /// Converter for generic types with element converters
@@ -233,36 +231,19 @@ class JsonConverter implements TypeConverter {
 
 /// Converter for custom JsonConverter annotations
 class AnnotationConverter implements TypeConverter {
-  final String converterClassName;
+  final TypeReference reference;
+  final TypeReference toType;
 
-  const AnnotationConverter(this.converterClassName);
+  const AnnotationConverter(this.reference, {required this.toType});
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
-    return refer(
-      converterClassName,
-    ).call([]).property('fromJson').call([sourceExpression]);
+    return reference.call([]).property('fromJson').call([sourceExpression]);
   }
 
   @override
   Expression generateToFirestore(Expression sourceExpression) {
-    return refer(
-      converterClassName,
-    ).call([]).property('toJson').call([sourceExpression]);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-
-    final otherConverter = other as AnnotationConverter;
-    return converterClassName == otherConverter.converterClassName;
-  }
-
-  @override
-  int get hashCode {
-    return converterClassName.hashCode;
+    return reference.call([]).property('toJson').call([sourceExpression]);
   }
 }
 
@@ -343,20 +324,6 @@ class FieldInfo {
 
   /// Get converter from type analysis
   TypeConverter get converter => typeAnalysis.converter;
-
-  /// Generate conversion from Firestore
-  Expression generateFromFirestore(Expression sourceExpression) {
-    return typeAnalysis.converter.generateFromFirestore(sourceExpression);
-  }
-
-  /// Generate conversion to Firestore
-  Expression generateToFirestore(Expression sourceExpression) {
-    return typeAnalysis.converter.generateToFirestore(sourceExpression);
-  }
-
-  @override
-  String toString() =>
-      'FieldInfo(param: $parameterName, json: $jsonFieldName, type: $dartType, firestoreType: $firestoreType, isDocId: $isDocumentId)';
 }
 
 /// Complete analysis of a model class
@@ -386,9 +353,9 @@ class ModelAnalysis {
       dartType is InterfaceType &&
       (dartType as InterfaceType).typeArguments.isNotEmpty;
 
-  List<Reference> get typeParameters => isGeneric
+  List<TypeReference> get typeParameters => isGeneric
       ? (dartType as InterfaceType).element3.typeParameters2
-            .map((e) => refer(e.name3!))
+            .map((e) => e.reference)
             .toList()
       : [];
 }
@@ -412,6 +379,19 @@ class ModelAnalyzer {
   static final TypeChecker _dateTimeChecker = TypeChecker.fromRuntime(DateTime);
 
   static final Map<DartType, ModelAnalysis> _analyzed = {};
+  static final Map<(DartType, Element?), ModelAnalysis> _cached = {};
+
+  /// Analyze a complete model class and return structured information
+  static ModelAnalysis analyze(DartType type, [Element? annotatedElement]) {
+    final key = (type, annotatedElement);
+    if (_cached.containsKey(key)) {
+      return _cached[key]!;
+    }
+
+    final result = _analyze(type, annotatedElement);
+    _cached[key] = result;
+    return result;
+  }
 
   /// Analyze a complete model class and return structured information
   static ModelAnalysis analyzeModel(DartType type, [Element? element]) {
@@ -432,6 +412,66 @@ class ModelAnalyzer {
     final result = _analyzeModelInternal(type, correctElement);
     _analyzed[type] = result;
     return result;
+  }
+
+  /// Internal method for analyzing a model with a given registry
+  static ModelAnalysis _analyze(DartType type, [Element? annotatedElement]) {
+    // Get all fields from the class and its supertypes (excluding Object)
+    final typeElement = type.element;
+    final fields = typeElement is ClassElement
+        ? _getConstructorParameters(typeElement)
+        : <(String, DartType, Element)>[];
+
+    // Analyze all fields
+    final Map<String, FieldInfo> fieldsMap = {};
+
+    for (final (fieldName, fieldType, element) in fields) {
+      final fieldInfo = _analyzeFieldFromAccessor(
+        fieldName,
+        fieldType,
+        element,
+      );
+      fieldsMap[fieldName] = fieldInfo;
+    }
+
+    // Find document ID field using logic
+    final documentIdFieldName = _getDocumentIdFieldFromAccessors(fields);
+
+    // Mark document ID field
+    if (documentIdFieldName != null &&
+        fieldsMap.containsKey(documentIdFieldName)) {
+      final existingField = fieldsMap[documentIdFieldName]!;
+      fieldsMap[documentIdFieldName] = FieldInfo(
+        parameterName: existingField.parameterName,
+        jsonFieldName: existingField.jsonFieldName,
+        element: existingField.element,
+        dartType: existingField.dartType,
+        isDocumentId: true,
+        isOptional: existingField.isOptional,
+        typeAnalysis: existingField.typeAnalysis,
+      );
+    }
+
+    // Get updateable fields (non-document-ID fields)
+    final updateableFields = fieldsMap.values
+        .where((field) => !field.isDocumentId)
+        .toList();
+    // _createConverter(dartType, element, firestoreType);
+    //     final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
+    //     final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
+    //       dartType,
+    //     );
+
+    return ModelAnalysis(
+      className: type.getDisplayString(withNullability: false),
+      documentIdField:
+          documentIdFieldName ?? 'id', // Default to 'id' if not found
+      fields: fieldsMap,
+      updateableFields: updateableFields,
+      dartType: type,
+      firestoreType: _processTypeToFirestoreType(type),
+      converter: _getConverter(type, annotatedElement),
+    );
   }
 
   /// Internal method for analyzing a model with a given registry
@@ -489,7 +529,7 @@ class ModelAnalyzer {
       updateableFields: updateableFields,
       dartType: type,
       firestoreType: _processTypeToFirestoreType(type),
-      converter: _createConverter(type, type.element),
+      converter: _createConverter(type, element),
     );
   }
 
@@ -567,33 +607,52 @@ class ModelAnalyzer {
     return builtInTypes.contains(typeName);
   }
 
-  static TypeConverter _createConverter(DartType dartType, Element? element) {
+  static TypeConverter _getConverter(
+    DartType dartType,
+    Element? annotatedElement,
+  ) {
     final isNullable = TypeAnalyzer.isNullableType(dartType);
 
     // Check for custom JsonConverter annotations first (like @ListLengthConverter())
-    if (element != null) {
+    if (annotatedElement != null) {
       // Look for any annotation that implements JsonConverter
-      final customConverter = _findCustomJsonConverter(element);
+      final customConverter = _findCustomJsonConverter(annotatedElement);
       if (customConverter != null) {
-        return AnnotationConverter(customConverter);
+        print('Found JsonConverter annotation: ${customConverter}');
+        final toType = customConverter
+            .getMethod('toJson')!
+            .returnType
+            .reference;
+        return AnnotationConverter(customConverter.reference, toType: toType);
       }
 
       // Check for standard @JsonConverter annotation
-      final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
+      final jsonConverter = _jsonConverterChecker.firstAnnotationOf(
+        annotatedElement,
+      );
       if (jsonConverter != null) {
+        print('Found JsonConverter annotation: ${jsonConverter.type}');
         final converterType = jsonConverter.type;
         if (converterType != null && converterType is InterfaceType) {
-          final converterClassName = converterType.element3.name3!;
-          return AnnotationConverter(converterClassName);
+          final toType = converterType.element3
+              .getMethod2('toJson')!
+              .returnType
+              .reference;
+          return AnnotationConverter(
+            converterType.element3.reference,
+            toType: toType,
+          );
         }
       }
 
       // Check for generic JsonConverter support
       if (dartType is InterfaceType && _hasJsonSupport(dartType)) {
-        final typeParams = dartType.typeArguments
-            .map((t) => analyzeModel(t, t.element).converter)
-            .toList();
-        final toType = [dartType , ...dartType.allSupertypes]
+        final converterService = converterServiceSignal.get();
+        final typeParams = dartType.typeArguments.map((t) {
+          final analysis = analyzeModel(t, t.element);
+          return converterService.get(analysis);
+        }).toList();
+        final toType = [dartType, ...dartType.allSupertypes]
             .map((x) => x.getMethod2('toJson'))
             .where((m) => m != null)
             .firstOrNull
@@ -606,16 +665,75 @@ class ModelAnalyzer {
     final converter = _createDefaultConverter(dartType);
 
     // Wrap with nullable converter if needed
-    if (isNullable) {
-      return NullableConverter(converter);
+    // if (isNullable) {
+    //   return NullableConverter(converter);
+    // }
+
+    // If no custom converter found, create default converter based on type
+    return converter;
+  }
+
+  static TypeConverter _createConverter(DartType dartType, Element? element) {
+    final isNullable = TypeAnalyzer.isNullableType(dartType);
+
+    // Check for custom JsonConverter annotations first (like @ListLengthConverter())
+    if (element != null) {
+      // Look for any annotation that implements JsonConverter
+      final customConverter = _findCustomJsonConverter(element);
+      if (customConverter != null) {
+        final toType = customConverter
+            .getMethod('toJson')!
+            .returnType
+            .reference;
+        return AnnotationConverter(customConverter.reference, toType: toType);
+      }
+
+      // Check for standard @JsonConverter annotation
+      final jsonConverter = _jsonConverterChecker.firstAnnotationOf(element);
+      if (jsonConverter != null) {
+        final converterType = jsonConverter.type;
+        if (converterType != null && converterType is InterfaceType) {
+          final toType = converterType.element3
+              .getMethod2('toJson')!
+              .returnType
+              .reference;
+          return AnnotationConverter(
+            converterType.element3.reference,
+            toType: toType,
+          );
+        }
+      }
+
+      // Check for generic JsonConverter support
+      if (dartType is InterfaceType && _hasJsonSupport(dartType)) {
+        final typeParams = dartType.typeArguments.map((t) {
+          final analysis = analyzeModel(t, t.element);
+          final converterService = converterServiceSignal.get();
+          return converterService.get(analysis);
+        }).toList();
+        final toType = [dartType, ...dartType.allSupertypes]
+            .map((x) => x.getMethod2('toJson'))
+            .where((m) => m != null)
+            .firstOrNull
+            ?.returnType
+            .reference;
+        return JsonConverter(dartType.reference, typeParams, toType: toType);
+      }
     }
+
+    final converter = _createDefaultConverter(dartType);
+
+    // Wrap with nullable converter if needed
+    // if (isNullable) {
+    //   return NullableConverter(converter);
+    // }
 
     // If no custom converter found, create default converter based on type
     return converter;
   }
 
   /// Find custom JsonConverter annotation (like @ListLengthConverter())
-  static String? _findCustomJsonConverter(Element element) {
+  static InterfaceElement? _findCustomJsonConverter(Element element) {
     for (final annotation in element.metadata) {
       final annotationType = annotation.computeConstantValue()?.type;
       if (annotationType is InterfaceType) {
@@ -623,7 +741,7 @@ class ModelAnalyzer {
 
         // Check if this class implements JsonConverter interface
         if (_implementsJsonConverter(classElement)) {
-          return classElement.name;
+          return classElement;
         }
       }
     }
@@ -656,21 +774,63 @@ class ModelAnalyzer {
 
   /// Create default converter based on type and firestore type
   static TypeConverter _createDefaultConverter(DartType dartType) {
-    if (dartType.isDartCoreDouble ||
+    final converterService = converterServiceSignal.get();
+    // built-in converters
+    if (dartType.isDartCoreString ||
         dartType.isDartCoreInt ||
-        dartType.isDartCoreString ||
+        dartType.isDartCoreDouble ||
         dartType.isDartCoreBool ||
+        dartType.isDartCoreNull ||
         // or dynamic
         dartType.getDisplayString() == 'dynamic') {
-      return BuiltInConverter.fromClassName('PrimitiveConverter');
+      return ConverterClassConverter.fromClassName(
+        'PrimitiveConverter',
+        dartType.reference,
+      );
     }
 
-    if (_durationChecker.isExactlyType(dartType)) {
-      return BuiltInConverter.fromClassName('DurationConverter');
+    if (dartType.isDartCoreList || dartType.isDartCoreSet) {
+      final typeArguments = switch (dartType) {
+        InterfaceType type => type.typeArguments,
+        _ => <DartType>[],
+      };
+      List<TypeConverter> parameterConverters = typeArguments
+          .map((t) => converterService.get(ModelAnalyzer.analyzeModel(t)))
+          .toList();
+      return ConverterClassConverter.fromClassName(
+        'ListConverter',
+        TypeReferences.listOf(TypeReferences.dynamic),
+        parameterConverters,
+      );
     }
 
-    if (_dateTimeChecker.isExactlyType(dartType)) {
-      return BuiltInConverter.fromClassName('DateTimeConverter');
+    if (dartType.isDartCoreMap) {
+      final typeArguments = switch (dartType) {
+        InterfaceType type => type.typeArguments,
+        _ => <DartType>[],
+      };
+      List<TypeConverter> parameterConverters = typeArguments
+          .map((t) => converterService.get(ModelAnalyzer.analyzeModel(t)))
+          .toList();
+      return ConverterClassConverter.fromClassName(
+        'MapConverter',
+        TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
+        parameterConverters,
+      );
+    }
+
+    if (TypeAnalyzer.isDateTimeType(dartType)) {
+      return ConverterClassConverter.fromClassName(
+        'DateTimeConverter',
+        TypeReferences.timestamp,
+      );
+    }
+
+    if (TypeAnalyzer.isDurationType(dartType)) {
+      return ConverterClassConverter.fromClassName(
+        'DurationConverter',
+        TypeReferences.int,
+      );
     }
 
     if (dartType is InterfaceType) {
@@ -683,7 +843,7 @@ class ModelAnalyzer {
     }
 
     throw ArgumentError(
-      'Unsupported Dart type for conversion: ${dartType.getDisplayString(withNullability: true)}',
+      'Unsupported Dart type for Firestore conversion: ${dartType.getDisplayString(withNullability: false)}',
     );
   }
 
