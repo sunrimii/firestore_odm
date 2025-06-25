@@ -88,7 +88,8 @@ class CustomConverter implements TypeConverter {
     this.typeParameterConverters = const {},
   ]);
 
-  TypeConverter _refine(TypeConverter converter, FieldInfo field) {
+  TypeConverter _refine(FieldInfo field) {
+    final converter = field.converter;
     if (converter is GenericTypeConverter) {
       if (typeParameterConverters.containsKey(converter.typeParameter)) {
         return typeParameterConverters[converter.typeParameter]!;
@@ -117,7 +118,7 @@ class CustomConverter implements TypeConverter {
           .equalTo(literalNull)
           .conditional(literalNull, then(expression.nullChecked));
     }
-    return expression;
+    return then(expression);
   }
 
   @override
@@ -132,10 +133,7 @@ class CustomConverter implements TypeConverter {
             _handleNullable(
               field.dartType,
               sourceExpression.index(literalString(field.jsonFieldName)),
-              (expression) => _refine(
-                field.converter,
-                field,
-              ).generateFromFirestore(expression),
+              (expression) => _refine(field).generateFromFirestore(expression),
             ),
           ),
         ),
@@ -156,10 +154,8 @@ class CustomConverter implements TypeConverter {
                 _handleNullable(
                   field.dartType,
                   sourceExpression.property(field.parameterName),
-                  (expression) => _refine(
-                    field.converter,
-                    field,
-                  ).generateToFirestore(expression),
+                  (expression) =>
+                      _refine(field).generateToFirestore(expression),
                 ),
               ),
             ),
