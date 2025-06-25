@@ -32,7 +32,6 @@ enum FirestoreType {
 sealed class TypeConverter {
   Expression generateFromFirestore(Expression sourceExpression);
   Expression generateToFirestore(Expression sourceExpression);
-
 }
 
 /// Direct converter for primitive types (no conversion needed)
@@ -83,7 +82,10 @@ class CustomConverter implements TypeConverter {
   final InterfaceElement element;
   final Map<Reference, TypeConverter> typeParameterConverters;
 
-  const CustomConverter(this.element, [this.typeParameterConverters = const {}]);
+  const CustomConverter(
+    this.element, [
+    this.typeParameterConverters = const {},
+  ]);
 
   TypeConverter _refine(TypeConverter converter) {
     if (converter is GenericTypeConverter) {
@@ -91,7 +93,9 @@ class CustomConverter implements TypeConverter {
         return typeParameterConverters[converter.typeParameter]!;
       } else {
         // throw Warning if no specific converter found
-        print('Warning: No specific converter found for type parameter ${converter.typeParameter}. Using generic converter.');
+        print(
+          'Warning: No specific converter found for type parameter ${converter.typeParameter}. Using generic converter.',
+        );
         return converter; // Return as-is if no specific converter found
       }
     }
@@ -203,7 +207,10 @@ class JsonConverter implements TypeConverter {
           ..lambda = true,
       ).closure;
     }).toList();
-    return dartType.property(fromJsonMethod).call([sourceExpression, ...converterLambdas]);
+    return dartType.property(fromJsonMethod).call([
+      sourceExpression,
+      ...converterLambdas,
+    ]);
   }
 
   @override
@@ -221,7 +228,6 @@ class JsonConverter implements TypeConverter {
       ).closure;
     }).toList();
     return sourceExpression.property(toJsonMethod).call(converterLambdas);
-
   }
 }
 
@@ -587,7 +593,12 @@ class ModelAnalyzer {
         final typeParams = dartType.typeArguments
             .map((t) => analyzeModel(t, t.element).converter)
             .toList();
-        final toType = dartType.getMethod2('toJson')?.returnType.reference;
+        final toType = [dartType , ...dartType.allSupertypes]
+            .map((x) => x.getMethod2('toJson'))
+            .where((m) => m != null)
+            .firstOrNull
+            ?.returnType
+            .reference;
         return JsonConverter(dartType.reference, typeParams, toType: toType);
       }
     }
@@ -650,11 +661,8 @@ class ModelAnalyzer {
         dartType.isDartCoreString ||
         dartType.isDartCoreBool ||
         // or dynamic
-        dartType.getDisplayString() == 'dynamic'
-        ) {
-      return BuiltInConverter.fromClassName(
-        'PrimitiveConverter',
-      );
+        dartType.getDisplayString() == 'dynamic') {
+      return BuiltInConverter.fromClassName('PrimitiveConverter');
     }
 
     if (_durationChecker.isExactlyType(dartType)) {
@@ -944,7 +952,6 @@ class ModelAnalyzer {
 
     return false;
   }
-
 
   /// Get the appropriate FirestoreConverter for a given FirestoreType and DartType
   static String getConverterForFirestoreType(

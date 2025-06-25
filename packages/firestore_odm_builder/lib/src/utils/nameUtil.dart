@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 
@@ -77,12 +78,124 @@ extension ElementExtension on Element {
   }
 }
 
+extension Element3Extension on Element2 {
+  TypeReference get reference {
+    final name = this.name3;
+    final library = this.library2;
+    final uri = library?.uri.toString();
+    final typeParameters = switch (this) {
+      ClassElement2 e => e.typeParameters2.toList(),
+      TypeAliasElement2 e => e.typeParameters2.toList(),
+      _ => <TypeParameterElement2>[],
+    };
+    return TypeReference(
+      (b) => b
+        ..symbol = name
+        ..url = uri
+        ..types.addAll(typeParameters.map((t) => t.reference)),
+    );
+  }
+}
+
+class TypeReferences {
+  static final string = TypeReference(
+    (b) => b
+      ..symbol = 'String'
+      ..url = 'dart:core',
+  );
+  static final int = TypeReference(
+    (b) => b
+      ..symbol = 'int'
+      ..url = 'dart:core',
+  );
+  static final double = TypeReference(
+    (b) => b
+      ..symbol = 'double'
+      ..url = 'dart:core',
+  );
+  static final bool = TypeReference(
+    (b) => b
+      ..symbol = 'bool'
+      ..url = 'dart:core',
+  );
+  static final dynamic = TypeReference((b) => b..symbol = 'dynamic');
+  static final list = TypeReference(
+    (b) => b
+      ..symbol = 'List'
+      ..url = 'dart:core',
+  );
+  static final map = TypeReference(
+    (b) => b
+      ..symbol = 'Map'
+      ..url = 'dart:core',
+  );
+  static final set = TypeReference(
+    (b) => b
+      ..symbol = 'Set'
+      ..url = 'dart:core',
+  );
+  static final dateTime = TypeReference(
+    (b) => b
+      ..symbol = 'DateTime'
+      ..url = 'dart:core',
+  );
+  static final duration = TypeReference(
+    (b) => b
+      ..symbol = 'Duration'
+      ..url = 'dart:core',
+  );
+
+  static final timestamp = TypeReference(
+    (b) => b
+      ..symbol = 'Timestamp'
+      ..url = 'package:cloud_firestore/cloud_firestore.dart',
+  );
+
+  static final geoPoint = TypeReference(
+    (b) => b
+      ..symbol = 'GeoPoint'
+      ..url = 'package:cloud_firestore/cloud_firestore.dart',
+  );
+
+  static final documentReference = TypeReference(
+    (b) => b
+      ..symbol = 'DocumentReference'
+      ..url = 'package:cloud_firestore/cloud_firestore.dart',
+  );
+
+  static final uint8List = TypeReference(
+    (b) => b
+      ..symbol = 'Uint8List'
+      ..url = 'dart:typed_data',
+  );
+
+  static final bytes = TypeReference(
+    (b) => b
+      ..symbol = 'Bytes'
+      ..url = 'package:firebase_storage/firebase_storage.dart',
+  );
+
+  static TypeReference listOf(TypeReference type) {
+    return list.rebuild((b) => b..types.add(type));
+  }
+
+  static TypeReference mapOf(TypeReference key, TypeReference value) {
+    return map.rebuild((b) => b..types.addAll([key, value]));
+  }
+
+  static TypeReference setOf(TypeReference type) {
+    return set.rebuild((b) => b..types.add(type));
+  }
+}
+
 extension StringUtils on String {
   String lowerFirst() => isEmpty ? this : this[0].toLowerCase() + substring(1);
 
   String camelCase() {
     if (isEmpty) return this;
     final parts = split('_');
-    return parts.map((p) => p.isNotEmpty ? p[0].toUpperCase() + p.substring(1) : '').join('');
+    return parts
+        .map((p) => p.isNotEmpty ? p[0].toUpperCase() + p.substring(1) : '')
+        .join('');
   }
 }

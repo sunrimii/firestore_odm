@@ -44,44 +44,56 @@ class ConverterTemplate implements Template {
 
   TypeReference get fromType =>
       analysis.dartType.element?.reference ??
-      TypeReference((b) => b..symbol = 'dynamic');
-  String get toTypeName => switch (analysis.firestoreType) {
-    FirestoreType.string => 'String',
-    FirestoreType.integer => 'int',
-    FirestoreType.double => 'double',
-    FirestoreType.boolean => 'bool',
-    FirestoreType.timestamp => 'Timestamp',
-    FirestoreType.bytes => 'Uint8List',
-    FirestoreType.geoPoint => 'GeoPoint',
-    FirestoreType.reference => 'DocumentReference',
-    FirestoreType.array => 'List<dynamic>',
-    FirestoreType.map => 'Map<String, dynamic>',
-    FirestoreType.object => 'Map<String, dynamic>',
-    FirestoreType.null_ => 'dynamic',
+      TypeReferences.dynamic;
+      
+  TypeReference get toType => switch (analysis.firestoreType) {
+    FirestoreType.string => TypeReferences.string,
+    FirestoreType.integer => TypeReferences.int,
+    FirestoreType.double => TypeReferences.double,
+    FirestoreType.boolean => TypeReferences.bool,
+    FirestoreType.timestamp => TypeReferences.timestamp,
+    FirestoreType.bytes =>  TypeReferences.bytes,
+    FirestoreType.geoPoint => TypeReferences.geoPoint,
+    FirestoreType.reference => TypeReferences.documentReference,
+    FirestoreType.array => TypeReferences.listOf(TypeReferences.dynamic),
+    FirestoreType.map => TypeReferences.mapOf(
+      TypeReferences.string,
+      TypeReferences.dynamic,
+    ),
+    FirestoreType.object => TypeReferences.mapOf(
+      TypeReferences.string,
+      TypeReferences.dynamic,
+    ),
+  FirestoreType.null_ => TypeReferences.dynamic,
   };
-  TypeReference get toType => TypeReference((b) => b..symbol = toTypeName);
 
   Expression _fromJsonBody(Expression source) {
+    final dartType = analysis.dartType;
     switch (analysis.converter) {
       case UnderlyingConverter converter:
         return converter.innerConverter.generateFromFirestore(source);
-      case ConverterClassConverter _:
-      case CustomConverter _:
-        return analysis.converter.generateFromFirestore(source, {
-          for (var i = 0; i < analysis.typeParameters.length; i++)
-            analysis.typeParameters[i]: VariableConverterClassConverter(
-              refer('converter$i'),
-            ),
-        });
-      case JsonConverter _:
-        final typeRef =
-            analysis.dartType.element?.reference ?? analysis.dartType.reference;
-        final genericJsonConverter =
-            JsonConverter(typeRef, [
-              for (var i = 0; i < analysis.typeParameters.length; i++)
-                VariableConverterClassConverter(refer('converter$i')),
-            ]);
-        return genericJsonConverter.generateFromFirestore(source);
+      case ConverterClassConverter converter:
+        return converter.generateFromFirestore(source);
+      case CustomConverter converter:
+        final elementConverter =
+            dartType is InterfaceType && dartType.typeArguments.isNotEmpty
+            ? CustomConverter(dartType.element, {
+                for (var i = 0; i < analysis.typeParameters.length; i++)
+                  analysis.typeParameters[i]: VariableConverterClassConverter(
+                    refer('converter$i'),
+                  ),
+              })
+            : converter;
+        return elementConverter.generateFromFirestore(source);
+      case JsonConverter converter:
+        final elementConverter =
+            dartType is InterfaceType && dartType.typeArguments.isNotEmpty
+            ? JsonConverter(dartType.element3.reference, [
+                for (var i = 0; i < analysis.typeParameters.length; i++)
+                  VariableConverterClassConverter(refer('converter$i')),
+              ], toType: converter.toType)
+            : converter;
+        return elementConverter.generateFromFirestore(source);
       default:
         throw ArgumentError(
           'Unsupported converter type: ${analysis.converter.runtimeType}',
@@ -90,27 +102,38 @@ class ConverterTemplate implements Template {
   }
 
   Expression _toJsonBody(Expression source) {
+    final dartType = analysis.dartType;
     switch (analysis.converter) {
       case UnderlyingConverter underlyingConverter:
         return underlyingConverter.innerConverter.generateToFirestore(source);
-      case ConverterClassConverter _:
-      case CustomConverter _:
-        return analysis.converter.generateToFirestore(source, {
-          for (var i = 0; i < analysis.typeParameters.length; i++)
-            analysis.typeParameters[i]: VariableConverterClassConverter(
-              refer('converter$i'),
-            ),
-        });
+      case ConverterClassConverter converter:
+        return converter.generateToFirestore(source);
+      case CustomConverter converter:
+        final elementConverter =
+            dartType is InterfaceType && dartType.typeArguments.isNotEmpty
+            ? CustomConverter(dartType.element, {
+                for (var i = 0; i < analysis.typeParameters.length; i++)
+                  analysis.typeParameters[i]: VariableConverterClassConverter(
+                    refer('converter$i'),
+                  ),
+              })
+            : converter;
+        return elementConverter.generateToFirestore(source);
       case JsonConverter converter:
-        final typeRef =
-            analysis.dartType.element?.reference ?? analysis.dartType.reference;
-        final genericJsonConverter =
-            JsonConverter(typeRef, [
-              for (var i = 0; i < analysis.typeParameters.length; i++)
-                VariableConverterClassConverter(refer('converter$i')),
-            ]);
-        final expression = genericJsonConverter.generateToFirestore(source);
-        return converter.toType != toType ? expression.asA(toType) : expression;
+        final elementConverter =
+            dartType is InterfaceType && dartType.typeArguments.isNotEmpty
+            ? JsonConverter(dartType.element3.reference, [
+                for (var i = 0; i < analysis.typeParameters.length; i++)
+                  VariableConverterClassConverter(refer('converter$i')),
+              ], toType: converter.toType)
+            : converter;
+        final expression = elementConverter.generateToFirestore(source);
+        print(
+          'Converting $source from ${elementConverter.toType} to ${toType} (check: ${elementConverter.toType != toType})',
+        );
+        return elementConverter.toType != toType
+            ? expression.asA(toType)
+            : expression;
       default:
         throw ArgumentError(
           'Unsupported converter type: ${analysis.converter.runtimeType}',
@@ -147,7 +170,7 @@ class ConverterTemplate implements Template {
           TypeReference(
             (b) => b
               ..symbol = 'FirestoreConverter'
-              ..types.addAll([fromType, refer(toTypeName)]),
+              ..types.addAll([fromType, toType]),
           ),
         )
         ..constructors.add(_buildConstructor())
