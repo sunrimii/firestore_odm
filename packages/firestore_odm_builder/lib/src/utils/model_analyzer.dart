@@ -440,27 +440,25 @@ class ModelAnalyzer {
         }
       }
 
-      // Check for generic JsonConverter support
-      if (dartType is InterfaceType && _hasJsonSupport(dartType)) {
-        final converterService = converterServiceSignal.get();
-        final typeParams = dartType.typeArguments.map((t) {
-          final analysis = analyze(t, t.element);
-          return converterService.get(analysis);
-        }).toList();
-        final toType = [dartType, ...dartType.allSupertypes]
-            .map((x) => x.getMethod2('toJson'))
-            .where((m) => m != null)
-            .firstOrNull
-            ?.returnType
-            .reference;
-        return JsonConverter(dartType.reference, typeParams, toType: toType);
-      }
     }
 
-    final converter = _createDefaultConverter(dartType);
-
-    // If no custom converter found, create default converter based on type
-    return converter;
+    // Check for generic JsonConverter support
+    if (dartType is InterfaceType && _hasJsonSupport(dartType)) {
+      final converterService = converterServiceSignal.get();
+      final typeParams = dartType.typeArguments.map((t) {
+        final analysis = analyze(t, t.element);
+        return converterService.get(analysis);
+      }).toList();
+      final toType = [dartType, ...dartType.allSupertypes]
+          .map((x) => x.getMethod2('toJson'))
+          .where((m) => m != null)
+          .firstOrNull
+          ?.returnType
+          .reference;
+      return JsonConverter(dartType.reference, typeParams, toType: toType);
+    }
+    
+    return _createDefaultConverter(dartType);
   }
 
   /// Find custom JsonConverter annotation (like @ListLengthConverter())
@@ -491,16 +489,6 @@ class ModelAnalyzer {
       }
     }
     return false;
-  }
-
-  static String getBaseTypeName(DartType type) {
-    if (type is InterfaceType) {
-      return type.element3.name3!;
-    }
-    if (type is ParameterizedType) {
-      return type.element?.name ?? type.toString();
-    }
-    return type.toString();
   }
 
   /// Create default converter based on type and firestore type
