@@ -30,10 +30,62 @@ enum FirestoreType {
 
 /// Functional converter interface for type conversions
 sealed class TypeConverter {
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]);
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]);
+  Expression generateFromFirestore(Expression sourceExpression);
+  Expression generateToFirestore(Expression sourceExpression);
 
-  static TypeConverter refine(TypeConverter converter, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+}
+
+/// Direct converter for primitive types (no conversion needed)
+class DirectConverter implements TypeConverter {
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return sourceExpression;
+  }
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression) {
+    return sourceExpression; // No conversion needed for primitive types
+  }
+}
+
+class VariableConverterClassConverter implements TypeConverter {
+  final Reference variableName;
+
+  const VariableConverterClassConverter(this.variableName);
+
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return variableName.property('fromFirestore').call([sourceExpression]);
+  }
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression) {
+    return variableName.property('toFirestore').call([sourceExpression]);
+  }
+}
+
+class GenericTypeConverter implements TypeConverter {
+  final Reference typeParameter;
+  const GenericTypeConverter(this.typeParameter);
+
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) {
+    return sourceExpression;
+  }
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression) {
+    return sourceExpression;
+  }
+}
+
+class CustomConverter implements TypeConverter {
+  final InterfaceElement element;
+  final Map<Reference, TypeConverter> typeParameterConverters;
+
+  const CustomConverter(this.element, [this.typeParameterConverters = const {}]);
+
+  TypeConverter _refine(TypeConverter converter) {
     if (converter is GenericTypeConverter) {
       if (typeParameterConverters.containsKey(converter.typeParameter)) {
         return typeParameterConverters[converter.typeParameter]!;
@@ -45,59 +97,9 @@ sealed class TypeConverter {
     }
     return converter; // Return as-is if no refinement needed
   }
-}
-
-/// Direct converter for primitive types (no conversion needed)
-class DirectConverter implements TypeConverter {
-  @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return sourceExpression;
-  }
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return sourceExpression; // No conversion needed for primitive types
-  }
-}
-
-class VariableConverterClassConverter implements TypeConverter {
-  final Reference variableName;
-
-  const VariableConverterClassConverter(this.variableName);
-
-  @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return variableName.property('fromFirestore').call([sourceExpression]);
-  }
-
-  @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return variableName.property('toFirestore').call([sourceExpression]);
-  }
-}
-
-class GenericTypeConverter implements TypeConverter {
-  final Reference typeParameter;
-  const GenericTypeConverter(this.typeParameter);
-
-  @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return sourceExpression;
-  }
-
-  @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return sourceExpression;
-  }
-}
-
-class CustomConverter implements TypeConverter {
-  final InterfaceElement element;
-
-  const CustomConverter(this.element);
-
-  @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateFromFirestore(Expression sourceExpression) {
     final analysis = ModelAnalyzer.analyzeModel(element.thisType, element);
     return element.reference.newInstance(
       [],
@@ -105,7 +107,7 @@ class CustomConverter implements TypeConverter {
         analysis.fields.values.map(
           (field) => MapEntry(
             field.parameterName,
-            TypeConverter.refine(field.converter).generateFromFirestore(
+            _refine(field.converter).generateFromFirestore(
               sourceExpression.index(literalString(field.jsonFieldName)),
             ),
           ),
@@ -115,14 +117,14 @@ class CustomConverter implements TypeConverter {
   }
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateToFirestore(Expression sourceExpression) {
     // to map
     return literalMap(
       Map.fromEntries(
         ModelAnalyzer.analyzeModel(element.thisType, element).fields.values.map(
           (field) => MapEntry(
             field.jsonFieldName,
-            field.converter.generateToFirestore(
+            _refine(field.converter).generateToFirestore(
               sourceExpression.property(field.parameterName),
             ),
           ),
@@ -150,11 +152,11 @@ class ConverterClassConverter implements TypeConverter {
        );
 
   @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) =>
+  Expression generateFromFirestore(Expression sourceExpression) =>
       instance.property('fromFirestore').call([sourceExpression]);
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) =>
+  Expression generateToFirestore(Expression sourceExpression) =>
       instance.property('toFirestore').call([sourceExpression]);
 
   static Expression _convertToExpression(TypeConverter converter) {
@@ -191,13 +193,13 @@ class JsonConverter implements TypeConverter {
   });
 
   @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateFromFirestore(Expression sourceExpression) {
     final fromJsonMethod = customFromJsonMethod ?? 'fromJson';
     final converterLambdas = elementConverters.map((converter) {
       return Method(
         (b) => b
           ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = TypeConverter.refine(converter, typeParameterConverters).generateFromFirestore(refer('e')).code
+          ..body = converter.generateFromFirestore(refer('e')).code
           ..lambda = true,
       ).closure;
     }).toList();
@@ -205,7 +207,7 @@ class JsonConverter implements TypeConverter {
   }
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateToFirestore(Expression sourceExpression) {
     final toJsonMethod = customToJsonMethod ?? 'toJson';
     if (elementConverters.isEmpty) {
       return sourceExpression.property(toJsonMethod).call([]);
@@ -214,7 +216,7 @@ class JsonConverter implements TypeConverter {
       return Method(
         (b) => b
           ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = TypeConverter.refine(converter, typeParameterConverters).generateToFirestore(refer('e')).code
+          ..body = converter.generateToFirestore(refer('e')).code
           ..lambda = true,
       ).closure;
     }).toList();
@@ -230,14 +232,14 @@ class AnnotationConverter implements TypeConverter {
   const AnnotationConverter(this.converterClassName);
 
   @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateFromFirestore(Expression sourceExpression) {
     return refer(
       converterClassName,
     ).call([]).property('fromJson').call([sourceExpression]);
   }
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateToFirestore(Expression sourceExpression) {
     return refer(
       converterClassName,
     ).call([]).property('toJson').call([sourceExpression]);
@@ -264,11 +266,11 @@ abstract class UnderlyingConverter implements TypeConverter {
   const UnderlyingConverter(this.innerConverter);
 
   @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]);
+  Expression generateFromFirestore(Expression sourceExpression);
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
-    return innerConverter.generateToFirestore(sourceExpression, typeParameterConverters);
+  Expression generateToFirestore(Expression sourceExpression) {
+    return innerConverter.generateToFirestore(sourceExpression);
   }
 }
 
@@ -277,7 +279,7 @@ class NullableConverter extends UnderlyingConverter {
   const NullableConverter(super._converter);
 
   @override
-  Expression generateFromFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateFromFirestore(Expression sourceExpression) {
     final innerExpr = innerConverter.generateFromFirestore(sourceExpression);
     return sourceExpression
         .equalTo(literalNull)
@@ -285,7 +287,7 @@ class NullableConverter extends UnderlyingConverter {
   }
 
   @override
-  Expression generateToFirestore(Expression sourceExpression, [Map<Reference, TypeConverter> typeParameterConverters = const {}]) {
+  Expression generateToFirestore(Expression sourceExpression) {
     final innerExpr = innerConverter.generateToFirestore(
       sourceExpression.nullChecked,
     );
