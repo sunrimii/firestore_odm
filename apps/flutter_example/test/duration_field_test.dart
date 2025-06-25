@@ -178,14 +178,12 @@ void main() {
         await odm.tasks(originalTask.id).update(originalTask);
 
         // Patch non-duration fields (Duration fields have serialization issues with patch operations)
-        await odm.tasks(originalTask.id).patch((update) => [
-              update(
-                title: 'Updated Title',
-                description: 'Updated description',
-                isCompleted: true,
-                priority: 3,
-                completedAt: DateTime.now(),
-              ),
+        await odm.tasks(originalTask.id).patch(($) => [
+              $.title('Updated Title'),
+              $.description('Updated description'),
+              $.isCompleted(true),
+              $.priority(3),
+              $.completedAt(DateTime.now()),
             ]);
 
         final patched = await odm.tasks(originalTask.id).get();
