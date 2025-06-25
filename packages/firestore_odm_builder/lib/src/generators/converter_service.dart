@@ -28,8 +28,6 @@ class ConverterTemplate implements Template {
 
   Expression _fromJsonBody(Expression source) {
     switch (converter) {
-      case UnderlyingConverter converter:
-        return converter.innerConverter.generateFromFirestore(source);
       case CustomConverter converter:
         final elementConverter = typeParameters.isNotEmpty
             ? CustomConverter(converter.element, {
@@ -55,8 +53,6 @@ class ConverterTemplate implements Template {
 
   Expression _toJsonBody(Expression source) {
     switch (converter) {
-      case UnderlyingConverter underlyingConverter:
-        return underlyingConverter.innerConverter.generateToFirestore(source);
       case CustomConverter converter:
         final elementConverter = typeParameters.isNotEmpty
             ? CustomConverter(converter.element, {

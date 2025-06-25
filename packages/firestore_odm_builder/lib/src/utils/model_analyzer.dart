@@ -88,7 +88,7 @@ class CustomConverter implements TypeConverter {
     this.typeParameterConverters = const {},
   ]);
 
-  TypeConverter _refine(TypeConverter converter) {
+  TypeConverter _refine(TypeConverter converter, FieldInfo field) {
     if (converter is GenericTypeConverter) {
       if (typeParameterConverters.containsKey(converter.typeParameter)) {
         return typeParameterConverters[converter.typeParameter]!;
@@ -100,16 +100,22 @@ class CustomConverter implements TypeConverter {
         return converter; // Return as-is if no specific converter found
       }
     }
-    return converter; // Return as-is if no refinement needed
+
+    final converterService = converterServiceSignal.get();
+    final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
+    return converterService.get(analysis);
   }
 
-  Expression _handleNullable(DartType type, Expression expression, Expression Function(Expression expression) then) {
+  Expression _handleNullable(
+    DartType type,
+    Expression expression,
+    Expression Function(Expression expression) then,
+  ) {
     // If the type is nullable, we need to handle null values
     if (type.nullabilitySuffix == NullabilitySuffix.question) {
-      return expression.equalTo(literalNull).conditional(
-        literalNull,
-        then(expression.nullChecked),
-      );
+      return expression
+          .equalTo(literalNull)
+          .conditional(literalNull, then(expression.nullChecked));
     }
     return expression;
   }
@@ -117,7 +123,6 @@ class CustomConverter implements TypeConverter {
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
     final analysis = ModelAnalyzer.analyze(element.thisType, element);
-    // final converterService = converterServiceSignal.get();
     return element.reference.newInstance(
       [],
       Map.fromEntries(
@@ -127,7 +132,10 @@ class CustomConverter implements TypeConverter {
             _handleNullable(
               field.dartType,
               sourceExpression.index(literalString(field.jsonFieldName)),
-              (expression) => _refine(field.converter).generateFromFirestore(expression),
+              (expression) => _refine(
+                field.converter,
+                field,
+              ).generateFromFirestore(expression),
             ),
           ),
         ),
@@ -140,16 +148,21 @@ class CustomConverter implements TypeConverter {
     // to map
     return literalMap(
       Map.fromEntries(
-        ModelAnalyzer.analyze(element.thisType, element).fields.values.map(
-          (field) => MapEntry(
-            field.jsonFieldName,
-            _handleNullable(
-              field.dartType,
-              sourceExpression.property(field.parameterName),
-              (expression) => _refine(field.converter).generateToFirestore(expression),
+        ModelAnalyzer.analyze(element.thisType, element).fields.values
+            .where((x) => !x.isDocumentId)
+            .map(
+              (field) => MapEntry(
+                field.jsonFieldName,
+                _handleNullable(
+                  field.dartType,
+                  sourceExpression.property(field.parameterName),
+                  (expression) => _refine(
+                    field.converter,
+                    field,
+                  ).generateToFirestore(expression),
+                ),
+              ),
             ),
-          ),
-        ),
       ),
     );
   }
@@ -164,10 +177,8 @@ class ConverterClassConverter implements TypeConverter {
 
   ConverterClassConverter.fromClassName(
     String converterClassName,
-    TypeReference fieldType) : this(
-         refer(converterClassName).call([]),
-         fieldType,
-       );
+    TypeReference fieldType,
+  ) : this(refer(converterClassName).call([]), fieldType);
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) =>
@@ -176,7 +187,6 @@ class ConverterClassConverter implements TypeConverter {
   @override
   Expression generateToFirestore(Expression sourceExpression) =>
       instance.property('toFirestore').call([sourceExpression]);
-
 }
 
 /// Converter for generic types with element converters
@@ -245,20 +255,6 @@ class AnnotationConverter implements TypeConverter {
   @override
   Expression generateToFirestore(Expression sourceExpression) {
     return reference.call([]).property('toJson').call([sourceExpression]);
-  }
-}
-
-abstract class UnderlyingConverter implements TypeConverter {
-  final TypeConverter innerConverter;
-
-  const UnderlyingConverter(this.innerConverter);
-
-  @override
-  Expression generateFromFirestore(Expression sourceExpression);
-
-  @override
-  Expression generateToFirestore(Expression sourceExpression) {
-    return innerConverter.generateToFirestore(sourceExpression);
   }
 }
 
@@ -466,7 +462,6 @@ class ModelAnalyzer {
     }
 
     final converter = _createDefaultConverter(dartType);
-
 
     // If no custom converter found, create default converter based on type
     return converter;
