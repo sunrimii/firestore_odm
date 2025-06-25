@@ -374,10 +374,6 @@ class ModelAnalyzer {
     JsonConverter,
   );
 
-  static final TypeChecker _durationChecker = TypeChecker.fromRuntime(Duration);
-
-  static final TypeChecker _dateTimeChecker = TypeChecker.fromRuntime(DateTime);
-
   static final Map<DartType, ModelAnalysis> _analyzed = {};
   static final Map<(DartType, Element?), ModelAnalysis> _cached = {};
 
@@ -409,7 +405,7 @@ class ModelAnalyzer {
       correctElement = type.element;
     }
 
-    final result = _analyzeModelInternal(type, correctElement);
+    final result = _analyze(type, correctElement);
     _analyzed[type] = result;
     return result;
   }
@@ -471,65 +467,6 @@ class ModelAnalyzer {
       dartType: type,
       firestoreType: _processTypeToFirestoreType(type),
       converter: _getConverter(type, annotatedElement),
-    );
-  }
-
-  /// Internal method for analyzing a model with a given registry
-  static ModelAnalysis _analyzeModelInternal(DartType type, Element? element) {
-    // Get all fields from the class and its supertypes (excluding Object)
-    final fields = element is ClassElement
-        ? _getConstructorParameters(element)
-        : <(String, DartType, Element)>[];
-
-    // Analyze all fields
-    final Map<String, FieldInfo> fieldsMap = {};
-
-    for (final (fieldName, fieldType, element) in fields) {
-      final fieldInfo = _analyzeFieldFromAccessor(
-        fieldName,
-        fieldType,
-        element,
-      );
-      fieldsMap[fieldName] = fieldInfo;
-    }
-
-    // Find document ID field using logic
-    final documentIdFieldName = _getDocumentIdFieldFromAccessors(fields);
-
-    // Mark document ID field
-    if (documentIdFieldName != null &&
-        fieldsMap.containsKey(documentIdFieldName)) {
-      final existingField = fieldsMap[documentIdFieldName]!;
-      fieldsMap[documentIdFieldName] = FieldInfo(
-        parameterName: existingField.parameterName,
-        jsonFieldName: existingField.jsonFieldName,
-        element: existingField.element,
-        dartType: existingField.dartType,
-        isDocumentId: true,
-        isOptional: existingField.isOptional,
-        typeAnalysis: existingField.typeAnalysis,
-      );
-    }
-
-    // Get updateable fields (non-document-ID fields)
-    final updateableFields = fieldsMap.values
-        .where((field) => !field.isDocumentId)
-        .toList();
-    // _createConverter(dartType, element, firestoreType);
-    //     final hasJsonSupport = ModelAnalyzer._hasStandardJsonSupport(dartType);
-    //     final hasGenericJsonSupport = ModelAnalyzer._hasGenericJsonSupport(
-    //       dartType,
-    //     );
-
-    return ModelAnalysis(
-      className: type.getDisplayString(withNullability: false),
-      documentIdField:
-          documentIdFieldName ?? 'id', // Default to 'id' if not found
-      fields: fieldsMap,
-      updateableFields: updateableFields,
-      dartType: type,
-      firestoreType: _processTypeToFirestoreType(type),
-      converter: _createConverter(type, element),
     );
   }
 
