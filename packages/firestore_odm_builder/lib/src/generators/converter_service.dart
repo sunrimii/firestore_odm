@@ -211,7 +211,7 @@ class ConverterService extends Generater {
     };
     final typeConverters = typeArguments
         .map((t) {
-          final analysis = ModelAnalyzer.analyzeModel(t);
+          final analysis = ModelAnalyzer.analyze(t);
           return get(analysis);
         })
         .map((c) => c.instance)

@@ -30,7 +30,7 @@ class SchemaCollectionInfo {
     required this.modelType,
   });
 
-  ModelAnalysis get modelAnalysis => ModelAnalyzer.analyzeModel(modelType);
+  ModelAnalysis get modelAnalysis => ModelAnalyzer.analyze(modelType);
 }
 
 /// Generator for schema-based ODM code using code_builder
@@ -201,8 +201,6 @@ class SchemaGenerator {
     final specs = <Spec>[];
     final subscriptions = <StreamSubscription>{};
     // register generators
-    final converterService = converterServiceSignal.get();
-    subscriptions.add(converterService.specs.listen(specs.add));
 
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
@@ -263,10 +261,8 @@ class SchemaGenerator {
       ),
     );
 
-    // Clean up subscriptions
-    for (final subscription in subscriptions) {
-      subscription.cancel();
-    }
+    final converterService = converterServiceSignal.get();
+    specs.addAll(converterService.specs);
 
     return specs;
   }
@@ -361,7 +357,7 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final analysis = ModelAnalyzer.analyzeModel(collection.modelType);
+      final analysis = ModelAnalyzer.analyze(collection.modelType);
 
       final collectionClassName = _generateDocumentClassName(
         collection.path,
@@ -414,7 +410,7 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final analysis = ModelAnalyzer.analyzeModel(collection.modelType);
+      final analysis = ModelAnalyzer.analyze(collection.modelType);
       final converterService = converterServiceSignal.get();
 
       methods.add(
