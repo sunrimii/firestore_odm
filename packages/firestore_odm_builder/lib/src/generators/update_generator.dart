@@ -70,10 +70,10 @@ class UpdateGenerator {
     final converterService = converterServiceSignal.get();
     final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
     final converter = converterService.get(analysis);
-    if (field.parameterName == 'numbers' || field.parameterName == 'settings') {
+    if (field.parameterName == 'tags') {
       print('Field $fieldName: expected type: $expectedType, original converter: ${analysis.converter}, converter type: ${converter}, converter: ${converter.toType} changed: ${expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)}');
     }
-    final returnType = expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)
+    final returnType = expectedType.symbol != converter.toType.symbol
         ? TypeReference(
             (b) => b
               ..symbol = 'DefaultUpdateBuilder'
