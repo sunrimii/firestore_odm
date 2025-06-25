@@ -2,6 +2,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/generators/generater.dart';
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/model_analyzer.dart';
 import 'package:signals/signals.dart';
@@ -37,9 +38,9 @@ class ConverterTemplate implements Template {
               })
             : converter;
         return elementConverter.generateFromFirestore(source);
-      case JsonConverter converter:
+      case JsonConverterConverter converter:
         final elementConverter = typeParameters.isNotEmpty
-            ? JsonConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
+            ? JsonConverterConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
                 for (var i = 0; i < typeParameters.length; i++)
                   VariableConverterClassConverter(refer('converter$i')),
               ], toType: converter.toType)
@@ -62,9 +63,9 @@ class ConverterTemplate implements Template {
               })
             : converter;
         return elementConverter.generateToFirestore(source);
-      case JsonConverter converter:
+      case JsonConverterConverter converter:
         final elementConverter = typeParameters.isNotEmpty
-            ? JsonConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
+            ? JsonConverterConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
                 for (var i = 0; i < typeParameters.length; i++)
                   VariableConverterClassConverter(refer('converter$i')),
               ], toType: converter.toType)
@@ -165,11 +166,11 @@ class ConverterTemplate implements Template {
 /// Generator for Firestore converters for custom types
 class ConverterService extends Generater {
   final Map<String, Class> _cache = {};
-  final Map<ModelAnalysis, ConverterClassConverter> _converterCache = {};
+  final Map<ModelAnalysis, DefaultConverter> _converterCache = {};
 
-  ConverterClassConverter get(ModelAnalysis analysis) {
-    if (analysis.converter is ConverterClassConverter) {
-      return analysis.converter as ConverterClassConverter;
+  DefaultConverter get(ModelAnalysis analysis) {
+    if (analysis.converter is DefaultConverter) {
+      return analysis.converter as DefaultConverter;
     }
 
     if (_converterCache.containsKey(analysis)) {
@@ -189,7 +190,7 @@ class ConverterService extends Generater {
         .map((c) => c.instance)
         .toList();
 
-    _converterCache[analysis] = ConverterClassConverter(
+    _converterCache[analysis] = DefaultConverter(
       TypeReference(
         (b) => b
           ..symbol = converterClass.name
