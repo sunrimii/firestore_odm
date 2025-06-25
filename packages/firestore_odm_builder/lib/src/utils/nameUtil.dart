@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/element2.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 
@@ -38,20 +39,21 @@ class NameUtil {
 
 extension DartTypeExtension on DartType {
   TypeReference get reference {
-    final element = this.element;
+    final element = this.element3;
     if (element == null) return TypeReference((b) => b..symbol = 'dynamic');
 
-    final name = element.name!;
-    final library = element.library;
-    final uri = library?.source.uri.toString();
-    final typeArguments = (this is InterfaceType)
-        ? (this as InterfaceType).typeArguments.map((t) => t.reference).toList()
-        : <TypeReference>[];
+    final name = element.name3;
+    final uri = element.library2?.uri.toString();
+    final typeArguments = switch (this) {
+      InterfaceType type => type.typeArguments.map((t) => t.reference).toList(),
+      _ => <TypeReference>[],
+    };
     return TypeReference(
       (b) => b
         ..symbol = name
         ..url = uri
-        ..types.addAll(typeArguments),
+        ..types.addAll(typeArguments)
+        ..isNullable = nullabilitySuffix == NullabilitySuffix.question,
     );
   }
 }
@@ -73,7 +75,8 @@ extension ElementExtension on Element {
       (b) => b
         ..symbol = name
         ..url = uri
-        ..types.addAll(typeParameters.map((t) => t.reference)),
+        ..types.addAll(typeParameters.map((t) => t.reference))
+        ..isNullable = false,
     );
   }
 }
@@ -84,15 +87,15 @@ extension Element3Extension on Element2 {
     final library = this.library2;
     final uri = library?.uri.toString();
     final typeParameters = switch (this) {
-      ClassElement2 e => e.typeParameters2.toList(),
-      TypeAliasElement2 e => e.typeParameters2.toList(),
+      TypeParameterizedElement2 e => e.typeParameters2.toList(),
       _ => <TypeParameterElement2>[],
     };
     return TypeReference(
       (b) => b
         ..symbol = name
         ..url = uri
-        ..types.addAll(typeParameters.map((t) => t.reference)),
+        ..types.addAll(typeParameters.map((t) => t.reference))
+        ..isNullable = false,
     );
   }
 }
