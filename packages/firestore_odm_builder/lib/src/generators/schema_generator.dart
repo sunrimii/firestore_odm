@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -173,6 +174,25 @@ class SchemaGenerator {
     return path.split('/').last;
   }
 
+  static bool isHandledType(DartType type) {
+    // Check if the type is a known Firestore ODM type
+    return type.isDartCoreBool ||
+        type.isDartCoreInt ||
+        type.isDartCoreDouble ||
+        type.isDartCoreString ||
+        type.isDartCoreList ||
+        type.isDartCoreMap ||
+        type.isDartCoreObject ||
+        type.isDartCoreNull ||
+        TypeChecker.fromRuntime(DateTime).isExactlyType(type) ||
+        TypeChecker.fromRuntime(Duration).isExactlyType(type);
+  }
+
+  static bool isUserType(DartType type) {
+    // Check if the type is a user-defined model type
+    return !isHandledType(type);
+  }
+
   /// Generate all library members
   static List<Spec> _generateAllLibraryMembers(
     TopLevelVariableElement variableElement,
@@ -183,14 +203,7 @@ class SchemaGenerator {
     // register generators
     final converterService = converterServiceSignal.get();
     subscriptions.add(converterService.specs.listen(specs.add));
-    final analysisResult = ModelAnalyzer.analyzeModels(
-      collections
-          .map((c) => c.modelType)
-          .whereType<InterfaceType>()
-          .toList(),
-    );
-    final modelAnalyses = analysisResult.modelAnalyses;
-    
+
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
     final schemaClassName = StringHelpers.capitalize(variableName);
@@ -204,14 +217,14 @@ class SchemaGenerator {
       _generateSchemaClassAndConstant(schemaClassName, schemaConstName),
     );
 
+
+    specs.addAll(_generateFilterAndOrderBySelectors(collections));
     // Generate filter and order by builders for each model type
-    specs.addAll(_generateFilterAndOrderBySelectors(modelAnalyses));
 
     // Generate ODM extensions
     final odmExtension = _generateODMExtensions(
       schemaClassName,
       collections,
-      modelAnalyses,
     );
     if (odmExtension != null) specs.add(odmExtension);
 
@@ -219,7 +232,6 @@ class SchemaGenerator {
     final transactionExtension = _generateTransactionContextExtensions(
       schemaClassName,
       collections,
-      modelAnalyses,
     );
     if (transactionExtension != null) specs.add(transactionExtension);
 
@@ -227,7 +239,6 @@ class SchemaGenerator {
     final batchExtension = _generateBatchContextExtensions(
       schemaClassName,
       collections,
-      modelAnalyses,
     );
     if (batchExtension != null) specs.add(batchExtension);
 
@@ -236,13 +247,12 @@ class SchemaGenerator {
       _generateUniqueDocumentClasses(
         schemaClassName,
         collections,
-        modelAnalyses,
       ),
     );
 
     // Generate document extensions for subcollections (path-specific)
     specs.addAll(
-      _generateDocumentExtensions(schemaClassName, collections, modelAnalyses),
+      _generateDocumentExtensions(schemaClassName, collections),
     );
 
     // Generate batch document extensions for subcollections
@@ -250,7 +260,6 @@ class SchemaGenerator {
       _generateBatchDocumentExtensions(
         schemaClassName,
         collections,
-        modelAnalyses,
       ),
     );
 
@@ -297,11 +306,17 @@ class SchemaGenerator {
 
   /// Generate filter and order by builders for all model types
   static List<Spec> _generateFilterAndOrderBySelectors(
-    Map<DartType, ModelAnalysis> modelAnalyses,
+    List<SchemaCollectionInfo> collections,
   ) {
+    final analyses = collections
+        .expand((c) => run(c.modelType))
+        .toSet()
+        .where(isUserType)
+        .map((type) => ModelAnalyzer.analyze(type));
+
     final specs = <Spec>[];
 
-    for (final analysis in [...modelAnalyses.values]) {
+    for (final analysis in analyses) {
       if (analysis.fields.isEmpty) continue;
 
       // Generate FilterSelector extension using ModelAnalysis
@@ -337,7 +352,6 @@ class SchemaGenerator {
   static Extension? _generateODMExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -347,7 +361,6 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      
       final analysis = ModelAnalyzer.analyzeModel(collection.modelType);
 
       final collectionClassName = _generateDocumentClassName(
@@ -392,7 +405,6 @@ class SchemaGenerator {
   static Extension? _generateTransactionContextExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -460,7 +472,6 @@ class SchemaGenerator {
   static Extension? _generateBatchContextExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -498,8 +509,9 @@ class SchemaGenerator {
                   'collection': refer('firestoreInstance')
                       .property('collection')
                       .call([literalString(collection.path)]),
-                  'converter':
-                      converterService.get(collection.modelAnalysis).instance,
+                  'converter': converterService
+                      .get(collection.modelAnalysis)
+                      .instance,
                   'documentIdField': literalString(
                     collection.modelAnalysis.documentIdField,
                   ),
@@ -528,7 +540,6 @@ class SchemaGenerator {
   static List<Spec> _generateUniqueDocumentClasses(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final specs = <Spec>[];
 
@@ -648,10 +659,8 @@ class SchemaGenerator {
   static List<Spec> _generateDocumentExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final converterService = converterServiceSignal.get();
-
 
     final specs = <Spec>[];
     final subcollections = collections.where((c) => c.isSubcollection).toList();
@@ -693,7 +702,9 @@ class SchemaGenerator {
                 'query': refer('ref').property('collection').call([
                   literalString(subcollectionName),
                 ]),
-                'converter': converterService.get(subcol.modelAnalysis).instance,
+                'converter': converterService
+                    .get(subcol.modelAnalysis)
+                    .instance,
                 'documentIdField': literalString(
                   subcol.modelAnalysis.documentIdField,
                 ),
@@ -724,7 +735,6 @@ class SchemaGenerator {
   static List<Spec> _generateBatchDocumentExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
-    Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final converterService = converterServiceSignal.get();
 
@@ -779,7 +789,9 @@ class SchemaGenerator {
                     'collection': refer('ref').property('collection').call([
                       literalString(subcollectionName),
                     ]),
-                    'converter': converterService.get(subcol.modelAnalysis).instance,
+                    'converter': converterService
+                        .get(subcol.modelAnalysis)
+                        .instance,
                     'documentIdField': literalString(
                       subcol.modelAnalysis.documentIdField,
                     ),
@@ -810,5 +822,25 @@ class SchemaGenerator {
     }
 
     return specs;
+  }
+
+  static Iterable<DartType> run(
+    DartType type, [
+    Element? annotatedElement,
+  ]) sync* {
+    final analysis = ModelAnalyzer.analyze(type, annotatedElement);
+    yield type;
+
+    // Recursively find all nested InterfaceTypes in the fields of this type
+    for (final field in analysis.fields.values) {
+      yield* run(field.dartType, field.element);
+    }
+
+    if (type is ParameterizedType) {
+      // If this is a ParameterizedType, analyze its type arguments as well
+      for (final arg in type.typeArguments) {
+        yield* run(arg);
+      }
+    }
   }
 }
