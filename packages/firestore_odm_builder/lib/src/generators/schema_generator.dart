@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
@@ -44,7 +46,7 @@ class SchemaGenerator {
       ),
     );
 
-    final emitter = DartEmitter();
+    final emitter = DartEmitter(useNullSafetySyntax: true);
     return library.accept(emitter).toString();
   }
 
@@ -179,10 +181,10 @@ class SchemaGenerator {
     Map<DartType, ModelAnalysis> modelAnalyses,
   ) {
     final specs = <Spec>[];
-
+    final subscriptions = <StreamSubscription>{};
     // register generators
     final converterService = converterServiceSignal.get();
-    converterService.specs.listen(specs.add);
+    subscriptions.add(converterService.specs.listen(specs.add));
 
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
@@ -246,6 +248,11 @@ class SchemaGenerator {
         modelAnalyses,
       ),
     );
+
+    // Clean up subscriptions
+    for (final subscription in subscriptions) {
+      subscription.cancel();
+    }
 
     return specs;
   }

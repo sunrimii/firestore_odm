@@ -116,6 +116,24 @@ class DurationConverter implements FirestoreConverter<Duration, dynamic> {
   dynamic toFirestore(Duration data) => data.inMicroseconds;
 }
 
+class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
+  final FirestoreConverter<T, F> innerConverter;
+
+  const NullableConverter(this.innerConverter);
+
+  @override
+  T? fromFirestore(F? data) {
+    if (data == null) return null;
+    return innerConverter.fromFirestore(data);
+  }
+
+  @override
+  F? toFirestore(T? data) {
+    if (data == null) return null;
+    return innerConverter.toFirestore(data);
+  }
+}
+
 /// Converter for Uint8List <-> Blob
 class BytesConverter implements FirestoreConverter<Uint8List, Blob> {
   const BytesConverter();
@@ -163,24 +181,6 @@ class ObjectConverter<T> implements FirestoreConverter<T, Map<String, dynamic>> 
   Map<String, dynamic> toFirestore(T data) => toJson(data);
 }
 
-/// Converter for nullable types
-class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
-  final FirestoreConverter<T, F> innerConverter;
-  
-  const NullableConverter(this.innerConverter);
-
-  @override
-  T? fromFirestore(F? data) {
-    if (data == null) return null;
-    return innerConverter.fromFirestore(data);
-  }
-
-  @override
-  F? toFirestore(T? data) {
-    if (data == null) return null;
-    return innerConverter.toFirestore(data);
-  }
-}
 
 class DefaultConverter<T, F> implements FirestoreConverter<T, F> {
   final T Function(F) fromJson;

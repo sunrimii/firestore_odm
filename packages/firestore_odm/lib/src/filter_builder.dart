@@ -254,7 +254,7 @@ class UpdateBuilder<T> extends Node {
     final Map<String, List<dynamic>> arrayAdds = {};
     final Map<String, List<dynamic>> arrayRemoves = {};
     final Map<String, num> increments = {};
-    
+
     // Track which fields have set operations to handle precedence
     final Set<String> fieldsWithSetOperations = {};
 
@@ -282,7 +282,9 @@ class UpdateBuilder<T> extends Node {
         case UpdateOperationType.arrayAdd:
           // Skip array operations if field has set operation
           if (!fieldsWithSetOperations.contains(operation.field)) {
-            arrayAdds.putIfAbsent(operation.field, () => []).add(operation.value);
+            arrayAdds
+                .putIfAbsent(operation.field, () => [])
+                .add(operation.value);
           }
           break;
         case UpdateOperationType.arrayRemove:
@@ -348,29 +350,31 @@ class UpdateBuilder<T> extends Node {
     final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(
       arrayRemoves.keys.toSet(),
     );
-    
+
     for (final field in fieldsWithBothOps) {
       final toAdd = arrayAdds[field]!;
       final toRemove = arrayRemoves[field]!;
-      
+
       // Remove items that are both added and removed (they cancel out)
       final netAdd = toAdd.where((item) => !toRemove.contains(item)).toList();
-      final netRemove = toRemove.where((item) => !toAdd.contains(item)).toList();
-      
+      final netRemove = toRemove
+          .where((item) => !toAdd.contains(item))
+          .toList();
+
       // Update the maps with net operations
       if (netAdd.isNotEmpty) {
         arrayAdds[field] = netAdd;
       } else {
         arrayAdds.remove(field);
       }
-      
+
       if (netRemove.isNotEmpty) {
         arrayRemoves[field] = netRemove;
       } else {
         arrayRemoves.remove(field);
       }
     }
-    
+
     // After computing net operations, check if we still have conflicts
     final remainingConflicts = arrayAdds.keys.toSet().intersection(
       arrayRemoves.keys.toSet(),
@@ -403,11 +407,7 @@ class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
   final FirestoreConverter<T, dynamic> converter;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  DefaultUpdateBuilder({
-    super.name,
-    super.parent,
-    required this.converter,
-  });
+  DefaultUpdateBuilder({super.name, super.parent, required this.converter});
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
@@ -823,11 +823,7 @@ class MapFieldFilter extends CallableFilter {
   MapFieldFilter({super.name, super.parent});
 
   /// Filter the entire map
-  FirestoreFilter call({
-    Map? isEqualTo,
-    Map? isNotEqualTo,
-    bool? isNull,
-  }) {
+  FirestoreFilter call({Map? isEqualTo, Map? isNotEqualTo, bool? isNull}) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
         field: fieldPath,
@@ -1055,7 +1051,11 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
-    return UpdateOperation($path, UpdateOperationType.arrayAddAll, values.toList());
+    return UpdateOperation(
+      $path,
+      UpdateOperationType.arrayAddAll,
+      values.toList(),
+    );
   }
 
   /// Remove element from array
@@ -1065,7 +1065,11 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
-    return UpdateOperation($path, UpdateOperationType.arrayRemoveAll, values.toList());
+    return UpdateOperation(
+      $path,
+      UpdateOperationType.arrayRemoveAll,
+      values.toList(),
+    );
   }
 }
 
@@ -1075,18 +1079,18 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return UpdateOperation(
-      $path,
-      UpdateOperationType.serverTimestamp,
-      null,
-    );
+    return UpdateOperation($path, UpdateOperationType.serverTimestamp, null);
   }
 }
 
 /// Duration field callable updater
-class DurationFieldUpdate<T> extends DefaultUpdateBuilder<Duration> {
+class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
   DurationFieldUpdate({super.name, super.parent})
-    : super(converter: DurationConverter());
+    : super(
+        converter:
+            NullableConverter(DurationConverter())
+                as FirestoreConverter<T, dynamic>,
+      );
 
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {

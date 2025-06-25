@@ -128,6 +128,9 @@ class ConverterTemplate implements Template {
               ], toType: converter.toType)
             : converter;
         final expression = elementConverter.generateToFirestore(source);
+        // print(
+        //   'Converting $source from ${elementConverter.toType} to ${toType} (check: ${elementConverter.toType != toType})',
+        // );
         return elementConverter.toType != toType
             ? expression.asA(toType)
             : expression;
@@ -216,11 +219,6 @@ class ConverterTemplate implements Template {
           ),
         ]),
     );
-  }
-
-  @override
-  String toString() {
-    return toClass().accept(DartEmitter()).toString();
   }
 }
 

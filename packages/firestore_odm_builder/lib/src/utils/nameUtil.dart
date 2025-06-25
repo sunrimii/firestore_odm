@@ -47,7 +47,7 @@ extension DartTypeExtension on DartType {
     if (name == 'dynamic') {
       return TypeReference((b) => b..symbol = 'dynamic');
     }
-
+    
     final uri = element.library2?.uri.toString();
     final typeArguments = switch (this) {
       InterfaceType type => type.typeArguments.map((t) => t.reference).toList(),
