@@ -65,7 +65,7 @@ class UpdateGenerator {
     final jsonFieldName = field.jsonFieldName;
     
     // Check if field has a JsonConverter that changes the type
-    final expectedType = ConverterService.getExpectedType(field.firestoreType);
+    final expectedType = field.firestoreType;
     final converterService = converterServiceSignal.get();
     final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
     final converter = converterService.get(analysis);

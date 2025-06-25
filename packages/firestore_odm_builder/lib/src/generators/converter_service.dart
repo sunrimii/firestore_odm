@@ -167,29 +167,6 @@ class ConverterService extends Generater {
   final Map<String, Class> _cache = {};
   final Map<ModelAnalysis, ConverterClassConverter> _converterCache = {};
 
-  static TypeReference getExpectedType(FirestoreType firestoreType) {
-    return switch (firestoreType) {
-      FirestoreType.string => TypeReferences.string,
-      FirestoreType.integer => TypeReferences.int,
-      FirestoreType.double => TypeReferences.double,
-      FirestoreType.boolean => TypeReferences.bool,
-      FirestoreType.timestamp => TypeReferences.timestamp,
-      FirestoreType.bytes => TypeReferences.bytes,
-      FirestoreType.geoPoint => TypeReferences.geoPoint,
-      FirestoreType.reference => TypeReferences.documentReference,
-      FirestoreType.array => TypeReferences.listOf(TypeReferences.dynamic),
-      FirestoreType.map => TypeReferences.mapOf(
-        TypeReferences.string,
-        TypeReferences.dynamic,
-      ),
-      FirestoreType.object => TypeReferences.mapOf(
-        TypeReferences.string,
-        TypeReferences.dynamic,
-      ),
-      FirestoreType.null_ => TypeReferences.dynamic,
-    };
-  }
-
   ConverterClassConverter get(ModelAnalysis analysis) {
     if (analysis.converter is ConverterClassConverter) {
       return analysis.converter as ConverterClassConverter;
@@ -220,7 +197,7 @@ class ConverterService extends Generater {
       ).call(converterClass.types.isNotEmpty ? typeConverters : []),
       switch (analysis.converter) {
         AnnotationConverter converter => converter.toType,
-        _ => ConverterService.getExpectedType(analysis.firestoreType),
+        _ => analysis.firestoreType,
       },
     );
     return _converterCache[analysis]!;
@@ -252,7 +229,7 @@ class ConverterService extends Generater {
             className: className,
             fromType:
                 analysis.dartType.element3?.reference ?? TypeReferences.dynamic,
-            toType: ConverterService.getExpectedType(analysis.firestoreType),
+            toType: analysis.firestoreType,
             converter: analysis.converter,
             typeParameters: analysis.typeParameters,
           ).toClass();

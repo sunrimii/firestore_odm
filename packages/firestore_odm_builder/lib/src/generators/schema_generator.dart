@@ -677,7 +677,7 @@ class SchemaGenerator {
 
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
-        final getterName = StringHelpers.camelCase(subcollectionName);
+        final getterName = subcollectionName.camelCase().lowerFirst();
 
         // Generate unique collection class name for this subcollection path
         final subcollectionClassName = _generateDocumentClassName(

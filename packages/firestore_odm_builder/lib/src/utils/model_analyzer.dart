@@ -2,32 +2,12 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/generators/converter_service.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-/// Firestore data type representation for Firestore ODM
-/// Based on official Firestore supported data types
-enum FirestoreType {
-  // Primitive types
-  string, // Text string
-  integer, // 64-bit signed integer
-  double, // 64-bit double precision floating-point
-  boolean, // Boolean
-  timestamp, // Date and time
-  bytes, // Byte data
-  geoPoint, // Geographical point
-  reference, // Document reference
-  // Complex types
-  array, // Array
-  map, // Map (embedded object)
-  // Special values
-  null_, // Null value
-  // For custom objects that will be serialized as maps
-  object,
-}
 
 /// Functional converter interface for type conversions
 sealed class TypeConverter {
@@ -276,7 +256,7 @@ class FieldInfo {
   });
 
   /// Get Firestore type from type analysis
-  FirestoreType get firestoreType => typeAnalysis.firestoreType;
+  TypeReference get firestoreType => typeAnalysis.firestoreType;
 
   /// Get converter from type analysis
   TypeConverter get converter => typeAnalysis.converter;
@@ -289,7 +269,7 @@ class ModelAnalysis {
   final Map<String, FieldInfo> fields;
   final List<FieldInfo> updateableFields;
   final DartType dartType;
-  final FirestoreType firestoreType;
+  final TypeReference firestoreType;
   final TypeConverter converter;
 
   const ModelAnalysis({
@@ -399,7 +379,7 @@ class ModelAnalyzer {
       fields: fieldsMap,
       updateableFields: updateableFields,
       dartType: type,
-      firestoreType: _processTypeToFirestoreType(type),
+      firestoreType: _getFirestoreType(type),
       converter: _getConverter(type, annotatedElement),
     );
   }
@@ -439,7 +419,6 @@ class ModelAnalyzer {
           );
         }
       }
-
     }
 
     // Check for generic JsonConverter support
@@ -457,7 +436,7 @@ class ModelAnalyzer {
           .reference;
       return JsonConverter(dartType.reference, typeParams, toType: toType);
     }
-    
+
     return _createDefaultConverter(dartType);
   }
 
@@ -684,49 +663,6 @@ class ModelAnalyzer {
     );
   }
 
-  /// Process a Dart type to determine its Firestore type
-  static FirestoreType _processTypeToFirestoreType(DartType dartType) {
-    // Handle nullable types by getting the underlying type
-    final actualType = dartType.nullabilitySuffix == NullabilitySuffix.question
-        ? (dartType as InterfaceType).element3.thisType
-        : dartType;
-    // Handle primitive types
-    if (TypeAnalyzer.isStringType(actualType)) {
-      return FirestoreType.string;
-    }
-    if (TypeAnalyzer.isIntType(actualType)) {
-      return FirestoreType.integer;
-    }
-    if (TypeAnalyzer.isDoubleType(actualType)) {
-      return FirestoreType.double;
-    }
-    if (TypeAnalyzer.isBoolType(actualType)) {
-      return FirestoreType.boolean;
-    }
-
-    // Handle special types that convert to different Firestore types
-    if (TypeAnalyzer.isDurationType(actualType)) {
-      return FirestoreType
-          .integer; // Duration converts to milliseconds (integer)
-    }
-    if (TypeAnalyzer.isDateTimeType(actualType)) {
-      return FirestoreType
-          .timestamp; // DateTime converts to Firestore Timestamp
-    }
-
-    if (TypeAnalyzer.isMapType(actualType)) {
-      return FirestoreType.map;
-    }
-
-    // Handle collections
-    if (TypeAnalyzer.isListType(actualType)) {
-      return FirestoreType.array;
-    }
-
-    // For custom objects, return object type (will be serialized as map)
-    return FirestoreType.object;
-  }
-
   /// Find the document ID field from accessors
   static String? _getDocumentIdFieldFromAccessors(
     List<(String, DartType, Element)> fields,
@@ -848,69 +784,48 @@ class ModelAnalyzer {
     return false;
   }
 
-  /// Get the appropriate FirestoreConverter for a given FirestoreType and DartType
-  static String getConverterForFirestoreType(
-    FirestoreType firestoreType,
-    DartType dartType, {
-    bool isNullable = false,
-  }) {
-    String converter;
-
-    // Handle special cases based on Dart type first
-    final typeName = dartType.getDisplayString(withNullability: false);
-    if (typeName == 'Duration') {
-      converter = 'const DurationConverter()';
-    } else {
-      // Handle based on FirestoreType
-      switch (firestoreType) {
-        case FirestoreType.string:
-          converter = 'null'; // No conversion needed for strings
-          break;
-        case FirestoreType.integer:
-          converter = 'null'; // No conversion needed for integers
-          break;
-        case FirestoreType.double:
-          converter = 'null'; // No conversion needed for doubles
-          break;
-        case FirestoreType.boolean:
-          converter = 'null'; // No conversion needed for booleans
-          break;
-        case FirestoreType.timestamp:
-          converter = 'const DateTimeConverter()';
-          break;
-        case FirestoreType.bytes:
-          converter = 'const BytesConverter()';
-          break;
-        case FirestoreType.geoPoint:
-          converter = 'const GeoPointConverter()';
-          break;
-        case FirestoreType.reference:
-          converter = 'const DocumentReferenceConverter()';
-          break;
-        case FirestoreType.array:
-          converter =
-              'null'; // Will be handled by ListConverter with element converter
-          break;
-        case FirestoreType.map:
-          converter =
-              'null'; // Will be handled by MapConverter with value converter
-          break;
-        case FirestoreType.null_:
-          converter = 'null'; // Null values don't need conversion
-          break;
-        case FirestoreType.object:
-          // For custom objects, use ObjectConverter with the type's fromJson/toJson
-          converter =
-              'ObjectConverter<$typeName>($typeName.fromJson, (obj) => obj.toJson())';
-          break;
-      }
+  static TypeReference _getFirestoreType(DartType dartType) {
+    if (dartType.isDartCoreString) {
+      return TypeReferences.string;
     }
 
-    // Wrap with NullableConverter if needed
-    if (isNullable && converter != 'null') {
-      converter = 'NullableConverter($converter)';
+    if (dartType.isDartCoreInt) {
+      return TypeReferences.int;
     }
 
-    return converter;
+    if (dartType.isDartCoreDouble) {
+      return TypeReferences.double;
+    }
+
+    if (dartType.isDartCoreBool) {
+      return TypeReferences.bool;
+    }
+
+    if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(dartType)) {
+      return TypeReferences.timestamp;
+    }
+
+    if (TypeChecker.fromRuntime(Duration).isAssignableFromType(dartType)) {
+      return TypeReferences.int;
+    }
+
+    if (dartType.isDartCoreList ||
+        dartType.isDartCoreSet ||
+        TypeChecker.fromRuntime(IList).isAssignableFromType(dartType) ||
+        TypeChecker.fromRuntime(ISet).isAssignableFromType(dartType)) {
+      return TypeReferences.listOf(TypeReferences.dynamic);
+    }
+
+    if (dartType.isDartCoreObject ||
+        dartType.isDartCoreMap ||
+        dartType is InterfaceType ||
+        TypeChecker.fromRuntime(IMap).isAssignableFromType(dartType)) {
+      return TypeReferences.mapOf(
+        TypeReferences.string,
+        TypeReferences.dynamic,
+      );
+    }
+
+    return TypeReferences.dynamic;
   }
 }
