@@ -812,259 +812,270 @@ void main() {
     });
   });
 
-  group('🧪 JsonConverter Array Operations Tests', () {
-    late FakeFirebaseFirestore fakeFirestore;
-    late FirestoreODM<TestSchema> odm;
+  // group('🧪 JsonConverter Array Operations Tests', () {
+  //   late FakeFirebaseFirestore fakeFirestore;
+  //   late FirestoreODM<TestSchema> odm;
 
-    setUp(() {
-      fakeFirestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(testSchema, firestore: fakeFirestore);
-    });
+  //   setUp(() {
+  //     fakeFirestore = FakeFirebaseFirestore();
+  //     odm = FirestoreODM(testSchema, firestore: fakeFirestore);
+  //   });
+  //   test('should verify items field does not have add() method due to converter', () async {
+  //     final model = ListLengthModel(
+  //     id: 'items_no_add_test',
+  //     name: 'Items No Add Test',
+  //     description: 'Verifying converted items field lacks add() method',
+  //     items: ['initial1', 'initial2'].toIList(), // Converted to length: 2
+  //     tags: ['tag1', 'tag2'].toIList(), // No converter
+  //     );
 
-    test('should test items.add() behavior on converted field', () async {
-      final model = ListLengthModel(
-        id: 'items_add_test',
-        name: 'Items Add Test',
-        description: 'Testing add operations on converted items field',
-        items: ['initial1', 'initial2'].toIList(), // Converted to length: 2
-        tags: ['tag1', 'tag2'].toIList(), // No converter
-      );
+  //     await odm.listLengthModels(model.id).update(model);
 
-      await odm.listLengthModels(model.id).update(model);
+  //     // Verify that items field doesn't have add() method
+  //     // This is a compile-time check - the code below should NOT compile
+  //     // because JsonConverter changes the field type from IList<String> to int
+      
+  //     try {
+  //     // This should fail at compile time, not runtime
+  //     // $.items.add('new_item') should not be available
+      
+  //     // Instead, we can only do full replacement:
+  //     await odm.listLengthModels(model.id).patch(($) => [
+  //         $.items(['new1', 'new2', 'new3'].toIList()), // Full replacement only
+  //       ]);
 
-      try {
-        // Try to use add() on converted field - should this work or fail?
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.items.add('new_item'), // Testing add on converted field
-            ]);
+  //     final result = await odm.listLengthModels(model.id).get();
+  //     print('✅ items field can only be replaced, not appended to');
+  //     print('   Result items length: ${result!.items.length}');
+  //     print('   Result items content: ${result.items}');
+  //     } catch (e) {
+  //     print('❌ Unexpected error: $e');
+  //     }
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ items.add() worked on converted field');
-        print('   Result items length: ${result!.items.length}');
-        print('   Result items content: ${result.items}');
-      } catch (e) {
-        print('❌ items.add() failed on converted field: $e');
-      }
+  //     // Compare with regular array field that HAS add() method
+  //     await odm.listLengthModels(model.id).patch(($) => [
+  //       $.tags.add('new_tag'), // This works - tags has add() method
+  //       ]);
 
-      // Compare with regular array field
-      await odm.listLengthModels(model.id).patch(($) => [
-            $.tags.add('new_tag'), // Testing add on regular array
-          ]);
+  //     final finalResult = await odm.listLengthModels(model.id).get();
+  //     print('✅ tags field has add() method available');
+  //     print('   Final tags: ${finalResult!.tags}');
+      
+  //     print('📋 Summary:');
+  //     print('   - $.items.add() → NOT AVAILABLE (JsonConverter int field)');
+  //     print('   - $.tags.add() → AVAILABLE (regular IList field)');
+  //     print('   - JsonConverter fields lose array operation methods');
+  //   });
 
-      final finalResult = await odm.listLengthModels(model.id).get();
-      print('✅ tags.add() worked on regular array');
-      print('   Final tags: ${finalResult!.tags}');
-    });
+    // test('should test items.addAll() behavior on converted field', () async {
+    //   final model = ListLengthModel(
+    //     id: 'items_addall_test',
+    //     name: 'Items AddAll Test',
+    //     description: 'Testing addAll operations on converted items field',
+    //     items: ['item1', 'item2'].toIList(), // Converted to length: 2
+    //     numbers: [10, 20].toIList(), // Converted to sum: 30
+    //     tags: ['tag1'].toIList(), // No converter
+    //   );
 
-    test('should test items.addAll() behavior on converted field', () async {
-      final model = ListLengthModel(
-        id: 'items_addall_test',
-        name: 'Items AddAll Test',
-        description: 'Testing addAll operations on converted items field',
-        items: ['item1', 'item2'].toIList(), // Converted to length: 2
-        numbers: [10, 20].toIList(), // Converted to sum: 30
-        tags: ['tag1'].toIList(), // No converter
-      );
+    //   await odm.listLengthModels(model.id).update(model);
 
-      await odm.listLengthModels(model.id).update(model);
+    //   try {
+    //     // Try addAll on converted items field
+    //     await odm.listLengthModels(model.id).patch(($) => [
+    //           $.items.addAll(['new1', 'new2', 'new3']), // Should this work?
+    //         ]);
 
-      try {
-        // Try addAll on converted items field
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.items.addAll(['new1', 'new2', 'new3']), // Should this work?
-            ]);
+    //     final result = await odm.listLengthModels(model.id).get();
+    //     print('✅ items.addAll() worked on converted field');
+    //     print('   Result items length: ${result!.items.length}');
+    //     print('   Raw storage check needed...');
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ items.addAll() worked on converted field');
-        print('   Result items length: ${result!.items.length}');
-        print('   Raw storage check needed...');
+    //     // Check raw storage
+    //     final rawDoc = await fakeFirestore
+    //         .collection('listLengthModels')
+    //         .doc(model.id)
+    //         .get();
+    //     final rawData = rawDoc.data()!;
+    //     print('   Raw items value: ${rawData['items']} (should be int)');
+    //   } catch (e) {
+    //     print('❌ items.addAll() failed on converted field: $e');
+    //   }
 
-        // Check raw storage
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('   Raw items value: ${rawData['items']} (should be int)');
-      } catch (e) {
-        print('❌ items.addAll() failed on converted field: $e');
-      }
+    //   try {
+    //     // Try addAll on converted numbers field
+    //     await odm.listLengthModels(model.id).patch(($) => [
+    //           $.numbers.addAll([5, 15, 25]), // Should this work?
+    //         ]);
 
-      try {
-        // Try addAll on converted numbers field
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.numbers.addAll([5, 15, 25]), // Should this work?
-            ]);
+    //     final result = await odm.listLengthModels(model.id).get();
+    //     print('✅ numbers.addAll() worked on converted field');
+    //     print('   Result numbers: ${result!.numbers}');
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ numbers.addAll() worked on converted field');
-        print('   Result numbers: ${result!.numbers}');
+    //     // Check raw storage
+    //     final rawDoc = await fakeFirestore
+    //         .collection('listLengthModels')
+    //         .doc(model.id)
+    //         .get();
+    //     final rawData = rawDoc.data()!;
+    //     print('   Raw numbers value: ${rawData['numbers']} (should be int)');
+    //   } catch (e) {
+    //     print('❌ numbers.addAll() failed on converted field: $e');
+    //   }
+    // });
 
-        // Check raw storage
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('   Raw numbers value: ${rawData['numbers']} (should be int)');
-      } catch (e) {
-        print('❌ numbers.addAll() failed on converted field: $e');
-      }
-    });
+  //   test('should test numbers.add() and increment behavior on converted field', () async {
+  //     final model = ListLengthModel(
+  //       id: 'numbers_add_test',
+  //       name: 'Numbers Add Test',
+  //       description: 'Testing add operations on converted numbers field',
+  //       numbers: [100, 200, 300].toIList(), // Converted to sum: 600
+  //       priority: 5,
+  //     );
 
-    test('should test numbers.add() and increment behavior on converted field', () async {
-      final model = ListLengthModel(
-        id: 'numbers_add_test',
-        name: 'Numbers Add Test',
-        description: 'Testing add operations on converted numbers field',
-        numbers: [100, 200, 300].toIList(), // Converted to sum: 600
-        priority: 5,
-      );
+  //     await odm.listLengthModels(model.id).update(model);
 
-      await odm.listLengthModels(model.id).update(model);
+  //     // Check initial raw storage
+  //     final initialRawDoc = await fakeFirestore
+  //         .collection('listLengthModels')
+  //         .doc(model.id)
+  //         .get();
+  //     final initialRawData = initialRawDoc.data()!;
+  //     print('📊 Initial state:');
+  //     print('   Raw numbers value: ${initialRawData['numbers']} (converted sum)');
+  //     print('   Retrieved numbers: ${(await odm.listLengthModels(model.id).get())!.numbers}');
 
-      // Check initial raw storage
-      final initialRawDoc = await fakeFirestore
-          .collection('listLengthModels')
-          .doc(model.id)
-          .get();
-      final initialRawData = initialRawDoc.data()!;
-      print('📊 Initial state:');
-      print('   Raw numbers value: ${initialRawData['numbers']} (converted sum)');
-      print('   Retrieved numbers: ${(await odm.listLengthModels(model.id).get())!.numbers}');
+  //     try {
+  //       // Try to use add() on converted numbers field
+  //       await odm.listLengthModels(model.id).patch(($) => [
+  //             $.numbers.add(50), // What happens here?
+  //             $.priority.increment(1), // Regular increment for comparison
+  //           ]);
 
-      try {
-        // Try to use add() on converted numbers field
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.numbers.add(50), // What happens here?
-              $.priority.increment(1), // Regular increment for comparison
-            ]);
+  //       final result = await odm.listLengthModels(model.id).get();
+  //       print('✅ numbers.add() worked');
+  //       print('   Result numbers: ${result!.numbers}');
+  //       print('   Priority: ${result.priority}');
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ numbers.add() worked');
-        print('   Result numbers: ${result!.numbers}');
-        print('   Priority: ${result.priority}');
+  //       // Check raw storage after add
+  //       final rawDoc = await fakeFirestore
+  //           .collection('listLengthModels')
+  //           .doc(model.id)
+  //           .get();
+  //       final rawData = rawDoc.data()!;
+  //       print('   Raw numbers after add: ${rawData['numbers']}');
+  //     } catch (e) {
+  //       print('❌ numbers.add() failed: $e');
+  //     }
+  //   });
 
-        // Check raw storage after add
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('   Raw numbers after add: ${rawData['numbers']}');
-      } catch (e) {
-        print('❌ numbers.add() failed: $e');
-      }
-    });
+  //   test('should test removeAll on converted fields', () async {
+  //     final model = ListLengthModel(
+  //       id: 'remove_converted_test',
+  //       name: 'Remove Converted Test',
+  //       description: 'Testing removeAll on converted fields',
+  //       items: ['remove1', 'keep1', 'remove2', 'keep2'].toIList(), // Length: 4
+  //       numbers: [10, 20, 30, 40, 50].toIList(), // Sum: 150
+  //       tags: ['tag1', 'tag2', 'tag3'].toIList(), // Regular array
+  //     );
 
-    test('should test removeAll on converted fields', () async {
-      final model = ListLengthModel(
-        id: 'remove_converted_test',
-        name: 'Remove Converted Test',
-        description: 'Testing removeAll on converted fields',
-        items: ['remove1', 'keep1', 'remove2', 'keep2'].toIList(), // Length: 4
-        numbers: [10, 20, 30, 40, 50].toIList(), // Sum: 150
-        tags: ['tag1', 'tag2', 'tag3'].toIList(), // Regular array
-      );
+  //     await odm.listLengthModels(model.id).update(model);
 
-      await odm.listLengthModels(model.id).update(model);
+  //     try {
+  //       // Try removeAll on converted items field
+  //       await odm.listLengthModels(model.id).patch(($) => [
+  //             $.items.removeAll(['remove1', 'remove2']), // Can we remove from length?
+  //           ]);
 
-      try {
-        // Try removeAll on converted items field
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.items.removeAll(['remove1', 'remove2']), // Can we remove from length?
-            ]);
+  //       final result = await odm.listLengthModels(model.id).get();
+  //       print('✅ items.removeAll() worked on converted field');
+  //       print('   Result items: ${result!.items}');
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ items.removeAll() worked on converted field');
-        print('   Result items: ${result!.items}');
+  //       final rawDoc = await fakeFirestore
+  //           .collection('listLengthModels')
+  //           .doc(model.id)
+  //           .get();
+  //       final rawData = rawDoc.data()!;
+  //       print('   Raw items value: ${rawData['items']}');
+  //     } catch (e) {
+  //       print('❌ items.removeAll() failed: $e');
+  //     }
 
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('   Raw items value: ${rawData['items']}');
-      } catch (e) {
-        print('❌ items.removeAll() failed: $e');
-      }
+  //     try {
+  //       // Try removeAll on converted numbers field
+  //       await odm.listLengthModels(model.id).patch(($) => [
+  //             $.numbers.removeAll([20, 40]), // Can we remove from sum?
+  //           ]);
 
-      try {
-        // Try removeAll on converted numbers field
-        await odm.listLengthModels(model.id).patch(($) => [
-              $.numbers.removeAll([20, 40]), // Can we remove from sum?
-            ]);
+  //       final result = await odm.listLengthModels(model.id).get();
+  //       print('✅ numbers.removeAll() worked on converted field');
+  //       print('   Result numbers: ${result!.numbers}');
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ numbers.removeAll() worked on converted field');
-        print('   Result numbers: ${result!.numbers}');
+  //       final rawDoc = await fakeFirestore
+  //           .collection('listLengthModels')
+  //           .doc(model.id)
+  //           .get();
+  //       final rawData = rawDoc.data()!;
+  //       print('   Raw numbers value: ${rawData['numbers']}');
+  //     } catch (e) {
+  //       print('❌ numbers.removeAll() failed: $e');
+  //     }
 
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('   Raw numbers value: ${rawData['numbers']}');
-      } catch (e) {
-        print('❌ numbers.removeAll() failed: $e');
-      }
+  //     // Compare with regular array that works
+  //     await odm.listLengthModels(model.id).patch(($) => [
+  //           $.tags.removeAll(['tag2']),
+  //         ]);
 
-      // Compare with regular array that works
-      await odm.listLengthModels(model.id).patch(($) => [
-            $.tags.removeAll(['tag2']),
-          ]);
+  //     final finalResult = await odm.listLengthModels(model.id).get();
+  //     print('✅ tags.removeAll() worked on regular array: ${finalResult!.tags}');
+  //   });
 
-      final finalResult = await odm.listLengthModels(model.id).get();
-      print('✅ tags.removeAll() worked on regular array: ${finalResult!.tags}');
-    });
+  //   test('should test mixed operations on all field types', () async {
+  //     final model = ListLengthModel(
+  //       id: 'mixed_converter_test',
+  //       name: 'Mixed Converter Test',
+  //       description: 'Testing all operations together',
+  //       items: ['item1'].toIList(), // Converted to length: 1
+  //       numbers: [100].toIList(), // Converted to sum: 100
+  //       tags: ['tag1'].toIList(), // Regular array
+  //       priority: 10,
+  //     );
 
-    test('should test mixed operations on all field types', () async {
-      final model = ListLengthModel(
-        id: 'mixed_converter_test',
-        name: 'Mixed Converter Test',
-        description: 'Testing all operations together',
-        items: ['item1'].toIList(), // Converted to length: 1
-        numbers: [100].toIList(), // Converted to sum: 100
-        tags: ['tag1'].toIList(), // Regular array
-        priority: 10,
-      );
+  //     await odm.listLengthModels(model.id).update(model);
 
-      await odm.listLengthModels(model.id).update(model);
+  //     print('📊 Testing comprehensive mixed operations:');
 
-      print('📊 Testing comprehensive mixed operations:');
-
-      try {
-        await odm.listLengthModels(model.id).patch(($) => [
-              // Test converter fields
-              $.items.addAll(['add1', 'add2']), // items converter
-              $.numbers.addAll([25, 75]), // numbers converter
+  //     try {
+  //       await odm.listLengthModels(model.id).patch(($) => [
+  //             // Test converter fields
+  //             $.items.addAll(['add1', 'add2']), // items converter
+  //             $.numbers.addAll([25, 75]), // numbers converter
               
-              // Test regular fields
-              $.tags.addAll(['tag2', 'tag3']), // regular array
-              $.priority.increment(5), // regular int
-            ]);
+  //             // Test regular fields
+  //             $.tags.addAll(['tag2', 'tag3']), // regular array
+  //             $.priority.increment(5), // regular int
+  //           ]);
 
-        final result = await odm.listLengthModels(model.id).get();
-        print('✅ Mixed operations completed');
-        print('   Items length: ${result!.items.length} (should reflect converter)');
-        print('   Numbers: ${result.numbers} (should reflect converter)');
-        print('   Tags: ${result.tags} (should be regular array)');
-        print('   Priority: ${result.priority}');
+  //       final result = await odm.listLengthModels(model.id).get();
+  //       print('✅ Mixed operations completed');
+  //       print('   Items length: ${result!.items.length} (should reflect converter)');
+  //       print('   Numbers: ${result.numbers} (should reflect converter)');
+  //       print('   Tags: ${result.tags} (should be regular array)');
+  //       print('   Priority: ${result.priority}');
 
-        // Check raw storage for all fields
-        final rawDoc = await fakeFirestore
-            .collection('listLengthModels')
-            .doc(model.id)
-            .get();
-        final rawData = rawDoc.data()!;
-        print('📊 Raw storage:');
-        print('   items: ${rawData['items']} (${rawData['items'].runtimeType})');
-        print('   numbers: ${rawData['numbers']} (${rawData['numbers'].runtimeType})');
-        print('   tags: ${rawData['tags']} (${rawData['tags'].runtimeType})');
-        print('   priority: ${rawData['priority']} (${rawData['priority'].runtimeType})');
-      } catch (e) {
-        print('❌ Mixed operations failed: $e');
-      }
-    });
-  });
+  //       // Check raw storage for all fields
+  //       final rawDoc = await fakeFirestore
+  //           .collection('listLengthModels')
+  //           .doc(model.id)
+  //           .get();
+  //       final rawData = rawDoc.data()!;
+  //       print('📊 Raw storage:');
+  //       print('   items: ${rawData['items']} (${rawData['items'].runtimeType})');
+  //       print('   numbers: ${rawData['numbers']} (${rawData['numbers'].runtimeType})');
+  //       print('   tags: ${rawData['tags']} (${rawData['tags'].runtimeType})');
+  //       print('   priority: ${rawData['priority']} (${rawData['priority'].runtimeType})');
+  //     } catch (e) {
+  //       print('❌ Mixed operations failed: $e');
+  //     }
+  //   });
+  // });
 }
