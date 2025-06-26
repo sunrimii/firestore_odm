@@ -14,6 +14,18 @@ class ManualUser3<T> with EquatableMixin {
     required this.customField,
   });
 
+  ManualUser3<T> copyWith({
+    String? id,
+    String? name,
+    T? customField,
+  }) {
+    return ManualUser3<T>(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      customField: customField ?? this.customField,
+    );
+  }
+
   @override
   List<Object?> get props => [id, name, customField];
 }
@@ -36,6 +48,26 @@ class ManualUser3Profile<T> with EquatableMixin {
     this.preferences = const {},
     this.customList = const [],
   });
+
+  ManualUser3Profile<T> copyWith({
+    String? email,
+    int? age,
+    bool? isPremium,
+    double? rating,
+    List<String>? tags,
+    Map<String, String>? preferences,
+    List<T>? customList,
+  }) {
+    return ManualUser3Profile<T>(
+      email: email ?? this.email,
+      age: age ?? this.age,
+      isPremium: isPremium ?? this.isPremium,
+      rating: rating ?? this.rating,
+      tags: tags ?? this.tags,
+      preferences: preferences ?? this.preferences,
+      customList: customList ?? this.customList,
+    );
+  }
 
   @override
   List<Object?> get props => [email, age, isPremium, rating, tags, preferences, customList];
