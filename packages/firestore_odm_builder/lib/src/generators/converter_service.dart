@@ -28,22 +28,21 @@ class ConverterTemplate implements Template {
 
   Expression _fromJsonBody(Expression source) {
     switch (converter) {
-      case CustomConverter converter:
+      case GenericConverter converter:
         final elementConverter = typeParameters.isNotEmpty
-            ? CustomConverter(converter.element, {
-                for (var i = 0; i < typeParameters.length; i++)
-                  typeParameters[i]: VariableConverterClassConverter(
-                    refer('converter$i'),
-                  ),
-              })
-            : converter;
-        return elementConverter.generateFromFirestore(source);
-      case JsonConverterConverter converter:
-        final elementConverter = typeParameters.isNotEmpty
-            ? JsonConverterConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
-                for (var i = 0; i < typeParameters.length; i++)
-                  VariableConverterClassConverter(refer('converter$i')),
-              ], toType: converter.toType)
+            ? converter
+                  .toGeneric([
+                    for (var i = 0; i < typeParameters.length; i++)
+                      GenericTypeConverter(fromType: typeParameters[i]),
+                  ])
+                  .applyConverters({
+                    for (var i = 0; i < typeParameters.length; i++)
+                      typeParameters[i]: VariableConverterClassConverter(
+                        variableReference: refer('converter$i'),
+                        fromType: typeParameters[i],
+                        toType: TypeReferences.dynamic,
+                      ),
+                  })
             : converter;
         return elementConverter.generateFromFirestore(source);
       default:
@@ -53,22 +52,21 @@ class ConverterTemplate implements Template {
 
   Expression _toJsonBody(Expression source) {
     switch (converter) {
-      case CustomConverter converter:
+      case GenericConverter converter:
         final elementConverter = typeParameters.isNotEmpty
-            ? CustomConverter(converter.element, {
-                for (var i = 0; i < typeParameters.length; i++)
-                  typeParameters[i]: VariableConverterClassConverter(
-                    refer('converter$i'),
-                  ),
-              })
-            : converter;
-        return elementConverter.generateToFirestore(source);
-      case JsonConverterConverter converter:
-        final elementConverter = typeParameters.isNotEmpty
-            ? JsonConverterConverter(converter.dartType.rebuild((b) => b..types.replace(typeParameters)), [
-                for (var i = 0; i < typeParameters.length; i++)
-                  VariableConverterClassConverter(refer('converter$i')),
-              ], toType: converter.toType)
+            ? converter
+                  .toGeneric([
+                    for (var i = 0; i < typeParameters.length; i++)
+                      GenericTypeConverter(fromType: typeParameters[i]),
+                  ])
+                  .applyConverters({
+                    for (var i = 0; i < typeParameters.length; i++)
+                      typeParameters[i]: VariableConverterClassConverter(
+                        variableReference: refer('converter$i'),
+                        fromType: typeParameters[i],
+                        toType: TypeReferences.dynamic,
+                      ),
+                  })
             : converter;
         final expression = elementConverter.generateToFirestore(source);
         // print(
@@ -182,24 +180,30 @@ class ConverterService extends Generater {
       InterfaceType type => type.typeArguments,
       _ => <DartType>[],
     };
-    final typeConverters = typeArguments
-        .map((t) {
-          final analysis = ModelAnalyzer.analyze(t);
-          return get(analysis);
-        })
-        .map((c) => c.instance)
-        .toList();
+    final parameterConverters = [
+      for (var t in typeArguments) get(ModelAnalyzer.analyze(t)),
+    ];
 
     _converterCache[analysis] = DefaultConverter(
-      TypeReference(
-        (b) => b
-          ..symbol = converterClass.name
-          ..types.addAll(converterClass.types.isNotEmpty ? typeArguments.map((t) => t.reference) : []),
-      ).call(converterClass.types.isNotEmpty ? typeConverters : []),
-      switch (analysis.converter) {
-        AnnotationConverter converter => converter.toType,
-        _ => analysis.firestoreType,
-      },
+      reference: TypeReference((b) => b..symbol = converterClass.name)
+          .newInstance(
+            analysis.converter is AnnotationConverter
+                ? []
+                : parameterConverters.map((c) => c.reference).toList(),
+          ),
+      elementConverters: parameterConverters,
+      fromType:
+          converterClass.methods
+                  .firstWhere((m) => m.name == 'fromFirestore')
+                  .returns!
+                  .type
+              as TypeReference,
+      toType:
+          converterClass.methods
+                  .firstWhere((m) => m.name == 'toFirestore')
+                  .returns!
+                  .type
+              as TypeReference,
     );
     return _converterCache[analysis]!;
   }

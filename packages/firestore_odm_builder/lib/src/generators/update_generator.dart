@@ -129,7 +129,7 @@ class UpdateGenerator {
         : returnType.newInstance([], {
             'name': literalString(jsonFieldName),
             'parent': refer('this'),
-            'converter': converter.instance,
+            'converter': converter.reference,
           });
 
     return Method(

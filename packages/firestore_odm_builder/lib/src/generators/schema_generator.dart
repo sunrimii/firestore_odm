@@ -373,7 +373,7 @@ class SchemaGenerator {
               'query': refer(
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
-              'converter': converterService.get(analysis).instance,
+              'converter': converterService.get(analysis).reference,
               'documentIdField': literalString(analysis.documentIdField),
             }).code,
         ),
@@ -439,7 +439,7 @@ class SchemaGenerator {
                   'query': refer('ref').property('collection').call([
                     literalString(collection.path),
                   ]),
-                  'converter': converterService.get(analysis).instance,
+                  'converter': converterService.get(analysis).reference,
                   'context': refer('this'),
                   'documentIdField': literalString(analysis.documentIdField),
                 }).code,
@@ -505,7 +505,7 @@ class SchemaGenerator {
                       .call([literalString(collection.path)]),
                   'converter': converterService
                       .get(collection.modelAnalysis)
-                      .instance,
+                      .reference,
                   'documentIdField': literalString(
                     collection.modelAnalysis.documentIdField,
                   ),
@@ -698,7 +698,7 @@ class SchemaGenerator {
                 ]),
                 'converter': converterService
                     .get(subcol.modelAnalysis)
-                    .instance,
+                    .reference,
                 'documentIdField': literalString(
                   subcol.modelAnalysis.documentIdField,
                 ),
@@ -785,7 +785,7 @@ class SchemaGenerator {
                     ]),
                     'converter': converterService
                         .get(subcol.modelAnalysis)
-                        .instance,
+                        .reference,
                     'documentIdField': literalString(
                       subcol.modelAnalysis.documentIdField,
                     ),

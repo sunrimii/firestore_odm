@@ -9,7 +9,6 @@ import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-
 /// Information about a field in a model
 class FieldInfo {
   final String parameterName;
@@ -170,11 +169,11 @@ class ModelAnalyzer {
       final customConverter = _findCustomJsonConverter(annotatedElement);
       if (customConverter != null) {
         print('Found JsonConverter annotation: ${customConverter}');
-        final toType = customConverter
-            .getMethod('toJson')!
-            .returnType
-            .reference;
-        return AnnotationConverter(customConverter.reference, toType: toType);
+        return AnnotationConverter(
+          reference: customConverter.reference,
+          fromType: customConverter.getMethod('fromJson')!.returnType.reference,
+          toType: customConverter.getMethod('toJson')!.returnType.reference,
+        );
       }
 
       // Check for standard @JsonConverter annotation
@@ -185,13 +184,16 @@ class ModelAnalyzer {
         print('Found JsonConverter annotation: ${jsonConverter.type}');
         final converterType = jsonConverter.type;
         if (converterType != null && converterType is InterfaceType) {
-          final toType = converterType.element3
-              .getMethod2('toJson')!
-              .returnType
-              .reference;
           return AnnotationConverter(
-            converterType.element3.reference,
-            toType: toType,
+            reference: converterType.element3.reference,
+            fromType: converterType.element3
+                .getMethod2('fromJson')!
+                .returnType
+                .reference,
+            toType: converterType.element3
+                .getMethod2('toJson')!
+                .returnType
+                .reference,
           );
         }
       }
@@ -207,10 +209,14 @@ class ModelAnalyzer {
       final toType = [dartType, ...dartType.allSupertypes]
           .map((x) => x.getMethod2('toJson'))
           .where((m) => m != null)
-          .firstOrNull
-          ?.returnType
+          .firstOrNull!
+          .returnType
           .reference;
-      return JsonConverterConverter(dartType.reference, typeParams, toType: toType);
+      return JsonConverterConverter(
+        elementConverters: typeParams,
+        fromType: dartType.reference,
+        toType: toType,
+      );
     }
 
     return _createDefaultConverter(dartType);
@@ -258,12 +264,14 @@ class ModelAnalyzer {
         // or dynamic
         dartType.getDisplayString() == 'dynamic') {
       return DefaultConverter(
-        TypeReference(
+        reference: TypeReference(
           (b) => b
             ..symbol = 'PrimitiveConverter'
             ..types.add(dartType.reference),
         ).call([]),
-        dartType.reference,
+        elementConverters: [],
+        fromType: dartType.reference,
+        toType: dartType.reference,
       );
     }
 
@@ -272,22 +280,21 @@ class ModelAnalyzer {
         InterfaceType type => type.typeArguments,
         _ => <DartType>[],
       };
-      final parameterConverters = typeArguments
-          .map((t) => converterService.get(ModelAnalyzer.analyze(t)))
-          .toList();
+      final parameterConverters = [
+        for (var t in typeArguments)
+          converterService.get(ModelAnalyzer.analyze(t)),
+      ];
+
       return DefaultConverter(
-        TypeReference(
+        reference: TypeReference(
           (b) => b
             ..symbol = dartType.isDartCoreList
                 ? 'ListConverter'
-                : 'SetConverter'
-            ..types.addAll(typeArguments.map((t) => t.reference)),
-        ).call(parameterConverters.map((c) => c.instance).toList()),
-        TypeReferences.listOf(
-          typeArguments.isNotEmpty
-              ? typeArguments.first.reference
-              : TypeReferences.dynamic,
-        ),
+                : 'SetConverter',
+        ).call(parameterConverters.map((e) => e.reference)),
+        elementConverters:  parameterConverters,
+        fromType: dartType.reference,
+        toType: TypeReferences.listOf(TypeReferences.dynamic),
       );
     }
 
@@ -296,40 +303,50 @@ class ModelAnalyzer {
         InterfaceType type => type.typeArguments,
         _ => <DartType>[],
       };
-      final parameterConverters = typeArguments
-          .map((t) => converterService.get(ModelAnalyzer.analyze(t)))
-          .toList();
+      final parameterConverters = [
+        for (var t in typeArguments)
+          converterService.get(ModelAnalyzer.analyze(t)),
+      ];
+
       return DefaultConverter(
-        TypeReference(
-          (b) => b
-            ..symbol = 'MapConverter'
-            ..types.addAll(typeArguments.map((t) => t.reference)),
-        ).call(parameterConverters.map((c) => c.instance).toList()),
-        TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
+        reference: TypeReference((b) => b..symbol = 'MapConverter')
+        .call(
+          parameterConverters.map((e) => e.reference),
+        ),
+        elementConverters: parameterConverters,
+        fromType: TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
+        toType: TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
       );
     }
 
     if (TypeAnalyzer.isDateTimeType(dartType)) {
       return DefaultConverter.fromClassName(
-        'DateTimeConverter',
-        TypeReferences.timestamp,
+        name: 'DateTimeConverter',
+        fromType: TypeReferences.dateTime,
+        toType: TypeReferences.timestamp,
       );
     }
 
     if (TypeAnalyzer.isDurationType(dartType)) {
       return DefaultConverter.fromClassName(
-        'DurationConverter',
-        TypeReferences.int,
+        name: 'DurationConverter',
+        fromType: TypeReferences.duration,
+        toType: TypeReferences.int,
       );
     }
 
     if (dartType is InterfaceType) {
-      return CustomConverter(dartType.element);
+      return CustomConverter(
+        element: dartType.element,
+        fromType: dartType.reference,
+      );
     }
 
     if (dartType is TypeParameterType) {
       // Handle generic types like IList<T>, IMap<K, V>
-      return GenericTypeConverter(dartType.reference);
+      return GenericTypeConverter(
+        fromType: dartType.reference,
+      );
     }
 
     throw ArgumentError(

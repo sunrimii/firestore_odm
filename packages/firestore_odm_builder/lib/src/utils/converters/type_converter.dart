@@ -8,12 +8,19 @@ import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 
 /// Functional converter interface for type conversions
 sealed class TypeConverter {
+  TypeReference get fromType;
+  TypeReference get toType;
   Expression generateFromFirestore(Expression sourceExpression);
   Expression generateToFirestore(Expression sourceExpression);
 }
 
 /// Direct converter for primitive types (no conversion needed)
 class DirectConverter implements TypeConverter {
+  const DirectConverter({required this.fromType});
+
+  final TypeReference fromType;
+  TypeReference get toType => fromType;
+
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
     return sourceExpression;
@@ -26,24 +33,32 @@ class DirectConverter implements TypeConverter {
 }
 
 class VariableConverterClassConverter implements TypeConverter {
-  final Reference variableName;
+  const VariableConverterClassConverter({
+    required this.variableReference,
+    required this.fromType,
+    required this.toType,
+  });
 
-  const VariableConverterClassConverter(this.variableName);
+  final Reference variableReference;
+  final TypeReference fromType;
+  final TypeReference toType;
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
-    return variableName.property('fromFirestore').call([sourceExpression]);
+    return variableReference.property('fromFirestore').call([sourceExpression]);
   }
 
   @override
   Expression generateToFirestore(Expression sourceExpression) {
-    return variableName.property('toFirestore').call([sourceExpression]);
+    return variableReference.property('toFirestore').call([sourceExpression]);
   }
 }
 
 class GenericTypeConverter implements TypeConverter {
-  final Reference typeParameter;
-  const GenericTypeConverter(this.typeParameter);
+  const GenericTypeConverter({required this.fromType});
+
+  final TypeReference fromType;
+  TypeReference get toType => fromType;
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
@@ -56,33 +71,63 @@ class GenericTypeConverter implements TypeConverter {
   }
 }
 
-class CustomConverter implements TypeConverter {
+class CustomConverter extends GenericConverter {
   final InterfaceElement element;
-  final Map<Reference, TypeConverter> typeParameterConverters;
 
-  const CustomConverter(
-    this.element, [
-    this.typeParameterConverters = const {},
-  ]);
+  const CustomConverter({
+    required this.element,
+    super.typeParameterConverters,
+    required this.fromType,
+  });
 
-  TypeConverter _refine(FieldInfo field) {
-    final converter = field.converter;
-    if (converter is GenericTypeConverter) {
-      if (typeParameterConverters.containsKey(converter.typeParameter)) {
-        return typeParameterConverters[converter.typeParameter]!;
-      } else {
-        // throw Warning if no specific converter found
-        print(
-          'Warning: No specific converter found for type parameter ${converter.typeParameter}. Using generic converter.',
-        );
-        return converter; // Return as-is if no specific converter found
-      }
-    }
+  final TypeReference fromType;
+  TypeReference get toType =>
+      TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
 
-    final converterService = converterServiceSignal.get();
-    final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
-    return converterService.get(analysis);
+  CustomConverter toGeneric(List<GenericTypeConverter> converters) {
+    return CustomConverter(
+      element: element,
+      typeParameterConverters: {
+        for (var i = 0; i < converters.length; i++)
+          converters[i].fromType: converters[i],
+      },
+      fromType: fromType.rebuild(
+        (b) => b..types.replace(converters.map((c) => c.fromType).toList()),
+      ),
+    );
   }
+
+  CustomConverter applyConverters(
+    Map<TypeReference, TypeConverter> converters,
+  ) {
+    return CustomConverter(
+      element: element,
+      typeParameterConverters: {
+        for (var entry in typeParameterConverters.entries)
+          entry.key: converters[entry.value.fromType] ?? entry.value,
+      },
+      fromType: fromType,
+    );
+  }
+
+  // TypeConverter _refine(FieldInfo field) {
+  //   final converter = field.converter;
+  //   if (converter is GenericTypeConverter) {
+  //     if (typeParameterConverters.containsKey(converter.fromType)) {
+  //       return typeParameterConverters[converter.fromType]!;
+  //     } else {
+  //       // throw Warning if no specific converter found
+  //       print(
+  //         'Warning: No specific converter found for type parameter ${converter.fromType}. Using generic converter.',
+  //       );
+  //       return converter; // Return as-is if no specific converter found
+  //     }
+  //   }
+
+  //   final converterService = converterServiceSignal.get();
+  //   final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
+  //   return converterService.get(analysis);
+  // }
 
   Expression _handleNullable(
     DartType type,
@@ -110,7 +155,8 @@ class CustomConverter implements TypeConverter {
             _handleNullable(
               field.dartType,
               sourceExpression.index(literalString(field.jsonFieldName)),
-              (expression) => _refine(field).generateFromFirestore(expression),
+              (expression) =>
+                  refine(field.converter).generateFromFirestore(expression),
             ),
           ),
         ),
@@ -132,7 +178,7 @@ class CustomConverter implements TypeConverter {
                   field.dartType,
                   sourceExpression.property(field.parameterName),
                   (expression) =>
-                      _refine(field).generateToFirestore(expression),
+                      refine(field.converter).generateToFirestore(expression),
                 ),
               ),
             ),
@@ -141,55 +187,155 @@ class CustomConverter implements TypeConverter {
   }
 }
 
-/// Converter using a specific converter class (handles both generic and non-generic)
-class DefaultConverter implements TypeConverter {
-  final Expression instance;
+abstract class GenericConverter implements TypeConverter {
+  const GenericConverter({this.typeParameterConverters = const {}});
+
+  final Map<Reference, TypeConverter> typeParameterConverters;
+
+  TypeConverter refine(TypeConverter converter) {
+    if (converter is GenericTypeConverter) {
+      if (typeParameterConverters.containsKey(converter.fromType)) {
+        return typeParameterConverters[converter.fromType]!;
+      } else {
+        // throw Warning if no specific converter found
+        print(
+          'Warning: No specific converter found for type parameter ${converter.fromType}. Using generic converter.',
+        );
+        return converter; // Return as-is if no specific converter found
+      }
+    }
+
+    return converter;
+  }
+
+  GenericConverter toGeneric(List<GenericTypeConverter> converters);
+
+  GenericConverter applyConverters(
+    Map<TypeReference, TypeConverter> converters,
+  );
+}
+
+class TypedDefaultConverter extends DefaultConverter {
+  TypedDefaultConverter({
+    required this.typeReference,
+    this.typeParameters = const [],
+    required this.fromType,
+    required this.toType,
+  }) : super(
+         reference: typeReference.call(typeParameters),
+         fromType: fromType,
+         toType: toType,
+       );
+
+  final TypeReference typeReference;
+  final List<Expression> typeParameters;
+  final TypeReference fromType;
   final TypeReference toType;
-
-  const DefaultConverter(this.instance, this.toType);
-
-  DefaultConverter.fromClassName(
-    String converterClassName,
-    TypeReference fieldType,
-  ) : this(refer(converterClassName).call([]), fieldType);
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) =>
-      instance.property('fromFirestore').call([sourceExpression]);
+      typeReference.call([sourceExpression]);
 
   @override
   Expression generateToFirestore(Expression sourceExpression) =>
-      instance.property('toFirestore').call([sourceExpression]);
+      typeReference.call([sourceExpression]);
+}
+
+/// Converter using a specific converter class (handles both generic and non-generic)
+class DefaultConverter implements TypeConverter {
+  const DefaultConverter({
+    required this.reference,
+    this.elementConverters = const [],
+    required this.fromType,
+    required this.toType,
+  });
+
+  final Expression reference;
+  final TypeReference fromType;
+  final List<DefaultConverter> elementConverters;
+  final TypeReference toType;
+
+  DefaultConverter.fromClassName({
+    required String name,
+    required TypeReference fromType,
+    required TypeReference toType,
+  }) : this(
+         reference: TypeReference((b) => b..symbol = name).call([]),
+         fromType: fromType,
+         toType: toType,
+       );
+
+  @override
+  Expression generateFromFirestore(Expression sourceExpression) =>
+      reference..property('fromFirestore').call([sourceExpression]);
+
+  @override
+  Expression generateToFirestore(Expression sourceExpression) =>
+      reference.property('toFirestore').call([sourceExpression]);
 }
 
 /// Converter for generic types with element converters
-class JsonConverterConverter implements TypeConverter {
-  final TypeReference dartType;
+class JsonConverterConverter extends GenericConverter {
   final List<TypeConverter> elementConverters;
+  final Map<Reference, TypeConverter> typeParameterConverters;
+  final TypeReference fromType;
+  final TypeReference toType;
   final String? customFromJsonMethod;
   final String? customToJsonMethod;
-  final TypeReference? toType;
 
-  const JsonConverterConverter(
-    this.dartType,
-    this.elementConverters, {
+  @override
+  JsonConverterConverter toGeneric(List<GenericTypeConverter> converters) {
+    return JsonConverterConverter(
+      elementConverters: converters,
+      fromType: fromType.rebuild(
+        (b) => b..types.replace(converters.map((c) => c.fromType).toList()),
+      ),
+      toType: toType,
+      customFromJsonMethod: customFromJsonMethod,
+      customToJsonMethod: customToJsonMethod,
+    );
+  }
+
+  @override
+  JsonConverterConverter applyConverters(
+    Map<TypeReference, TypeConverter> converters,
+  ) {
+    return JsonConverterConverter(
+      elementConverters: elementConverters
+          .map(
+            (converter) => converter is GenericTypeConverter
+                ? converters[converter.fromType] ?? converter
+                : converter,
+          )
+          .toList(),
+      fromType: fromType,
+      toType: toType,
+      customFromJsonMethod: customFromJsonMethod,
+      customToJsonMethod: customToJsonMethod,
+    );
+  }
+
+  const JsonConverterConverter({
+    required this.fromType,
+    required this.toType,
+    this.elementConverters = const [],
+    this.typeParameterConverters = const {},
     this.customFromJsonMethod,
     this.customToJsonMethod,
-    this.toType,
   });
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
     final fromJsonMethod = customFromJsonMethod ?? 'fromJson';
-    final converterLambdas = elementConverters.map((converter) {
-      return Method(
+    final converterLambdas = elementConverters.map(
+      (converter) => Method(
         (b) => b
           ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = converter.generateFromFirestore(refer('e')).code
+          ..body = refine(converter).generateFromFirestore(refer('e')).code
           ..lambda = true,
-      ).closure;
-    }).toList();
-    return dartType.property(fromJsonMethod).call([
+      ).closure,
+    );
+    return fromType.property(fromJsonMethod).call([
       sourceExpression,
       ...converterLambdas,
     ]);
@@ -198,27 +344,29 @@ class JsonConverterConverter implements TypeConverter {
   @override
   Expression generateToFirestore(Expression sourceExpression) {
     final toJsonMethod = customToJsonMethod ?? 'toJson';
-    if (elementConverters.isEmpty) {
-      return sourceExpression.property(toJsonMethod).call([]);
-    }
-    final converterLambdas = elementConverters.map((converter) {
-      return Method(
+    final converterLambdas = elementConverters.map(
+      (converter) => Method(
         (b) => b
           ..requiredParameters.add(Parameter((b) => b..name = 'e'))
-          ..body = converter.generateToFirestore(refer('e')).code
+          ..body = refine(converter).generateToFirestore(refer('e')).code
           ..lambda = true,
-      ).closure;
-    }).toList();
+      ).closure,
+    );
     return sourceExpression.property(toJsonMethod).call(converterLambdas);
   }
 }
 
 /// Converter for custom JsonConverter annotations
 class AnnotationConverter implements TypeConverter {
-  final TypeReference reference;
-  final TypeReference toType;
+  const AnnotationConverter({
+    required this.reference,
+    required this.fromType,
+    required this.toType,
+  });
 
-  const AnnotationConverter(this.reference, {required this.toType});
+  final TypeReference reference;
+  final TypeReference fromType;
+  final TypeReference toType;
 
   @override
   Expression generateFromFirestore(Expression sourceExpression) {
