@@ -1,6 +1,8 @@
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/generators/converter_service.dart';
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart' hide FieldInfo;
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
@@ -66,13 +68,12 @@ class UpdateGenerator {
     
     // Check if field has a JsonConverter that changes the type
     final expectedType = field.firestoreType;
-    final converterService = converterServiceSignal.get();
-    final analysis = ModelAnalyzer.analyze(field.dartType, field.element);
-    final converter = converterService.get(analysis);
-    if (field.parameterName == 'tags') {
-      print('Field $fieldName: expected type: $expectedType, original converter: ${analysis.converter}, converter type: ${converter}, converter: ${converter.toType} changed: ${expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)}');
-    }
-    final returnType = expectedType.symbol != converter.toType.symbol
+
+    final converter = converterFactory.createConverter(field.dartType, element: field.element);
+    // if (field.parameterName == 'tags') {
+    //   print('Field $fieldName: expected type: $expectedType, original converter: ${analysis.converter}, converter type: ${converter}, converter: ${converter.toType} changed: ${expectedType.rebuild((b) => b..isNullable = null) != converter.toType.rebuild((b) => b..isNullable = null)}');
+    // }
+    final returnType = false
         ? TypeReference(
             (b) => b
               ..symbol = 'DefaultUpdateBuilder'
@@ -129,7 +130,17 @@ class UpdateGenerator {
         : returnType.newInstance([], {
             'name': literalString(jsonFieldName),
             'parent': refer('this'),
-            'converter': converter.reference,
+            'toJson': Method(
+              (b) => b
+                ..lambda = true
+                // ..returns = TypeReference((b) => b..symbol = 'FirestoreConverter')
+                ..requiredParameters.add(Parameter((b) => b
+                  ..name = 'data'
+                  ))
+                ..body = field.dartType.nullabilitySuffix == NullabilitySuffix.question
+                    ? refer('data').equalTo(literalNull).conditional(literalNull, converter.toFirestore(refer('data'))).code
+                    : converter.toFirestore(refer('data')).code,
+            ).closure,
           });
 
     return Method(

@@ -33,13 +33,6 @@ abstract interface class Modifiable<T> {
   ///
   /// Returns a [Future] that completes when the modification is successfully applied.
   Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true});
-
-  /// @deprecated Use [modify] with the `atomic` parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// Migrate your code to use: `modify(modifier, atomic: true)`
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  Future<void> incrementalModify(ModifierBuilder<T> modifier);
 }
 
 /// An interface for modifying existing documents within a Firestore transaction.

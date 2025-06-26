@@ -52,7 +52,7 @@ void main() {
 
         await odm
             .users('stream_user')
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   followers: user.profile.followers + 50,
@@ -287,7 +287,7 @@ void main() {
 
         await odm
             .users('realtime_user')
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   followers: user.profile.followers + 100,
@@ -344,12 +344,12 @@ void main() {
         final updateFutures = [
           odm
               .users('concurrent_user')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(rating: user.rating + 0.1),
               ),
           odm
               .users('concurrent_user')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   profile: user.profile.copyWith(
                     followers: user.profile.followers + 25,
@@ -531,7 +531,7 @@ void main() {
         for (int i = 0; i < 10; i++) {
           await odm
               .users('high_freq_user')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   profile: user.profile.copyWith(
                     followers: user.profile.followers + 1,

@@ -117,7 +117,7 @@ void main() {
 
     group('⚡ Collection Bulk Incremental Modify', () {
       test(
-        'should perform bulk incrementalModify with atomic operations',
+        'should perform bulk modify with atomic operations',
         () async {
           // Create test users
           final users = [
@@ -179,8 +179,8 @@ void main() {
             await odm.users(user.id).update(user);
           }
 
-          // ✅ NEW: Bulk incrementalModify on entire collection
-          await odm.users.incrementalModify(
+          // ✅ NEW: Bulk modify on entire collection
+          await odm.users.modify(
             (user) => user.copyWith(
               age:
                   user.age +
@@ -216,13 +216,13 @@ void main() {
           }
 
           print(
-            '✅ FirestoreCollection.incrementalModify() - Atomic operations work on entire collection',
+            '✅ FirestoreCollection.modify() - Atomic operations work on entire collection',
           );
         },
       );
 
       test(
-        'should handle complex atomic operations in incrementalModify',
+        'should handle complex atomic operations in modify',
         () async {
           // Create users with arrays and mixed data
           final users = [
@@ -271,8 +271,8 @@ void main() {
             await odm.users(user.id).update(user);
           }
 
-          // ✅ NEW: Complex incrementalModify with array operations
-          await odm.users.incrementalModify(
+          // ✅ NEW: Complex modify with array operations
+          await odm.users.modify(
             (user) => user.copyWith(
               age: user.age + 2, // Numeric increment
               tags: [
@@ -306,12 +306,12 @@ void main() {
           }
 
           print(
-            '✅ FirestoreCollection.incrementalModify() - Complex atomic operations work',
+            '✅ FirestoreCollection.modify() - Complex atomic operations work',
           );
         },
       );
 
-      test('should handle server timestamps in incrementalModify', () async {
+      test('should handle server timestamps in modify', () async {
         // Create a user
         final user = User(
           id: 'timestamp_user',
@@ -335,8 +335,8 @@ void main() {
 
         await odm.users(user.id).update(user);
 
-        // ✅ NEW: Use server timestamp in incrementalModify
-        await odm.users.incrementalModify(
+        // ✅ NEW: Use server timestamp in modify
+        await odm.users.modify(
           (user) => user.copyWith(
             age: user.age + 5, // Regular increment
             lastLogin: FirestoreODM.serverTimestamp, // Server timestamp
@@ -353,13 +353,13 @@ void main() {
         expect(updatedUser.updatedAt, isNotNull);
 
         print(
-          '✅ FirestoreCollection.incrementalModify() - Server timestamps work',
+          '✅ FirestoreCollection.modify() - Server timestamps work',
         );
       });
 
-      test('should handle empty collection in incrementalModify', () async {
+      test('should handle empty collection in modify', () async {
         // Try to incrementally modify empty collection - should not error
-        await odm.users.incrementalModify(
+        await odm.users.modify(
           (user) => user.copyWith(age: user.age + 1),
         );
 
@@ -368,7 +368,7 @@ void main() {
         expect(users.length, equals(0));
 
         print(
-          '✅ FirestoreCollection.incrementalModify() on empty collection handled gracefully',
+          '✅ FirestoreCollection.modify() on empty collection handled gracefully',
         );
       });
     });
@@ -424,7 +424,7 @@ void main() {
         // 2. Then filter and modify specific subset
         await odm.users
             .where(($) => $.isActive(isEqualTo: true))
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 age: user.age + 10, // Only active users get age boost
               ),
@@ -478,7 +478,7 @@ void main() {
         }
 
         // Bulk modify all users
-        await odm.users.incrementalModify(
+        await odm.users.modify(
           (user) => user.copyWith(
             age: user.age + 5, // Add 5 years to everyone
             rating: user.rating + 1.0, // Boost everyone's rating

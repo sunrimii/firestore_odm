@@ -294,7 +294,8 @@ class DocumentHandler {
   static Map<String, dynamic> processPatch<T>(
     firestore.DocumentSnapshot<Map<String, dynamic>> snapshot,
     T Function(T) modifier,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
+    Map<String, dynamic> Function(T) toJson,
+    T Function(Map<String, dynamic>) fromJson,
     String documentIdField,
     Map<String, dynamic> Function(
       Map<String, dynamic> oldData,
@@ -307,15 +308,15 @@ class DocumentHandler {
     }
 
     final currentData = fromFirestoreData(
-      converter.fromFirestore,
+      fromJson,
       snapshot.data()!,
       documentIdField,
       snapshot.id,
     );
 
     final newData = modifier(currentData);
-    final oldDataMap = converter.toFirestore(currentData);
-    final newDataMap = converter.toFirestore(newData);
+    final oldDataMap = toJson(currentData);
+    final newDataMap = toJson(newData);
     final updateData = computeDiff(oldDataMap, newDataMap);
 
     if (updateData.isNotEmpty) {
@@ -340,7 +341,8 @@ class DocumentHandler {
   static Future<void> modify<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
+    Map<String, dynamic> Function(T) toJson,
+    T Function(Map<String, dynamic>) fromJson,
     String documentIdField, {
     bool atomic = true,
   }) async {
@@ -348,7 +350,8 @@ class DocumentHandler {
     final patch = processPatch(
       currentData,
       modifier,
-      converter,
+      toJson,
+      fromJson,
       documentIdField,
       atomic ? computeDiffWithAtomicOperations : computeDiff,
     );
@@ -365,14 +368,16 @@ class DocumentHandler {
   static Future<void> incrementalModify<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
     T Function(T) modifier,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
+    Map<String, dynamic> Function(T) toJson,
+    T Function(Map<String, dynamic>) fromJson,
     String documentIdField,
   ) async {
     final currentData = await ref.get();
     final patch = processPatch(
       currentData,
       modifier,
-      converter,
+      toJson,
+      fromJson,
       documentIdField,
       computeDiffWithAtomicOperations,
     );
@@ -770,7 +775,8 @@ abstract class QueryHandler {
   static Future<void> modify<T>(
     firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
+    Map<String, dynamic> Function(T) toJson,
+    T Function(Map<String, dynamic>) fromJson,
     T Function(T) modifier, {
     bool atomic = true,
   }) async {
@@ -781,7 +787,8 @@ abstract class QueryHandler {
       final patch = DocumentHandler.processPatch(
         docSnapshot,
         modifier,
-        converter,
+        toJson,
+        fromJson,
         documentIdField,
         atomic ? computeDiffWithAtomicOperations : computeDiff,
       );
@@ -793,41 +800,9 @@ abstract class QueryHandler {
     await batch.commit();
   }
 
-  /// @deprecated Use [modify] with atomic parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// Migrate to: `modify(query, documentIdField, converter, modifier, atomic: true)`
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  static Future<void> incrementalModify<T>(
-    firestore.Query<Map<String, dynamic>> query,
-    String documentIdField,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
-    T Function(T) modifier,
-  ) async {
-    final snapshot = await query.get();
-    final batch = query.firestore.batch();
-
-    for (final docSnapshot in snapshot.docs) {
-      final patch = DocumentHandler.processPatch(
-        docSnapshot,
-        modifier,
-        converter,
-        documentIdField,
-        computeDiffWithAtomicOperations,
-      );
-      if (patch.isNotEmpty) {
-        final processedUpdateData = _replaceServerTimestamps(patch);
-        batch.update(docSnapshot.reference, processedUpdateData);
-      }
-    }
-
-    await batch.commit();
-  }
-
   static Future<void> patch<T>(
     firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
     List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
     updateBuilder,
   ) async {

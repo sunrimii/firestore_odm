@@ -443,7 +443,7 @@ void main() {
               .where(
                 ($) => $.profile.interests(arrayContains: 'query_incremental'),
               )
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   rating: user.rating + 0.5, // Should auto-detect as increment
                   profile: user.profile.copyWith(

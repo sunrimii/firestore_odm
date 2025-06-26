@@ -157,7 +157,8 @@ abstract class QueryAggregatableHandler {
 
   static Stream<R> stream<T, R>(
     firestore.AggregateQuery query,
-    FirestoreConverter<T, Map<String, dynamic>> _converter,
+    Map<String, dynamic> Function(T) _toJson,
+    T Function(Map<String, dynamic>) _fromJson,
     String _documentIdField,
     AggregateConfiguration<T, R> configuration,
   ) {
@@ -166,7 +167,7 @@ abstract class QueryAggregatableHandler {
         .map(
           (snapshot) => processQuerySnapshot(
             snapshot,
-            _converter.fromFirestore,
+            _fromJson,
             _documentIdField,
           ),
         )
@@ -174,7 +175,7 @@ abstract class QueryAggregatableHandler {
           (data) => _calculateAggregationsFromSnapshot(
             data,
             configuration.operations,
-            _converter.toFirestore,
+            _toJson,
           ),
         )
         .map((data) {
@@ -452,13 +453,15 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
   /// [_configuration] - The aggregate configuration
   AggregateQuery(
     this.query,
-    this._converter,
+    this._toJson,
+    this._fromJson,
     this._documentIdField,
     this._configuration,
   );
   
   /// Model converter for document serialization (used in streaming)
-  final FirestoreConverter<T, Map<String, dynamic>> _converter;
+  final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
   
   /// The document ID field name (used in streaming)
   final String _documentIdField;
@@ -481,7 +484,8 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
   /// collection changes in a way that affects the query results.
   Stream<R> get stream => QueryAggregatableHandler.stream(
     query,
-    _converter,
+    _toJson,
+    _fromJson,
     _documentIdField,
     _configuration,
   );

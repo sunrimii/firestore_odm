@@ -325,7 +325,7 @@ void main() {
         print('✅ OrderedQuery.modify() - Bulk modify operations work');
       });
 
-      test('should perform bulk incrementalModify on OrderedQuery', () async {
+      test('should perform bulk modify on OrderedQuery', () async {
         // Create test users
         final users = [
           User(
@@ -369,10 +369,10 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        // ✅ NEW: Bulk incrementalModify on OrderedQuery
+        // ✅ NEW: Bulk modify on OrderedQuery
         await odm.users
             .orderBy(($) => ($.name(),)) // Order by name
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 age:
                     user.age +
@@ -396,7 +396,7 @@ void main() {
           ); // 100+100 or 200+100
         }
 
-        print('✅ OrderedQuery.incrementalModify() - Atomic operations work');
+        print('✅ OrderedQuery.modify() - Atomic operations work');
       });
     });
 

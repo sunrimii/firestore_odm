@@ -205,7 +205,7 @@ void main() {
           // Bulk incremental modify with atomic operations
           await odm.users
               .where(($) => $.id(whereIn: ['atomic_bulk_1', 'atomic_bulk_2']))
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   rating:
                       user.rating + 0.5, // Should use FieldValue.increment(0.5)
@@ -280,7 +280,7 @@ void main() {
             .where(
               ($) => $.profile.interests(arrayContains: 'mixed_operations'),
             )
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Atomic operations
                 age: user.age + 1, // Increment
@@ -385,7 +385,7 @@ void main() {
             .where(
               ($) => $.and($.age(isLessThan: 25), $.isActive(isEqualTo: false)),
             )
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 isActive: true,
                 rating: user.rating + 1.0, // Bonus rating
@@ -489,7 +489,7 @@ void main() {
         // Perform bulk operation
         await odm.users
             .where(($) => $.profile.interests(arrayContains: 'performance'))
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 isPremium: true,
                 rating: user.rating + 1.0,

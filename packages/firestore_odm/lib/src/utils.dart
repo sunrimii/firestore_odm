@@ -84,12 +84,12 @@ Map<String, dynamic> toFirestoreData<T>(
 }
 
 (Map<String, dynamic>, String) processObject<T>(
-  JsonSerializer<T> toJsonFunction,
+  Map<String, dynamic> Function(T) toJson,
   T data, {
   String? documentIdField,
 }) {
   // Process the data to ensure it is ready for Firestore storage
-  final mapData = toJsonFunction(data);
+  final mapData = toJson(data);
   final documentId = extractDocumentId(mapData, documentIdField);
   final processedData = removeDocumentIdField(mapData, documentIdField);
 

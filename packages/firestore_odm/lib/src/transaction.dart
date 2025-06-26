@@ -48,14 +48,16 @@ class TransactionContext<Schema extends FirestoreSchema> {
 class TransactionCollection<S extends FirestoreSchema, T> {
   final firestore.Transaction _transaction;
   final firestore.CollectionReference<Map<String, dynamic>> query;
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) toJson;
+  final T Function(Map<String, dynamic>) fromJson;
   final String documentIdField;
   final TransactionContext<S> _context;
 
   TransactionCollection({
     required firestore.Transaction transaction,
     required this.query,
-    required this.converter,
+    required this.toJson,
+    required this.fromJson,
     required TransactionContext<S> context,
     required this.documentIdField,
   }) : _transaction = transaction,
@@ -67,7 +69,8 @@ class TransactionCollection<S extends FirestoreSchema, T> {
   TransactionDocument<S, T> call(String id) => TransactionDocument(
     _transaction,
     query.doc(id),
-    converter,
+    toJson,
+    fromJson,
     documentIdField,
     _context,
   );
@@ -82,14 +85,16 @@ class TransactionDocument<S extends FirestoreSchema, T>
         SynchronousDeletable {
   final firestore.Transaction _transaction;
   final firestore.DocumentReference<Map<String, dynamic>> ref;
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) toJson;
+  final T Function(Map<String, dynamic>) fromJson;
   final String documentIdField;
   final TransactionContext<S> _context;
 
   TransactionDocument(
     this._transaction,
     this.ref,
-    this.converter,
+    this.toJson,
+    this.fromJson,
     this.documentIdField,
     this._context,
   );
@@ -101,7 +106,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
     _context._cacheDocument(snapshot);
     if (!snapshot.exists) return null;
     return fromFirestoreData(
-      converter.fromFirestore,
+      fromJson,
       snapshot.data()!,
       documentIdField,
       snapshot.id,
@@ -118,36 +123,6 @@ class TransactionDocument<S extends FirestoreSchema, T>
     final snapshot = await _transaction.get(ref);
     _context._cacheDocument(snapshot);
     return snapshot;
-  }
-
-  /// @deprecated Use [modify] with atomic parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// **Migration:**
-  /// ```dart
-  /// // Old way (deprecated)
-  /// await tx.doc.incrementalModify((data) => data.copyWith(...));
-  ///
-  /// // New way (recommended)
-  /// await tx.doc.modify((data) => data.copyWith(...)); // atomic: true by default
-  /// await tx.doc.modify((data) => data.copyWith(...), atomic: true);
-  /// ```
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  @override
-  Future<void> incrementalModify(T Function(T docData) modifier) async {
-    // Read the document and prepare the write operation
-    final snapshot = await _getSnapshot();
-    final patch = DocumentHandler.processPatch(
-      snapshot,
-      modifier,
-      converter,
-      documentIdField,
-      computeDiffWithAtomicOperations,
-    );
-    if (patch.isNotEmpty) {
-      // Defer the write operation
-      _context._addDeferredWrite(() => _transaction.update(ref, patch));
-    }
   }
 
   /// Modify a document within a transaction using diff-based updates.
@@ -186,7 +161,8 @@ class TransactionDocument<S extends FirestoreSchema, T>
     final patch = DocumentHandler.processPatch(
       snapshot,
       modifier,
-      converter,
+      toJson,
+      fromJson,
       documentIdField,
       atomic ? computeDiffWithAtomicOperations : computeDiff,
     );

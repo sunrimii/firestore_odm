@@ -404,14 +404,14 @@ class UpdateBuilder<T> extends Node {
 
 class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
   /// Converter function to transform the value before storing in Firestore
-  final FirestoreConverter<T, dynamic> converter;
+  final dynamic Function(T) toJson;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  DefaultUpdateBuilder({super.name, super.parent, required this.converter});
+  DefaultUpdateBuilder({super.name, super.parent, required this.toJson});
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
-    final convertedValue = converter.toFirestore(value);
+    final convertedValue = toJson(value);
     return UpdateOperation($path, UpdateOperationType.set, convertedValue);
   }
 }
@@ -1032,7 +1032,7 @@ class DocumentIdFieldFilter extends CallableFilter {
 
 /// Numeric field callable updater
 class NumericFieldUpdate<T extends num?> extends DefaultUpdateBuilder<T> {
-  NumericFieldUpdate({super.name, super.parent, required super.converter});
+  NumericFieldUpdate({super.name, super.parent, required super.toJson});
 
   /// Increment field value
   UpdateOperation increment(T value) {
@@ -1042,7 +1042,7 @@ class NumericFieldUpdate<T extends num?> extends DefaultUpdateBuilder<T> {
 
 /// List field callable updater
 class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
-  ListFieldUpdate({super.name, super.parent, required super.converter});
+  ListFieldUpdate({super.name, super.parent, required super.toJson});
 
   /// Add element to array
   UpdateOperation add(E value) {
@@ -1075,7 +1075,7 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
-  DateTimeFieldUpdate({super.name, super.parent, required super.converter});
+  DateTimeFieldUpdate({super.name, super.parent, required super.toJson});
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
@@ -1086,17 +1086,15 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
 /// Duration field callable updater
 class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
   DurationFieldUpdate({super.name, super.parent})
-    : super(
-        converter: _getDurationConverter<T>(),
-      );
+    : super(toJson: _getDurationConverter<T>());
 
-  static FirestoreConverter<T, dynamic> _getDurationConverter<T extends Duration?>() {
+  static int? Function(T) _getDurationConverter<T extends Duration?>() {
     if (null is T) {
       // T is nullable (Duration?)
-      return NullableConverter(DurationConverter()) as FirestoreConverter<T, dynamic>;
+      return NullableConverter(DurationConverter()).toJson;
     } else {
       // T is non-nullable (Duration)
-      return DurationConverter() as FirestoreConverter<T, dynamic>;
+      return DurationConverter().toJson as int? Function(T);
     }
   }
 
@@ -1108,7 +1106,7 @@ class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
 
 /// Map field callable updater with clean, consistent Dart Map-like operations
 class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
-  MapFieldUpdate({super.name, super.parent, required super.converter});
+  MapFieldUpdate({super.name, super.parent, required super.toJson});
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')

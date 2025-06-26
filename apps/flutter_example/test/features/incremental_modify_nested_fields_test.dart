@@ -41,7 +41,7 @@ void main() {
         // ✅ Test nested numeric increments
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 age: user.age + 5, // Top-level numeric increment
                 rating: user.rating + 1.5, // Top-level double increment
@@ -89,7 +89,7 @@ void main() {
         // ✅ Test nested array operations
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 tags: [...user.tags, 'top-added'], // Top-level array union
                 profile: user.profile.copyWith(
@@ -139,7 +139,7 @@ void main() {
         // ✅ Test nested map operations
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   socialLinks: {
@@ -202,7 +202,7 @@ void main() {
           // ✅ Test mixed nested and top-level operations
           await odm
               .users(user.id)
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   // Top-level operations
                   age: user.age + 2, // Numeric increment
@@ -283,7 +283,7 @@ void main() {
         // ✅ Test array and map removal in nested fields
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Top-level array removal
                 tags: user.tags.where((tag) => tag != 'remove').toList(),
@@ -325,7 +325,7 @@ void main() {
           isNot(contains('remove-interest')),
         );
 
-        // Nested map removal - Note: Map operations in incrementalModify may not be atomic
+        // Nested map removal - Note: Map operations in modify may not be atomic
         // This test reveals a limitation - partial map updates may require full replacement
         expect(updatedUser.profile.socialLinks['keep'], equals('this'));
         // Map removal may need special handling, commenting out this check for now
@@ -340,7 +340,7 @@ void main() {
     });
 
     group('⚡ Bulk Nested Operations', () {
-      test('should handle bulk nested incrementalModify on queries', () async {
+      test('should handle bulk nested modify on queries', () async {
         // Create multiple users for bulk operations
         final users = List.generate(
           3,
@@ -370,10 +370,10 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        // ✅ Bulk nested incrementalModify
+        // ✅ Bulk nested modify
         await odm.users
             .where(($) => $.tags(arrayContains: 'bulk'))
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Top-level bulk operations
                 age: user.age + 10, // Everyone gets 10 years older
@@ -417,7 +417,7 @@ void main() {
           expect(user.profile.bio, contains('Premium!'));
         }
 
-        print('✅ Bulk nested incrementalModify operations work correctly');
+        print('✅ Bulk nested modify operations work correctly');
       });
 
       test('should handle bulk nested operations on OrderedQuery', () async {
@@ -484,12 +484,12 @@ void main() {
           await odm.users(user.id).update(user);
         }
 
-        // ✅ OrderedQuery with nested incrementalModify
+        // ✅ OrderedQuery with nested modify
         await odm.users
             .orderBy(
               ($) => ($.profile.followers(descending: true),),
             ) // Order by followers descending
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Give everyone a base boost
                 rating: user.rating + 0.5,
@@ -534,7 +534,7 @@ void main() {
           expect(user.profile.bio, contains('Boosted!'));
         }
 
-        print('✅ OrderedQuery with nested incrementalModify works correctly');
+        print('✅ OrderedQuery with nested modify works correctly');
       });
     });
 
@@ -564,7 +564,7 @@ void main() {
         // ✅ Test incremental operations on empty/zero nested values
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   followers: user.profile.followers + 100, // ✅ Increment from 0
@@ -623,7 +623,7 @@ void main() {
         // ✅ Test server timestamps with nested operations
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Top-level server timestamp
                 lastLogin: FirestoreODM.serverTimestamp,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -213,15 +214,11 @@ class SchemaGenerator {
       _generateSchemaClassAndConstant(schemaClassName, schemaConstName),
     );
 
-
     specs.addAll(_generateFilterAndOrderBySelectors(collections));
     // Generate filter and order by builders for each model type
 
     // Generate ODM extensions
-    final odmExtension = _generateODMExtensions(
-      schemaClassName,
-      collections,
-    );
+    final odmExtension = _generateODMExtensions(schemaClassName, collections);
     if (odmExtension != null) specs.add(odmExtension);
 
     // Generate transaction context extensions
@@ -239,28 +236,17 @@ class SchemaGenerator {
     if (batchExtension != null) specs.add(batchExtension);
 
     // Generate unique document classes for each collection path
-    specs.addAll(
-      _generateUniqueDocumentClasses(
-        schemaClassName,
-        collections,
-      ),
-    );
+    specs.addAll(_generateUniqueDocumentClasses(schemaClassName, collections));
 
     // Generate document extensions for subcollections (path-specific)
-    specs.addAll(
-      _generateDocumentExtensions(schemaClassName, collections),
-    );
+    specs.addAll(_generateDocumentExtensions(schemaClassName, collections));
 
     // Generate batch document extensions for subcollections
     specs.addAll(
-      _generateBatchDocumentExtensions(
-        schemaClassName,
-        collections,
-      ),
+      _generateBatchDocumentExtensions(schemaClassName, collections),
     );
 
-    final converterService = converterServiceSignal.get();
-    specs.addAll(converterService.specs);
+    // specs.addAll(converterGenerator.specs);
 
     return specs;
   }
@@ -360,7 +346,6 @@ class SchemaGenerator {
       final collectionClassName = _generateDocumentClassName(
         collection.path,
       ).replaceAll('Document', 'Collection');
-      final converterService = converterServiceSignal.get();
       methods.add(
         Method(
           (b) => b
@@ -373,7 +358,24 @@ class SchemaGenerator {
               'query': refer(
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
-              'converter': converterService.get(analysis).reference,
+              'toJson': Method(
+                (b) => b
+                  ..lambda = true
+                  ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                  ..body = converterFactory
+                      .createConverter(collection.modelType)
+                      .toFirestore(refer('data'))
+                      .code,
+              ).closure,
+              'fromJson': Method(
+                (b) => b
+                  ..lambda = true
+                  ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                  ..body = converterFactory
+                      .createConverter(collection.modelType)
+                      .fromFirestore(refer('data'))
+                      .code,
+              ).closure,
               'documentIdField': literalString(analysis.documentIdField),
             }).code,
         ),
@@ -409,7 +411,6 @@ class SchemaGenerator {
 
     for (final collection in rootCollections) {
       final analysis = ModelAnalyzer.analyze(collection.modelType);
-      final converterService = converterServiceSignal.get();
 
       methods.add(
         Method(
@@ -439,7 +440,28 @@ class SchemaGenerator {
                   'query': refer('ref').property('collection').call([
                     literalString(collection.path),
                   ]),
-                  'converter': converterService.get(analysis).reference,
+                  'toJson': Method(
+                    (b) => b
+                      ..lambda = true
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'data'),
+                      )
+                      ..body = converterFactory
+                          .createConverter(collection.modelType)
+                          .toFirestore(refer('data'))
+                          .code,
+                  ).closure,
+                  'fromJson': Method(
+                    (b) => b
+                      ..lambda = true
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'data'),
+                      )
+                      ..body = converterFactory
+                          .createConverter(collection.modelType)
+                          .fromFirestore(refer('data'))
+                          .code,
+                  ).closure,
                   'context': refer('this'),
                   'documentIdField': literalString(analysis.documentIdField),
                 }).code,
@@ -475,7 +497,6 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final converterService = converterServiceSignal.get();
       methods.add(
         Method(
           (b) => b
@@ -491,26 +512,28 @@ class SchemaGenerator {
                 ]),
             )
             ..lambda = true
-            ..body =
-                TypeReference(
-                  (b) => b
-                    ..symbol = 'BatchCollection'
-                    ..types.addAll([
-                      refer(schemaClassName),
-                      refer(collection.modelTypeName),
-                    ]),
-                ).newInstance([], {
+            ..body = TypeReference((b) => b..symbol = 'BatchCollection')
+                .newInstance([], {
                   'collection': refer('firestoreInstance')
                       .property('collection')
                       .call([literalString(collection.path)]),
-                  'converter': converterService
-                      .get(collection.modelAnalysis)
-                      .reference,
+                  'toJson': Method(
+                    (b) => b
+                      ..lambda = true
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'data'),
+                      )
+                      ..body = converterFactory
+                          .createConverter(collection.modelType)
+                          .toFirestore(refer('data'))
+                          .code,
+                  ).closure,
                   'documentIdField': literalString(
                     collection.modelAnalysis.documentIdField,
                   ),
                   'context': refer('this'),
-                }).code,
+                })
+                .code,
         ),
       );
     }
@@ -566,7 +589,12 @@ class SchemaGenerator {
                   ),
                   Parameter(
                     (b) => b
-                      ..name = 'converter'
+                      ..name = 'toJson'
+                      ..toSuper = true,
+                  ),
+                  Parameter(
+                    (b) => b
+                      ..name = 'fromJson'
                       ..toSuper = true,
                   ),
                   Parameter(
@@ -603,7 +631,14 @@ class SchemaGenerator {
                   ),
                   Parameter(
                     (b) => b
-                      ..name = 'converter'
+                      ..name = 'toJson'
+                      ..required = true
+                      ..toSuper = true
+                      ..named = true,
+                  ),
+                  Parameter(
+                    (b) => b
+                      ..name = 'fromJson'
                       ..required = true
                       ..toSuper = true
                       ..named = true,
@@ -637,7 +672,8 @@ class SchemaGenerator {
                 ..lambda = true
                 ..body = refer(documentClassName).newInstance([
                   refer('query').property('doc').call([refer('id')]),
-                  refer('converter'),
+                  refer('toJson'),
+                  refer('fromJson'),
                   refer('documentIdField'),
                 ]).code,
             ),
@@ -654,8 +690,6 @@ class SchemaGenerator {
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
-    final converterService = converterServiceSignal.get();
-
     final specs = <Spec>[];
     final subcollections = collections.where((c) => c.isSubcollection).toList();
 
@@ -696,9 +730,24 @@ class SchemaGenerator {
                 'query': refer('ref').property('collection').call([
                   literalString(subcollectionName),
                 ]),
-                'converter': converterService
-                    .get(subcol.modelAnalysis)
-                    .reference,
+                'toJson': Method(
+                  (b) => b
+                    ..lambda = true
+                    ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                    ..body = converterFactory
+                        .createConverter(subcol.modelType)
+                        .toFirestore(refer('data'))
+                        .code,
+                ).closure,
+                'fromJson': Method(
+                  (b) => b
+                    ..lambda = true
+                    ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                    ..body = converterFactory
+                        .createConverter(subcol.modelType)
+                        .fromFirestore(refer('data'))
+                        .code,
+                ).closure,
                 'documentIdField': literalString(
                   subcol.modelAnalysis.documentIdField,
                 ),
@@ -730,8 +779,6 @@ class SchemaGenerator {
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
-    final converterService = converterServiceSignal.get();
-
     final specs = <Spec>[];
     final subcollections = collections.where((c) => c.isSubcollection).toList();
 
@@ -771,26 +818,28 @@ class SchemaGenerator {
                   ]),
               )
               ..lambda = true
-              ..body =
-                  TypeReference(
-                    (b) => b
-                      ..symbol = 'BatchCollection'
-                      ..types.addAll([
-                        refer(schemaClassName),
-                        refer(subcol.modelTypeName),
-                      ]),
-                  ).newInstance([], {
+              ..body = TypeReference((b) => b..symbol = 'BatchCollection')
+                  .newInstance([], {
                     'collection': refer('ref').property('collection').call([
                       literalString(subcollectionName),
                     ]),
-                    'converter': converterService
-                        .get(subcol.modelAnalysis)
-                        .reference,
+                    'toJson': Method(
+                      (b) => b
+                        ..lambda = true
+                        ..requiredParameters.add(
+                          Parameter((b) => b..name = 'data'),
+                        )
+                        ..body = converterFactory
+                            .createConverter(subcol.modelType)
+                            .toFirestore(refer('data'))
+                            .code,
+                    ).closure,
                     'documentIdField': literalString(
                       subcol.modelAnalysis.documentIdField,
                     ),
                     'context': refer('context'),
-                  }).code,
+                  })
+                  .code,
           ),
         );
       }

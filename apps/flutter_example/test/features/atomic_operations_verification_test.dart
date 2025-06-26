@@ -44,7 +44,7 @@ void main() {
         print('🧪 Test 1: Top-level numeric increment');
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 age:
                     user.age +
@@ -60,7 +60,7 @@ void main() {
         print('🧪 Test 2: Nested numeric increment');
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   followers:
@@ -78,7 +78,7 @@ void main() {
         print('🧪 Test 3: Top-level array operation');
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 tags: [...user.tags, 'top-level-added'], // Should be arrayUnion
               ),
@@ -92,7 +92,7 @@ void main() {
         print('🧪 Test 4: Nested array operation');
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   interests: [
@@ -147,7 +147,7 @@ void main() {
           futures.add(
             odm
                 .users(user.id)
-                .incrementalModify(
+                .modify(
                   (user) => user.copyWith(
                     age: user.age + 1, // Each +1, should total +5
                   ),
@@ -160,7 +160,7 @@ void main() {
           futures.add(
             odm
                 .users(user.id)
-                .incrementalModify(
+                .modify(
                   (user) => user.copyWith(
                     profile: user.profile.copyWith(
                       followers:
@@ -212,7 +212,7 @@ void main() {
       });
 
       test(
-        'should compare incrementalModify vs modify vs patch for nested fields',
+        'should compare modify vs modify vs patch for nested fields',
         () async {
           // Create three identical users to compare different methods
           final baseUser = User(
@@ -248,11 +248,11 @@ void main() {
 
           final startTime = DateTime.now();
 
-          // Method 1: incrementalModify (claims to be atomic)
-          print('🔬 Method 1: incrementalModify');
+          // Method 1: modify (claims to be atomic)
+          print('🔬 Method 1: modify');
           await odm
               .users('method_incremental')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   age: user.age + 5,
                   profile: user.profile.copyWith(
@@ -316,7 +316,7 @@ void main() {
             '📝 However, only patch() guarantees true atomic operations for nested fields',
           );
           print(
-            '📝 incrementalModify() may use atomic operations for top-level fields only',
+            '📝 modify() may use atomic operations for top-level fields only',
           );
         },
       );
@@ -349,7 +349,7 @@ void main() {
         // Test: Mixed top-level and nested operations
         await odm
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 // Top-level - should be atomic
                 age: user.age + 10, // FieldValue.increment(10)

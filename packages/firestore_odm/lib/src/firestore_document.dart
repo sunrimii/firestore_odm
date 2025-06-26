@@ -8,7 +8,6 @@ import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
-import 'package:firestore_odm/src/model_converter.dart';
 import 'services/update_operations_service.dart';
 import 'filter_builder.dart';
 import 'schema.dart';
@@ -25,7 +24,8 @@ class FirestoreDocument<S extends FirestoreSchema, T>
         Deletable,
         Updatable<T> {
   /// The collection this document belongs to (nullable for fromRef constructor)
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) toJson;
+  final T Function(Map<String, dynamic>) fromJson;
 
   final String documentIdField;
 
@@ -33,12 +33,12 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   final DocumentReference<Map<String, dynamic>> ref;
 
   /// Creates a new FirestoreDocument instance from a collection and document ID
-  FirestoreDocument(this.ref, this.converter, this.documentIdField);
+  FirestoreDocument(this.ref, this.toJson, this.fromJson, this.documentIdField);
 
   /// Stream of document snapshots
   @override
   Stream<T?> get stream =>
-      DocumentHandler.stream<T>(ref, converter.fromFirestore, documentIdField);
+      DocumentHandler.stream<T>(ref, fromJson, documentIdField);
 
   /// Checks if the document exists
   @override
@@ -47,12 +47,12 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   /// Gets the document data
   @override
   Future<T?> get() =>
-      DocumentHandler.get(ref, converter.fromFirestore, documentIdField);
+      DocumentHandler.get(ref, fromJson, documentIdField);
 
   /// Sets the document data
   @override
   Future<void> update(T state) =>
-      DocumentHandler.update(ref, state, converter.toFirestore, documentIdField);
+      DocumentHandler.update(ref, state, toJson, documentIdField);
 
   /// Modify a document using diff-based updates.
   ///
@@ -85,29 +85,7 @@ class FirestoreDocument<S extends FirestoreSchema, T>
   /// ```
   @override
   Future<void> modify(T Function(T docData) modifier, {bool atomic = true}) =>
-      DocumentHandler.modify(ref, modifier, converter, documentIdField, atomic: atomic);
-
-  /// @deprecated Use [modify] with atomic parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// **Migration:**
-  /// ```dart
-  /// // Old way (deprecated)
-  /// await doc.incrementalModify((data) => data.copyWith(...));
-  ///
-  /// // New way (recommended)
-  /// await doc.modify((data) => data.copyWith(...)); // atomic: true by default
-  /// await doc.modify((data) => data.copyWith(...), atomic: true);
-  /// ```
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  @override
-  Future<void> incrementalModify(T Function(T docData) modifier) =>
-      DocumentHandler.incrementalModify(
-        ref,
-        modifier,
-        converter,
-        documentIdField,
-      );
+      DocumentHandler.modify(ref, modifier, toJson, fromJson, documentIdField, atomic: atomic);
 
   /// Delete this document
   @override

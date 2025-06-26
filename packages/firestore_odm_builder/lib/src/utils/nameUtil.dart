@@ -58,7 +58,9 @@ extension DartTypeExtension on DartType {
         ..symbol = name
         ..url = uri
         ..types.addAll(typeArguments)
-        ..isNullable = nullabilitySuffix == NullabilitySuffix.question,
+        ..isNullable = nullabilitySuffix == NullabilitySuffix.question 
+            ? true
+            : null,
     );
   }
 }
@@ -83,7 +85,6 @@ extension ElementExtension on Element {
         ..symbol = name
         ..url = uri
         ..types.addAll(typeParameters.map((t) => t.reference))
-        ..isNullable = false,
     );
   }
 }
@@ -108,7 +109,6 @@ extension Element3Extension on Element2 {
         ..symbol = name
         ..url = uri
         ..types.addAll(typeParameters.map((t) => t.reference))
-        ..isNullable = false,
     );
   }
 }
@@ -118,91 +118,77 @@ class TypeReferences {
     (b) => b
       ..symbol = 'String'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final int = TypeReference(
     (b) => b
       ..symbol = 'int'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final double = TypeReference(
     (b) => b
       ..symbol = 'double'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final bool = TypeReference(
     (b) => b
       ..symbol = 'bool'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final dynamic = TypeReference((b) => b..symbol = 'dynamic');
   static final list = TypeReference(
     (b) => b
       ..symbol = 'List'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final map = TypeReference(
     (b) => b
       ..symbol = 'Map'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final set = TypeReference(
     (b) => b
       ..symbol = 'Set'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final dateTime = TypeReference(
     (b) => b
       ..symbol = 'DateTime'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
   static final duration = TypeReference(
     (b) => b
       ..symbol = 'Duration'
       ..url = 'dart:core'
-      ..isNullable = false,
   );
 
   static final timestamp = TypeReference(
     (b) => b
       ..symbol = 'Timestamp'
       ..url = 'package:cloud_firestore/cloud_firestore.dart'
-      ..isNullable = false,
   );
 
   static final geoPoint = TypeReference(
     (b) => b
       ..symbol = 'GeoPoint'
       ..url = 'package:cloud_firestore/cloud_firestore.dart'
-      ..isNullable = false,
   );
 
   static final documentReference = TypeReference(
     (b) => b
       ..symbol = 'DocumentReference'
       ..url = 'package:cloud_firestore/cloud_firestore.dart'
-      ..isNullable = false,
   );
 
   static final uint8List = TypeReference(
     (b) => b
       ..symbol = 'Uint8List'
       ..url = 'dart:typed_data'
-      ..isNullable = false,
   );
 
   static final bytes = TypeReference(
     (b) => b
       ..symbol = 'Bytes'
       ..url = 'package:firebase_storage/firebase_storage.dart'
-      ..isNullable = false,
   );
 
   static TypeReference listOf(TypeReference type) {
@@ -227,5 +213,24 @@ extension StringUtils on String {
     return parts
         .map((p) => p.isNotEmpty ? p[0].toUpperCase() + p.substring(1) : '')
         .join('');
+  }
+}
+
+
+extension TypeReferenceX on TypeReference {
+  TypeReference withNullability(bool isNullable) {
+    return rebuild((b) => b..isNullable = isNullable == true ? true : null);
+  }
+
+  TypeReference withTypeArguments(List<TypeReference> typeArguments) {
+    return rebuild((b) => b..types.addAll(typeArguments));
+  }
+
+  TypeReference withoutTypeArguments() {
+    return rebuild((b) => b..types.clear());
+  }
+
+  TypeReference withoutNullability() {
+    return rebuild((b) => b..isNullable = null);
   }
 }

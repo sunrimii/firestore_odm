@@ -194,7 +194,7 @@ void main() {
 
         await analyticsODM
             .users(userId)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 name: 'Analytics Updated User',
                 age: user.age + 5,
@@ -450,7 +450,7 @@ void main() {
               final user = await tx.users(userId).get();
               await tx
                   .users(userId)
-                  .incrementalModify(
+                  .modify(
                     (user) => user.copyWith(
                       name: 'Analytics TX User',
                       scores: [user.scores.first + 500],
@@ -524,7 +524,7 @@ void main() {
         // Analytics performs aggregation operations
         await analyticsODM
             .users(user.id)
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 scores: [user.scores.first + 50], // Track engagement score
                 tags: [...user.tags, 'analytics_processed'],

@@ -133,7 +133,9 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
         Modifiable<T>,
         Aggregatable<S, T>,
         Deletable {
-  final FirestoreConverter<T, Map<String, dynamic>> _converter;
+          
+          final Map<String, dynamic> Function(T) _toJson;
+          final T Function(Map<String, dynamic>) _fromJson;
 
   final String _documentIdField;
 
@@ -144,28 +146,31 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   const OrderedQuery(
     firestore.Query<Map<String, dynamic>> _query,
-    FirestoreConverter<T, Map<String, dynamic>> _converter,
+    Map<String, dynamic> Function(T) _toJson,
+    T Function(Map<String, dynamic>) _fromJson,
     String _documentIdField,
     OrderByConfiguration<T, O> orderByConfig,
   ) : _query = _query,
-      _converter = _converter,
+      _toJson = _toJson,
+      _fromJson = _fromJson,
       _documentIdField = _documentIdField,
       _orderByConfig = orderByConfig;
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _converter.fromFirestore, _documentIdField);
+      QueryHandler.get(_query, _fromJson, _documentIdField);
 
   @override
   Stream<List<T>?> get stream =>
-      QueryHandler.stream(_query, _converter.fromFirestore, _documentIdField);
+      QueryHandler.stream(_query, _fromJson, _documentIdField);
 
   @override
   OrderedQuery<S, T, O> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -176,7 +181,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -188,7 +194,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryPaginationHandler.applyEndAt(_query, cursors);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -198,14 +205,15 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   OrderedQuery<S, T, O> endAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object,
-      _converter,
+      _toJson,
       _orderByConfig.builder,
       _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyEndAt(_query, values);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -217,7 +225,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, cursors);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -227,14 +236,15 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   OrderedQuery<S, T, O> endBeforeObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object,
-      _converter,
+      _toJson,
       _orderByConfig.builder,
       _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, values);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -246,7 +256,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, cursors);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -256,14 +267,15 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   OrderedQuery<S, T, O> startAfterObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object,
-      _converter,
+      _toJson,
       _orderByConfig.builder,
       _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, values);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -275,7 +287,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryPaginationHandler.applyStartAt(_query, cursors);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -285,14 +298,15 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   OrderedQuery<S, T, O> startAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object,
-      _converter,
+      _toJson,
       _orderByConfig.builder,
       _documentIdField,
     );
     final newQuery = QueryPaginationHandler.applyStartAt(_query, values);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -306,7 +320,8 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     return OrderedQuery<S, T, O>(
       newQuery,
-      _converter,
+      _toJson,
+      _fromJson,
       _documentIdField,
       _orderByConfig,
     );
@@ -314,7 +329,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
 
   @override
   Future<void> patch(PatchBuilder<T> patchBuilder) =>
-      QueryHandler.patch(_query, _documentIdField, _converter, patchBuilder);
+      QueryHandler.patch(_query, _documentIdField, patchBuilder);
 
   /// Modify multiple documents in this ordered query using diff-based updates.
   ///
@@ -344,29 +359,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   /// ```
   @override
   Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true}) =>
-      QueryHandler.modify(_query, _documentIdField, _converter, modifier, atomic: atomic);
-
-  /// @deprecated Use [modify] with atomic parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// **Migration:**
-  /// ```dart
-  /// // Old way (deprecated)
-  /// await orderedQuery.incrementalModify((data) => data.copyWith(...));
-  ///
-  /// // New way (recommended)
-  /// await orderedQuery.modify((data) => data.copyWith(...)); // atomic: true by default
-  /// await orderedQuery.modify((data) => data.copyWith(...), atomic: true);
-  /// ```
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  @override
-  Future<void> incrementalModify(ModifierBuilder<T> modifier) =>
-      QueryHandler.incrementalModify(
-        _query,
-        _documentIdField,
-        _converter,
-        modifier,
-      );
+      QueryHandler.modify(_query, _documentIdField, _toJson, _fromJson, modifier, atomic: atomic);
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(
@@ -377,7 +370,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       _query,
       config.operations,
     );
-    return AggregateQuery(newQuery, _converter, _documentIdField, config);
+    return AggregateQuery(newQuery, _toJson, _fromJson, _documentIdField, config);
   }
 
   @override

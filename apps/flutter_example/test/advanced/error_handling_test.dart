@@ -155,7 +155,7 @@ void main() {
           10,
           (i) => odm
               .users('concurrent_user')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   profile: user.profile.copyWith(
                     followers: user.profile.followers + 1,
@@ -270,7 +270,7 @@ void main() {
         for (int i = 0; i < 50; i++) {
           await odm
               .users('rapid_user')
-              .incrementalModify(
+              .modify(
                 (user) => user.copyWith(
                   profile: user.profile.copyWith(
                     followers: user.profile.followers + 1,

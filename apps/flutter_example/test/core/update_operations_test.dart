@@ -176,7 +176,7 @@ void main() {
 
         await odm
             .users('incremental_user')
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 age: user.age + 1, // Auto-increment
                 rating: user.rating + 0.5, // Auto-increment
@@ -228,7 +228,7 @@ void main() {
 
         await odm
             .users('array_removal_user')
-            .incrementalModify(
+            .modify(
               (user) => user.copyWith(
                 profile: user.profile.copyWith(
                   interests: user.profile.interests

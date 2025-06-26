@@ -175,7 +175,7 @@ void main() {
 
             await tx
                 .users('tx_inc_mod_user')
-                .incrementalModify(
+                .modify(
                   (user) => user.copyWith(
                     rating:
                         user.rating + 1.0, // Should auto-detect as increment
@@ -414,7 +414,7 @@ void main() {
               // Each transaction tries to increment the score
               await tx
                   .users('concurrent_user')
-                  .incrementalModify(
+                  .modify(
                     (user) => user.copyWith(scores: [user.scores.first + 10]),
                   );
             });
@@ -506,7 +506,7 @@ void main() {
             // Use server timestamp in transaction incremental modify
             await tx
                 .users('tx_mod_timestamp_user')
-                .incrementalModify(
+                .modify(
                   (user) => user.copyWith(
                     tags: [...user.tags, 'tx_modified'],
                     lastLogin: FirestoreODM.serverTimestamp,

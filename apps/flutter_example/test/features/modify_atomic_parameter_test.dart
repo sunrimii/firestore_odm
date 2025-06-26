@@ -180,7 +180,7 @@ void main() {
       print('✅ Bulk modify with atomic parameter works correctly');
     });
 
-    test('should maintain backward compatibility with incrementalModify', () async {
+    test('should maintain backward compatibility with modify', () async {
       // Create a test user
       final user = User(
         id: 'backward_compat_user',
@@ -201,8 +201,8 @@ void main() {
 
       await odm.users.insert(user);
 
-      // Test that incrementalModify still works (deprecated but functional)
-      await odm.users('backward_compat_user').incrementalModify((user) => user.copyWith(
+      // Test that modify still works (deprecated but functional)
+      await odm.users('backward_compat_user').modify((user) => user.copyWith(
         age: user.age + 5, // Should use FieldValue.increment(5)
         tags: [...user.tags, 'backward'], // Should use FieldValue.arrayUnion(['backward'])
       ));
@@ -212,7 +212,7 @@ void main() {
       expect(updatedUser!.age, 30);
       expect(updatedUser.tags, contains('backward'));
 
-      print('✅ incrementalModify backward compatibility maintained');
+      print('✅ modify backward compatibility maintained');
     });
 
     test('should work in transactions with atomic parameter', () async {
