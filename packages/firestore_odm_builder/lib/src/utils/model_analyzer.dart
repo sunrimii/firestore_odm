@@ -2,8 +2,6 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:firestore_odm_builder/src/generators/converter_service.dart';
-import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:source_gen/source_gen.dart';
@@ -111,9 +109,23 @@ class ModelAnalyzer {
     final Map<String, FieldInfo> fieldsMap = {};
 
     for (final (fieldName, fieldType, element) in fields) {
+      // Substitute type parameters with concrete types if this is a generic type
+      var actualFieldType = fieldType;
+      if (type is InterfaceType && type.typeArguments.isNotEmpty && fieldType is TypeParameterType) {
+        final typeParams = type.element.typeParameters;
+        final typeArgs = type.typeArguments;
+        
+        for (int i = 0; i < typeParams.length && i < typeArgs.length; i++) {
+          if (typeParams[i] == fieldType.element) {
+            actualFieldType = typeArgs[i];
+            break;
+          }
+        }
+      }
+
       final fieldInfo = _analyzeFieldFromAccessor(
         fieldName,
-        fieldType,
+        actualFieldType,
         element,
       );
       fieldsMap[fieldName] = fieldInfo;

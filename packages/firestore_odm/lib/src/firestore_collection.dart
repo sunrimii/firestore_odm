@@ -39,14 +39,14 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Document ID field name (detected from model analysis)
   final String documentIdField;
 
-  final UpdateBuilder<T> Function() _updateBuilder;
+  final UpdateBuilder<T>_updateBuilder;
 
   /// Creates a new FirestoreCollection instance
   const FirestoreCollection({
     required this.query,
     required this.converter,
     required this.documentIdField,
-    required UpdateBuilder<T> Function() updateBuilder,
+    required UpdateBuilder<T> updateBuilder,
   }) : _updateBuilder = updateBuilder;
 
   /// Gets a document reference with the specified ID
@@ -112,8 +112,7 @@ class FirestoreCollection<S extends FirestoreSchema, T>
 
   @override
   Future<void> patch(PatchBuilder<T> patchBuilder) {
-    final builder = _updateBuilder();
-    final operations = patchBuilder(builder);
+    final operations = patchBuilder(_updateBuilder);
     return QueryHandler.patch(query, documentIdField, operations);
   }
       

@@ -63,6 +63,31 @@ extension DartTypeExtension on DartType {
             : null,
     );
   }
+
+  List<DartType> get typeArguments {
+    if (this is InterfaceType) {
+      return (this as InterfaceType).typeArguments;
+    }
+    return [];
+  }
+
+  List<TypeParameterElement> get typeParameters {
+    if (this is InterfaceType) {
+      return (this as InterfaceType).element.typeParameters;
+    }
+    return [];
+  }
+
+  bool get isNullable {
+    return nullabilitySuffix == NullabilitySuffix.question;
+  }
+
+  bool get isGeneric {
+    if (this is InterfaceType) {
+      return (this as InterfaceType).typeArguments.isNotEmpty;
+    }
+    return false;
+  }
 }
 
 extension ElementExtension on Element {
@@ -207,6 +232,8 @@ class TypeReferences {
 extension StringUtils on String {
   String lowerFirst() => isEmpty ? this : this[0].toLowerCase() + substring(1);
 
+  String upperFirst() => isEmpty ? this : this[0].toUpperCase() + substring(1);
+
   String camelCase() {
     if (isEmpty) return this;
     final parts = split('_');
@@ -232,5 +259,15 @@ extension TypeReferenceX on TypeReference {
 
   TypeReference withoutNullability() {
     return rebuild((b) => b..isNullable = null);
+  }
+}
+
+
+extension ExpressionX on Expression {
+  Expression debug(String message) {
+    return CodeExpression(Code('''
+      // DEBUG: $message
+      \${this}
+    '''));
   }
 }
