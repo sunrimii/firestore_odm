@@ -13,12 +13,12 @@ import 'package:firestore_odm/src/utils.dart';
 class FirestoreDocumentNotFoundException implements Exception {
   /// The ID of the document that was not found
   final String documentId;
-  
+
   /// Creates a new exception for a missing document.
   ///
   /// [documentId] - The ID of the document that could not be found
   FirestoreDocumentNotFoundException(this.documentId);
-  
+
   @override
   String toString() =>
       'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
@@ -354,32 +354,6 @@ class DocumentHandler {
       fromJson,
       documentIdField,
       atomic ? computeDiffWithAtomicOperations : computeDiff,
-    );
-    if (patch.isNotEmpty) {
-      await ref.update(patch);
-    }
-  }
-
-  /// @deprecated Use [modify] with atomic parameter instead.
-  /// This method will be removed in a future version.
-  ///
-  /// Migrate to: `modify(ref, modifier, converter, documentIdField, atomic: true)`
-  @Deprecated('Use modify(atomic: true) instead. This method will be removed in a future version.')
-  static Future<void> incrementalModify<T>(
-    firestore.DocumentReference<Map<String, dynamic>> ref,
-    T Function(T) modifier,
-    Map<String, dynamic> Function(T) toJson,
-    T Function(Map<String, dynamic>) fromJson,
-    String documentIdField,
-  ) async {
-    final currentData = await ref.get();
-    final patch = processPatch(
-      currentData,
-      modifier,
-      toJson,
-      fromJson,
-      documentIdField,
-      computeDiffWithAtomicOperations,
     );
     if (patch.isNotEmpty) {
       await ref.update(patch);
@@ -807,16 +781,17 @@ abstract class QueryHandler {
     updateBuilder,
   ) async {
     final snapshot = await query.get();
+    final builder = UpdateBuilder<T>();
+    final operations = updateBuilder(builder);
+    final updateMap = UpdateBuilder.operationsToMap(operations);
+
+    if (updateMap.isEmpty) {
+      return; // No updates to apply
+    }
+
     final batch = query.firestore.batch();
-
     for (final docSnapshot in snapshot.docs) {
-      final builder = UpdateBuilder<T>();
-      final operations = updateBuilder(builder);
-      final updateMap = UpdateBuilder.operationsToMap(operations);
-
-      if (updateMap.isNotEmpty) {
-        batch.update(docSnapshot.reference, updateMap);
-      }
+      batch.update(docSnapshot.reference, updateMap);
     }
     await batch.commit();
   }
