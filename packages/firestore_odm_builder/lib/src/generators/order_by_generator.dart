@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
@@ -16,10 +18,10 @@ class OrderByGenerator {
         ..returns = TypeReference(
           (b) => b
             ..symbol = 'OrderByField'
-            ..types.add(field.dartType.reference),
+            ..types.add(field.type.reference),
         )
         ..body = refer('OrderByField').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -36,10 +38,10 @@ class OrderByGenerator {
         ..returns = TypeReference(
           (b) => b
             ..symbol = 'OrderByFieldSelector'
-            ..types.add(field.dartType.reference),
+            ..types.add(field.type.reference),
         )
         ..body = refer('OrderByFieldSelector').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -59,7 +61,7 @@ class OrderByGenerator {
             ..types.add(refer('String')), // Document ID is always a String
         )
         ..body = refer('OrderByField').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
           'type': refer('FieldPathType').property('documentId'),
         }).code,
@@ -68,16 +70,16 @@ class OrderByGenerator {
 
   /// Generate order by selector class using ModelAnalysis
   static Extension generateOrderBySelectorClassFromAnalysis(
-    ModelAnalysis analysis,
+    InterfaceType type,
   ) {
-    final className = analysis.dartType.element?.name;
+    final className = type.element?.name;
     if (className == null) {
       throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
     }
 
-    final typeParameters = analysis.typeParameters;
-    final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
-    final classNameWithTypeParams = analysis.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
+    final typeParameters = type.typeParameters;
+    final typeParameterNames = type.typeParameters.map((ref) => ref.name).toList();
+    final classNameWithTypeParams = type.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
 
     // Create the target type (OrderByFieldSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -87,7 +89,7 @@ class OrderByGenerator {
           TypeReference(
             (b) => b
               ..symbol = className
-              ..types.addAll(typeParameters),
+              ..types.addAll(typeParameters.references),
           ),
         )
         ..url =
@@ -95,10 +97,10 @@ class OrderByGenerator {
     );
 
     // Generate methods for all fields
+    final fields = ModelAnalyzer.instance.getFields(type);
     final methods = <Method>[];
-    for (final field in analysis.fields.values) {
-      final fieldType = field.dartType;
-
+    for (final field in fields.values) {
+      final fieldType = field.type;
       if (field.isDocumentId) {
         // Document ID field
         methods.add(_generateDocumentIdFieldSelector(field));
@@ -115,7 +117,7 @@ class OrderByGenerator {
     return Extension(
       (b) => b
         ..name = '${className}OrderByFieldSelectorExtension'
-        ..types.addAll(typeParameters)
+        ..types.addAll(typeParameters.references)
         ..on = targetType
         ..docs.add(
           '/// Generated OrderByFieldSelector for $classNameWithTypeParams',

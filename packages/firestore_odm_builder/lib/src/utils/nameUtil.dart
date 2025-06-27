@@ -271,3 +271,15 @@ extension ExpressionX on Expression {
     '''));
   }
 }
+
+extension DartTypeIterableX on Iterable<DartType> {
+  List<TypeReference> get references => map((t) => t.reference).toList();
+}
+
+extension ElementIterableX on Iterable<Element> {
+  List<TypeReference> get references => map((e) => e.reference).toList();
+}
+
+extension Element2IterableX on Iterable<Element2> {
+  List<TypeReference> get references => map((e) => e.reference).toList();
+}

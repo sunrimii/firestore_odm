@@ -19,7 +19,7 @@ class SchemaCollectionInfo {
   final String path;
   final String modelTypeName;
   final bool isSubcollection;
-  final DartType modelType;
+  final InterfaceType modelType;
 
   const SchemaCollectionInfo({
     required this.path,
@@ -27,8 +27,6 @@ class SchemaCollectionInfo {
     required this.isSubcollection,
     required this.modelType,
   });
-
-  ModelAnalysis get modelAnalysis => ModelAnalyzer.analyze(modelType);
 }
 
 /// Generator for schema-based ODM code using code_builder
@@ -185,24 +183,6 @@ class SchemaGenerator {
     return path.split('/').last;
   }
 
-  static bool isHandledType(DartType type) {
-    // Check if the type is a known Firestore ODM type
-    return type.isDartCoreBool ||
-        type.isDartCoreInt ||
-        type.isDartCoreDouble ||
-        type.isDartCoreString ||
-        type.isDartCoreList ||
-        type.isDartCoreMap ||
-        type.isDartCoreObject ||
-        type.isDartCoreNull ||
-        TypeChecker.fromRuntime(DateTime).isExactlyType(type) ||
-        TypeChecker.fromRuntime(Duration).isExactlyType(type);
-  }
-
-  static bool isUserType(DartType type) {
-    // Check if the type is a user-defined model type
-    return !isHandledType(type);
-  }
 
   /// Generate all library members
   static List<Spec> _generateAllLibraryMembers(
@@ -301,70 +281,34 @@ class SchemaGenerator {
   static List<Spec> _generateFilterAndOrderBySelectors(
     List<SchemaCollectionInfo> collections,
   ) {
-    // Group types by their base generic type to avoid duplicates
-    final seenBaseTypes = <String>{};
-    final uniqueTypes = <DartType>[];
-
-    for (final type
-        in collections.expand((c) => run(c.modelType)).where(isUserType)) {
-      // Get the base type name (e.g., "ManualUser3" from "ManualUser3<SomeType>")
-      final baseTypeName = type.element?.name ?? type.toString();
-
-      if (!seenBaseTypes.contains(baseTypeName)) {
-        seenBaseTypes.add(baseTypeName);
-
-        // If this is a closed generic type, convert to open generic
-        DartType typeToAnalyze = type;
-        if (type is InterfaceType && type.element.typeParameters.isNotEmpty) {
-          // This is a closed generic type, convert to open generic
-          final element = type.element;
-          final typeArguments = element.typeParameters
-              .map(
-                (param) => param.instantiate(
-                  nullabilitySuffix: type.nullabilitySuffix,
-                ),
-              )
-              .toList();
-          typeToAnalyze = element.instantiate(
-            typeArguments: typeArguments,
-            nullabilitySuffix: type.nullabilitySuffix,
-          );
-        }
-
-        uniqueTypes.add(typeToAnalyze);
-      }
-    }
-
-    final analyses = uniqueTypes.map((type) => ModelAnalyzer.analyze(type));
-
     final specs = <Spec>[];
 
-    for (final analysis in analyses) {
-      if (analysis.fields.isEmpty) continue;
-
+    for (final type
+        in collections
+            .expand((c) => run(c.modelType))
+            .where(isUserType)
+            .whereType<InterfaceType>()
+            .map((t) => t.element.thisType)
+            .toSet()) {
       // Generate FilterSelector class using ModelAnalysis
       final filterClass =
-          FilterGenerator.generateFilterSelectorClassFromAnalysis(analysis);
+          FilterGenerator.generateFilterSelectorClassFromAnalysis(type);
       specs.add(filterClass);
 
       // Generate OrderBySelector class using ModelAnalysis
       final orderByExtension =
-          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(analysis);
+          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(type);
       specs.add(orderByExtension);
 
       // Generate UpdateBuilder extension using ModelAnalysis
-      final updateExtension = UpdateGenerator.generateUpdateBuilderClass(
-        analysis,
-      );
+      final updateExtension = UpdateGenerator.generateUpdateBuilderClass(type);
       if (updateExtension != null) {
         specs.add(updateExtension);
       }
 
       // Generate AggregateFieldSelector extension using ModelAnalysis
       final aggregateExtension =
-          AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(
-            analysis,
-          );
+          AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(type);
       specs.add(aggregateExtension);
     }
 
@@ -384,7 +328,8 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final analysis = ModelAnalyzer.analyze(collection.modelType);
+      final documentIdFieldName =
+          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
       final collectionClassName = _generateCollectionClassName(collection.path);
       methods.add(
         Method(
@@ -401,7 +346,7 @@ class SchemaGenerator {
               'converter': converterFactory
                   .createConverter(collection.modelType)
                   .toConverterExpr(),
-              'documentIdField': literalString(analysis.documentIdField),
+              'documentIdField': literalString(documentIdFieldName),
             }).code,
         ),
       );
@@ -427,6 +372,7 @@ class SchemaGenerator {
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
+
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
         .toList();
@@ -435,7 +381,8 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final analysis = ModelAnalyzer.analyze(collection.modelType);
+      final documentIdFieldName =
+          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
 
       methods.add(
         Method(
@@ -469,7 +416,7 @@ class SchemaGenerator {
                       .createConverter(collection.modelType)
                       .toConverterExpr(),
                   'context': refer('this'),
-                  'documentIdField': literalString(analysis.documentIdField),
+                  'documentIdField': literalString(documentIdFieldName),
                 }).code,
         ),
       );
@@ -503,6 +450,8 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
+      final documentIdFieldName =
+          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
       methods.add(
         Method(
           (b) => b
@@ -526,9 +475,7 @@ class SchemaGenerator {
                   'converter': converterFactory
                       .createConverter(collection.modelType)
                       .toConverterExpr(),
-                  'documentIdField': literalString(
-                    collection.modelAnalysis.documentIdField,
-                  ),
+                  'documentIdField': literalString(documentIdFieldName),
                   'context': refer('this'),
                 })
                 .code,
@@ -741,6 +688,8 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
+        final documentIdFieldName =
+            ModelAnalyzer.instance.getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
         final collectionClassName = _generateCollectionClassName(subcol.path);
@@ -759,9 +708,7 @@ class SchemaGenerator {
                 'converter': converterFactory
                     .createConverter(subcol.modelType)
                     .toConverterExpr(),
-                'documentIdField': literalString(
-                  subcol.modelAnalysis.documentIdField,
-                ),
+                'documentIdField': literalString(documentIdFieldName),
               }).code,
           ),
         );
@@ -811,6 +758,8 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = StringHelpers.camelCase(subcollectionName);
+        final documentIdFieldName =
+            ModelAnalyzer.instance.getDocumentIdFieldName(subcol.modelType);
 
         methods.add(
           Method(
@@ -837,9 +786,7 @@ class SchemaGenerator {
                     'converter': converterFactory
                         .createConverter(subcol.modelType)
                         .toConverterExpr(),
-                    'documentIdField': literalString(
-                      subcol.modelAnalysis.documentIdField,
-                    ),
+                    'documentIdField': literalString(documentIdFieldName),
                     'context': refer('context'),
                   })
                   .code,
@@ -874,19 +821,19 @@ class SchemaGenerator {
     DartType type, [
     Element? annotatedElement,
   ]) sync* {
-    final analysis = ModelAnalyzer.analyze(type, annotatedElement);
     yield type;
 
+    if (type is! InterfaceType) return;
+
+    final fields = ModelAnalyzer.instance.getFields(type);
     // Recursively find all nested InterfaceTypes in the fields of this type
-    for (final field in analysis.fields.values) {
-      yield* run(field.dartType, field.element);
+    for (final field in fields.values) {
+      yield* run(field.type, field.element);
     }
 
-    if (type is ParameterizedType) {
-      // If this is a ParameterizedType, analyze its type arguments as well
-      for (final arg in type.typeArguments) {
-        yield* run(arg);
-      }
+    // If this is a ParameterizedType, analyze its type arguments as well
+    for (final arg in type.typeArguments) {
+      yield* run(arg);
     }
   }
 }

@@ -1,0 +1,286 @@
+// ===== Core Converter Interface =====
+
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
+import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:source_gen/source_gen.dart';
+
+class ConverterFactory {
+  final Map<(DartType, Element?), TypeConverter> _converterCache = {};
+  final List<Spec> _modelConverters = [];
+
+  /// Create a converter for the given type, optionally using the provided element
+  TypeConverter createConverter(DartType type, {Element? element}) =>
+      _converterCache.putIfAbsent((
+        type,
+        element,
+      ), () => _createConverter(type, element: element));
+
+  /// Analyze a type and create appropriate converter
+  TypeConverter _createConverter(DartType type, {Element? element}) {
+    // 2. Check for type parameters
+    if (type is TypeParameterType) {
+      return TypeParameterPlaceholder(type.element.name);
+    }
+
+    // 3. Check for @JsonConverter annotation
+    final annotation = _findJsonConverterAnnotation(element);
+    if (annotation != null) {
+      final fromType =
+          annotation.getMethod2('fromJson')?.returnType.reference ??
+          TypeReferences.dynamic;
+      final toType =
+          annotation.getMethod2('toJson')?.returnType.reference ??
+          TypeReferences.dynamic;
+      final converter = AnnotationConverter(annotation);
+      _generateConverter(converter, fromType: fromType, toType: toType);
+      return converter;
+    }
+
+    // 4. Check for fromJson/toJson methods
+    if (_hasJsonMethods(type) && type is InterfaceType) {
+      // Check if it's a generic type by counting converter parameters
+      final actualToType = type.getMethod2('toJson')?.returnType.reference;
+      final toType =
+          TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
+          ? TypeReferences.listOf(TypeReferences.dynamic)
+          : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
+      _generateInterfaceConverter(
+        type.element,
+        toType: toType,
+        cast: actualToType != toType,
+      );
+
+      // with fromJson/toJson
+      return JsonMethodConverter(
+        type: type,
+        typeParameterMapping: {
+          for (final t in type.element3.typeParameters2)
+            t.name3!: VariableConverter('converter${t.name3}'),
+        },
+      );
+    }
+
+    // 1. Check for primitives
+    if (isPrimitive(type)) {
+      return const DirectConverter();
+    }
+
+    // built-in converters for common types
+    const mapper = {
+      DateTime: 'DateTimeConverter',
+      Duration: 'DurationConverter',
+      List: 'ListConverter',
+      Set: 'SetConverter',
+      Map: 'MapConverter',
+      Iterable: 'IterableConverter',
+    };
+
+    for (final entry in mapper.entries) {
+      if (TypeChecker.fromRuntime(entry.key).isAssignableFromType(type)) {
+        return SpecializedDefaultConverter(
+          (transform) =>
+              TypeReference(
+                (b) => b
+                  ..symbol = entry.value
+                  ..url = 'package:firestore_odm/firestore_odm.dart'
+                  ..types.addAll(type.typeArguments.map((t) => t.reference)),
+              ).call(
+                type.typeArguments
+                    .map(transform)
+                    .map((x) => x.toConverterExpr())
+                    .toList(),
+              ),
+          typeParameterMapping: {
+            for (final t in type.typeParameters)
+              t.name: VariableConverter('converter${t.name}'),
+          },
+        );
+      }
+    }
+
+    // 5. Create custom model converter
+    if (type is InterfaceType) {
+      return _createModelConverter(type);
+    }
+
+    throw UnimplementedError('No converter for type: $type');
+  }
+
+  InterfaceType? _findJsonConverterAnnotation(Element? element) {
+    if (element == null) return null;
+    final annotation = TypeChecker.fromRuntime(
+      JsonConverter,
+    ).firstAnnotationOf(element);
+    if (annotation == null) return null;
+    if (annotation.type is! InterfaceType) return null;
+    return annotation.type as InterfaceType;
+  }
+
+  bool _hasJsonMethods(DartType type) {
+    if (type is! InterfaceType) return false;
+
+    final element = type.element;
+    // Check if type has fromJson factory and toJson method
+    final fromJson =
+        element.constructors.where((c) => c.name == 'fromJson').firstOrNull ??
+        element.methods
+            .where((m) => m.isStatic && m.name == 'fromJson')
+            .firstOrNull;
+    final toJson = element.methods.where((m) => m.name == 'toJson').firstOrNull;
+
+    return fromJson != null && toJson != null;
+  }
+
+  ModelConverter _createModelConverter(InterfaceType type) {
+    // Analyze fields and create model converter
+    final fields = ModelAnalyzer.instance.getFields(type);
+
+    // print(
+    //   'Creating ModelConverter for ${type.element.name} with fields: ${fields.keys.join(', ')}',
+    // );
+    _generateInterfaceConverter(type.element);
+    return ModelConverter(
+      type: type,
+      fields: fields,
+      typeParameterMapping: {
+        for (final t in type.element3.typeParameters2)
+          t.name3!: VariableConverter('converter${t.name3}'),
+      },
+    );
+  }
+
+  List<Spec> get specs {
+    // Return all model converter specs
+    return _modelConverters;
+  }
+
+  final Set<TypeConverter> _generated = {};
+  final Set<InterfaceElement> _generated2 = {};
+
+  void _generateInterfaceConverter(
+    InterfaceElement element, {
+    TypeReference? toType,
+    bool cast = false,
+  }) {
+    if (_generated2.contains(element)) {
+      // Already generated for this element
+      return;
+    }
+
+    _generated2.add(element);
+
+    final converter = createConverter(element.thisType, element: element);
+    _generateConverter(
+      converter,
+      typeParameters: element.typeParameters.map((x) => x.reference),
+      fromType: element.reference,
+      toType: toType,
+      cast: cast,
+    );
+  }
+
+  void _generateConverter(
+    TypeConverter converter, {
+    Iterable<TypeReference> typeParameters = const [],
+    TypeReference? fromType,
+    TypeReference? toType,
+    bool cast = false,
+    Iterable<String> docs = const [],
+  }) {
+    if (_generated.contains(converter)) {
+      // Already generated for this element
+      return;
+    }
+
+    _generated.add(converter);
+
+    if (converter is! WithName) {
+      throw ArgumentError(
+        'Converter must implement WithName to generate model converter',
+      );
+    }
+
+    final fromTypeResult =
+        fromType ??
+        TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
+    final toTypeResult =
+        toType ??
+        TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
+
+    _modelConverters.add(
+      Class(
+        (b) => b
+          ..docs.addAll(docs)
+          ..name = (converter as WithName).name
+          ..types.addAll(typeParameters)
+          ..implements.add(
+            TypeReference(
+              (b) => b
+                ..symbol = 'FirestoreConverter'
+                ..types.addAll([fromTypeResult, toTypeResult]),
+            ),
+          )
+          ..fields.addAll(
+            typeParameters.map(
+              (t) => Field(
+                (b) => b
+                  ..name = 'converter${t.symbol}'
+                  ..type = TypeReference(
+                    (b) => b
+                      ..symbol = 'FirestoreConverter'
+                      ..types.addAll([t, TypeReferences.dynamic]),
+                  )
+                  ..modifier = FieldModifier.final$,
+              ),
+            ),
+          )
+          ..constructors.add(
+            Constructor(
+              (b) => b
+                ..constant = false
+                ..optionalParameters.addAll(
+                  typeParameters.map(
+                    (t) => Parameter(
+                      (b) => b
+                        ..required = true
+                        ..named = true
+                        ..name = 'converter${t.symbol}'
+                        ..toThis = true,
+                    ),
+                  ),
+                ),
+            ),
+          )
+          ..methods.addAll([
+            Method(
+              (b) => b
+                ..name = 'fromJson'
+                ..annotations.add(refer('override'))
+                ..returns = fromTypeResult
+                ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                ..body = converter.fromFirestore(refer('data')).code,
+            ),
+            Method(
+              (b) => b
+                ..name = 'toJson'
+                ..annotations.add(refer('override'))
+                ..returns = toTypeResult
+                ..requiredParameters.add(Parameter((b) => b..name = 'value'))
+                ..body = (cast
+                    ? converter
+                          .toFirestore(refer('value'))
+                          .asA(toTypeResult)
+                          .code
+                    : converter.toFirestore(refer('value')).code),
+            ),
+          ]),
+      ),
+    );
+  }
+}

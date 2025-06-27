@@ -1,4 +1,6 @@
+import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -8,13 +10,13 @@ class FilterGenerator {
   static Method _generateDocumentIdFilterGetter(FieldInfo field) {
     return Method(
       (b) => b
-        ..docs.add('/// Filter by document ID (${field.jsonFieldName} field)')
+        ..docs.add('/// Filter by document ID (${field.jsonName} field)')
         ..type = MethodType.getter
         ..name = field.parameterName
         ..lambda = true
         ..returns = refer('DocumentIdFieldFilter')
         ..body = refer('DocumentIdFieldFilter').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -22,7 +24,7 @@ class FilterGenerator {
 
   /// Generate nested filter getter method
   static Method _generateNestedFilterGetter(FieldInfo field) {
-    final nestedTypeName = field.dartType.getDisplayString(
+    final nestedTypeName = field.type.getDisplayString(
       withNullability: false,
     );
 
@@ -37,7 +39,7 @@ class FilterGenerator {
             ..types.add(refer(nestedTypeName)),
         )
         ..body = refer('FilterSelector').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -49,25 +51,25 @@ class FilterGenerator {
     final String fieldName;
 
     // Determine the appropriate filter type based on field type
-    if (TypeAnalyzer.isStringType(field.dartType)) {
+    if (TypeAnalyzer.isStringType(field.type)) {
       filterType = 'StringFieldFilter';
       fieldName =
           field.parameterName; // Note: using parameterName for string type
-    } else if (TypeAnalyzer.isMapType(field.dartType)) {
+    } else if (TypeAnalyzer.isMapType(field.type)) {
       filterType = 'MapFieldFilter';
-      fieldName = field.jsonFieldName;
-    } else if (TypeAnalyzer.isIterableType(field.dartType)) {
+      fieldName = field.jsonName;
+    } else if (TypeAnalyzer.isIterableType(field.type)) {
       filterType = 'ArrayFieldFilter';
-      fieldName = field.jsonFieldName;
-    } else if (TypeAnalyzer.isBoolType(field.dartType)) {
+      fieldName = field.jsonName;
+    } else if (TypeAnalyzer.isBoolType(field.type)) {
       filterType = 'BoolFieldFilter';
-      fieldName = field.jsonFieldName;
-    } else if (TypeAnalyzer.isDateTimeType(field.dartType)) {
+      fieldName = field.jsonName;
+    } else if (TypeAnalyzer.isDateTimeType(field.type)) {
       filterType = 'DateTimeFieldFilter';
-      fieldName = field.jsonFieldName;
-    } else if (TypeAnalyzer.isNumericType(field.dartType)) {
+      fieldName = field.jsonName;
+    } else if (TypeAnalyzer.isNumericType(field.type)) {
       filterType = 'NumericFieldFilter';
-      fieldName = field.jsonFieldName;
+      fieldName = field.jsonName;
     } else {
       // For nested types, return the nested filter getter
       return _generateNestedFilterGetter(field);
@@ -89,19 +91,11 @@ class FilterGenerator {
 
   /// Generate filter selector extension using ModelAnalysis
   static Extension generateFilterSelectorClassFromAnalysis(
-    ModelAnalysis analysis,
+    InterfaceType type,
   ) {
-    final className = analysis.dartType.element?.name;
-    if (className == null) {
-      throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
-    }
+    final className = type.element.name;
 
-    final isGeneric = analysis.isGeneric;
-    final typeParameters = analysis.typeParameters;
-    final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
-    final classNameWithTypeParams = isGeneric
-        ? '$className<${typeParameterNames.join(', ')}>'
-        : className;
+    final typeParameters = type.typeParameters;
 
     // Create the target type (FilterSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -111,14 +105,15 @@ class FilterGenerator {
           TypeReference(
             (b) => b
               ..symbol = className
-              ..types.addAll(typeParameters),
+              ..types.addAll(typeParameters.references),
           ),
         ),
     );
 
     // Generate methods for all fields
+    final fields = ModelAnalyzer.instance.getFields(type);
     final methods = <Method>[];
-    for (final field in analysis.fields.values) {
+    for (final field in fields.values) {
       if (field.isDocumentId) {
         // Document ID field
         methods.add(_generateDocumentIdFilterGetter(field));
@@ -132,9 +127,9 @@ class FilterGenerator {
     return Extension(
       (b) => b
         ..name = '${className}FilterSelectorExtension'
-        ..types.addAll(typeParameters)
+        ..types.addAll(typeParameters.references)
         ..on = targetType
-        ..docs.add('/// Generated FilterSelector for $classNameWithTypeParams')
+        ..docs.add('/// Generated FilterSelector for $type')
         ..methods.addAll(methods),
     );
   }

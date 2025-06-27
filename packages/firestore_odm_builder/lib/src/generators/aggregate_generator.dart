@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
@@ -16,10 +17,10 @@ class AggregateGenerator {
         ..returns = TypeReference(
           (b) => b
             ..symbol = 'AggregateField'
-            ..types.add(field.dartType.reference),
+            ..types.add(field.type.reference),
         )
         ..body = refer('AggregateField').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -36,10 +37,10 @@ class AggregateGenerator {
         ..returns = TypeReference(
           (b) => b
             ..symbol = 'AggregateFieldSelector'
-            ..types.add(field.dartType.reference),
+            ..types.add(field.type.reference),
         )
         ..body = refer('AggregateFieldSelector').newInstance([], {
-          'name': literalString(field.jsonFieldName),
+          'name': literalString(field.jsonName),
           'parent': refer('this'),
         }).code,
     );
@@ -47,16 +48,16 @@ class AggregateGenerator {
 
   /// Generate aggregate field selector extension using ModelAnalysis
   static Extension generateAggregateFieldSelectorFromAnalysis(
-    ModelAnalysis analysis,
+    InterfaceType type,
   ) {
-    final className = analysis.dartType.element?.name;
+    final className = type.element?.name;
     if (className == null) {
       throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
     }
 
-    final typeParameters = analysis.typeParameters;
-    final typeParameterNames = typeParameters.map((ref) => ref.symbol).toList();
-    final classNameWithTypeParams = analysis.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
+    final typeParameters = type.typeParameters.references;
+    final typeParameterNames = type.typeParameters.map((ref) => ref.name).toList();
+    final classNameWithTypeParams = type.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
 
     // Create the target type (AggregateFieldSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -72,12 +73,13 @@ class AggregateGenerator {
     );
 
     // Generate methods for all aggregatable fields
+    final fields = ModelAnalyzer.instance.getFields(type);
     final methods = <Method>[];
-    for (final field in analysis.fields.values) {
+    for (final field in fields.values) {
       // Skip document ID field
       if (field.isDocumentId) continue;
 
-      final fieldType = field.dartType;
+      final fieldType = field.type;
 
       if (TypeAnalyzer.isNumericType(fieldType)) {
         // Numeric field for aggregation

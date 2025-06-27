@@ -1,8 +1,7 @@
-import 'package:analyzer/dart/element/nullability_suffix.dart';
+
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart'
-    hide FieldInfo;
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
@@ -10,71 +9,24 @@ import '../utils/model_analyzer.dart';
 /// Generator for update builders and related classes using code_builder
 class UpdateGenerator {
   /// Generate the update builder extension using pre-analyzed model information
-  static Spec? generateUpdateBuilderClass(ModelAnalysis analysis) {
-    // Don't generate update builders for types with no updateable fields
-    if (analysis.updateableFields.isEmpty) {
+  static Spec? generateUpdateBuilderClass(InterfaceType type) {
+    final typeFields = ModelAnalyzer.instance.getFields(type);
+
+    // If there are no fields, we cannot generate an update builder
+    if (typeFields.isEmpty) {
       return null;
     }
 
-    final className = analysis.dartType.element?.name;
-    if (className == null) {
-      throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
-    }
+    final className = type.name!;
+    final typeParameters = type.typeParameters.references;
 
-    final typeParameters = analysis.typeParameters;
-    return _generateGenericUpdateBuilderClass(
-      analysis,
-      className,
-      typeParameters,
-    );
-  }
-
-  // /// Generate extension for non-generic types
-  // static Extension _generateExtensionUpdateBuilder(
-  //   ModelAnalysis analysis,
-  //   String className,
-  //   List<TypeReference> typeParameters,
-  // ) {
-  //   // Create the target type (UpdateBuilder<ClassName>)
-  //   final targetType = TypeReference(
-  //     (b) => b
-  //       ..symbol = 'UpdateBuilder'
-  //       ..types.add(
-  //         TypeReference(
-  //           (b) => b
-  //             ..symbol = className
-  //             ..types.addAll(typeParameters),
-  //         ),
-  //       ),
-  //   );
-
-  //   // Generate methods for all updateable fields
-  //   final methods = <Method>[];
-  //   for (final field in analysis.updateableFields) {
-  //     methods.add(_generateFieldUpdateMethod(field));
-  //   }
-
-  //   return Extension(
-  //     (b) => b
-  //       ..name = '${className}UpdateBuilder'
-  //       ..on = targetType
-  //       ..methods.addAll(methods),
-  //   );
-  // }
-
-  /// Generate class for generic types that accepts converters
-  static Class _generateGenericUpdateBuilderClass(
-    ModelAnalysis analysis,
-    String className,
-    List<TypeReference> typeParameters,
-  ) {
     // Create converter fields for each type parameter
     final converterFields = <Field>[];
     final constructorParams = <Parameter>[];
     final initializerList = <Code>[];
 
-    for (final typeParam in typeParameters) {
-      final converterName = 'converter${typeParam.symbol}';
+    for (final typeParam in type.typeParameters) {
+      final converterName = 'converter${typeParam.name}';
       final converterFieldName = '_${converterName}';
       converterFields.add(
         Field(
@@ -83,7 +35,7 @@ class UpdateGenerator {
             ..type = TypeReference(
               (b) => b
                 ..symbol = 'FirestoreConverter'
-                ..types.addAll([typeParam, TypeReferences.dynamic]),
+                ..types.addAll([typeParam.reference, TypeReferences.dynamic]),
             )
             ..modifier = FieldModifier.final$,
         ),
@@ -95,7 +47,7 @@ class UpdateGenerator {
             ..type = TypeReference(
               (b) => b
                 ..symbol = 'FirestoreConverter'
-                ..types.addAll([typeParam, TypeReferences.dynamic]),
+                ..types.addAll([typeParam.reference, TypeReferences.dynamic]),
             )
             ..required = true,
         ),
@@ -106,10 +58,10 @@ class UpdateGenerator {
     }
 
     // Generate methods for all updateable fields
-    final fields = <Field>[];
-    for (final field in analysis.updateableFields) {
-      fields.add(_generateGenericFieldUpdateMethod(field));
-    }
+    final fields = ModelAnalyzer.instance
+        .getFields(type)
+        .values
+        .map((field) => _generateGenericFieldUpdateMethod(field));
 
     return Class(
       (b) => b
@@ -148,31 +100,31 @@ class UpdateGenerator {
     );
   }
 
-
   /// Generate field update method for generic types
-  static Field _generateGenericFieldUpdateMethod(
-    FieldInfo field,
-  ) {
-    final fieldType = field.dartType;
+  static Field _generateGenericFieldUpdateMethod(FieldInfo field) {
+    final fieldType = field.type;
     final fieldName = field.parameterName;
-    final jsonFieldName = field.jsonFieldName;
+    final jsonFieldName = field.jsonName;
     final converter = converterFactory.createConverter(
-      field.dartType,
+      field.type,
       element: field.element,
     );
 
-    final specializedConverter = switch(converter) {
-      TypeParameterPlaceholder type => VariableConverter('_converter${type.name}'),
+    final specializedConverter = switch (converter) {
+      TypeParameterPlaceholder type => VariableConverter(
+        '_converter${type.name}',
+      ),
       // If the converter is a specialized converter, we need to specialize it
       // with the type parameters of the field's Dart type
-      HasSpecializedConverter specializedConverter => specializedConverter.specialize({
-            for (var param in field.dartType .typeParameters)
-              param.name: VariableConverter('_converter${param.name}')
-          }),
+      HasSpecializedConverter specializedConverter =>
+        specializedConverter.specialize({
+          for (var param in field.type.typeParameters)
+            param.name: VariableConverter('_converter${param.name}'),
+        }),
       // Otherwise, use the converter as is
       _ => converter,
     };
-    
+
     // Check if this field is actually a type parameter (like T)
     final isTypeParameter = fieldType is TypeParameterType;
 
@@ -232,16 +184,13 @@ class UpdateGenerator {
         : returnType.rebuild((b) => b..types.replace([])).newInstance([], {
             'path': literalString(jsonFieldName),
             'converter': specializedConverter
-                .withNullable(
-                  field.dartType.nullabilitySuffix ==
-                      NullabilitySuffix.question,
-                )
+                .withNullable(field.isNullable)
                 .toConverterExpr(),
           });
 
     return Field(
       (b) => b
-        ..docs.add('/// Update $fieldName field ${field.dartType}')
+        ..docs.add('/// Update $fieldName field ${field.type}')
         // ..type = MethodType.getter
         ..name = fieldName
         ..modifier = FieldModifier.final$
