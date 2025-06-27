@@ -328,8 +328,11 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   }
 
   @override
-  Future<void> patch(PatchBuilder<T> patchBuilder) =>
-      QueryHandler.patch(_query, _documentIdField, patchBuilder);
+  Future<void> patch(PatchBuilder<T> patchBuilder) {
+    final builder = UpdateBuilder<T>();
+    final operations = patchBuilder(builder);
+    return QueryHandler.patch(_query, _documentIdField, operations);
+  }
 
   /// Modify multiple documents in this ordered query using diff-based updates.
   ///

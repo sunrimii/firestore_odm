@@ -22,7 +22,7 @@ abstract interface class FirestoreConverter<T, F> {
 /// Converter for primitive types that need no conversion
 class PrimitiveConverter<T> implements FirestoreConverter<T, T> {
   const PrimitiveConverter();
-  
+
   @override
   T fromJson(T data) => data;
 
@@ -30,7 +30,8 @@ class PrimitiveConverter<T> implements FirestoreConverter<T, T> {
   T toJson(T data) => data;
 }
 
-class MapConverter<K, V> implements FirestoreConverter<Map<K, V>, Map<String, dynamic>> {
+class MapConverter<K, V>
+    implements FirestoreConverter<Map<K, V>, Map<String, dynamic>> {
   final FirestoreConverter<K, String> keyConverter;
   final FirestoreConverter<V, dynamic> valueConverter;
 
@@ -38,18 +39,23 @@ class MapConverter<K, V> implements FirestoreConverter<Map<K, V>, Map<String, dy
 
   @override
   Map<K, V> fromJson(Map<String, dynamic> data) {
-    return data.map((key, value) =>
-        MapEntry(keyConverter.fromJson(key), valueConverter.fromJson(value)));
+    return data.map(
+      (key, value) =>
+          MapEntry(keyConverter.fromJson(key), valueConverter.fromJson(value)),
+    );
   }
 
   @override
   Map<String, dynamic> toJson(Map<K, V> data) {
-    return data.map((key, value) =>
-        MapEntry(keyConverter.toJson(key), valueConverter.toJson(value)));
+    return data.map(
+      (key, value) =>
+          MapEntry(keyConverter.toJson(key), valueConverter.toJson(value)),
+    );
   }
 }
 
-class IterableConverter<T> implements FirestoreConverter<Iterable<T>, List<dynamic>> {
+class IterableConverter<T>
+    implements FirestoreConverter<Iterable<T>, List<dynamic>> {
   final FirestoreConverter<T, dynamic> elementConverter;
 
   const IterableConverter(this.elementConverter);
@@ -65,11 +71,16 @@ class IterableConverter<T> implements FirestoreConverter<Iterable<T>, List<dynam
   }
 }
 
-class ListConverter<T> extends IterableConverter<T> {
-  const ListConverter(super.elementConverter);
+class ListConverter<T>
+    implements FirestoreConverter<List<T>, List<dynamic>> {
+  final FirestoreConverter<T, dynamic> elementConverter;
+  const ListConverter(this.elementConverter);
 
   @override
-  List<T> fromJson(List<dynamic> data) => super.fromJson(data).toList();
+  List<T> fromJson(List<dynamic> data) => data.map((item) => elementConverter.fromJson(item)).toList();
+
+  @override
+  List<dynamic> toJson(Iterable<T> data) => data.map((item) => elementConverter.toJson(item)).toList();
 }
 
 class SetConverter<T> extends IterableConverter<T> {
@@ -82,7 +93,7 @@ class SetConverter<T> extends IterableConverter<T> {
 /// Converter for DateTime <-> Timestamp
 class DateTimeConverter implements FirestoreConverter<DateTime, dynamic> {
   const DateTimeConverter();
-  
+
   @override
   DateTime fromJson(dynamic data) {
     if (data is Timestamp) {
@@ -94,7 +105,9 @@ class DateTimeConverter implements FirestoreConverter<DateTime, dynamic> {
       // Handle milliseconds since epoch
       return DateTime.fromMillisecondsSinceEpoch(data);
     } else {
-      throw ArgumentError('Unsupported DateTime data type: ${data.runtimeType}');
+      throw ArgumentError(
+        'Unsupported DateTime data type: ${data.runtimeType}',
+      );
     }
   }
 
@@ -112,7 +125,7 @@ class DateTimeConverter implements FirestoreConverter<DateTime, dynamic> {
 /// Converter for Duration <-> int (microseconds)
 class DurationConverter implements FirestoreConverter<Duration, int> {
   const DurationConverter();
-  
+
   @override
   Duration fromJson(int data) {
     return Duration(microseconds: data);
@@ -143,7 +156,7 @@ class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
 /// Converter for Uint8List <-> Blob
 class BytesConverter implements FirestoreConverter<Uint8List, Blob> {
   const BytesConverter();
-  
+
   @override
   Uint8List fromJson(Blob data) => data.bytes;
 
@@ -154,7 +167,7 @@ class BytesConverter implements FirestoreConverter<Uint8List, Blob> {
 /// Converter for GeoPoint (no conversion needed, but provides consistency)
 class GeoPointConverter implements FirestoreConverter<GeoPoint, GeoPoint> {
   const GeoPointConverter();
-  
+
   @override
   GeoPoint fromJson(GeoPoint data) => data;
 
@@ -163,9 +176,10 @@ class GeoPointConverter implements FirestoreConverter<GeoPoint, GeoPoint> {
 }
 
 /// Converter for DocumentReference (no conversion needed, but provides consistency)
-class DocumentReferenceConverter implements FirestoreConverter<DocumentReference, DocumentReference> {
+class DocumentReferenceConverter
+    implements FirestoreConverter<DocumentReference, DocumentReference> {
   const DocumentReferenceConverter();
-  
+
   @override
   DocumentReference fromJson(DocumentReference data) => data;
 
@@ -178,9 +192,11 @@ class _FirestoreConverterImpl<T, F> implements FirestoreConverter<T, F> {
   final F Function(T data) _toJson;
   final T Function(F data) _fromJson;
 
-  const _FirestoreConverterImpl({required T Function(F data) fromJson, required F Function(T data) toJson})
-      : _fromJson = fromJson,
-        _toJson = toJson;
+  const _FirestoreConverterImpl({
+    required T Function(F data) fromJson,
+    required F Function(T data) toJson,
+  }) : _fromJson = fromJson,
+       _toJson = toJson;
 
   @override
   T fromJson(F data) => _fromJson(data);
@@ -188,8 +204,6 @@ class _FirestoreConverterImpl<T, F> implements FirestoreConverter<T, F> {
   @override
   F toJson(T data) => _toJson(data);
 }
-
-
 
 /// Predefined converter instances for common types
 class FirestoreConverters {

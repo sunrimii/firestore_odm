@@ -242,9 +242,11 @@ class UpdateOperation {
 }
 
 /// Base update builder class using Node-based architecture
-class UpdateBuilder<T> extends Node {
+class UpdateBuilder<T> {
+  final String _path;
+
   /// Create an UpdateBuilder with optional name and parent for nested objects
-  UpdateBuilder({super.name, super.parent});
+  const UpdateBuilder({String path = ''}) : _path = path;
 
   /// Convert operations to Firestore update map
   static Map<String, dynamic> operationsToMap(
@@ -404,15 +406,18 @@ class UpdateBuilder<T> extends Node {
 
 class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
   /// Converter function to transform the value before storing in Firestore
-  final dynamic Function(T) toJson;
+  final FirestoreConverter<T, dynamic> _converter;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  DefaultUpdateBuilder({super.name, super.parent, required this.toJson});
+  const DefaultUpdateBuilder({
+    required super.path,
+    required FirestoreConverter<T, dynamic> converter,
+  }) : _converter = converter;
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
-    final convertedValue = toJson(value);
-    return UpdateOperation($path, UpdateOperationType.set, convertedValue);
+    final convertedValue = _converter.toJson(value);
+    return UpdateOperation(_path, UpdateOperationType.set, convertedValue);
   }
 }
 
@@ -1032,27 +1037,27 @@ class DocumentIdFieldFilter extends CallableFilter {
 
 /// Numeric field callable updater
 class NumericFieldUpdate<T extends num?> extends DefaultUpdateBuilder<T> {
-  NumericFieldUpdate({super.name, super.parent, required super.toJson});
+  const NumericFieldUpdate({required super.path, required super.converter});
 
   /// Increment field value
   UpdateOperation increment(T value) {
-    return UpdateOperation($path, UpdateOperationType.increment, value);
+    return UpdateOperation(_path, UpdateOperationType.increment, value);
   }
 }
 
 /// List field callable updater
 class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
-  ListFieldUpdate({super.name, super.parent, required super.toJson});
+  const ListFieldUpdate({required super.path, required super.converter});
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return UpdateOperation($path, UpdateOperationType.arrayAdd, value);
+    return UpdateOperation(_path, UpdateOperationType.arrayAdd, value);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
     return UpdateOperation(
-      $path,
+      _path,
       UpdateOperationType.arrayAddAll,
       values.toList(),
     );
@@ -1060,13 +1065,13 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return UpdateOperation($path, UpdateOperationType.arrayRemove, value);
+    return UpdateOperation(_path, UpdateOperationType.arrayRemove, value);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
     return UpdateOperation(
-      $path,
+      _path,
       UpdateOperationType.arrayRemoveAll,
       values.toList(),
     );
@@ -1075,50 +1080,45 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
-  DateTimeFieldUpdate({super.name, super.parent, required super.toJson});
+  const DateTimeFieldUpdate({required super.path, required super.converter});
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return UpdateOperation($path, UpdateOperationType.serverTimestamp, null);
+    return UpdateOperation(_path, UpdateOperationType.serverTimestamp, null);
   }
 }
 
 /// Duration field callable updater
 class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
-  DurationFieldUpdate({super.name, super.parent})
-    : super(toJson: _getDurationConverter<T>());
-
-  static int? Function(T) _getDurationConverter<T extends Duration?>() {
-    if (null is T) {
-      // T is nullable (Duration?)
-      return NullableConverter(DurationConverter()).toJson;
-    } else {
-      // T is non-nullable (Duration)
-      return DurationConverter().toJson as int? Function(T);
-    }
-  }
+  const DurationFieldUpdate({required super.path})
+    : super(
+        converter: null is T
+            ? const NullableConverter(DurationConverter())
+                  as FirestoreConverter<T, int?>
+            : const DurationConverter() as FirestoreConverter<T, int?>,
+      );
 
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
-    return UpdateOperation($path, UpdateOperationType.increment, value);
+    return UpdateOperation(_path, UpdateOperationType.increment, value);
   }
 }
 
 /// Map field callable updater with clean, consistent Dart Map-like operations
 class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
-  MapFieldUpdate({super.name, super.parent, required super.toJson});
+  const MapFieldUpdate({required super.path, required super.converter});
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
-    final keyPath = '${$path}.$key';
+    final keyPath = '${_path}.$key';
     return UpdateOperation(keyPath, UpdateOperationType.set, value);
   }
 
   /// Remove a single key (like map.remove(key))
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
-    final keyPath = '${$path}.$key';
+    final keyPath = '${_path}.$key';
     return UpdateOperation(keyPath, UpdateOperationType.delete, null);
   }
 
@@ -1129,7 +1129,7 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
     for (final entry in entries.entries) {
       entriesMap[entry.key.toString()] = entry.value;
     }
-    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation(_path, UpdateOperationType.mapPutAll, entriesMap);
   }
 
   /// Add multiple entries from MapEntry iterable (more flexible)
@@ -1139,20 +1139,20 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
     for (final entry in entries) {
       entriesMap[entry.key.toString()] = entry.value;
     }
-    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation(_path, UpdateOperationType.mapPutAll, entriesMap);
   }
 
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
     final keysList = keys.map((key) => key.toString()).toList();
-    return UpdateOperation($path, UpdateOperationType.mapRemoveAll, keysList);
+    return UpdateOperation(_path, UpdateOperationType.mapRemoveAll, keysList);
   }
 
   /// Clear all entries (like map.clear())
   /// Usage: $.settings.clear()
   UpdateOperation clear() {
-    return UpdateOperation($path, UpdateOperationType.set, <String, dynamic>{});
+    return UpdateOperation(_path, UpdateOperationType.set, <String, dynamic>{});
   }
 
   // ===== Convenience Methods =====
@@ -1164,16 +1164,6 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
     for (final key in keys) {
       entriesMap[key.toString()] = value;
     }
-    return UpdateOperation($path, UpdateOperationType.mapPutAll, entriesMap);
+    return UpdateOperation(_path, UpdateOperationType.mapPutAll, entriesMap);
   }
-
-  // ===== Legacy Aliases (for backward compatibility) =====
-
-  /// @deprecated Use set() instead
-  @Deprecated('Use set() instead for consistency with Dart Map')
-  UpdateOperation setKey(K key, V value) => set(key, value);
-
-  /// @deprecated Use remove() instead
-  @Deprecated('Use remove() instead for consistency with Dart Map')
-  UpdateOperation removeKey(K key) => remove(key);
 }

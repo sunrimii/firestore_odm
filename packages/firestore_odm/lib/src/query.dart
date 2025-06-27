@@ -79,8 +79,11 @@ class Query<S extends FirestoreSchema, T>
   }
 
   @override
-  Future<void> patch(PatchBuilder<T> patchBuilder) =>
-      QueryHandler.patch(_query, _documentIdField, patchBuilder);
+  Future<void> patch(PatchBuilder<T> patchBuilder) {
+    final builder = UpdateBuilder<T>();
+    final operations = patchBuilder(builder);
+    return QueryHandler.patch(_query, _documentIdField, operations);
+  }
 
   /// Modify multiple documents using diff-based updates.
   ///

@@ -48,16 +48,14 @@ class TransactionContext<Schema extends FirestoreSchema> {
 class TransactionCollection<S extends FirestoreSchema, T> {
   final firestore.Transaction _transaction;
   final firestore.CollectionReference<Map<String, dynamic>> query;
-  final Map<String, dynamic> Function(T) toJson;
-  final T Function(Map<String, dynamic>) fromJson;
+  final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> _context;
 
   TransactionCollection({
     required firestore.Transaction transaction,
     required this.query,
-    required this.toJson,
-    required this.fromJson,
+    required this.converter,
     required TransactionContext<S> context,
     required this.documentIdField,
   }) : _transaction = transaction,
@@ -69,8 +67,7 @@ class TransactionCollection<S extends FirestoreSchema, T> {
   TransactionDocument<S, T> call(String id) => TransactionDocument(
     _transaction,
     query.doc(id),
-    toJson,
-    fromJson,
+    converter,
     documentIdField,
     _context,
   );
@@ -85,16 +82,14 @@ class TransactionDocument<S extends FirestoreSchema, T>
         SynchronousDeletable {
   final firestore.Transaction _transaction;
   final firestore.DocumentReference<Map<String, dynamic>> ref;
-  final Map<String, dynamic> Function(T) toJson;
-  final T Function(Map<String, dynamic>) fromJson;
+  final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> _context;
 
   TransactionDocument(
     this._transaction,
     this.ref,
-    this.toJson,
-    this.fromJson,
+    this.converter,
     this.documentIdField,
     this._context,
   );
@@ -106,7 +101,7 @@ class TransactionDocument<S extends FirestoreSchema, T>
     _context._cacheDocument(snapshot);
     if (!snapshot.exists) return null;
     return fromFirestoreData(
-      fromJson,
+      converter.fromJson,
       snapshot.data()!,
       documentIdField,
       snapshot.id,
@@ -161,8 +156,8 @@ class TransactionDocument<S extends FirestoreSchema, T>
     final patch = DocumentHandler.processPatch(
       snapshot,
       modifier,
-      toJson,
-      fromJson,
+      converter.toJson,
+      converter.fromJson,
       documentIdField,
       atomic ? computeDiffWithAtomicOperations : computeDiff,
     );

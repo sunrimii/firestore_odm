@@ -777,12 +777,8 @@ abstract class QueryHandler {
   static Future<void> patch<T>(
     firestore.Query<Map<String, dynamic>> query,
     String documentIdField,
-    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
-    updateBuilder,
+    List<UpdateOperation> operations,
   ) async {
-    final snapshot = await query.get();
-    final builder = UpdateBuilder<T>();
-    final operations = updateBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);
 
     if (updateMap.isEmpty) {
@@ -790,6 +786,7 @@ abstract class QueryHandler {
     }
 
     final batch = query.firestore.batch();
+    final snapshot = await query.get();
     for (final docSnapshot in snapshot.docs) {
       batch.update(docSnapshot.reference, updateMap);
     }

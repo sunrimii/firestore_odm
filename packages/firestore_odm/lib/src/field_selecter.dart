@@ -1,28 +1,26 @@
 class Node {
   final String _name;
   final Node? _parent;
-  final List<String> _parts;
-  final String _path;
 
   Node get $root => _parent?.$root ?? this;
 
   String get $name => _name;
 
-  String get $path => _path;
+  String get $path {
+    if (_parent == null) return _name;
+    if (_name.isEmpty) return _parent.$path;
+    return _parent.$path.isEmpty ? _name : '${_parent.$path}.$_name';
+  }
 
-  List<String> get $parts => _parts;
+  List<String> get $parts {
+    if (_parent == null) {
+      return _name.isEmpty ? const <String>[] : <String>[_name];
+    }
+    if (_name.isEmpty) return _parent.$parts;
+    return [..._parent.$parts, _name];
+  }
 
-  Node({String name = '', Node? parent})
-    : _name = name,
-      _parent = parent,
-      _parts = parent != null
-          ? (name.isEmpty ? parent._parts : [...parent._parts, name])
-          : (name.isEmpty ? const [] : [name]),
-      _path = parent != null
-          ? (name.isEmpty
-                ? parent._path
-                : parent._path.isEmpty
-                ? name
-                : '${parent._path}.$name')
-          : name;
+  const Node({String name = '', Node? parent})
+      : _name = name,
+        _parent = parent;
 }

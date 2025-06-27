@@ -177,16 +177,16 @@ class BatchCollection<S extends FirestoreSchema, T>
     implements SynchronousInsertable<T>, SynchronousUpdatable<T>, SynchronousUpsertable<T> {
   final BatchContext<S> _context;
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
-  final Map<String, dynamic> Function(T) _toJson;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
 
   BatchCollection({
     required firestore.CollectionReference<Map<String, dynamic>> collection,
-    required Map<String, dynamic> Function(T) toJson,
+    required FirestoreConverter<T, Map<String, dynamic>> converter,
     required BatchContext<S> context,
     required String documentIdField,
   }) : _collection = collection,
-       _toJson = toJson,
+       _converter = converter,
        _context = context,
        _documentIdField = documentIdField;
 
@@ -199,7 +199,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void insert(T value) {
     final (data, documentId) = processObject(
-      _toJson,
+      _converter.toJson,
       value,
       documentIdField: _documentIdField,
     );
@@ -221,7 +221,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void update(T value) {
     final (data, documentId) = processObject(
-      _toJson,
+      _converter.toJson,
       value,
       documentIdField: _documentIdField,
     );
@@ -248,7 +248,7 @@ class BatchCollection<S extends FirestoreSchema, T>
   @override
   void upsert(T value) {
     final (data, documentId) = processObject(
-      _toJson,
+      _converter.toJson,
       value,
       documentIdField: _documentIdField,
     );
