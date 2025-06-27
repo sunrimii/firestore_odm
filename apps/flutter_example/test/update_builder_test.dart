@@ -43,8 +43,8 @@ void main() {
         // updateBuilder.customField should be DefaultUpdateBuilder<T>
         
         return [
-          updateBuilder.name.set('Updated Name'),
-          updateBuilder.customField.set(ManualUser3Profile<Book>(
+          updateBuilder.name('Updated Name'),
+          updateBuilder.customField(ManualUser3Profile<Book>(
             email: 'updated@test.com',
             age: 30,
             isPremium: true,
@@ -90,8 +90,8 @@ void main() {
       // Test UpdateBuilder with String generic type
       await odm.manualUsers3Strings('string_update_001').patch((updateBuilder) {
         return [
-          updateBuilder.name.set('Updated String User'),
-          updateBuilder.customField.set(ManualUser3Profile<String>(
+          updateBuilder.name('Updated String User'),
+          updateBuilder.customField(ManualUser3Profile<String>(
             email: 'updated.string@test.com',
             age: 25,
             isPremium: true,
