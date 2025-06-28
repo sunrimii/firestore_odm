@@ -4,39 +4,6 @@ import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 
-class NameUtil {
-  static String getName(
-    DartType type, {
-    String postfix = '',
-    String prefix = '',
-    withTypeArguments = true,
-  }) {
-    final className = type.element?.name;
-    if (className == null) {
-      throw ArgumentError('Type must have a valid element name');
-    }
-    return composeTypeName(
-      className,
-      postfix: postfix,
-      prefix: prefix,
-      typeParameters: withTypeArguments && type is InterfaceType
-          ? type.typeArguments.map(
-              (t) => t.getDisplayString(withNullability: false),
-            )
-          : <String>[],
-    );
-  }
-
-  static String composeTypeName(
-    String name, {
-    String prefix = '',
-    String postfix = '',
-    Iterable<String> typeParameters = const [],
-  }) {
-    return '${prefix}${name}$postfix${typeParameters.isNotEmpty ? '<${typeParameters.join(', ')}>' : ''}';
-  }
-}
-
 extension DartTypeExtension on DartType {
   TypeReference get reference {
     final element = this.element3;
@@ -229,20 +196,6 @@ class TypeReferences {
   }
 }
 
-extension StringUtils on String {
-  String lowerFirst() => isEmpty ? this : this[0].toLowerCase() + substring(1);
-
-  String upperFirst() => isEmpty ? this : this[0].toUpperCase() + substring(1);
-
-  String camelCase() {
-    if (isEmpty) return this;
-    final parts = split('_');
-    return parts
-        .map((p) => p.isNotEmpty ? p[0].toUpperCase() + p.substring(1) : '')
-        .join('');
-  }
-}
-
 
 extension TypeReferenceX on TypeReference {
   TypeReference withNullability(bool isNullable) {
@@ -273,4 +226,11 @@ extension ElementIterableX on Iterable<Element> {
 
 extension Element2IterableX on Iterable<Element2> {
   List<TypeReference> get references => map((e) => e.reference).toList();
+}
+
+extension ExpressionnX on Expression  {
+  /// Converts the expression to a string representation
+  Expression debug(String message) {
+    return refer('/* $message */ ${accept(DartEmitter())}');
+  }
 }

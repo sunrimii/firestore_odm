@@ -2,8 +2,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
-import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
-import 'package:firestore_odm_builder/src/utils/string_helpers.dart';
+import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 

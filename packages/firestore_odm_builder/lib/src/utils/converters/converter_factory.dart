@@ -1,13 +1,9 @@
-// ===== Core Converter Interface =====
-
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
-import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
-import 'package:firestore_odm_builder/src/utils/string_helpers.dart';
+import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 

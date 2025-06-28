@@ -1,13 +1,12 @@
-import 'dart:async';
 
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
-import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
-import 'package:source_gen/source_gen.dart';
+import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
+import 'package:firestore_odm_builder/src/utils/string_utils.dart';
 
-import '../utils/string_helpers.dart';
 import '../utils/model_analyzer.dart';
 import 'filter_generator.dart';
 import 'order_by_generator.dart';
@@ -82,7 +81,7 @@ class SchemaGenerator {
     }
 
     // Fallback: generate from variable name following the convention
-    return '_\$${StringHelpers.capitalize(variableElement.name)}';
+    return '_\$${variableElement.name.upperFirst()}';
   }
 
   static String _generateDocumentClassName(String collectionPath) {
@@ -112,7 +111,7 @@ class SchemaGenerator {
 
     // Convert each segment to PascalCase and join with underscore
     final capitalizedSegments = segments
-        .map((segment) => StringHelpers.capitalize(segment))
+        .map((segment) => segment.upperFirst())
         .toList();
 
     return capitalizedSegments;
@@ -196,7 +195,7 @@ class SchemaGenerator {
 
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
-    final schemaClassName = StringHelpers.capitalize(variableName);
+    final schemaClassName = variableName.upperFirst();
 
     // Extract the assigned value (e.g., "_$TestSchema") for the const name
     final assignedValue = _extractAssignedValue(variableElement);
@@ -343,7 +342,7 @@ class SchemaGenerator {
               'query': refer(
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
-              'converter': converterFactory
+              'converter': ConverterFactory.instance
                   .createConverter(collection.modelType)
                   .toConverterExpr(),
               'documentIdField': literalString(documentIdFieldName),
@@ -757,7 +756,7 @@ class SchemaGenerator {
 
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
-        final getterName = StringHelpers.camelCase(subcollectionName);
+        final getterName = subcollectionName.camelCase().lowerFirst();
         final documentIdFieldName =
             ModelAnalyzer.instance.getDocumentIdFieldName(subcol.modelType);
 
