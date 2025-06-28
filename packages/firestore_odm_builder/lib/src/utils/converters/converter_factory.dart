@@ -12,15 +12,23 @@ class ConverterFactory {
 
   ConverterFactory._internal();
 
-  final Map<(DartType, Element?), TypeConverter> _converterCache = {};
+  final Map<(DartType, Element?), TypeConverter> _baseConverterCache = {};
   final List<Spec> _modelConverters = [];
 
   /// Create a converter for the given type, optionally using the provided element
-  TypeConverter createConverter(DartType type, {Element? element}) =>
-      _converterCache.putIfAbsent((
-        type,
-        element,
-      ), () => _createConverter(type, element: element));
+  TypeConverter createConverter(
+    DartType type, {
+    Element? element,
+    bool raw = false,
+  }) {
+    final baseConverter = _baseConverterCache.putIfAbsent(
+      (type, element),
+      () => _tryConvertToDefaultConverter(
+        _createConverter(type, element: element),
+      ),
+    );
+    return raw ? baseConverter : _tryConvertToDefaultConverter(baseConverter);
+  }
 
   /// Analyze a type and create appropriate converter
   TypeConverter _createConverter(DartType type, {Element? element}) {
@@ -32,32 +40,11 @@ class ConverterFactory {
     // 3. Check for @JsonConverter annotation
     final annotation = _findJsonConverterAnnotation(element);
     if (annotation != null) {
-      final fromType =
-          annotation.getMethod2('fromJson')?.returnType.reference ??
-          TypeReferences.dynamic;
-      final toType =
-          annotation.getMethod2('toJson')?.returnType.reference ??
-          TypeReferences.dynamic;
-      final converter = AnnotationConverter(annotation);
-      // _generateConverter(converter, fromType: fromType, toType: toType);
-      return converter;
+      return AnnotationConverter(annotation);
     }
 
     // 4. Check for fromJson/toJson methods
     if (_hasJsonMethods(type) && type is InterfaceType) {
-      // Check if it's a generic type by counting converter parameters
-      // final actualToType = type.getMethod2('toJson')?.returnType.reference;
-      // final toType =
-      //     TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
-      //     ? TypeReferences.listOf(TypeReferences.dynamic)
-      //     : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
-      // _generateInterfaceConverter(
-      //   type.element,
-      //   toType: toType,
-      //   cast: actualToType != toType,
-      // );
-
-      // with fromJson/toJson
       return JsonMethodConverter(
         type: type,
         typeParameterMapping: {
@@ -87,19 +74,23 @@ class ConverterFactory {
         return SpecializedDefaultConverter(
           (typeParameterMapping) =>
               TypeReference(
-                (b) => b
-                  ..symbol = entry.value
-                  ..url = 'package:firestore_odm/firestore_odm.dart'
-                  ..types.addAll(type.typeArguments.map((t) => t.reference)),
-              ).call(
-                type.typeArguments
-                    .map(
-                      (t) => createConverter(
-                        t,
-                      ).toDefaultConverter().apply(typeParameterMapping).toConverterExpr(),
-                    )
-                    .toList(),
-              ).debug('${typeParameterMapping}'),
+                    (b) => b
+                      ..symbol = entry.value
+                      ..url = 'package:firestore_odm/firestore_odm.dart'
+                      ..types.addAll(
+                        type.typeArguments.map((t) => t.reference),
+                      ),
+                  )
+                  .call(
+                    type.typeArguments
+                        .map(
+                          (t) => createConverter(t)
+                              .apply(typeParameterMapping)
+                              .toConverterExpr(),
+                        )
+                        .toList(),
+                  )
+                  .debug('${typeParameterMapping}'),
         );
       }
     }
@@ -142,8 +133,19 @@ class ConverterFactory {
     return _modelConverters;
   }
 
+  TypeConverter _tryConvertToDefaultConverter(TypeConverter converter) {
+    return switch (converter) {
+      DefaultConverter defaultConverter => defaultConverter,
+      NullableConverter nullableConverter => NullableConverter(
+        _tryConvertToDefaultConverter(nullableConverter.inner),
+      ),
+      WithName withName => _toDefaultConverter(withName),
+      _ => converter,
+    };
+  }
+
   final Set<String> _generated3 = {};
-  DefaultConverter toDefaultConverter(WithName converter) {
+  DefaultConverter _toDefaultConverter(WithName converter) {
     if (!_generated3.contains(converter.name)) {
       final baseConverter = converter.baseConverter;
       _generateConverter(
@@ -179,7 +181,6 @@ class ConverterFactory {
               ),
               converter.type.typeArguments.map(
                 (e) => createConverter(e)
-                    .toDefaultConverter()
                     .apply(typeParameterMapping)
                     .toConverterExpr(),
               ),

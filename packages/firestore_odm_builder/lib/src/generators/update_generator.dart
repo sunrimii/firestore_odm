@@ -115,7 +115,6 @@ class UpdateGenerator {
     final jsonFieldName = field.jsonName;
     final converter = ConverterFactory.instance
         .createConverter(field.type, element: field.element)
-        .toDefaultConverter()
         .apply(mapping)
         .withNullable(field.isNullable);
 

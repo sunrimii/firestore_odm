@@ -9,7 +9,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
-import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
@@ -131,7 +131,6 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   TypeConverter _transform(DartType type) {
     return ConverterFactory.instance
         .createConverter(type)
-        .toDefaultConverter()
         .apply(typeParameterMapping);
   }
 
@@ -206,7 +205,6 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
   TypeConverter _transform(DartType fieldType, Element? element) {
     return ConverterFactory.instance
         .createConverter(fieldType, element: element)
-        .toDefaultConverter()
         .apply(typeParameterMapping);
   }
 
@@ -364,18 +362,6 @@ class TypeParameterPlaceholder implements TypeConverter, MaybeGeneric {
 final converterFactory = ConverterFactory.instance;
 
 extension TypeConverterExtensions on TypeConverter {
-  TypeConverter toDefaultConverter() {
-    return switch (this) {
-      DefaultConverter defaultConverter => defaultConverter,
-      NullableConverter nullableConverter => NullableConverter(
-        nullableConverter.inner.toDefaultConverter(),
-      ),
-      WithName withName => ConverterFactory.instance.toDefaultConverter(
-        withName,
-      ),
-      _ => this,
-    };
-  }
 
   Expression toConverterExpr() {
     switch (this) {
@@ -394,13 +380,12 @@ extension TypeConverterExtensions on TypeConverter {
         );
       case WithName converter:
         return converter
-            .toDefaultConverter()
             .apply(
               Map.fromIterables(
                 converter.type.element3.typeParameters2.map((e) => e.name3!),
                 converter.type.typeArguments.map(
                   (e) =>
-                      converterFactory.createConverter(e).toDefaultConverter(),
+                      converterFactory.createConverter(e),
                 ),
               ),
             )
