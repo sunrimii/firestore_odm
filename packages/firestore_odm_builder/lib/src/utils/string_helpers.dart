@@ -1,3 +1,5 @@
+import 'package:code_builder/code_builder.dart';
+
 /// Utility functions for string manipulation in code generation
 class StringHelpers {
   /// Capitalize the first letter of a string
@@ -19,5 +21,13 @@ class StringHelpers {
   /// Generate a nested prefix for field access
   static String getNestedPrefix(String currentPrefix, String fieldName) {
     return currentPrefix.isEmpty ? fieldName : '$currentPrefix.$fieldName';
+  }
+}
+
+
+extension ExpressionnX on Expression  {
+  /// Converts the expression to a string representation
+  Expression debug(String message) {
+    return refer('/* $message */ ${accept(DartEmitter())}');
   }
 }

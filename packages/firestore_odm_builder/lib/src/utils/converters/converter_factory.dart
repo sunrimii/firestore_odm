@@ -7,10 +7,15 @@ import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:firestore_odm_builder/src/utils/string_helpers.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 
 class ConverterFactory {
+  static final ConverterFactory instance = ConverterFactory._internal();
+
+  ConverterFactory._internal();
+
   final Map<(DartType, Element?), TypeConverter> _converterCache = {};
   final List<Spec> _modelConverters = [];
 
@@ -38,23 +43,23 @@ class ConverterFactory {
           annotation.getMethod2('toJson')?.returnType.reference ??
           TypeReferences.dynamic;
       final converter = AnnotationConverter(annotation);
-      _generateConverter(converter, fromType: fromType, toType: toType);
+      // _generateConverter(converter, fromType: fromType, toType: toType);
       return converter;
     }
 
     // 4. Check for fromJson/toJson methods
     if (_hasJsonMethods(type) && type is InterfaceType) {
       // Check if it's a generic type by counting converter parameters
-      final actualToType = type.getMethod2('toJson')?.returnType.reference;
-      final toType =
-          TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
-          ? TypeReferences.listOf(TypeReferences.dynamic)
-          : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
-      _generateInterfaceConverter(
-        type.element,
-        toType: toType,
-        cast: actualToType != toType,
-      );
+      // final actualToType = type.getMethod2('toJson')?.returnType.reference;
+      // final toType =
+      //     TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
+      //     ? TypeReferences.listOf(TypeReferences.dynamic)
+      //     : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
+      // _generateInterfaceConverter(
+      //   type.element,
+      //   toType: toType,
+      //   cast: actualToType != toType,
+      // );
 
       // with fromJson/toJson
       return JsonMethodConverter(
@@ -84,7 +89,7 @@ class ConverterFactory {
     for (final entry in mapper.entries) {
       if (TypeChecker.fromRuntime(entry.key).isAssignableFromType(type)) {
         return SpecializedDefaultConverter(
-          (transform) =>
+          (typeParameterMapping) =>
               TypeReference(
                 (b) => b
                   ..symbol = entry.value
@@ -92,21 +97,20 @@ class ConverterFactory {
                   ..types.addAll(type.typeArguments.map((t) => t.reference)),
               ).call(
                 type.typeArguments
-                    .map(transform)
-                    .map((x) => x.toConverterExpr())
+                    .map(
+                      (t) => createConverter(
+                        t,
+                      ).toDefaultConverter().apply(typeParameterMapping).toConverterExpr(),
+                    )
                     .toList(),
-              ),
-          typeParameterMapping: {
-            for (final t in type.typeParameters)
-              t.name: VariableConverter('converter${t.name}'),
-          },
+              ).debug('${typeParameterMapping}'),
         );
       }
     }
 
     // 5. Create custom model converter
     if (type is InterfaceType) {
-      return _createModelConverter(type);
+      return ModelConverter(type: type);
     }
 
     throw UnimplementedError('No converter for type: $type');
@@ -137,53 +141,58 @@ class ConverterFactory {
     return fromJson != null && toJson != null;
   }
 
-  ModelConverter _createModelConverter(InterfaceType type) {
-    // Analyze fields and create model converter
-    final fields = ModelAnalyzer.instance.getFields(type);
-
-    // print(
-    //   'Creating ModelConverter for ${type.element.name} with fields: ${fields.keys.join(', ')}',
-    // );
-    _generateInterfaceConverter(type.element);
-    return ModelConverter(
-      type: type,
-      fields: fields,
-      typeParameterMapping: {
-        for (final t in type.element3.typeParameters2)
-          t.name3!: VariableConverter('converter${t.name3}'),
-      },
-    );
-  }
-
   List<Spec> get specs {
     // Return all model converter specs
     return _modelConverters;
   }
 
-  final Set<TypeConverter> _generated = {};
-  final Set<InterfaceElement> _generated2 = {};
-
-  void _generateInterfaceConverter(
-    InterfaceElement element, {
-    TypeReference? toType,
-    bool cast = false,
-  }) {
-    if (_generated2.contains(element)) {
-      // Already generated for this element
-      return;
+  final Set<String> _generated3 = {};
+  DefaultConverter toDefaultConverter(WithName converter) {
+    if (!_generated3.contains(converter.name)) {
+      final baseConverter = converter.baseConverter;
+      _generateConverter(
+        baseConverter.apply(
+          Map.fromIterables(
+            baseConverter.type.element3.typeParameters2.map((e) => e.name3!),
+            baseConverter.type.element3.typeParameters2.map(
+              (e) => VariableConverter('converter${e.name3!}'),
+            ),
+          ),
+        ),
+        typeParameters: baseConverter.type.element3.typeParameters2.references,
+        fromType: baseConverter.fromType,
+        toType: baseConverter.expectType,
+        cast: baseConverter.toType != baseConverter.expectType,
+        docs: ['//Generated converter for ${baseConverter.type}'],
+      );
+      _generated3.add(baseConverter.name);
     }
-
-    _generated2.add(element);
-
-    final converter = createConverter(element.thisType, element: element);
-    _generateConverter(
-      converter,
-      typeParameters: element.typeParameters.map((x) => x.reference),
-      fromType: element.reference,
-      toType: toType,
-      cast: cast,
+    return SpecializedDefaultConverter(
+      (typeParameterMapping) =>
+          TypeReference(
+            (b) => b
+              ..symbol = (converter).name
+              ..types.addAll(
+                converter.type.typeArguments.map((v) => v.reference),
+              ),
+          ).call(
+            [],
+            Map.fromIterables(
+              converter.type.element3.typeParameters2.map(
+                (e) => 'converter${e.name3!}',
+              ),
+              converter.type.typeArguments.map(
+                (e) => createConverter(e)
+                    .toDefaultConverter()
+                    .apply(typeParameterMapping)
+                    .toConverterExpr(),
+              ),
+            ),
+          ),
     );
   }
+
+  final Set<TypeConverter> _generated = {};
 
   void _generateConverter(
     TypeConverter converter, {
@@ -217,7 +226,7 @@ class ConverterFactory {
       Class(
         (b) => b
           ..docs.addAll(docs)
-          ..name = (converter as WithName).name
+          ..name = converter.name
           ..types.addAll(typeParameters)
           ..implements.add(
             TypeReference(

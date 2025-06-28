@@ -1,8 +1,9 @@
-
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:firestore_odm_builder/src/utils/string_helpers.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -57,11 +58,16 @@ class UpdateGenerator {
       );
     }
 
+    final mapping = {
+      for (var param in type.element3.typeParameters2)
+        param.name3!: VariableConverter('_converter${param.name3!}'),
+    };
+
     // Generate methods for all updateable fields
     final fields = ModelAnalyzer.instance
         .getFields(type)
         .values
-        .map((field) => _generateGenericFieldUpdateMethod(field));
+        .map((field) => _generateGenericFieldUpdateMethod(field, mapping));
 
     return Class(
       (b) => b
@@ -101,29 +107,18 @@ class UpdateGenerator {
   }
 
   /// Generate field update method for generic types
-  static Field _generateGenericFieldUpdateMethod(FieldInfo field) {
+  static Field _generateGenericFieldUpdateMethod(
+    FieldInfo field,
+    Map<String, VariableConverter> mapping,
+  ) {
     final fieldType = field.type;
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonName;
-    final converter = converterFactory.createConverter(
-      field.type,
-      element: field.element,
-    );
-
-    final specializedConverter = switch (converter) {
-      TypeParameterPlaceholder type => VariableConverter(
-        '_converter${type.name}',
-      ),
-      // If the converter is a specialized converter, we need to specialize it
-      // with the type parameters of the field's Dart type
-      HasSpecializedConverter specializedConverter =>
-        specializedConverter.specialize({
-          for (var param in field.type.typeParameters)
-            param.name: VariableConverter('_converter${param.name}'),
-        }),
-      // Otherwise, use the converter as is
-      _ => converter,
-    };
+    final converter = ConverterFactory.instance
+        .createConverter(field.type, element: field.element)
+        .toDefaultConverter()
+        .apply(mapping)
+        .withNullable(field.isNullable);
 
     // Check if this field is actually a type parameter (like T)
     final isTypeParameter = fieldType is TypeParameterType;
@@ -183,9 +178,9 @@ class UpdateGenerator {
         ? returnType.newInstance([], {'path': literalString(jsonFieldName)})
         : returnType.rebuild((b) => b..types.replace([])).newInstance([], {
             'path': literalString(jsonFieldName),
-            'converter': specializedConverter
-                .withNullable(field.isNullable)
-                .toConverterExpr(),
+            'converter': converter.toConverterExpr().debug(
+              '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
+            ),
           });
 
     return Field(

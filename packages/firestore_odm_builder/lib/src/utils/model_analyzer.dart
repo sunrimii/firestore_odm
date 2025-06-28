@@ -148,8 +148,6 @@ bool isPrimitive(DartType type) {
       type.isDartCoreInt ||
       type.isDartCoreDouble ||
       type.isDartCoreString ||
-      type.isDartCoreList ||
-      type.isDartCoreMap ||
-      type.isDartCoreObject ||
-      type.isDartCoreNull;
+      type.isDartCoreNull ||
+      type.name == 'dynamic';
 }

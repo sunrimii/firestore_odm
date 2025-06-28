@@ -32,7 +32,7 @@ class PrimitiveConverter<T> implements FirestoreConverter<T, T> {
 
 class MapConverter<K, V>
     implements FirestoreConverter<Map<K, V>, Map<String, dynamic>> {
-  final FirestoreConverter<K, String> keyConverter;
+  final FirestoreConverter<K, dynamic> keyConverter;
   final FirestoreConverter<V, dynamic> valueConverter;
 
   const MapConverter(this.keyConverter, this.valueConverter);

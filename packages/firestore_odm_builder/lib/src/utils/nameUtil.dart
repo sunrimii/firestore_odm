@@ -263,15 +263,6 @@ extension TypeReferenceX on TypeReference {
 }
 
 
-extension ExpressionX on Expression {
-  Expression debug(String message) {
-    return CodeExpression(Code('''
-      // DEBUG: $message
-      \${this}
-    '''));
-  }
-}
-
 extension DartTypeIterableX on Iterable<DartType> {
   List<TypeReference> get references => map((t) => t.reference).toList();
 }
