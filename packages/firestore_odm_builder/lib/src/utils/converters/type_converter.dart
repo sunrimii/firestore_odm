@@ -130,7 +130,7 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
 
   TypeConverter _transform(DartType type) {
     return ConverterFactory.instance
-        .createConverter(type)
+        .getConverter(type)
         .apply(typeParameterMapping);
   }
 
@@ -204,7 +204,7 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
 
   TypeConverter _transform(DartType fieldType, Element? element) {
     return ConverterFactory.instance
-        .createConverter(fieldType, element: element)
+        .getConverter(fieldType, element: element)
         .apply(typeParameterMapping);
   }
 
@@ -385,7 +385,7 @@ extension TypeConverterExtensions on TypeConverter {
                 converter.type.element3.typeParameters2.map((e) => e.name3!),
                 converter.type.typeArguments.map(
                   (e) =>
-                      converterFactory.createConverter(e),
+                      converterFactory.getConverter(e),
                 ),
               ),
             )

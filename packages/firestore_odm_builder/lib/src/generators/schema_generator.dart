@@ -343,7 +343,7 @@ class SchemaGenerator {
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
               'converter': ConverterFactory.instance
-                  .createConverter(collection.modelType)
+                  .getConverter(collection.modelType)
                   .toConverterExpr(),
               'documentIdField': literalString(documentIdFieldName),
             }).code,
@@ -412,7 +412,7 @@ class SchemaGenerator {
                     literalString(collection.path),
                   ]),
                   'converter': converterFactory
-                      .createConverter(collection.modelType)
+                      .getConverter(collection.modelType)
                       .toConverterExpr(),
                   'context': refer('this'),
                   'documentIdField': literalString(documentIdFieldName),
@@ -472,7 +472,7 @@ class SchemaGenerator {
                       .property('collection')
                       .call([literalString(collection.path)]),
                   'converter': converterFactory
-                      .createConverter(collection.modelType)
+                      .getConverter(collection.modelType)
                       .toConverterExpr(),
                   'documentIdField': literalString(documentIdFieldName),
                   'context': refer('this'),
@@ -597,7 +597,7 @@ class SchemaGenerator {
                             ),
                             collection.modelType.typeArguments.map(
                               (e) => converterFactory
-                                  .createConverter(e)
+                                  .getConverter(e)
                                   .toConverterExpr(),
                             ),
                           ),
@@ -705,7 +705,7 @@ class SchemaGenerator {
                   literalString(subcollectionName),
                 ]),
                 'converter': converterFactory
-                    .createConverter(subcol.modelType)
+                    .getConverter(subcol.modelType)
                     .toConverterExpr(),
                 'documentIdField': literalString(documentIdFieldName),
               }).code,
@@ -783,7 +783,7 @@ class SchemaGenerator {
                       literalString(subcollectionName),
                     ]),
                     'converter': converterFactory
-                        .createConverter(subcol.modelType)
+                        .getConverter(subcol.modelType)
                         .toConverterExpr(),
                     'documentIdField': literalString(documentIdFieldName),
                     'context': refer('context'),

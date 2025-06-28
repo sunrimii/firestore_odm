@@ -114,7 +114,7 @@ class UpdateGenerator {
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonName;
     final converter = ConverterFactory.instance
-        .createConverter(field.type, element: field.element)
+        .getConverter(field.type, element: field.element)
         .apply(mapping)
         .withNullable(field.isNullable);
 

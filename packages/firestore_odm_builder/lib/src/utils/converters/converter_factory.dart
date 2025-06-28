@@ -16,7 +16,7 @@ class ConverterFactory {
   final List<Spec> _modelConverters = [];
 
   /// Create a converter for the given type, optionally using the provided element
-  TypeConverter createConverter(
+  TypeConverter getConverter(
     DartType type, {
     Element? element,
     bool raw = false,
@@ -84,7 +84,7 @@ class ConverterFactory {
                   .call(
                     type.typeArguments
                         .map(
-                          (t) => createConverter(t)
+                          (t) => getConverter(t)
                               .apply(typeParameterMapping)
                               .toConverterExpr(),
                         )
@@ -180,7 +180,7 @@ class ConverterFactory {
                 (e) => 'converter${e.name3!}',
               ),
               converter.type.typeArguments.map(
-                (e) => createConverter(e)
+                (e) => getConverter(e)
                     .apply(typeParameterMapping)
                     .toConverterExpr(),
               ),
