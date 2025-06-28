@@ -1,6 +1,6 @@
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:firestore_odm_builder/src/utils/nameUtil.dart';
+import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -50,10 +50,7 @@ class AggregateGenerator {
   static Extension generateAggregateFieldSelectorFromAnalysis(
     InterfaceType type,
   ) {
-    final className = type.element?.name;
-    if (className == null) {
-      throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
-    }
+    final className = type.element.name;
 
     final typeParameters = type.typeParameters.references;
     final typeParameterNames = type.typeParameters.map((ref) => ref.name).toList();
