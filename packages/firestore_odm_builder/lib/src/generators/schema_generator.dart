@@ -1,6 +1,5 @@
-
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/dart/element/type.dart' hide FunctionType;
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
@@ -182,7 +181,6 @@ class SchemaGenerator {
     return path.split('/').last;
   }
 
-
   /// Generate all library members
   static List<Spec> _generateAllLibraryMembers(
     TopLevelVariableElement variableElement,
@@ -327,8 +325,9 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName =
-          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
+      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
+        collection.modelType,
+      );
       final collectionClassName = _generateCollectionClassName(collection.path);
       methods.add(
         Method(
@@ -371,7 +370,6 @@ class SchemaGenerator {
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
-
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
         .toList();
@@ -380,8 +378,9 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName =
-          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
+      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
+        collection.modelType,
+      );
 
       methods.add(
         Method(
@@ -449,8 +448,9 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName =
-          ModelAnalyzer.instance.getDocumentIdFieldName(collection.modelType);
+      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
+        collection.modelType,
+      );
       methods.add(
         Method(
           (b) => b
@@ -581,29 +581,7 @@ class SchemaGenerator {
                       ..named = true,
                   ),
                 ])
-                ..constant = false
-                ..initializers.add(
-                  refer('super').call([], {
-                    'updateBuilder':
-                        TypeReference(
-                          (b) => b
-                            ..symbol =
-                                '${collection.modelType.element3!.name3}UpdateBuilder',
-                        ).newInstance(
-                          [],
-                          Map.fromIterables(
-                            collection.modelType.typeParameters.map(
-                              (e) => 'converter${e.name}',
-                            ),
-                            collection.modelType.typeArguments.map(
-                              (e) => converterFactory
-                                  .getConverter(e)
-                                  .toConverterExpr(),
-                            ),
-                          ),
-                        ),
-                  }).code,
-                ),
+                ..constant = false,
             ),
           )
           ..methods.addAll([
@@ -628,6 +606,84 @@ class SchemaGenerator {
                   refer('converter'),
                   refer('documentIdField'),
                 ]).code,
+            ),
+            /*
+            
+
+  // @override
+  // Future<void> patch(List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches);
+  //   final operations = patches(_updateBuilder);
+  //   return QueryHandler.patch(query, documentIdField, operations);
+  // }
+      
+      */
+            Method(
+              (b) => b
+                ..docs.add(
+                  '/// Gets a document reference with the specified ID',
+                )
+                ..annotations.add(refer('override'))
+                ..name = 'patch'
+                ..returns = refer('Future<void>')
+                ..requiredParameters.add(
+                  Parameter(
+                    (b) => b
+                      ..name = 'patches'
+                      ..type = FunctionType(
+                        (b) => b
+                          ..returnType = TypeReferences.listOf(
+                            TypeReference((b) => b..symbol = 'UpdateOperation'),
+                          )
+                          ..requiredParameters.add(
+                            TypeReference(
+                              (b) => b
+                                ..symbol =
+                                    '${collection.modelType.element3.name3}UpdateBuilder'
+                                    ..types.addAll(
+                                      collection.modelType.typeArguments.references,
+                                    ),
+                            ),
+                          ),
+                      ),
+                  ),
+                )
+                ..body = Block.of([
+                  declareFinal('patchBuilder')
+                      .assign(
+                        TypeReference((b) => b
+                          ..symbol =
+                              '${collection.modelType.element3.name3}UpdateBuilder'
+                          ..types.addAll(
+                            collection.modelType.typeArguments.references,
+                          ),
+                        ).newInstance(
+                          [],
+                          Map.fromIterables(
+                            collection.modelType.typeParameters.map(
+                              (e) => 'converter${e.name}',
+                            ),
+                            collection.modelType.typeArguments.map(
+                              (e) => converterFactory
+                                  .getConverter(e)
+                                  .toConverterExpr(),
+                            ),
+                          ),
+                        ),
+                      )
+                      .statement,
+                  declareFinal('operations')
+                      .assign(refer('patches').call([refer('patchBuilder')]))
+                      .statement,
+                  refer('QueryHandler')
+                      .property('patch')
+                      .call([
+                        refer('query'),
+                        refer('documentIdField'),
+                        refer('operations'),
+                      ])
+                      .returned
+                      .statement,
+                ]),
             ),
           ]),
       );
@@ -687,8 +743,8 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
-        final documentIdFieldName =
-            ModelAnalyzer.instance.getDocumentIdFieldName(subcol.modelType);
+        final documentIdFieldName = ModelAnalyzer.instance
+            .getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
         final collectionClassName = _generateCollectionClassName(subcol.path);
@@ -757,8 +813,8 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getSubcollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
-        final documentIdFieldName =
-            ModelAnalyzer.instance.getDocumentIdFieldName(subcol.modelType);
+        final documentIdFieldName = ModelAnalyzer.instance
+            .getDocumentIdFieldName(subcol.modelType);
 
         methods.add(
           Method(

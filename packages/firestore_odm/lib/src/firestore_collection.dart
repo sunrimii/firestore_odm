@@ -16,7 +16,7 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:flutter/material.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-class FirestoreCollection<S extends FirestoreSchema, T>
+abstract class FirestoreCollection<S extends FirestoreSchema, T>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -39,15 +39,12 @@ class FirestoreCollection<S extends FirestoreSchema, T>
   /// Document ID field name (detected from model analysis)
   final String documentIdField;
 
-  final UpdateBuilder<T>_updateBuilder;
-
   /// Creates a new FirestoreCollection instance
   const FirestoreCollection({
     required this.query,
     required this.converter,
-    required this.documentIdField,
-    required UpdateBuilder<T> updateBuilder,
-  }) : _updateBuilder = updateBuilder;
+    required this.documentIdField
+  });
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -110,11 +107,11 @@ class FirestoreCollection<S extends FirestoreSchema, T>
     return Query<S, T>(newQuery, converter.toJson, converter.fromJson, documentIdField);
   }
 
-  @override
-  Future<void> patch(PatchBuilder<T> patchBuilder) {
-    final operations = patchBuilder(_updateBuilder);
-    return QueryHandler.patch(query, documentIdField, operations);
-  }
+  // @override
+  // Future<void> patch(PatchBuilder<T> patchBuilder) {
+  //   final operations = patchBuilder(_updateBuilder);
+  //   return QueryHandler.patch(query, documentIdField, operations);
+  // }
       
 
   @override

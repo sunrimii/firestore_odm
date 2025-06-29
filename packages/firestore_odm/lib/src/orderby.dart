@@ -328,9 +328,11 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   }
 
   @override
-  Future<void> patch(PatchBuilder<T> patchBuilder) {
+  Future<void> patch(
+    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches,
+  ) {
     final builder = UpdateBuilder<T>();
-    final operations = patchBuilder(builder);
+    final operations = patches(builder);
     return QueryHandler.patch(_query, _documentIdField, operations);
   }
 

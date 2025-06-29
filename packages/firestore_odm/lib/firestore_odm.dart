@@ -17,4 +17,6 @@ export 'src/aggregate.dart';
 export 'src/orderby.dart';
 export 'src/types.dart';
 
+export 'src/services/update_operations_service.dart';
+
 export 'package:firestore_odm_annotation/firestore_odm_annotation.dart';

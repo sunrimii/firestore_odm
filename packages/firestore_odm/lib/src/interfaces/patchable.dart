@@ -6,8 +6,8 @@ import 'package:firestore_odm/src/filter_builder.dart';
 /// applied to a document.
 ///
 /// [T] represents the type of the model being patched.
-typedef PatchBuilder<T> =
-    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder);
+// typedef PatchBuilder<T> =
+//     List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder);
 
 /// An interface for applying partial updates (patches) to existing documents.
 ///
@@ -24,7 +24,7 @@ abstract interface class Patchable<T> {
   /// to be applied to the document.
   ///
   /// Returns a [Future] that completes when the patch is successfully applied.
-  Future<void> patch(PatchBuilder<T> patchBuilder);
+  Future<void> patch(List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches);
 }
 
 /// An interface for applying partial updates (patches) to existing documents
@@ -42,5 +42,5 @@ abstract interface class SynchronousPatchable<T> {
   ///
   /// This method does not return a [Future] directly, as the transaction's
   /// completion (`transaction.commit()`) handles the overall result.
-  void patch(PatchBuilder<T> patchBuilder);
+  void patch(List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches);
 }
