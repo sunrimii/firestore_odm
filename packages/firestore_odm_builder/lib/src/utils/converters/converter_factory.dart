@@ -249,7 +249,7 @@ class ConverterFactory {
           ..constructors.add(
             Constructor(
               (b) => b
-                ..constant = false
+                ..constant = true
                 ..optionalParameters.addAll(
                   typeParameters.map(
                     (t) => Parameter(

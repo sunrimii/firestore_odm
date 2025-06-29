@@ -97,7 +97,7 @@ class UpdateGenerator {
                 ),
                 ...constructorParams,
               ])
-              ..constant = false
+              ..constant = !type.isGeneric
               ..initializers.addAll(initializerList),
           ),
         )
@@ -171,15 +171,16 @@ class UpdateGenerator {
               ..symbol = 'DefaultUpdateBuilder'
               ..types.add(fieldType.reference),
           );
-
-    final bodyExpression = returnType.symbol == 'DurationFieldUpdate'
-        ? returnType.newInstance([], {'path': literalString(jsonFieldName)})
-        : returnType.rebuild((b) => b..types.replace([])).newInstance([], {
+    Map<String, Expression> namedArguments = {
             'path': literalString(jsonFieldName),
-            'converter': converter.toConverterExpr().debug(
-              '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
-            ),
-          });
+            if (returnType.symbol != 'DurationFieldUpdate')
+              'converter': converter.toConverterExpr().debug(
+                '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
+              ),
+          };
+    final bodyExpression = isGenericType(fieldType)
+        ? returnType.withoutTypeArguments().newInstance([], namedArguments)
+        : returnType.withoutTypeArguments().constInstance([], namedArguments);
 
     return Field(
       (b) => b
@@ -187,12 +188,18 @@ class UpdateGenerator {
         // ..type = MethodType.getter
         ..name = fieldName
         ..modifier = FieldModifier.final$
-        ..late = true
+        ..late = isGenericType(fieldType)
         ..type = returnType
         ..assignment = bodyExpression.code,
       // ..lambda = true
       // ..returns = returnType
       // ..body = bodyExpression.code,
     );
+  }
+
+  static bool isGenericType(DartType type) {
+    // Check if the type is a TypeParameterType
+    return type is TypeParameterType ||
+        type is InterfaceType && type.typeArguments.any(isGenericType);
   }
 }
