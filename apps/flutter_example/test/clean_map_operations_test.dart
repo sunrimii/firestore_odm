@@ -132,20 +132,20 @@ void main() {
       await odm.immutableUsers(user.id).update(user);
 
       // Test convenience operations
-      await odm.immutableUsers(user.id).patch((update) => [
-        // Update individual entries
-        update.settings.set('theme', 'dark'),
-        update.settings.set('language', 'zh'),
-        update.settings.set('newFeature', 'enabled'),
+      await odm.immutableUsers(user.id).patch(($) => [
+        // $ individual entries
+        $.settings.set('theme', 'dark'),
+        $.settings.set('language', 'zh'),
+        $.settings.set('newFeature', 'enabled'),
         // Set multiple keys to same value
-        update.settings.setAll(['feature1', 'feature2'], 'enabled'),
+        $.settings.setAll(['feature1', 'feature2'], 'enabled'),
         // Add multiple entries using Map
-        update.settings.addAll({
+        $.settings.addAll({
           'advanced': 'true',
           'beta': 'enabled',
         }),
         // Add multiple entries using MapEntry iterable (more flexible)
-        update.settings.addEntries([
+        $.settings.addEntries([
           MapEntry('flexible1', 'value1'),
           MapEntry('flexible2', 'value2'),
         ]),
