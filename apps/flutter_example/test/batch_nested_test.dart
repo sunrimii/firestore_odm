@@ -156,7 +156,7 @@ void main() {
           $.age(29),
           $.profile.bio('Patched bio'),
           $.profile.followers(100),
-          $.profile.socialLinks.setKey('github', '@patched'),
+          $.profile.socialLinks.set('github', '@patched'),
         ]);
       });
 

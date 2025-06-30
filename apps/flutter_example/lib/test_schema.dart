@@ -55,4 +55,5 @@ part 'test_schema.odm.dart';
   "listLengthModels",
 ) // IList with JsonConverter test
 @Collection<StringGeneric>("stringGenerics") // Generic collection test
+@Collection<IntGeneric>("intGenerics") // Generic collection test
 final testSchema = _$TestSchema;

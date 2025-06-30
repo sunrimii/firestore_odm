@@ -273,8 +273,8 @@ void main() {
         update.settings.set('emptyValue', ''),
         
         // Backward compatibility - deprecated methods should still work
-        update.settings.setKey('backwardCompat', 'works'),
-        update.settings.removeKey('nonexistent'),
+        update.settings.set('backwardCompat', 'works'),
+        update.settings.remove('nonexistent'),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();

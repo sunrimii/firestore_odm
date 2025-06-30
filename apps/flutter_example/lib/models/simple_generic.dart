@@ -17,3 +17,4 @@ abstract class SimpleGeneric<T> with _$SimpleGeneric<T> {
 
 // Typedef for concrete usage in schema
 typedef StringGeneric = SimpleGeneric<String>;
+typedef IntGeneric = SimpleGeneric<int>;

@@ -282,7 +282,7 @@ class DocumentHandler {
     firestore.DocumentReference<Map<String, dynamic>> ref,
     List<UpdateOperation> operations,
   ) async {
-    final updateMap = UpdateBuilder.operationsToMap(operations);
+    final updateMap = operationsToMap(operations);
     if (updateMap.isEmpty) {
       return; // No updates to apply
     }
@@ -776,7 +776,7 @@ abstract class QueryHandler {
     firestore.Query<Map<String, dynamic>> query,
     List<UpdateOperation> operations,
   ) async {
-    final updateMap = UpdateBuilder.operationsToMap(operations);
+    final updateMap = operationsToMap(operations);
 
     if (updateMap.isEmpty) {
       return; // No updates to apply

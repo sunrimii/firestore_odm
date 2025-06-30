@@ -214,7 +214,6 @@ class RootFilterSelector<T> extends FilterSelector<T> {
   }
 }
 
-
 /// Represents a single update operation
 sealed class UpdateOperation {
   final String field;
@@ -302,169 +301,157 @@ class MapRemoveAllOperation<K> extends UpdateOperation {
   String toString() => 'MapRemoveAllOperation($field, $keys)';
 }
 
-/// Base update builder class using Node-based architecture
-class UpdateBuilder<T> {
-  final String _path;
+/// Convert operations to Firestore update map
+Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
+  final Map<String, dynamic> updateMap = {};
+  final Map<String, List<dynamic>> arrayAdds = {};
+  final Map<String, List<dynamic>> arrayRemoves = {};
+  final Map<String, num> increments = {};
 
-  /// Create an UpdateBuilder with optional name and parent for nested objects
-  const UpdateBuilder({String path = ''}) : _path = path;
+  // Track which fields have set operations to handle precedence
+  final Set<String> fieldsWithSetOperations = {};
 
-  /// Convert operations to Firestore update map
-  static Map<String, dynamic> operationsToMap(
-    List<UpdateOperation> operations,
-  ) {
-    final Map<String, dynamic> updateMap = {};
-    final Map<String, List<dynamic>> arrayAdds = {};
-    final Map<String, List<dynamic>> arrayRemoves = {};
-    final Map<String, num> increments = {};
-
-    // Track which fields have set operations to handle precedence
-    final Set<String> fieldsWithSetOperations = {};
-
-    // First pass: identify fields with set operations
-    for (final operation in operations) {
-      if (operation is SetOperation ||
-          operation is DeleteOperation ||
-          operation is ServerTimestampOperation ||
-          operation is ObjectMergeOperation) {
-        fieldsWithSetOperations.add(operation.field);
-      }
+  // First pass: identify fields with set operations
+  for (final operation in operations) {
+    if (operation is SetOperation ||
+        operation is DeleteOperation ||
+        operation is ServerTimestampOperation ||
+        operation is ObjectMergeOperation) {
+      fieldsWithSetOperations.add(operation.field);
     }
-
-    // Second pass: process operations with precedence rules
-    for (final operation in operations) {
-      switch (operation) {
-        case SetOperation setOp:
-          updateMap[setOp.field] = setOp.value;
-          break;
-        case IncrementOperation incOp:
-          // Increment operations are not affected by set operations
-          increments[incOp.field] =
-              (increments[incOp.field] ?? 0) + incOp.value;
-          break;
-        case ArrayAddAllOperation arrayAddAllOp:
-          // Skip array operations if field has set operation
-          if (!fieldsWithSetOperations.contains(arrayAddAllOp.field)) {
-            arrayAdds
-                .putIfAbsent(arrayAddAllOp.field, () => [])
-                .addAll(arrayAddAllOp.values);
-          }
-          break;
-        case ArrayRemoveAllOperation arrayRemoveAllOp:
-          // Skip array operations if field has set operation
-          if (!fieldsWithSetOperations.contains(arrayRemoveAllOp.field)) {
-            arrayRemoves
-                .putIfAbsent(arrayRemoveAllOp.field, () => [])
-                .addAll(arrayRemoveAllOp.values);
-          }
-          break;
-        case DeleteOperation deleteOp:
-          updateMap[deleteOp.field] = FieldValue.delete();
-          break;
-        case ServerTimestampOperation serverTimestampOp:
-          updateMap[serverTimestampOp.field] = FieldValue.serverTimestamp();
-          break;
-        case ObjectMergeOperation operation:
-          // For object merge, flatten the nested fields
-          final data = operation.data;
-          for (final entry in data.entries) {
-            final fieldPath = operation.field.isEmpty
-                ? entry.key
-                : '${operation.field}.${entry.key}';
-            updateMap[fieldPath] = entry.value;
-          }
-          break;
-        case MapPutAllOperation mapPutAllOp:
-          // For map putAll, set multiple nested fields
-          final data = mapPutAllOp.entries;
-          for (final entry in data.entries) {
-            final keyPath = '${mapPutAllOp.field}.${entry.key}';
-            updateMap[keyPath] = entry.value;
-          }
-          break;
-        case MapRemoveAllOperation mapRemoveAllOp:
-          // For map removeAll, delete multiple nested fields
-          final keys = mapRemoveAllOp.keys;
-          for (final key in keys) {
-            final keyPath = '${operation.field}.$key';
-            updateMap[keyPath] = FieldValue.delete();
-          }
-          break;
-      }
-    }
-
-    // Handle fields with both add and remove operations
-    // Note: Firestore doesn't support both arrayUnion and arrayRemove on the same field
-    // in a single update, but we can combine the operations by computing the net effect
-    final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(
-      arrayRemoves.keys.toSet(),
-    );
-
-    for (final field in fieldsWithBothOps) {
-      final toAdd = arrayAdds[field]!;
-      final toRemove = arrayRemoves[field]!;
-
-      // Remove items that are both added and removed (they cancel out)
-      final netAdd = toAdd.where((item) => !toRemove.contains(item)).toList();
-      final netRemove = toRemove
-          .where((item) => !toAdd.contains(item))
-          .toList();
-
-      // Update the maps with net operations
-      if (netAdd.isNotEmpty) {
-        arrayAdds[field] = netAdd;
-      } else {
-        arrayAdds.remove(field);
-      }
-
-      if (netRemove.isNotEmpty) {
-        arrayRemoves[field] = netRemove;
-      } else {
-        arrayRemoves.remove(field);
-      }
-    }
-
-    // After computing net operations, check if we still have conflicts
-    final remainingConflicts = arrayAdds.keys.toSet().intersection(
-      arrayRemoves.keys.toSet(),
-    );
-    if (remainingConflicts.isNotEmpty) {
-      throw ArgumentError(
-        'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $remainingConflicts',
-      );
-    }
-
-    // Apply accumulated increment operations
-    for (final entry in increments.entries) {
-      updateMap[entry.key] = FieldValue.increment(entry.value);
-    }
-
-    // Apply accumulated array operations
-    for (final entry in arrayAdds.entries) {
-      updateMap[entry.key] = FieldValue.arrayUnion(entry.value);
-    }
-    for (final entry in arrayRemoves.entries) {
-      updateMap[entry.key] = FieldValue.arrayRemove(entry.value);
-    }
-
-    return updateMap;
   }
+
+  // Second pass: process operations with precedence rules
+  for (final operation in operations) {
+    switch (operation) {
+      case SetOperation setOp:
+        updateMap[setOp.field] = setOp.value;
+        break;
+      case IncrementOperation incOp:
+        // Increment operations are not affected by set operations
+        increments[incOp.field] = (increments[incOp.field] ?? 0) + incOp.value;
+        break;
+      case ArrayAddAllOperation arrayAddAllOp:
+        // Skip array operations if field has set operation
+        if (!fieldsWithSetOperations.contains(arrayAddAllOp.field)) {
+          arrayAdds
+              .putIfAbsent(arrayAddAllOp.field, () => [])
+              .addAll(arrayAddAllOp.values);
+        }
+        break;
+      case ArrayRemoveAllOperation arrayRemoveAllOp:
+        // Skip array operations if field has set operation
+        if (!fieldsWithSetOperations.contains(arrayRemoveAllOp.field)) {
+          arrayRemoves
+              .putIfAbsent(arrayRemoveAllOp.field, () => [])
+              .addAll(arrayRemoveAllOp.values);
+        }
+        break;
+      case DeleteOperation deleteOp:
+        updateMap[deleteOp.field] = FieldValue.delete();
+        break;
+      case ServerTimestampOperation serverTimestampOp:
+        updateMap[serverTimestampOp.field] = FieldValue.serverTimestamp();
+        break;
+      case ObjectMergeOperation operation:
+        // For object merge, flatten the nested fields
+        final data = operation.data;
+        for (final entry in data.entries) {
+          final fieldPath = operation.field.isEmpty
+              ? entry.key
+              : '${operation.field}.${entry.key}';
+          updateMap[fieldPath] = entry.value;
+        }
+        break;
+      case MapPutAllOperation mapPutAllOp:
+        // For map putAll, set multiple nested fields
+        final data = mapPutAllOp.entries;
+        for (final entry in data.entries) {
+          final keyPath = '${mapPutAllOp.field}.${entry.key}';
+          updateMap[keyPath] = entry.value;
+        }
+        break;
+      case MapRemoveAllOperation mapRemoveAllOp:
+        // For map removeAll, delete multiple nested fields
+        final keys = mapRemoveAllOp.keys;
+        for (final key in keys) {
+          final keyPath = '${operation.field}.$key';
+          updateMap[keyPath] = FieldValue.delete();
+        }
+        break;
+    }
+  }
+
+  // Handle fields with both add and remove operations
+  // Note: Firestore doesn't support both arrayUnion and arrayRemove on the same field
+  // in a single update, but we can combine the operations by computing the net effect
+  final fieldsWithBothOps = arrayAdds.keys.toSet().intersection(
+    arrayRemoves.keys.toSet(),
+  );
+
+  for (final field in fieldsWithBothOps) {
+    final toAdd = arrayAdds[field]!;
+    final toRemove = arrayRemoves[field]!;
+
+    // Remove items that are both added and removed (they cancel out)
+    final netAdd = toAdd.where((item) => !toRemove.contains(item)).toList();
+    final netRemove = toRemove.where((item) => !toAdd.contains(item)).toList();
+
+    // Update the maps with net operations
+    if (netAdd.isNotEmpty) {
+      arrayAdds[field] = netAdd;
+    } else {
+      arrayAdds.remove(field);
+    }
+
+    if (netRemove.isNotEmpty) {
+      arrayRemoves[field] = netRemove;
+    } else {
+      arrayRemoves.remove(field);
+    }
+  }
+
+  // After computing net operations, check if we still have conflicts
+  final remainingConflicts = arrayAdds.keys.toSet().intersection(
+    arrayRemoves.keys.toSet(),
+  );
+  if (remainingConflicts.isNotEmpty) {
+    throw ArgumentError(
+      'Cannot perform both arrayUnion and arrayRemove operations on the same field in a single update. Fields: $remainingConflicts',
+    );
+  }
+
+  // Apply accumulated increment operations
+  for (final entry in increments.entries) {
+    updateMap[entry.key] = FieldValue.increment(entry.value);
+  }
+
+  // Apply accumulated array operations
+  for (final entry in arrayAdds.entries) {
+    updateMap[entry.key] = FieldValue.arrayUnion(entry.value);
+  }
+  for (final entry in arrayRemoves.entries) {
+    updateMap[entry.key] = FieldValue.arrayRemove(entry.value);
+  }
+
+  return updateMap;
 }
 
-class DefaultUpdateBuilder<T> extends UpdateBuilder<T> {
+class PatchBuilder<T> extends Node {
   /// Converter function to transform the value before storing in Firestore
   final FirestoreConverter<T, dynamic> _converter;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  const DefaultUpdateBuilder({
-    super.path = '',
+  const PatchBuilder({
+    super.name,
+    super.parent,
     required FirestoreConverter<T, dynamic> converter,
   }) : _converter = converter;
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
     final convertedValue = _converter.toJson(value);
-    return SetOperation<T>(_path, convertedValue);
+    return SetOperation<T>($path, convertedValue);
   }
 }
 
@@ -1083,49 +1070,59 @@ class DocumentIdFieldFilter extends CallableFilter {
 }
 
 /// Numeric field callable updater
-class NumericFieldUpdate<T extends num?> extends DefaultUpdateBuilder<T> {
-  const NumericFieldUpdate({required super.path, required super.converter});
+class NumericFieldUpdate<T extends num?> extends PatchBuilder<T> {
+  const NumericFieldUpdate({required super.name, super.parent, required super.converter});
 
   /// Increment field value
   UpdateOperation increment(T value) {
     return IncrementOperation(
-      _path,
+      $path,
       value as num, // Ensure value is a num
     );
   }
 }
 
 /// List field callable updater
-class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
-  const ListFieldUpdate({required super.path, required super.converter, required FirestoreConverter<E, dynamic> elementConverter})
-      : _elementConverter = elementConverter;
+class ListFieldUpdate<T, E> extends PatchBuilder<T> {
+  const ListFieldUpdate({
+    required super.name,
+    super.parent,
+    required super.converter,
+    required FirestoreConverter<E, dynamic> elementConverter,
+  }) : _elementConverter = elementConverter;
 
   final FirestoreConverter<E, dynamic> _elementConverter;
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return ArrayAddAllOperation(_path, [ _elementConverter.toJson(value) ]);
+    return ArrayAddAllOperation($path, [_elementConverter.toJson(value)]);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
-    return ArrayAddAllOperation(_path, values.map(_elementConverter.toJson).toList());
+    return ArrayAddAllOperation(
+      $path,
+      values.map(_elementConverter.toJson).toList(),
+    );
   }
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return ArrayRemoveAllOperation(_path, [_elementConverter.toJson(value)]);
+    return ArrayRemoveAllOperation($path, [_elementConverter.toJson(value)]);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
-    return ArrayRemoveAllOperation(_path, values.map(_elementConverter.toJson).toList());
+    return ArrayRemoveAllOperation(
+      $path,
+      values.map(_elementConverter.toJson).toList(),
+    );
   }
 }
 
 /// DateTime field callable updater
-class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
-  const DateTimeFieldUpdate({required super.path}) 
+class DateTimeFieldUpdate<T> extends PatchBuilder<T> {
+  const DateTimeFieldUpdate({required super.name, super.parent})
     : super(
         converter: null is T
             ? const NullableConverter(DateTimeConverter())
@@ -1135,13 +1132,13 @@ class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return ServerTimestampOperation(_path);
+    return ServerTimestampOperation($path);
   }
 }
 
 /// Duration field callable updater
-class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
-  const DurationFieldUpdate({required super.path})
+class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T> {
+  const DurationFieldUpdate({required super.name, super.parent})
     : super(
         converter: null is T
             ? const NullableConverter(DurationConverter())
@@ -1152,14 +1149,15 @@ class DurationFieldUpdate<T extends Duration?> extends DefaultUpdateBuilder<T> {
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
     final int milliseconds = const DurationConverter().toJson(value);
-    return IncrementOperation(_path, milliseconds);
+    return IncrementOperation($path, milliseconds);
   }
 }
 
 /// Map field callable updater with clean, consistent Dart Map-like operations
-class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
+class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   const MapFieldUpdate({
-    required super.path,
+    required super.name,
+    super.parent,
     required super.converter,
     required FirestoreConverter<K, dynamic> keyConverter,
     required FirestoreConverter<V, dynamic> valueConverter,
@@ -1173,7 +1171,7 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
     final convertedKey = _keyConverter.toJson(key);
-    final keyPath = '${_path}.$convertedKey';
+    final keyPath = '${$path}.$convertedKey';
     return SetOperation<V>(keyPath, _valueConverter.toJson(value));
   }
 
@@ -1181,7 +1179,7 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
     final convertedKey = _keyConverter.toJson(key);
-    final keyPath = '${_path}.$convertedKey';
+    final keyPath = '${$path}.$convertedKey';
     return DeleteOperation(keyPath);
   }
 
@@ -1190,11 +1188,11 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   UpdateOperation addAll(Map<K, V> entries) {
     final entriesMap = entries.map(
       (key, value) => MapEntry(
-        '${_path}.${_keyConverter.toJson(key)}',
+        '${$path}.${_keyConverter.toJson(key)}',
         _valueConverter.toJson(value),
       ),
     );
-    return MapPutAllOperation(_path, entriesMap);
+    return MapPutAllOperation($path, entriesMap);
   }
 
   /// Add multiple entries from MapEntry iterable (more flexible)
@@ -1203,25 +1201,25 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
     final entriesMap = Map.fromEntries(
       entries.map(
         (entry) => MapEntry(
-          '${_path}.${_keyConverter.toJson(entry.key)}',
+          '${$path}.${_keyConverter.toJson(entry.key)}',
           _valueConverter.toJson(entry.value),
         ),
       ),
     );
-    return MapPutAllOperation(_path, entriesMap);
+    return MapPutAllOperation($path, entriesMap);
   }
 
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
     final keysList = keys.map((key) => _keyConverter.toJson(key)).toList();
-    return MapRemoveAllOperation(_path, keysList);
+    return MapRemoveAllOperation($path, keysList);
   }
 
   /// Clear all entries (like map.clear())
   /// Usage: $.settings.clear()
   UpdateOperation clear() {
-    return SetOperation<Map<String, dynamic>>(_path, {});
+    return SetOperation<Map<String, dynamic>>($path, {});
   }
 
   // ===== Convenience Methods =====
@@ -1230,9 +1228,9 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   /// Usage: $.permissions.setAll(['read', 'write'], true)
   UpdateOperation setAll(Iterable<K> keys, V value) {
     final entriesMap = Map.fromIterables(
-      keys.map((key) => '${_path}.${_keyConverter.toJson(key)}'),
+      keys.map((key) => '${$path}.${_keyConverter.toJson(key)}'),
       Iterable.generate(keys.length, (_) => _valueConverter.toJson(value)),
     );
-    return MapPutAllOperation(_path, entriesMap);
+    return MapPutAllOperation($path, entriesMap);
   }
 }

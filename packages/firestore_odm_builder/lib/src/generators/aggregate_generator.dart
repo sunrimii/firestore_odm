@@ -47,14 +47,22 @@ class AggregateGenerator {
   }
 
   /// Generate aggregate field selector extension using ModelAnalysis
-  static Extension generateAggregateFieldSelectorFromAnalysis(
+  static Extension? generateAggregateFieldSelectorFromAnalysis(
     InterfaceType type,
   ) {
+    final fields = ModelAnalyzer.instance.getFields(type);
+    if (fields.isEmpty) {
+      return null;
+    }
     final className = type.element.name;
 
     final typeParameters = type.typeParameters.references;
-    final typeParameterNames = type.typeParameters.map((ref) => ref.name).toList();
-    final classNameWithTypeParams = type.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
+    final typeParameterNames = type.typeParameters
+        .map((ref) => ref.name)
+        .toList();
+    final classNameWithTypeParams = type.isGeneric
+        ? '$className<${typeParameterNames.join(', ')}>'
+        : className;
 
     // Create the target type (AggregateFieldSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -70,7 +78,6 @@ class AggregateGenerator {
     );
 
     // Generate methods for all aggregatable fields
-    final fields = ModelAnalyzer.instance.getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
       // Skip document ID field

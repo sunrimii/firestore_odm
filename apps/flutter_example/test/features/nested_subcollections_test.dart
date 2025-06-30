@@ -461,36 +461,36 @@ void main() {
     group('🧪 Type Safety and Extensions', () {
       test('should maintain proper type safety for nested collections', () {
         // Verify type safety at each level
-        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
-        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
-        expect(odm.comments, isA<FirestoreCollection<TestSchema, Comment>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
+        expect(odm.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
 
         // Verify subcollection types
         expect(
           odm.users('test').posts,
-          isA<FirestoreCollection<TestSchema, Post>>(),
+          isA<FirestoreCollection<TestSchema, Post, dynamic>>(),
         );
         expect(
           odm.posts('test').comments,
-          isA<FirestoreCollection<TestSchema, Comment>>(),
+          isA<FirestoreCollection<TestSchema, Comment, dynamic>>(),
         );
         expect(
           odm.users('test').posts('test').comments,
-          isA<FirestoreCollection<TestSchema, Comment>>(),
+          isA<FirestoreCollection<TestSchema, Comment, dynamic>>(),
         );
 
         // Verify document types
         expect(
           odm.users('test'),
-          isA<FirestoreDocument<TestSchema, User>>(),
+          isA<FirestoreDocument<TestSchema, User, dynamic>>(),
         );
         expect(
           odm.posts('test'),
-          isA<FirestoreDocument<TestSchema, Post>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic>>(),
         );
         expect(
           odm.users('test').posts('test'),
-          isA<FirestoreDocument<TestSchema, Post>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic>>(),
         );
       });
 
@@ -506,7 +506,7 @@ void main() {
         
         // Comments should be accessible through post document
         final commentsCollection = postDoc.comments;
-        expect(commentsCollection, isA<FirestoreCollection<TestSchema, Comment>>());
+        expect(commentsCollection, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
         expect(commentsCollection.query.path, equals('users/extension_user/posts/extension_post/comments'));
         
         // This is the architectural pattern that should work:

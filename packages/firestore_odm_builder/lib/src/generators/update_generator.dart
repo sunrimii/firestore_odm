@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
@@ -20,69 +22,79 @@ class UpdateGenerator {
   static Spec? generateUpdateBuilderClass(InterfaceType type) {
     final typeFields = ModelAnalyzer.instance.getFields(type);
 
+    final baseTypeFields = ModelAnalyzer.instance.getFields(
+      type.element.thisType,
+    );
+
     // If there are no fields, we cannot generate an update builder
     if (typeFields.isEmpty) {
       return null;
     }
 
     final className = type.name!;
-    final typeParameters = type.typeParameters.references;
-
-    // Create converter fields for each type parameter
-    final converterFields = <Field>[];
-    final constructorParams = <Parameter>[];
-    final initializerList = <Code>[];
-
-    for (final typeParam in type.typeParameters) {
-      final converterName = 'converter${typeParam.name}';
-      final converterFieldName = '_${converterName}';
-      converterFields.add(
-        Field(
-          (b) => b
-            ..name = converterFieldName
-            ..type = TypeReference(
-              (b) => b
-                ..symbol = 'FirestoreConverter'
-                ..types.addAll([typeParam.reference, TypeReferences.dynamic]),
-            )
-            ..modifier = FieldModifier.final$,
-        ),
-      );
-      constructorParams.add(
-        Parameter(
-          (b) => b
-            ..name = converterName
-            ..type = TypeReference(
-              (b) => b
-                ..symbol = 'FirestoreConverter'
-                ..types.addAll([typeParam.reference, TypeReferences.dynamic]),
-            )
-            ..required = true,
-        ),
-      );
-      initializerList.add(
-        refer(converterFieldName).assign(refer(converterName)).code,
-      );
-    }
-
-    final mapping = {
-      for (var param in type.element3.typeParameters2)
-        param.name3!: VariableConverter('_converter${param.name3!}'),
-    };
+    final typeArguments = type.typeArguments.references;
 
     // Generate methods for all updateable fields
-    final fields = ModelAnalyzer.instance
+    final methods = ModelAnalyzer.instance
         .getFields(type)
         .values
-        .map((field) => _generateGenericFieldUpdateMethod(field, mapping));
+        .where((f) => isOpenGeneric(baseTypeFields[f.parameterName]!.type))
+        .map((field) => _generateGenericFieldUpdateMethod(field, {}));
 
-    return Class(
+    if (methods.isEmpty) {
+      return null; // No methods to generate
+    }
+
+    return Extension(
       (b) => b
-        ..name = '${className}UpdateBuilder'
-        ..types.addAll(typeParameters)
-        ..extend = TypeReference(
+        ..name =
+            '${className}PatchBuilder' +
+            Object.hashAll(typeArguments).abs().toRadixString(36).upperFirst()
+        ..on = TypeReference(
           (b) => b
-            ..symbol = 'DefaultUpdateBuilder'
+            ..symbol = 'PatchBuilder'
+            ..types.add(
+              TypeReference(
+                (b) => b
+                  ..symbol = className
+                  ..types.addAll(typeArguments),
+              ),
+            ),
+        )
+        ..methods.addAll(methods),
+    );
+  }
+
+  /// Generate the update builder extension using pre-analyzed model information
+  static Spec? generateGenericUpdateBuilderClass(InterfaceType type) {
+    final typeFields = ModelAnalyzer.instance.getFields(type);
+
+    // If there are no fields, we cannot generate an update builder
+    if (typeFields.isEmpty) {
+      return null;
+    }
+
+    final className = type.name!;
+    final typeParameters = type.element3.typeParameters2.references;
+
+    // Generate methods for all updateable fields
+    final methods = ModelAnalyzer.instance
+        .getFields(type)
+        .values
+        .where((f) => !isOpenGeneric(f.type))
+        .map((field) => _generateGenericFieldUpdateMethod(field, {}));
+
+    if (methods.isEmpty) {
+      return null; // No methods to generate
+    }
+
+    return Extension(
+      (b) => b
+        ..name = '${className}PatchBuilder'
+        ..types.addAll(typeParameters)
+        ..on = TypeReference(
+          (b) => b
+            ..symbol = 'PatchBuilder'
             ..types.add(
               TypeReference(
                 (b) => b
@@ -91,41 +103,37 @@ class UpdateGenerator {
               ),
             ),
         )
-        ..fields.addAll(converterFields)
-        ..constructors.add(
-          Constructor(
-            (b) => b
-              ..optionalParameters.addAll([
-                Parameter(
-                  (b) => b
-                    ..name = 'path'
-                    ..named = true
-                    // ..required = true
-                    ..toSuper = true,
-                ),
-                ...constructorParams,
-              ])
-              ..constant = !type.isGeneric
-              ..initializers.addAll([
-                ...initializerList,
-                refer('super').call([], {
-                  'converter': ConverterFactory.instance
-                      .getConverter(type, element: type.element)
-                      .apply({
-                        for (var param in type.element3.typeParameters2)
-                          param.name3!: VariableConverter('converter${param.name3!}'),
-                      })
-                      .toConverterExpr(),
-                }).code,
-              ]),
-          ),
-        )
-        ..fields.addAll(fields),
+        ..methods.addAll(methods),
     );
   }
 
+  static bool isOpenGeneric(DartType type) {
+    // Check if there are unbound type parameters
+    return _containsTypeParameters(type);
+  }
+
+  static bool isClosedGeneric(DartType type) {
+    // Is generic but has no unbound type parameters
+    if (type is ParameterizedType) {
+      return type.typeArguments.isNotEmpty && !_containsTypeParameters(type);
+    }
+    return false;
+  }
+
+  static bool _containsTypeParameters(DartType type) {
+    if (type is TypeParameterType) {
+      return true;
+    }
+
+    if (type is ParameterizedType) {
+      return type.typeArguments.any(_containsTypeParameters);
+    }
+
+    return false;
+  }
+
   /// Generate field update method for generic types
-  static Field _generateGenericFieldUpdateMethod(
+  static Method _generateGenericFieldUpdateMethod(
     FieldInfo field,
     Map<String, VariableConverter> mapping,
   ) {
@@ -146,16 +154,15 @@ class UpdateGenerator {
         ? Updater(
             type: TypeReference(
               (b) => b
-                ..symbol = 'DefaultUpdateBuilder'
+                ..symbol = 'PatchBuilder'
                 ..types.add(
                   fieldType.reference,
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'path': literalString(jsonFieldName),
-              'converter': converter.toConverterExpr().debug(
-                '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
-              ),
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
             },
           )
         : TypeAnalyzer.isDateTimeType(fieldType)
@@ -167,7 +174,10 @@ class UpdateGenerator {
                   fieldType.reference,
                 ), // Use the actual type parameter
             ),
-            arguments: {'path': literalString(jsonFieldName)},
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+            },
           )
         : TypeAnalyzer.isDurationType(fieldType)
         ? Updater(
@@ -178,7 +188,10 @@ class UpdateGenerator {
                   fieldType.reference,
                 ), // Use the actual type parameter
             ),
-            arguments: {'path': literalString(jsonFieldName)},
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+            },
           )
         : TypeAnalyzer.isNumericType(fieldType)
         ? Updater(
@@ -190,7 +203,8 @@ class UpdateGenerator {
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'path': literalString(jsonFieldName),
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
               'converter': converter.toConverterExpr(),
             },
           )
@@ -207,7 +221,8 @@ class UpdateGenerator {
                 ]),
             ),
             arguments: {
-              'path': literalString(jsonFieldName),
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
               'converter': converter.toConverterExpr(),
               'keyConverter': ConverterFactory.instance
                   .getConverter(TypeAnalyzer.getMapKeyType(fieldType))
@@ -230,7 +245,8 @@ class UpdateGenerator {
                 ]), // Use the actual type parameter
             ),
             arguments: {
-              'path': literalString(jsonFieldName),
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
               'converter': converter.toConverterExpr(),
               'elementConverter': ConverterFactory.instance
                   .getConverter(TypeAnalyzer.getIterableElementType(fieldType))
@@ -238,55 +254,39 @@ class UpdateGenerator {
                   .toConverterExpr(),
             },
           )
-        : isUserType(fieldType)
-        ? Updater(
-            type: TypeReference(
-              (b) => b
-                ..symbol = '${fieldType.name?.upperFirst()}UpdateBuilder'
-                ..types.addAll(fieldType.typeArguments.references),
-            ),
-            arguments: {'path': literalString(jsonFieldName)},
-          )
         : Updater(
             type: TypeReference(
               (b) => b
-                ..symbol = 'DefaultUpdateBuilder'
+                ..symbol = 'PatchBuilder'
                 ..types.add(
                   fieldType.reference,
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'path': literalString(jsonFieldName),
-              'converter': converter.toConverterExpr().debug(
-                '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
-              ),
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
             },
           );
-    final bodyExpression = isGenericType(fieldType)
-        ? updater.type.withoutTypeArguments().newInstance([], updater.arguments)
-        : updater.type.withoutTypeArguments().constInstance(
-            [],
-            updater.arguments,
-          );
+    final bodyExpression = updater.type.withoutTypeArguments().newInstance(
+      [],
+      updater.arguments,
+    );
 
-    return Field(
+    return Method(
       (b) => b
         ..docs.add('/// Update $fieldName field `${field.type}`')
-        // ..type = MethodType.getter
+        ..annotations.add(
+          refer(
+            'pragma',
+            'package:firestore_odm/src/annotations.dart',
+          ).call([literalString('vm:prefer-inline')]),
+        )
         ..name = fieldName
-        ..modifier = FieldModifier.final$
-        ..late = isGenericType(fieldType)
-        ..type = updater.type
-        ..assignment = bodyExpression.code,
-      // ..lambda = true
-      // ..returns = returnType
-      // ..body = bodyExpression.code,
+        ..type = MethodType.getter
+        ..lambda = true
+        ..returns = updater.type
+        ..body = bodyExpression.code,
     );
-  }
-
-  static bool isGenericType(DartType type) {
-    // Check if the type is a TypeParameterType
-    return type is TypeParameterType ||
-        type is InterfaceType && type.typeArguments.any(isGenericType);
   }
 }

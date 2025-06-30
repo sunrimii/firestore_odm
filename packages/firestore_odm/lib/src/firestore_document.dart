@@ -15,7 +15,7 @@ import 'schema.dart';
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-abstract class FirestoreDocument<S extends FirestoreSchema, T>
+class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record>
     implements
         Gettable<T?>,
         Streamable<T?>,
@@ -93,7 +93,13 @@ abstract class FirestoreDocument<S extends FirestoreSchema, T>
 
   @override
   Future<void> patch(
-    List<UpdateOperation> Function(UpdateBuilder<T> updateBuilder)
-    updateBuilder,
-  );
+    List<UpdateOperation> Function(PatchBuilder<T> updateBuilder)
+    patches,
+  ) {
+    final builder = PatchBuilder<T>(
+      converter: converter,
+    );
+    final operations = patches(builder);
+    return DocumentHandler.patch(ref, operations);
+  }
 }

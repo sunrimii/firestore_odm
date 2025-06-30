@@ -11,6 +11,8 @@ import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
+import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
 
 /// Batch field for type-safe batch operations
 class BatchField<T> extends Node {
@@ -19,7 +21,7 @@ class BatchField<T> extends Node {
 
   /// Insert operation
   void insert(T value) {
-    switch($root) {
+    switch ($root) {
       case RootBatchFieldSelector selector:
         selector._operations.add(
           BatchInsertOperation(
@@ -34,7 +36,7 @@ class BatchField<T> extends Node {
 
   /// Update operation
   void update(T value) {
-    switch($root) {
+    switch ($root) {
       case RootBatchFieldSelector selector:
         selector._operations.add(
           BatchUpdateOperation(
@@ -49,12 +51,10 @@ class BatchField<T> extends Node {
 
   /// Delete operation
   void delete() {
-    switch($root) {
+    switch ($root) {
       case RootBatchFieldSelector selector:
         selector._operations.add(
-          BatchDeleteOperation(
-            fieldPath: type?.toFirestore() ?? $path,
-          ),
+          BatchDeleteOperation(fieldPath: type?.toFirestore() ?? $path),
         );
       default:
         throw StateError('Invalid root type for BatchField: ${$root}');
@@ -70,35 +70,29 @@ class BatchFieldSelector<T> extends Node {
 /// Root batch field selector that manages batch operations
 class RootBatchFieldSelector<T> extends BatchFieldSelector<T> {
   RootBatchFieldSelector();
-  
+
   final List<BatchOperation> _operations = [];
 }
 
 /// Base class for batch operations
 abstract class BatchOperation {
   final dynamic fieldPath;
-  
+
   const BatchOperation({required this.fieldPath});
 }
 
 /// Insert operation
 class BatchInsertOperation extends BatchOperation {
   final dynamic value;
-  
-  const BatchInsertOperation({
-    required super.fieldPath,
-    required this.value,
-  });
+
+  const BatchInsertOperation({required super.fieldPath, required this.value});
 }
 
 /// Update operation
 class BatchUpdateOperation extends BatchOperation {
   final dynamic value;
-  
-  const BatchUpdateOperation({
-    required super.fieldPath,
-    required this.value,
-  });
+
+  const BatchUpdateOperation({required super.fieldPath, required this.value});
 }
 
 /// Delete operation
@@ -136,22 +130,34 @@ class BatchContext<S extends FirestoreSchema> {
   }
 }
 
+/// it is a convenience function to create a batch document
+BatchCollection<S, C, Path>
+getBatchCollection<S extends FirestoreSchema, C, Path extends Record>({
+  required BatchDocument<S, dynamic, Record> parent,
+  required String name,
+  required FirestoreConverter<C, Map<String, dynamic>> converter,
+  required String documentIdField,
+}) => BatchCollection(
+  collection: parent._ref.collection(name),
+  converter: converter,
+  context: parent._context,
+  documentIdField: documentIdField,
+);
+
 /// Batch document for handling document-level batch operations
-class BatchDocument<S extends FirestoreSchema, T>
+class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
     implements SynchronousDeletable, SynchronousPatchable<T> {
   final BatchContext<S> _context;
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
-  
-  BatchDocument(
-    this._context,
-    this._ref,
-  );
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
 
-  /// Access to the document reference for subcollection operations
-  firestore.DocumentReference<Map<String, dynamic>> get ref => _ref;
-
-  /// Access to the batch context for subcollection operations
-  BatchContext<S> get context => _context;
+  const BatchDocument({
+    required BatchContext<S> context,
+    required firestore.DocumentReference<Map<String, dynamic>> ref,
+    required FirestoreConverter<T, Map<String, dynamic>> converter,
+  }) : _context = context,
+       _ref = ref,
+       _converter = converter;
 
   @override
   void delete() {
@@ -159,11 +165,13 @@ class BatchDocument<S extends FirestoreSchema, T>
   }
 
   @override
-  void patch(List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patchBuilder) {
-    final builder = UpdateBuilder<T>();
+  void patch(
+    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patchBuilder,
+  ) {
+    final builder = PatchBuilder<T>(converter: _converter);
     final operations = patchBuilder(builder);
-    final updateMap = UpdateBuilder.operationsToMap(operations);
-    
+    final updateMap = operationsToMap(operations);
+
     if (updateMap.isEmpty) {
       return; // No updates to apply
     }
@@ -173,14 +181,17 @@ class BatchDocument<S extends FirestoreSchema, T>
 }
 
 /// Batch collection for handling collection-level batch operations
-class BatchCollection<S extends FirestoreSchema, T>
-    implements SynchronousInsertable<T>, SynchronousUpdatable<T>, SynchronousUpsertable<T> {
+class BatchCollection<S extends FirestoreSchema, T, Path extends Record>
+    implements
+        SynchronousInsertable<T>,
+        SynchronousUpdatable<T>,
+        SynchronousUpsertable<T> {
   final BatchContext<S> _context;
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
 
-  BatchCollection({
+  const BatchCollection({
     required firestore.CollectionReference<Map<String, dynamic>> collection,
     required FirestoreConverter<T, Map<String, dynamic>> converter,
     required BatchContext<S> context,
@@ -191,9 +202,12 @@ class BatchCollection<S extends FirestoreSchema, T>
        _documentIdField = documentIdField;
 
   /// Gets a document reference for batch operations
-  BatchDocument<S, T> call(String id) => BatchDocument(
-    _context,
-    _collection.doc(id),
+  BatchDocument<S, T, Path> call(String id) => doc(id);
+
+  BatchDocument<S, T, Path> doc(String id) => BatchDocument(
+    context: _context,
+    ref: _collection.doc(id),
+    converter: _converter,
   );
 
   @override
@@ -270,67 +284,5 @@ class BatchCollection<S extends FirestoreSchema, T>
 
     final docRef = _collection.doc(documentId);
     _context._batch.set(docRef, data, firestore.SetOptions(merge: true));
-  }
-}
-
-/// Handler for batch operations using the Node-based architecture
-abstract class BatchHandler {
-  /// Build batch configuration using the Node-based selector pattern
-  static BatchConfiguration<T> buildBatch<T>(
-    BatchBuilderFunction<T> batchBuilder,
-  ) {
-    final selector = RootBatchFieldSelector<T>();
-    
-    // Call the batch builder to populate the selector
-    batchBuilder(selector);
-    
-    return BatchConfiguration(selector._operations, batchBuilder);
-  }
-
-  /// Apply batch operations to a Firestore batch
-  static void applyBatch<T>(
-    firestore.WriteBatch batch,
-    BatchConfiguration<T> config,
-    firestore.CollectionReference<Map<String, dynamic>> collection,
-    Map<String, dynamic> Function(T) toJson,
-    String documentIdField,
-  ) {
-    for (final operation in config.operations) {
-      switch (operation) {
-        case BatchInsertOperation insertOp:
-          final (data, docId) = processObject<T>(
-            toJson,
-            insertOp.value,
-            documentIdField: documentIdField,
-          );
-          final docRef = docId == kAutoGeneratedIdValue
-              ? collection.doc()
-              : collection.doc(docId);
-          batch.set(docRef, data);
-          
-        case BatchUpdateOperation updateOp:
-          final (data, docId) = processObject<T>(
-            toJson,
-            updateOp.value,
-            documentIdField: documentIdField,
-          );
-          if (docId == kAutoGeneratedIdValue) {
-            throw ArgumentError(
-              'Auto-generated IDs cannot be used with update operations. '
-              'Update requires a specific document ID to identify the document to update.',
-            );
-          }
-          if (docId.isEmpty) {
-            throw ArgumentError('Document ID required for update operation');
-          }
-          final docRef = collection.doc(docId);
-          batch.set(docRef, data);
-          
-        case BatchDeleteOperation deleteOp:
-          // For delete operations, we need the document ID from the field path
-          final docRef = collection.doc(deleteOp.fieldPath.toString());
-          batch.delete(docRef);
-      }
-    }
   }
 }

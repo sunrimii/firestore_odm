@@ -11,6 +11,11 @@ class FilterGenerator {
     return Method(
       (b) => b
         ..docs.add('/// Filter by document ID (${field.jsonName} field)')
+        ..annotations.add(
+          refer('pragma').call(
+            [literalString('vm:prefer-inline')],
+          ),
+        )
         ..type = MethodType.getter
         ..name = field.parameterName
         ..lambda = true
@@ -31,6 +36,11 @@ class FilterGenerator {
     return Method(
       (b) => b
         ..docs.add('/// Access nested ${field.parameterName} filters')
+        ..annotations.add(
+          refer('pragma').call(
+            [literalString('vm:prefer-inline')],
+          ),
+        )
         ..type = MethodType.getter
         ..name = field.parameterName
         ..returns = TypeReference(

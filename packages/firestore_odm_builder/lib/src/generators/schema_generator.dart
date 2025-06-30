@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart' hide FunctionType;
+import 'package:analyzer/dart/element/type.dart' hide FunctionType, RecordType;
 import 'package:code_builder/code_builder.dart';
+import 'package:collection/collection.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
@@ -25,6 +26,28 @@ class SchemaCollectionInfo {
     required this.isSubcollection,
     required this.modelType,
   });
+}
+
+final preferInlineAnnotation = refer(
+  'pragma',
+).call([literalString('vm:prefer-inline')]);
+final overrideAnnotation = refer('override');
+
+enum ClassType {
+  root('Root'),
+  collection('Collection'),
+  document('Document'),
+  transactionContext('TransactionContext'),
+  transactionCollection('TransactionCollection'),
+  transactionDocument('TransactionDocument'),
+  batchContext('BatchContext'),
+  batchCollection('BatchCollection'),
+  batchDocument('BatchDocument'),
+  patchBuilder('PatchBuilder');
+
+  const ClassType(this.suffix);
+
+  final String suffix;
 }
 
 /// Generator for schema-based ODM code using code_builder
@@ -83,22 +106,21 @@ class SchemaGenerator {
     return '_\$${variableElement.name.upperFirst()}';
   }
 
-  static String _generateDocumentClassName(String collectionPath) {
-    final className = _generateClassName(collectionPath);
-    return '${className}Document';
-  }
-
-  static String _generateCollectionClassName(String collectionPath) {
-    final className = _generateClassName(collectionPath);
-    return '${className}Collection';
-  }
-
   /// Generate document class name from collection path
   /// e.g., "users" -> "UsersDocument", "users2" -> "Users2Document"
   /// e.g., "users/*/posts" -> "UsersCollectionPostsDocument"
   /// e.g., "users/*/posts/*/comments" -> "UsersCollectionPostsCollectionCommentsDocument"
-  static String _generateClassName(String collectionPath) {
-    return _getSegments(collectionPath).join('Collection');
+  static String _generateClassName({
+    required String schemaClassName,
+    required ClassType type,
+    String collectionPath = '',
+    bool private = false,
+  }) {
+    return (private ? '_' : '') +
+        '\$' +
+        schemaClassName.upperFirst() +
+        _getSegments(collectionPath).join('') +
+        type.suffix.upperFirst();
   }
 
   static List<String> _getSegments(String collectionPath) {
@@ -114,6 +136,20 @@ class SchemaGenerator {
         .toList();
 
     return capitalizedSegments;
+  }
+
+  static RecordType _getPathRecord(String path) {
+    final segments = _getSegments(path);
+    return RecordType(
+      (b) => b
+        ..positionalFieldTypes.addAll(
+          segments.map(
+            (segment) => TypeReference(
+              (b) => b..symbol = '_\$${segment.upperFirst()}Collection',
+            ),
+          ),
+        ),
+    );
   }
 
   /// Get parent type name from subcollection path
@@ -177,7 +213,7 @@ class SchemaGenerator {
   }
 
   /// Get subcollection name from full path (last segment)
-  static String _getSubcollectionName(String path) {
+  static String _getCollectionName(String path) {
     return path.split('/').last;
   }
 
@@ -187,9 +223,7 @@ class SchemaGenerator {
     List<SchemaCollectionInfo> collections,
   ) {
     final specs = <Spec>[];
-
-    // specs.addAll(_generateCollectionIdentifiers(collections));
-    // register generators
+    specs.addAll(_generateCollectionIdentifiers(collections));
 
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
     final variableName = variableElement.name;
@@ -208,22 +242,13 @@ class SchemaGenerator {
     // Generate filter and order by builders for each model type
 
     // Generate ODM extensions
-    final odmExtension = _generateODMExtensions(schemaClassName, collections);
-    if (odmExtension != null) specs.add(odmExtension);
+    specs.add(_generateODMExtensions(schemaClassName, collections));
 
     // Generate transaction context extensions
-    final transactionExtension = _generateTransactionContextExtensions(
-      schemaClassName,
-      collections,
-    );
-    if (transactionExtension != null) specs.add(transactionExtension);
+    specs.add(_generateTransactionContext(schemaClassName, collections));
+    specs.addAll(_generateTransactionDocuments(schemaClassName, collections));
 
     // Generate batch context extensions
-    final batchExtension = _generateBatchContextExtensions(
-      schemaClassName,
-      collections,
-    );
-    if (batchExtension != null) specs.add(batchExtension);
 
     // Generate unique document classes for each collection path
     specs.addAll(_generateUniqueDocumentClasses(schemaClassName, collections));
@@ -232,6 +257,11 @@ class SchemaGenerator {
     // specs.addAll(_generateDocumentExtensions(schemaClassName, collections));
 
     // Generate batch document extensions for subcollections
+    final batchExtension = _generateBatchContextExtensions(
+      schemaClassName,
+      collections,
+    );
+    if (batchExtension != null) specs.add(batchExtension);
     specs.addAll(
       _generateBatchDocumentExtensions(schemaClassName, collections),
     );
@@ -280,71 +310,102 @@ class SchemaGenerator {
   ) {
     final specs = <Spec>[];
 
-    for (final type
+    for (final entry
         in collections
             .expand((c) => run(c.modelType))
             .where(isUserType)
             .whereType<InterfaceType>()
-            .map((t) => t.element.thisType)
-            .toSet()) {
+            .groupSetsBy((t) => t.element.thisType)
+            .entries) {
+      final baseType = entry.key;
+
       // Generate FilterSelector class using ModelAnalysis
       final filterClass =
-          FilterGenerator.generateFilterSelectorClassFromAnalysis(type);
+          FilterGenerator.generateFilterSelectorClassFromAnalysis(baseType);
       specs.add(filterClass);
 
       // Generate OrderBySelector class using ModelAnalysis
       final orderByExtension =
-          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(type);
+          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(baseType);
       specs.add(orderByExtension);
 
-      // Generate UpdateBuilder extension using ModelAnalysis
-      final updateExtension = UpdateGenerator.generateUpdateBuilderClass(type);
+      // Generate AggregateFieldSelector extension using ModelAnalysis
+      final aggregateExtension =
+          AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(
+            baseType,
+          );
+      if (aggregateExtension != null) {
+        specs.add(aggregateExtension);
+      }
+
+      final updateExtension = UpdateGenerator.generateGenericUpdateBuilderClass(
+        baseType,
+      );
       if (updateExtension != null) {
         specs.add(updateExtension);
       }
 
-      // Generate AggregateFieldSelector extension using ModelAnalysis
-      final aggregateExtension =
-          AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(type);
-      specs.add(aggregateExtension);
+      for (final type in entry.value) {
+        // Generate UpdateBuilder extension using ModelAnalysis
+        final updateExtension = UpdateGenerator.generateUpdateBuilderClass(
+          type,
+        );
+        if (updateExtension != null) {
+          specs.add(updateExtension);
+        }
+      }
     }
 
     return specs;
   }
 
   /// Generate ODM extensions for the schema
-  static Extension? _generateODMExtensions(
+  static Extension _generateODMExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
         .toList();
-    if (rootCollections.isEmpty) return null;
 
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
-        collection.modelType,
+      final collectionName = _getCollectionName(collection.path);
+      final collectionClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.collection,
       );
-      final collectionClassName = _generateCollectionClassName(collection.path);
+      final collectionType = TypeReference(
+        (b) => b
+          ..symbol = 'FirestoreCollection'
+          ..types.addAll([
+            refer(schemaClassName),
+            refer(collection.modelTypeName),
+            _getPathRecord(collection.path),
+          ]),
+      );
       methods.add(
         Method(
           (b) => b
             ..docs.add('/// Access ${collection.path} collection')
+            ..name = collectionName
+            ..returns = collectionType
             ..type = MethodType.getter
-            ..name = collection.path.camelCase().lowerFirst()
-            ..returns = refer(collectionClassName)
-            ..lambda = true
-            ..body = refer(collectionClassName).newInstance([], {
+            ..annotations.add(preferInlineAnnotation)
+            ..body = collectionType.newInstance([], {
               'query': refer(
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
               'converter': ConverterFactory.instance
                   .getConverter(collection.modelType)
                   .toConverterExpr(),
-              'documentIdField': literalString(documentIdFieldName),
+              'documentIdField': literalString(
+                ModelAnalyzer.instance.getDocumentIdFieldName(
+                  collection.modelType,
+                ),
+              ),
             }).code,
         ),
       );
@@ -353,9 +414,9 @@ class SchemaGenerator {
     return Extension(
       (b) => b
         ..docs.add(
-          '/// Extension to add collections to FirestoreODM<$schemaClassName>',
+          '/// Class to add collections to `FirestoreODM<$schemaClassName>`',
         )
-        ..name = '${schemaClassName}ODMExtensions'
+        ..name = '${schemaClassName}ODM'
         ..on = TypeReference(
           (b) => b
             ..symbol = 'FirestoreODM'
@@ -366,56 +427,53 @@ class SchemaGenerator {
   }
 
   /// Generate transaction context extensions for the schema
-  static Extension? _generateTransactionContextExtensions(
+  static Extension _generateTransactionContext(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
         .toList();
-    if (rootCollections.isEmpty) return null;
 
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
-        collection.modelType,
+      final collectionClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.transactionCollection,
       );
-
+      final collectionType = TypeReference(
+        (b) => b
+          ..symbol = 'TransactionCollection'
+          ..types.addAll([
+            refer(schemaClassName),
+            refer(collection.modelTypeName),
+            _getPathRecord(collection.path),
+          ]),
+      );
       methods.add(
         Method(
           (b) => b
             ..docs.add('/// Access ${collection.path} collection')
-            ..type = MethodType.getter
             ..name = collection.path.camelCase().lowerFirst()
-            ..returns = TypeReference(
-              (b) => b
-                ..symbol = 'TransactionCollection'
-                ..types.addAll([
-                  refer(schemaClassName),
-                  refer(collection.modelTypeName),
-                ]),
-            )
-            ..lambda = true
-            ..body =
-                TypeReference(
-                  (b) => b
-                    ..symbol = 'TransactionCollection'
-                    ..types.addAll([
-                      refer(schemaClassName),
-                      refer(collection.modelTypeName),
-                    ]),
-                ).newInstance([], {
-                  'transaction': refer('transaction'),
-                  'query': refer('ref').property('collection').call([
-                    literalString(collection.path),
-                  ]),
-                  'converter': converterFactory
-                      .getConverter(collection.modelType)
-                      .toConverterExpr(),
-                  'context': refer('this'),
-                  'documentIdField': literalString(documentIdFieldName),
-                }).code,
+            ..annotations.addAll([preferInlineAnnotation])
+            ..returns = collectionType
+            ..type = MethodType.getter
+            ..body = collectionType.newInstance([], {
+              'query': refer(
+                'ref',
+              ).property('collection').call([literalString(collection.path)]),
+              'context': refer('this'),
+              'converter': ConverterFactory.instance
+                  .getConverter(collection.modelType)
+                  .toConverterExpr(),
+              'documentIdField': literalString(
+                ModelAnalyzer.instance.getDocumentIdFieldName(
+                  collection.modelType,
+                ),
+              ),
+            }).code,
         ),
       );
     }
@@ -423,9 +481,12 @@ class SchemaGenerator {
     return Extension(
       (b) => b
         ..docs.add(
-          '/// Extension to add collections to TransactionContext<$schemaClassName>',
+          '/// Extension to add collections to `TransactionContext<$schemaClassName>`',
         )
-        ..name = '${schemaClassName}TransactionContextExtensions'
+        ..name = _generateClassName(
+          schemaClassName: schemaClassName,
+          type: ClassType.transactionContext,
+        )
         ..on = TypeReference(
           (b) => b
             ..symbol = 'TransactionContext'
@@ -433,6 +494,86 @@ class SchemaGenerator {
         )
         ..methods.addAll(methods),
     );
+  }
+
+  static List<Spec> _generateTransactionDocuments(
+    String schemaClassName,
+    List<SchemaCollectionInfo> collections,
+  ) {
+    final specs = <Spec>[];
+
+    for (final collection in collections) {
+      final documentClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.transactionDocument,
+      );
+
+      final modelType = collection.modelTypeName;
+      final methods = <Method>[];
+      for (final subcol in getSubcollections(collections, collection)) {
+        final collectionType = TypeReference(
+          (b) => b
+            ..symbol = 'TransactionCollection'
+            ..types.addAll([
+              refer(schemaClassName),
+              refer(subcol.modelTypeName),
+              _getPathRecord(subcol.path),
+            ]),
+        );
+
+        methods.add(
+          Method(
+            (b) => b
+              ..docs.add(
+                '/// Access ${_getCollectionName(subcol.path)} subcollection',
+              )
+              ..annotations.addAll([preferInlineAnnotation])
+              ..type = MethodType.getter
+              ..name = _getCollectionName(subcol.path).camelCase().lowerFirst()
+              ..returns = collectionType
+              ..lambda = true
+              ..body = collectionType.newInstance([], {
+                'query': refer('ref').property('collection').call([
+                  literalString(_getCollectionName(subcol.path)),
+                ]),
+                'context': refer('context'),
+                'converter': ConverterFactory.instance
+                    .getConverter(subcol.modelType)
+                    .toConverterExpr(),
+                'documentIdField': literalString(
+                  ModelAnalyzer.instance.getDocumentIdFieldName(
+                    subcol.modelType,
+                  ),
+                ),
+              }).code,
+          ),
+        );
+      }
+
+      if (methods.isNotEmpty) {
+        final documentClass = Extension(
+          (b) => b
+            ..docs.add(
+              '/// Transaction document class for ${collection.path} collection',
+            )
+            ..name = documentClassName
+            ..on = TypeReference(
+              (b) => b
+                ..symbol = 'TransactionDocument'
+                ..types.addAll([
+                  refer(schemaClassName),
+                  refer(modelType),
+                  _getPathRecord(collection.path),
+                ]),
+            )
+            ..methods.addAll(methods),
+        );
+
+        specs.add(documentClass);
+      }
+    }
+    return specs;
   }
 
   /// Generate batch context extensions for the schema
@@ -463,6 +604,7 @@ class SchemaGenerator {
                 ..types.addAll([
                   refer(schemaClassName),
                   refer(collection.modelTypeName),
+                  _getPathRecord(collection.path),
                 ]),
             )
             ..lambda = true
@@ -505,97 +647,51 @@ class SchemaGenerator {
     final specs = <Spec>[];
 
     for (final collection in collections) {
-      final className = _generateClassName(collection.path);
-      final documentClassName = _generateDocumentClassName(collection.path);
-      final collectionClassName = _generateCollectionClassName(collection.path);
+      final documentClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.document,
+      );
+      final collectionClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.collection,
+      );
       final modelType = collection.modelTypeName;
 
       final methods = <Method>[];
 
-      // patch
-      methods.add(
-        Method(
-          (b) => b
-            ..docs.add('/// Gets a document reference with the specified ID')
-            ..annotations.add(refer('override'))
-            ..name = 'patch'
-            ..returns = refer('Future<void>')
-            ..requiredParameters.add(
-              Parameter(
-                (b) => b
-                  ..name = 'patches'
-                  ..type = FunctionType(
-                    (b) => b
-                      ..returnType = TypeReferences.listOf(
-                        TypeReference((b) => b..symbol = 'UpdateOperation'),
-                      )
-                      ..requiredParameters.add(
-                        TypeReference(
-                          (b) => b
-                            ..symbol =
-                                '${collection.modelType.element3.name3}UpdateBuilder'
-                            ..types.addAll(
-                              collection.modelType.typeArguments.references,
-                            ),
-                        ),
-                      ),
-                  ),
-              ),
-            )
-            ..body = Block.of([
-              declareFinal('patchBuilder')
-                  .assign(
-                    TypeReference(
-                      (b) => b
-                        ..symbol =
-                            '${collection.modelType.element3.name3}UpdateBuilder'
-                        ..types.addAll(
-                          collection.modelType.typeArguments.references,
-                        ),
-                    ).newInstance(
-                      [],
-                      Map.fromIterables(
-                        collection.modelType.typeParameters.map(
-                          (e) => 'converter${e.name}',
-                        ),
-                        collection.modelType.typeArguments.map(
-                          (e) => converterFactory
-                              .getConverter(e)
-                              .toConverterExpr(),
-                        ),
-                      ),
-                    ),
-                  )
-                  .statement,
-              declareFinal('operations')
-                  .assign(refer('patches').call([refer('patchBuilder')]))
-                  .statement,
-              refer('DocumentHandler')
-                  .property('patch')
-                  .call([refer('ref'), refer('operations')])
-                  .returned
-                  .statement,
-            ]),
-        ),
-      );
-
       for (final subcol in getSubcollections(collections, collection)) {
-        final subcollectionName = _getSubcollectionName(subcol.path);
+        final subcollectionName = _getCollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
         final documentIdFieldName = ModelAnalyzer.instance
             .getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
-        final collectionClassName = _generateCollectionClassName(subcol.path);
+        final collectionClassName = _generateClassName(
+          schemaClassName: schemaClassName,
+          collectionPath: subcol.path,
+          type: ClassType.collection,
+        );
+
+        final collectionType = TypeReference(
+          (b) => b
+            ..symbol = 'FirestoreCollection'
+            ..types.addAll([
+              refer(schemaClassName),
+              subcol.modelType.reference,
+              _getPathRecord(subcol.path),
+            ]),
+        );
         methods.add(
           Method(
             (b) => b
               ..docs.add('/// Access $subcollectionName subcollection')
               ..type = MethodType.getter
               ..name = getterName
-              ..returns = refer(collectionClassName)
+              ..returns = collectionType
               ..lambda = true
-              ..body = refer(collectionClassName).newInstance([], {
+              ..body = collectionType.newInstance([], {
                 'query': refer('ref').property('collection').call([
                   literalString(subcollectionName),
                 ]),
@@ -609,200 +705,24 @@ class SchemaGenerator {
       }
 
       // Generate document class
-      final documentClass = Class(
-        (b) => b
-          ..docs.add('/// Document class for ${collection.path} collection')
-          ..name = documentClassName
-          ..extend = TypeReference(
-            (b) => b
-              ..symbol = 'FirestoreDocument'
-              ..types.addAll([refer(schemaClassName), refer(modelType)]),
-          )
-          ..constructors.add(
-            Constructor(
+      if (methods.isNotEmpty) {
+        final documentClass = Extension(
+          (b) => b
+            ..docs.add('/// Document class for ${collection.path} collection')
+            ..name = documentClassName
+            ..on = TypeReference(
               (b) => b
-                ..requiredParameters.addAll([
-                  Parameter(
-                    (b) => b
-                      ..name = 'ref'
-                      ..toSuper = true,
-                  ),
-                  Parameter(
-                    (b) => b
-                      ..name = 'converter'
-                      ..toSuper = true,
-                  ),
-                  Parameter(
-                    (b) => b
-                      ..name = 'documentIdField'
-                      ..toSuper = true,
-                  ),
-                ])
-                ..constant = false,
-            ),
-          )
-          ..methods.addAll(methods),
-      );
-      specs.add(documentClass);
-
-      // Generate collection class
-      final collectionClass = Class(
-        (b) => b
-          ..docs.add('/// Collection class for ${collection.path} collection')
-          ..name = collectionClassName
-          ..extend = TypeReference(
-            (b) => b
-              ..symbol = 'FirestoreCollection'
-              ..types.addAll([refer(schemaClassName), refer(modelType)]),
-          )
-          ..constructors.add(
-            Constructor(
-              (b) => b
-                ..optionalParameters.addAll([
-                  Parameter(
-                    (b) => b
-                      ..name = 'query'
-                      ..required = true
-                      ..toSuper = true
-                      ..named = true,
-                  ),
-                  Parameter(
-                    (b) => b
-                      ..name = 'converter'
-                      ..required = true
-                      ..toSuper = true
-                      ..named = true,
-                  ),
-                  Parameter(
-                    (b) => b
-                      ..name = 'documentIdField'
-                      ..required = true
-                      ..toSuper = true
-                      ..named = true,
-                  ),
-                ])
-                ..constant = false,
-            ),
-          )
-          ..methods.addAll([
-            Method(
-              (b) => b
-                ..docs.add(
-                  '/// Gets a document reference with the specified ID',
-                )
-                ..annotations.add(refer('override'))
-                ..name = 'doc'
-                ..returns = refer(documentClassName)
-                ..requiredParameters.add(
-                  Parameter(
-                    (b) => b
-                      ..name = 'id'
-                      ..type = refer('String'),
-                  ),
-                )
-                ..lambda = true
-                ..body = refer(documentClassName).newInstance([
-                  refer('query').property('doc').call([refer('id')]),
-                  refer('converter'),
-                  refer('documentIdField'),
-                ]).code,
-            ),
-            Method(
-              (b) => b
-                ..docs.add(
-                  '/// Gets a document reference with the specified ID',
-                )
-                ..annotations.add(refer('override'))
-                ..name = 'call'
-                ..returns = refer(documentClassName)
-                ..requiredParameters.add(
-                  Parameter(
-                    (b) => b
-                      ..name = 'id'
-                      ..type = refer('String'),
-                  ),
-                )
-                ..lambda = true
-                ..body = refer('doc').call([refer('id')]).code,
-            ),
-            /*
-            
-
-  // @override
-  // Future<void> patch(List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches);
-  //   final operations = patches(_updateBuilder);
-  //   return QueryHandler.patch(query, documentIdField, operations);
-  // }
-      
-      */
-            Method(
-              (b) => b
-                ..docs.add(
-                  '/// Gets a document reference with the specified ID',
-                )
-                ..annotations.add(refer('override'))
-                ..name = 'patch'
-                ..returns = refer('Future<void>')
-                ..requiredParameters.add(
-                  Parameter(
-                    (b) => b
-                      ..name = 'patches'
-                      ..type = FunctionType(
-                        (b) => b
-                          ..returnType = TypeReferences.listOf(
-                            TypeReference((b) => b..symbol = 'UpdateOperation'),
-                          )
-                          ..requiredParameters.add(
-                            TypeReference(
-                              (b) => b
-                                ..symbol =
-                                    '${collection.modelType.element3.name3}UpdateBuilder'
-                                ..types.addAll(
-                                  collection.modelType.typeArguments.references,
-                                ),
-                            ),
-                          ),
-                      ),
-                  ),
-                )
-                ..body = Block.of([
-                  declareFinal('patchBuilder')
-                      .assign(
-                        TypeReference(
-                          (b) => b
-                            ..symbol =
-                                '${collection.modelType.element3.name3}UpdateBuilder'
-                            ..types.addAll(
-                              collection.modelType.typeArguments.references,
-                            ),
-                        ).newInstance(
-                          [],
-                          Map.fromIterables(
-                            collection.modelType.typeParameters.map(
-                              (e) => 'converter${e.name}',
-                            ),
-                            collection.modelType.typeArguments.map(
-                              (e) => converterFactory
-                                  .getConverter(e)
-                                  .toConverterExpr(),
-                            ),
-                          ),
-                        ),
-                      )
-                      .statement,
-                  declareFinal('operations')
-                      .assign(refer('patches').call([refer('patchBuilder')]))
-                      .statement,
-                  refer('QueryHandler')
-                      .property('patch')
-                      .call([refer('query'), refer('operations')])
-                      .returned
-                      .statement,
+                ..symbol = 'FirestoreDocument'
+                ..types.addAll([
+                  refer(schemaClassName),
+                  refer(modelType),
+                  _getPathRecord(collection.path),
                 ]),
-            ),
-          ]),
-      );
-      specs.add(collectionClass);
+            )
+            ..methods.addAll(methods),
+        );
+        specs.add(documentClass);
+      }
     }
 
     return specs;
@@ -820,11 +740,10 @@ class SchemaGenerator {
 /// we can use extension methods with record types to reduce boilerplate
 /// Example: (_\$UsersCollection, _\$PostsCollection)
       '''),
-      ...collections.toSet().map((c) {
-        final className = _generateClassName(c.path);
+      ...collections.map((c) => _getCollectionName(c.path)).toSet().map((c) {
         return Class(
           (b) => b
-            ..name = '_\$${className.upperFirst()}Collection'
+            ..name = '_\$${c.upperFirst()}Collection'
             ..modifier = ClassModifier.final$,
         );
       }),
@@ -861,18 +780,26 @@ class SchemaGenerator {
     for (final entry in pathGroups.entries) {
       final parentPath = entry.key;
       final subcolsForParent = entry.value;
-      final parentDocumentClassName = _generateDocumentClassName(parentPath);
+      final parentDocumentClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: parentPath,
+        type: ClassType.document,
+      );
 
       final methods = <Method>[];
 
       for (final subcol in subcolsForParent) {
-        final subcollectionName = _getSubcollectionName(subcol.path);
+        final subcollectionName = _getCollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
         final documentIdFieldName = ModelAnalyzer.instance
             .getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
-        final collectionClassName = _generateCollectionClassName(subcol.path);
+        final collectionClassName = _generateClassName(
+          schemaClassName: schemaClassName,
+          collectionPath: subcol.path,
+          type: ClassType.collection,
+        );
         methods.add(
           Method(
             (b) => b
@@ -918,82 +845,76 @@ class SchemaGenerator {
     List<SchemaCollectionInfo> collections,
   ) {
     final specs = <Spec>[];
-    final subcollections = collections.where((c) => c.isSubcollection).toList();
 
-    // Group subcollections by parent type
-    final parentGroups = <String, List<SchemaCollectionInfo>>{};
-    for (final subcol in subcollections) {
-      final parentType = _getParentTypeFromPath(subcol.path, collections);
-      if (parentType != null) {
-        parentGroups.putIfAbsent(parentType, () => []).add(subcol);
-      }
-    }
+    for (final collection in collections) {
+      final documentClassName = _generateClassName(
+        schemaClassName: schemaClassName,
+        collectionPath: collection.path,
+        type: ClassType.batchDocument,
+      );
 
-    for (final entry in parentGroups.entries) {
-      final parentType = entry.key;
-      final subcolsForParent = entry.value;
-
+      final modelType = collection.modelTypeName;
       final methods = <Method>[];
-
-      for (final subcol in subcolsForParent) {
-        final subcollectionName = _getSubcollectionName(subcol.path);
-        final getterName = subcollectionName.camelCase().lowerFirst();
-        final documentIdFieldName = ModelAnalyzer.instance
-            .getDocumentIdFieldName(subcol.modelType);
+      for (final subcol in getSubcollections(collections, collection)) {
+        final collectionType = TypeReference(
+          (b) => b
+            ..symbol = 'BatchCollection'
+            ..types.addAll([
+              refer(schemaClassName),
+              refer(subcol.modelTypeName),
+              _getPathRecord(subcol.path),
+            ]),
+        );
 
         methods.add(
           Method(
             (b) => b
               ..docs.add(
-                '/// Access $subcollectionName subcollection for batch operations',
+                '/// Access ${_getCollectionName(subcol.path)} subcollection',
               )
+              ..annotations.addAll([preferInlineAnnotation])
               ..type = MethodType.getter
-              ..name = getterName
-              ..returns = TypeReference(
-                (b) => b
-                  ..symbol = 'BatchCollection'
-                  ..types.addAll([
-                    refer(schemaClassName),
-                    refer(subcol.modelTypeName),
-                  ]),
-              )
+              ..name = _getCollectionName(subcol.path).camelCase().lowerFirst()
+              ..returns = collectionType
               ..lambda = true
-              ..body = TypeReference((b) => b..symbol = 'BatchCollection')
-                  .newInstance([], {
-                    'collection': refer('ref').property('collection').call([
-                      literalString(subcollectionName),
-                    ]),
-                    'converter': converterFactory
-                        .getConverter(subcol.modelType)
-                        .toConverterExpr(),
-                    'documentIdField': literalString(documentIdFieldName),
-                    'context': refer('context'),
-                  })
-                  .code,
+              ..body = refer('getBatchCollection').call([], {
+                'parent': refer('this'),
+                'name': literalString(_getCollectionName(subcol.path)),
+                'converter': ConverterFactory.instance
+                    .getConverter(subcol.modelType)
+                    .toConverterExpr(),
+                'documentIdField': literalString(
+                  ModelAnalyzer.instance.getDocumentIdFieldName(
+                    subcol.modelType,
+                  ),
+                ),
+              }).code,
           ),
         );
       }
 
       if (methods.isNotEmpty) {
-        specs.add(
-          Extension(
-            (b) => b
-              ..docs.add(
-                '/// Extension to access subcollections on $parentType batch document',
-              )
-              ..name =
-                  '${schemaClassName}${parentType}BatchDocumentSubcollectionExtensions'
-              ..on = TypeReference(
-                (b) => b
-                  ..symbol = 'BatchDocument'
-                  ..types.addAll([refer(schemaClassName), refer(parentType)]),
-              )
-              ..methods.addAll(methods),
-          ),
+        final documentClass = Extension(
+          (b) => b
+            ..docs.add(
+              '/// Batch document class for ${collection.path} collection',
+            )
+            ..name = documentClassName
+            ..on = TypeReference(
+              (b) => b
+                ..symbol = 'BatchDocument'
+                ..types.addAll([
+                  refer(schemaClassName),
+                  refer(modelType),
+                  _getPathRecord(collection.path),
+                ]),
+            )
+            ..methods.addAll(methods),
         );
+
+        specs.add(documentClass);
       }
     }
-
     return specs;
   }
 

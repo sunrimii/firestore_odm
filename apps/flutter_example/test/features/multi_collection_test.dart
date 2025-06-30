@@ -320,21 +320,21 @@ void main() {
     group('🎯 Collection Type Safety', () {
       test('should maintain type safety across collections', () async {
         // Ensure each collection returns the correct type
-        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
-        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
         expect(
           odm.sharedPosts,
-          isA<FirestoreCollection<TestSchema, SharedPost>>(),
+          isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
         );
 
         // Subcollections should also be properly typed
         expect(
           odm.users('test').posts,
-          isA<FirestoreCollection<TestSchema, Post>>(),
+          isA<FirestoreCollection<TestSchema, Post, dynamic>>(),
         );
         expect(
           odm.users('test').sharedPosts,
-          isA<FirestoreCollection<TestSchema, SharedPost>>(),
+          isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
         );
       });
 

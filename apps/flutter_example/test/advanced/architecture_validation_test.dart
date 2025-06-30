@@ -53,25 +53,25 @@ void main() {
         'should validate unified validation completed before generation',
         () {
           // All model types should be properly typed
-          expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
-          expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
+          expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
+          expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
           expect(
             odm.simpleStories,
-            isA<FirestoreCollection<TestSchema, SimpleStory>>(),
+            isA<FirestoreCollection<TestSchema, SimpleStory, dynamic>>(),
           );
           expect(
             odm.sharedPosts,
-            isA<FirestoreCollection<TestSchema, SharedPost>>(),
+            isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
           );
 
           // Subcollections should also be properly typed
           expect(
             odm.users('test').posts,
-            isA<FirestoreCollection<TestSchema, Post>>(),
+            isA<FirestoreCollection<TestSchema, Post, dynamic>>(),
           );
           expect(
             odm.users('test').sharedPosts,
-            isA<FirestoreCollection<TestSchema, SharedPost>>(),
+            isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
           );
         },
       );
@@ -311,14 +311,14 @@ void main() {
     group('🔧 Generator Logic Simplicity', () {
       test('should validate single responsibility principle', () {
         // Each collection should have clear, focused functionality
-        expect(odm.users, isA<FirestoreCollection<TestSchema, User>>());
+        expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
         expect(() => odm.users('test_id'), returnsNormally);
         expect(
           () => odm.users.where(($) => $.name(isEqualTo: 'test')),
           returnsNormally,
         );
 
-        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post>>());
+        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
         expect(() => odm.posts('test_id'), returnsNormally);
         expect(
           () => odm.posts.where(($) => $.title(isEqualTo: 'test')),

@@ -26,22 +26,22 @@ class Query<S extends FirestoreSchema, T>
         Aggregatable<S, T>,
         Limitable,
         Deletable {
-  final Map<String, dynamic> Function(T) _toJson;
-  final T Function(Map<String, dynamic>) _fromJson;
+          
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
 
   /// The underlying Firestore query
   final firestore.Query<Map<String, dynamic>> _query;
 
-  const Query(this._query, this._toJson, this._fromJson, this._documentIdField);
+  const Query(this._query, this._converter, this._documentIdField);
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _fromJson, _documentIdField);
+      QueryHandler.get(_query, _converter.fromJson, _documentIdField);
 
   @override
   Stream<List<T>> get stream =>
-      QueryHandler.stream(_query, _fromJson, _documentIdField);
+      QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
 
   @override
   Query<S, T> where(
@@ -50,7 +50,7 @@ class Query<S extends FirestoreSchema, T>
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     // Handle different types of query objects
-    return Query<S, T>(newQuery, _toJson, _fromJson, _documentIdField);
+    return Query<S, T>(newQuery, _converter, _documentIdField);
   }
 
   @override
@@ -62,27 +62,27 @@ class Query<S extends FirestoreSchema, T>
       _documentIdField,
     );
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
-    return OrderedQuery(newQuery, _toJson, _fromJson, _documentIdField, config);
+    return OrderedQuery(newQuery, _converter, _documentIdField, config);
   }
 
   @override
   Query<S, T> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
-    return Query<S, T>(newQuery, _toJson, _fromJson, _documentIdField);
+    return Query<S, T>(newQuery, _converter, _documentIdField);
   }
 
   @override
   Query<S, T> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
 
-    return Query<S, T>(newQuery, _toJson, _fromJson, _documentIdField);
+    return Query<S, T>(newQuery, _converter, _documentIdField);
   }
 
   @override
   Future<void> patch(
-    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patches,
+    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patches,
   ) {
-    final builder = UpdateBuilder<T>();
+    final builder = PatchBuilder<T>(converter: _converter);
     final operations = patches(builder);
     return QueryHandler.patch(_query, operations);
   }
@@ -117,7 +117,7 @@ class Query<S extends FirestoreSchema, T>
   /// ```
   @override
   Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true}) =>
-      QueryHandler.modify(_query, _documentIdField, _toJson, _fromJson, modifier, atomic: atomic);
+      QueryHandler.modify(_query, _documentIdField, _converter.toJson, _converter.fromJson, modifier, atomic: atomic);
 
 
   @override
@@ -129,7 +129,7 @@ class Query<S extends FirestoreSchema, T>
       _query,
       config.operations,
     );
-    return AggregateQuery(newQuery, _toJson, _fromJson, _documentIdField, config);
+    return AggregateQuery(newQuery, _converter.toJson, _converter.fromJson, _documentIdField, config);
   }
 
   @override

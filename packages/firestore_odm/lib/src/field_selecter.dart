@@ -11,7 +11,7 @@ class Node {
     if (_name.isEmpty) return _parent.$path;
     return _parent.$path.isEmpty ? _name : '${_parent.$path}.$_name';
   }
-
+  
   List<String> get $parts {
     if (_parent == null) {
       return _name.isEmpty ? const <String>[] : <String>[_name];

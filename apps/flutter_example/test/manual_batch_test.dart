@@ -214,7 +214,7 @@ void main() {
         $.age(33),
         $.profile.bio('Patched bio using manual batch'),
         $.profile.followers(100),
-        $.profile.socialLinks.setKey('github', '@patched'),
+        $.profile.socialLinks.set('github', '@patched'),
         $.isPremium(true),
       ]);
 

@@ -232,9 +232,9 @@ void main() {
           .users(user.id)
           .patch(
             ($) => [
-              $.settings.setKey('theme', 'auto'),
-              $.settings.setKey('sidebar', 'collapsed'),
-              $.metadata.setKey(
+              $.settings.set('theme', 'auto'),
+              $.settings.set('sidebar', 'collapsed'),
+              $.metadata.set(
                 'lastUpdate',
                 DateTime.now().millisecondsSinceEpoch,
               ),
@@ -249,7 +249,7 @@ void main() {
 
       // Test 3: Remove map key
       print('🧪 Test 3: Remove map key');
-      await odm.users(user.id).patch(($) => [$.metadata.removeKey('version')]);
+      await odm.users(user.id).patch(($) => [$.metadata.remove('version')]);
 
       updatedUser = await odm.users(user.id).get();
       expect(updatedUser!.metadata.containsKey('lastUpdate'), isTrue);
@@ -322,8 +322,8 @@ void main() {
           .where(($) => $.metadata.key("group")(isEqualTo: "bulk"))
           .patch(
             ($) => [
-              $.metadata.setKey('processed', true),
-              $.metadata.setKey(
+              $.metadata.set('processed', true),
+              $.metadata.set(
                 'timestamp',
                 DateTime.now().millisecondsSinceEpoch,
               ),
@@ -347,8 +347,8 @@ void main() {
           .where(($) => $.settings.key("level")(isEqualTo: "1"))
           .patch(
             ($) => [
-              $.settings.setKey('featured', 'true'),
-              $.metadata.setKey('featured_reason', 'level_based'),
+              $.settings.set('featured', 'true'),
+              $.metadata.set('featured_reason', 'level_based'),
             ],
           );
 

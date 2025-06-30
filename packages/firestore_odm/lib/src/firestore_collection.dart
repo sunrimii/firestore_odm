@@ -12,11 +12,9 @@ import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
-import 'package:firestore_odm/src/services/update_operations_service.dart';
-import 'package:flutter/material.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-abstract class FirestoreCollection<S extends FirestoreSchema, T>
+class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -49,9 +47,14 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<S, T> call(String id) => doc(id);
+  FirestoreDocument<S, T, Path> call(String id) => doc(id);
 
-  FirestoreDocument<S, T> doc(String id);
+  FirestoreDocument<S, T, Path> doc(String id) =>
+      FirestoreDocument<S, T, Path>(
+        query.doc(id),
+        converter,
+        documentIdField,
+      );
 
   /// Upsert a document using the id field as document ID
   Future<void> upsert(T value) =>
@@ -88,8 +91,7 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
     final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
     return OrderedQuery(
       newQuery,
-      converter.toJson,
-      converter.fromJson,
+      converter,
       documentIdField,
       config,
     );
@@ -101,8 +103,7 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
     return Query<S, T>(
       newQuery,
-      converter.toJson,
-      converter.fromJson,
+      converter,
       documentIdField,
     );
   }
@@ -112,8 +113,7 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
     final newQuery = QueryLimitHandler.applyLimit(query, limit);
     return Query<S, T>(
       newQuery,
-      converter.toJson,
-      converter.fromJson,
+      converter,
       documentIdField,
     );
   }
@@ -123,17 +123,19 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
     final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
     return Query<S, T>(
       newQuery,
-      converter.toJson,
-      converter.fromJson,
+      converter,
       documentIdField,
     );
   }
 
-  // @override
-  // Future<void> patch(PatchBuilder<T> patchBuilder) {
-  //   final operations = patchBuilder(_updateBuilder);
-  //   return QueryHandler.patch(query, documentIdField, operations);
-  // }
+  @override
+  Future<void> patch(List<UpdateOperation> Function(PatchBuilder<T> patches) patches) {
+    final _patchBuilder = PatchBuilder<T>(
+      converter: converter,
+    );
+    final operations = patches(_patchBuilder);
+    return QueryHandler.patch(query, operations);
+  }
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(

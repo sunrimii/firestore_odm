@@ -28,8 +28,8 @@ void main() {
       final userPostDoc = userDoc.posts('user_post');
 
       // Comments should be accessible from Post documents
-      expect(postDoc.comments, isA<FirestoreCollection<TestSchema, Comment>>());
-      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment>>());
+      expect(postDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
+      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
 
       // Verify the correct collection paths
       expect(
@@ -105,13 +105,13 @@ void main() {
       final userPostCommentDoc = userPostDoc.comments('comment_id');
 
       // Check types are correct
-      expect(userDoc, isA<FirestoreDocument<TestSchema, User>>());
-      expect(userPostDoc, isA<FirestoreDocument<TestSchema, Post>>());
-      expect(userPostCommentDoc, isA<FirestoreDocument<TestSchema, Comment>>());
+      expect(userDoc, isA<FirestoreDocument<TestSchema, User, dynamic>>());
+      expect(userPostDoc, isA<FirestoreDocument<TestSchema, Post, dynamic>>());
+      expect(userPostCommentDoc, isA<FirestoreDocument<TestSchema, Comment, dynamic>>());
 
       // Check collection types are correct
-      expect(userDoc.posts, isA<FirestoreCollection<TestSchema, Post>>());
-      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment>>());
+      expect(userDoc.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
+      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
     });
 
     test('🏗️ should generate correct extensions for multiple subcollection paths', () {

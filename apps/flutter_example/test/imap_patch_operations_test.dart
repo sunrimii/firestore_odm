@@ -41,11 +41,11 @@ void main() {
       // Test patch operations with IMap - this should work with map operations
       await odm.immutableUsers(user.id).patch((update) => [
         // Test setting a specific key in the IMap
-        update.settings.setKey('theme', 'dark'),
+        update.settings.set('theme', 'dark'),
         // Test setting another key
-        update.settings.setKey('newFeature', 'enabled'),
+        update.settings.set('newFeature', 'enabled'),
         // Test removing a key
-        update.settings.removeKey('notifications'),
+        update.settings.remove('notifications'),
       ]);
 
       // Verify the patch operations worked
@@ -87,8 +87,8 @@ void main() {
       // Before the fix, this would fail because IMap was incorrectly treated as iterable
       await odm.immutableUsers(user.id).patch((update) => [
         // These map operations should be available for IMap fields
-        update.settings.setKey('theme', 'dark'),
-        update.settings.setKey('language', 'zh'),
+        update.settings.set('theme', 'dark'),
+        update.settings.set('language', 'zh'),
       ]);
 
       final result = await odm.immutableUsers(user.id).get();
@@ -158,8 +158,8 @@ void main() {
       // Mix map and array operations in single patch
       await odm.immutableUsers(user.id).patch((update) => [
         // Map operations on IMap field
-        update.settings.setKey('language', 'dart'),
-        update.settings.setKey('version', '3.0'),
+        update.settings.set('language', 'dart'),
+        update.settings.set('version', '3.0'),
         // Array operations on IList field
         update.tags.add('dart'),
         update.scores.add(92),
