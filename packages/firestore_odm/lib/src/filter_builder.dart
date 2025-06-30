@@ -451,7 +451,7 @@ class PatchBuilder<T> extends Node {
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
     final convertedValue = _converter.toJson(value);
-    return SetOperation<T>($path, convertedValue);
+    return SetOperation($path, convertedValue);
   }
 }
 
