@@ -1125,7 +1125,13 @@ class ListFieldUpdate<T, E> extends DefaultUpdateBuilder<T> {
 
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T> extends DefaultUpdateBuilder<T> {
-  const DateTimeFieldUpdate({required super.path, required super.converter});
+  const DateTimeFieldUpdate({required super.path}) 
+    : super(
+        converter: null is T
+            ? const NullableConverter(DateTimeConverter())
+                  as FirestoreConverter<T, dynamic>
+            : const DateTimeConverter() as FirestoreConverter<T, dynamic>,
+      );
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
@@ -1155,26 +1161,26 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   const MapFieldUpdate({
     required super.path,
     required super.converter,
-    required FirestoreConverter<K, String> converterK,
-    required FirestoreConverter<V, dynamic> converterV,
-  }) : _converterK = converterK,
-       _converterV = converterV;
+    required FirestoreConverter<K, dynamic> keyConverter,
+    required FirestoreConverter<V, dynamic> valueConverter,
+  }) : _keyConverter = keyConverter,
+       _valueConverter = valueConverter;
 
-  final FirestoreConverter<K, String> _converterK;
-  final FirestoreConverter<V, dynamic> _converterV;
+  final FirestoreConverter<K, dynamic> _keyConverter;
+  final FirestoreConverter<V, dynamic> _valueConverter;
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
-    final convertedKey = _converterK.toJson(key);
+    final convertedKey = _keyConverter.toJson(key);
     final keyPath = '${_path}.$convertedKey';
-    return SetOperation<V>(keyPath, _converterV.toJson(value));
+    return SetOperation<V>(keyPath, _valueConverter.toJson(value));
   }
 
   /// Remove a single key (like map.remove(key))
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
-    final convertedKey = _converterK.toJson(key);
+    final convertedKey = _keyConverter.toJson(key);
     final keyPath = '${_path}.$convertedKey';
     return DeleteOperation(keyPath);
   }
@@ -1184,8 +1190,8 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   UpdateOperation addAll(Map<K, V> entries) {
     final entriesMap = entries.map(
       (key, value) => MapEntry(
-        '${_path}.${_converterK.toJson(key)}',
-        _converterV.toJson(value),
+        '${_path}.${_keyConverter.toJson(key)}',
+        _valueConverter.toJson(value),
       ),
     );
     return MapPutAllOperation(_path, entriesMap);
@@ -1197,8 +1203,8 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
     final entriesMap = Map.fromEntries(
       entries.map(
         (entry) => MapEntry(
-          '${_path}.${_converterK.toJson(entry.key)}',
-          _converterV.toJson(entry.value),
+          '${_path}.${_keyConverter.toJson(entry.key)}',
+          _valueConverter.toJson(entry.value),
         ),
       ),
     );
@@ -1208,7 +1214,7 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
-    final keysList = keys.map((key) => _converterK.toJson(key)).toList();
+    final keysList = keys.map((key) => _keyConverter.toJson(key)).toList();
     return MapRemoveAllOperation(_path, keysList);
   }
 
@@ -1224,8 +1230,8 @@ class MapFieldUpdate<T, K, V> extends DefaultUpdateBuilder<T> {
   /// Usage: $.permissions.setAll(['read', 'write'], true)
   UpdateOperation setAll(Iterable<K> keys, V value) {
     final entriesMap = Map.fromIterables(
-      keys.map((key) => '${_path}.${_converterK.toJson(key)}'),
-      Iterable.generate(keys.length, (_) => _converterV.toJson(value)),
+      keys.map((key) => '${_path}.${_keyConverter.toJson(key)}'),
+      Iterable.generate(keys.length, (_) => _valueConverter.toJson(value)),
     );
     return MapPutAllOperation(_path, entriesMap);
   }

@@ -77,8 +77,6 @@ class OrderByGenerator {
     }
 
     final typeParameters = type.typeParameters;
-    final typeParameterNames = type.typeParameters.map((ref) => ref.name).toList();
-    final classNameWithTypeParams = type.isGeneric ? '$className<${typeParameterNames.join(', ')}>' : className;
 
     // Create the target type (OrderByFieldSelector<ClassName<T>>)
     final targetType = TypeReference(
@@ -119,7 +117,7 @@ class OrderByGenerator {
         ..types.addAll(typeParameters.references)
         ..on = targetType
         ..docs.add(
-          '/// Generated OrderByFieldSelector for $classNameWithTypeParams',
+          '/// Generated OrderByFieldSelector for `$type`',
         )
         ..methods.addAll(methods),
     );

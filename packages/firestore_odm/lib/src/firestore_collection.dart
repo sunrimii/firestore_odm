@@ -43,14 +43,15 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
   const FirestoreCollection({
     required this.query,
     required this.converter,
-    required this.documentIdField
+    required this.documentIdField,
   });
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<S, T> call(String id) =>
-      FirestoreDocument(query.doc(id), converter, documentIdField);
+  FirestoreDocument<S, T> call(String id) => doc(id);
+
+  FirestoreDocument<S, T> doc(String id);
 
   /// Upsert a document using the id field as document ID
   Future<void> upsert(T value) =>
@@ -85,26 +86,47 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
       documentIdField,
     );
     final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
-    return OrderedQuery(newQuery, converter.toJson, converter.fromJson, documentIdField, config);
+    return OrderedQuery(
+      newQuery,
+      converter.toJson,
+      converter.fromJson,
+      documentIdField,
+      config,
+    );
   }
 
   @override
   Query<S, T> where(FilterBuilder<T> filterBuilder) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
-    return Query<S, T>(newQuery, converter.toJson, converter.fromJson, documentIdField);
+    return Query<S, T>(
+      newQuery,
+      converter.toJson,
+      converter.fromJson,
+      documentIdField,
+    );
   }
 
   @override
   Query<S, T> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(query, limit);
-    return Query<S, T>(newQuery, converter.toJson, converter.fromJson, documentIdField);
+    return Query<S, T>(
+      newQuery,
+      converter.toJson,
+      converter.fromJson,
+      documentIdField,
+    );
   }
 
   @override
   Query<S, T> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
-    return Query<S, T>(newQuery, converter.toJson, converter.fromJson, documentIdField);
+    return Query<S, T>(
+      newQuery,
+      converter.toJson,
+      converter.fromJson,
+      documentIdField,
+    );
   }
 
   // @override
@@ -112,7 +134,6 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
   //   final operations = patchBuilder(_updateBuilder);
   //   return QueryHandler.patch(query, documentIdField, operations);
   // }
-      
 
   @override
   AggregateQuery<S, T, R> aggregate<R extends Record>(
@@ -123,7 +144,13 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
       query,
       config.operations,
     );
-    return AggregateQuery(newQuery, converter.toJson, converter.fromJson, documentIdField, config);
+    return AggregateQuery(
+      newQuery,
+      converter.toJson,
+      converter.fromJson,
+      documentIdField,
+      config,
+    );
   }
 
   @override
@@ -134,7 +161,14 @@ abstract class FirestoreCollection<S extends FirestoreSchema, T>
 
   @override
   Future<void> modify(ModifierBuilder<T> modifier, {bool atomic = true}) =>
-      QueryHandler.modify(query, documentIdField, converter.toJson, converter.fromJson, modifier, atomic: atomic);
+      QueryHandler.modify(
+        query,
+        documentIdField,
+        converter.toJson,
+        converter.fromJson,
+        modifier,
+        atomic: atomic,
+      );
 
   @override
   Future<void> delete() => QueryHandler.delete(query);

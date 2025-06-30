@@ -229,7 +229,7 @@ class SchemaGenerator {
     specs.addAll(_generateUniqueDocumentClasses(schemaClassName, collections));
 
     // Generate document extensions for subcollections (path-specific)
-    specs.addAll(_generateDocumentExtensions(schemaClassName, collections));
+    // specs.addAll(_generateDocumentExtensions(schemaClassName, collections));
 
     // Generate batch document extensions for subcollections
     specs.addAll(
@@ -509,6 +509,105 @@ class SchemaGenerator {
       final documentClassName = _generateDocumentClassName(collection.path);
       final collectionClassName = _generateCollectionClassName(collection.path);
       final modelType = collection.modelTypeName;
+
+      final methods = <Method>[];
+
+      // patch
+      methods.add(
+        Method(
+          (b) => b
+            ..docs.add('/// Gets a document reference with the specified ID')
+            ..annotations.add(refer('override'))
+            ..name = 'patch'
+            ..returns = refer('Future<void>')
+            ..requiredParameters.add(
+              Parameter(
+                (b) => b
+                  ..name = 'patches'
+                  ..type = FunctionType(
+                    (b) => b
+                      ..returnType = TypeReferences.listOf(
+                        TypeReference((b) => b..symbol = 'UpdateOperation'),
+                      )
+                      ..requiredParameters.add(
+                        TypeReference(
+                          (b) => b
+                            ..symbol =
+                                '${collection.modelType.element3.name3}UpdateBuilder'
+                            ..types.addAll(
+                              collection.modelType.typeArguments.references,
+                            ),
+                        ),
+                      ),
+                  ),
+              ),
+            )
+            ..body = Block.of([
+              declareFinal('patchBuilder')
+                  .assign(
+                    TypeReference(
+                      (b) => b
+                        ..symbol =
+                            '${collection.modelType.element3.name3}UpdateBuilder'
+                        ..types.addAll(
+                          collection.modelType.typeArguments.references,
+                        ),
+                    ).newInstance(
+                      [],
+                      Map.fromIterables(
+                        collection.modelType.typeParameters.map(
+                          (e) => 'converter${e.name}',
+                        ),
+                        collection.modelType.typeArguments.map(
+                          (e) => converterFactory
+                              .getConverter(e)
+                              .toConverterExpr(),
+                        ),
+                      ),
+                    ),
+                  )
+                  .statement,
+              declareFinal('operations')
+                  .assign(refer('patches').call([refer('patchBuilder')]))
+                  .statement,
+              refer('DocumentHandler')
+                  .property('patch')
+                  .call([refer('ref'), refer('operations')])
+                  .returned
+                  .statement,
+            ]),
+        ),
+      );
+
+      for (final subcol in getSubcollections(collections, collection)) {
+        final subcollectionName = _getSubcollectionName(subcol.path);
+        final getterName = subcollectionName.camelCase().lowerFirst();
+        final documentIdFieldName = ModelAnalyzer.instance
+            .getDocumentIdFieldName(subcol.modelType);
+
+        // Generate unique collection class name for this subcollection path
+        final collectionClassName = _generateCollectionClassName(subcol.path);
+        methods.add(
+          Method(
+            (b) => b
+              ..docs.add('/// Access $subcollectionName subcollection')
+              ..type = MethodType.getter
+              ..name = getterName
+              ..returns = refer(collectionClassName)
+              ..lambda = true
+              ..body = refer(collectionClassName).newInstance([], {
+                'query': refer('ref').property('collection').call([
+                  literalString(subcollectionName),
+                ]),
+                'converter': converterFactory
+                    .getConverter(subcol.modelType)
+                    .toConverterExpr(),
+                'documentIdField': literalString(documentIdFieldName),
+              }).code,
+          ),
+        );
+      }
+
       // Generate document class
       final documentClass = Class(
         (b) => b
@@ -541,7 +640,8 @@ class SchemaGenerator {
                 ])
                 ..constant = false,
             ),
-          ),
+          )
+          ..methods.addAll(methods),
       );
       specs.add(documentClass);
 
@@ -591,7 +691,7 @@ class SchemaGenerator {
                   '/// Gets a document reference with the specified ID',
                 )
                 ..annotations.add(refer('override'))
-                ..name = 'call'
+                ..name = 'doc'
                 ..returns = refer(documentClassName)
                 ..requiredParameters.add(
                   Parameter(
@@ -606,6 +706,24 @@ class SchemaGenerator {
                   refer('converter'),
                   refer('documentIdField'),
                 ]).code,
+            ),
+            Method(
+              (b) => b
+                ..docs.add(
+                  '/// Gets a document reference with the specified ID',
+                )
+                ..annotations.add(refer('override'))
+                ..name = 'call'
+                ..returns = refer(documentClassName)
+                ..requiredParameters.add(
+                  Parameter(
+                    (b) => b
+                      ..name = 'id'
+                      ..type = refer('String'),
+                  ),
+                )
+                ..lambda = true
+                ..body = refer('doc').call([refer('id')]).code,
             ),
             /*
             
@@ -639,9 +757,9 @@ class SchemaGenerator {
                               (b) => b
                                 ..symbol =
                                     '${collection.modelType.element3.name3}UpdateBuilder'
-                                    ..types.addAll(
-                                      collection.modelType.typeArguments.references,
-                                    ),
+                                ..types.addAll(
+                                  collection.modelType.typeArguments.references,
+                                ),
                             ),
                           ),
                       ),
@@ -650,12 +768,13 @@ class SchemaGenerator {
                 ..body = Block.of([
                   declareFinal('patchBuilder')
                       .assign(
-                        TypeReference((b) => b
-                          ..symbol =
-                              '${collection.modelType.element3.name3}UpdateBuilder'
-                          ..types.addAll(
-                            collection.modelType.typeArguments.references,
-                          ),
+                        TypeReference(
+                          (b) => b
+                            ..symbol =
+                                '${collection.modelType.element3.name3}UpdateBuilder'
+                            ..types.addAll(
+                              collection.modelType.typeArguments.references,
+                            ),
                         ).newInstance(
                           [],
                           Map.fromIterables(
@@ -676,11 +795,7 @@ class SchemaGenerator {
                       .statement,
                   refer('QueryHandler')
                       .property('patch')
-                      .call([
-                        refer('query'),
-                        refer('documentIdField'),
-                        refer('operations'),
-                      ])
+                      .call([refer('query'), refer('operations')])
                       .returned
                       .statement,
                 ]),
@@ -714,6 +829,16 @@ class SchemaGenerator {
         );
       }),
     ];
+  }
+
+  static List<SchemaCollectionInfo> getSubcollections(
+    List<SchemaCollectionInfo> collections,
+    SchemaCollectionInfo parentCollection,
+  ) {
+    return collections.where((c) {
+      final parentPath = _getParentCollectionPath(c.path);
+      return c.isSubcollection && parentPath == parentCollection.path;
+    }).toList();
   }
 
   /// Generate document extensions for subcollections

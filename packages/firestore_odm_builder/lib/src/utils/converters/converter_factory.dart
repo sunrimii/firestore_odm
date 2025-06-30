@@ -84,9 +84,9 @@ class ConverterFactory {
                   .call(
                     type.typeArguments
                         .map(
-                          (t) => getConverter(t)
-                              .apply(typeParameterMapping)
-                              .toConverterExpr(),
+                          (t) => getConverter(
+                            t,
+                          ).apply(typeParameterMapping).toConverterExpr(),
                         )
                         .toList(),
                   )
@@ -161,32 +161,33 @@ class ConverterFactory {
         fromType: baseConverter.fromType,
         toType: baseConverter.expectType,
         cast: baseConverter.toType != baseConverter.expectType,
-        docs: ['//Generated converter for ${baseConverter.type}'],
+        docs: ['//Generated converter for `${baseConverter.type}`'],
       );
       _generated3.add(baseConverter.name);
     }
-    return SpecializedDefaultConverter(
-      (typeParameterMapping) =>
-          TypeReference(
-            (b) => b
-              ..symbol = (converter).name
-              ..types.addAll(
-                converter.type.typeArguments.map((v) => v.reference),
-              ),
-          ).call(
-            [],
-            Map.fromIterables(
-              converter.type.element3.typeParameters2.map(
-                (e) => 'converter${e.name3!}',
-              ),
-              converter.type.typeArguments.map(
-                (e) => getConverter(e)
-                    .apply(typeParameterMapping)
-                    .toConverterExpr(),
-              ),
-            ),
-          ),
-    );
+    return SpecializedDefaultConverter((typeParameterMapping) {
+      final type = TypeReference(
+        (b) => b
+          ..symbol = (converter).name
+          ..types.addAll(converter.type.typeArguments.map((v) => v.reference)),
+      );
+      final namedArguments = Map.fromIterables(
+        converter.type.element3.typeParameters2.map(
+          (e) => 'converter${e.name3!}',
+        ),
+        converter.type.typeArguments.map(
+          (e) => getConverter(e).apply(typeParameterMapping).toConverterExpr(),
+        ),
+      );
+      final isConst = !converter.type.typeArguments.any(
+        (t) => t is TypeParameterType,
+      );
+      return isConst
+          ? type.constInstance([], namedArguments)
+          : type
+                .newInstance([], namedArguments)
+                .debug('${typeParameterMapping}');
+    });
   }
 
   final Set<TypeConverter> _generated = {};

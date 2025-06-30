@@ -3,8 +3,16 @@ import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
+import 'package:firestore_odm_builder/src/utils/string_utils.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
+
+class Updater {
+  final TypeReference type;
+  final Map<String, Expression> arguments;
+
+  const Updater({required this.type, required this.arguments});
+}
 
 /// Generator for update builders and related classes using code_builder
 class UpdateGenerator {
@@ -74,7 +82,7 @@ class UpdateGenerator {
         ..types.addAll(typeParameters)
         ..extend = TypeReference(
           (b) => b
-            ..symbol = 'UpdateBuilder'
+            ..symbol = 'DefaultUpdateBuilder'
             ..types.add(
               TypeReference(
                 (b) => b
@@ -98,7 +106,18 @@ class UpdateGenerator {
                 ...constructorParams,
               ])
               ..constant = !type.isGeneric
-              ..initializers.addAll(initializerList),
+              ..initializers.addAll([
+                ...initializerList,
+                refer('super').call([], {
+                  'converter': ConverterFactory.instance
+                      .getConverter(type, element: type.element)
+                      .apply({
+                        for (var param in type.element3.typeParameters2)
+                          param.name3!: VariableConverter('converter${param.name3!}'),
+                      })
+                      .toConverterExpr(),
+                }).code,
+              ]),
           ),
         )
         ..fields.addAll(fields),
@@ -123,73 +142,141 @@ class UpdateGenerator {
 
     // For type parameter fields, we need to use the appropriate converter
     // For concrete type fields (like String), use the standard logic
-    final returnType = isTypeParameter
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'DefaultUpdateBuilder'
-              ..types.add(fieldType.reference), // Use the actual type parameter
-          )
-        : TypeAnalyzer.isDateTimeType(fieldType)
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'DateTimeFieldUpdate'
-              ..types.add(fieldType.reference),
-          )
-        : TypeAnalyzer.isDurationType(fieldType)
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'DurationFieldUpdate'
-              ..types.add(fieldType.reference),
-          )
-        : TypeAnalyzer.isNumericType(fieldType)
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'NumericFieldUpdate'
-              ..types.add(fieldType.reference),
-          )
-        : TypeAnalyzer.isMapType(fieldType)
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'MapFieldUpdate'
-              ..types.addAll([
-                fieldType.reference,
-                TypeAnalyzer.getMapKeyType(fieldType).reference,
-                TypeAnalyzer.getMapValueType(fieldType).reference,
-              ]),
-          )
-        : TypeAnalyzer.isIterableType(fieldType)
-        ? TypeReference(
-            (b) => b
-              ..symbol = 'ListFieldUpdate'
-              ..types.addAll([
-                fieldType.reference,
-                TypeAnalyzer.getIterableElementType(fieldType)!.reference,
-              ]),
-          )
-        : TypeReference(
-            (b) => b
-              ..symbol = 'DefaultUpdateBuilder'
-              ..types.add(fieldType.reference),
-          );
-    Map<String, Expression> namedArguments = {
-            'path': literalString(jsonFieldName),
-            if (returnType.symbol != 'DurationFieldUpdate')
+    final updater = isTypeParameter
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DefaultUpdateBuilder'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'path': literalString(jsonFieldName),
               'converter': converter.toConverterExpr().debug(
                 '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
               ),
-          };
+            },
+          )
+        : TypeAnalyzer.isDateTimeType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DateTimeFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {'path': literalString(jsonFieldName)},
+          )
+        : TypeAnalyzer.isDurationType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DurationFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {'path': literalString(jsonFieldName)},
+          )
+        : TypeAnalyzer.isNumericType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'NumericFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'path': literalString(jsonFieldName),
+              'converter': converter.toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isMapType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'MapFieldUpdate'
+                ..types.addAll([
+                  fieldType.reference,
+
+                  TypeAnalyzer.getMapKeyType(fieldType).reference,
+                  TypeAnalyzer.getMapValueType(fieldType).reference,
+                ]),
+            ),
+            arguments: {
+              'path': literalString(jsonFieldName),
+              'converter': converter.toConverterExpr(),
+              'keyConverter': ConverterFactory.instance
+                  .getConverter(TypeAnalyzer.getMapKeyType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+              'valueConverter': ConverterFactory.instance
+                  .getConverter(TypeAnalyzer.getMapValueType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isIterableType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'ListFieldUpdate'
+                ..types.addAll([
+                  fieldType.reference,
+                  TypeAnalyzer.getIterableElementType(fieldType).reference,
+                ]), // Use the actual type parameter
+            ),
+            arguments: {
+              'path': literalString(jsonFieldName),
+              'converter': converter.toConverterExpr(),
+              'elementConverter': ConverterFactory.instance
+                  .getConverter(TypeAnalyzer.getIterableElementType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+            },
+          )
+        : isUserType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = '${fieldType.name?.upperFirst()}UpdateBuilder'
+                ..types.addAll(fieldType.typeArguments.references),
+            ),
+            arguments: {'path': literalString(jsonFieldName)},
+          )
+        : Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DefaultUpdateBuilder'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'path': literalString(jsonFieldName),
+              'converter': converter.toConverterExpr().debug(
+                '${{for (var param in field.type.typeParameters) param.name: VariableConverter('_converter${param.name}')}}}',
+              ),
+            },
+          );
     final bodyExpression = isGenericType(fieldType)
-        ? returnType.withoutTypeArguments().newInstance([], namedArguments)
-        : returnType.withoutTypeArguments().constInstance([], namedArguments);
+        ? updater.type.withoutTypeArguments().newInstance([], updater.arguments)
+        : updater.type.withoutTypeArguments().constInstance(
+            [],
+            updater.arguments,
+          );
 
     return Field(
       (b) => b
-        ..docs.add('/// Update $fieldName field ${field.type}')
+        ..docs.add('/// Update $fieldName field `${field.type}`')
         // ..type = MethodType.getter
         ..name = fieldName
         ..modifier = FieldModifier.final$
         ..late = isGenericType(fieldType)
-        ..type = returnType
+        ..type = updater.type
         ..assignment = bodyExpression.code,
       // ..lambda = true
       // ..returns = returnType

@@ -280,10 +280,8 @@ class DocumentHandler {
 
   static Future<void> patch<T>(
     firestore.DocumentReference<Map<String, dynamic>> ref,
-    List<UpdateOperation> Function(UpdateBuilder<T> patchBuilder) patchBuilder,
+    List<UpdateOperation> operations,
   ) async {
-    final builder = UpdateBuilder<T>();
-    final operations = patchBuilder(builder);
     final updateMap = UpdateBuilder.operationsToMap(operations);
     if (updateMap.isEmpty) {
       return; // No updates to apply
@@ -776,7 +774,6 @@ abstract class QueryHandler {
 
   static Future<void> patch<T>(
     firestore.Query<Map<String, dynamic>> query,
-    String documentIdField,
     List<UpdateOperation> operations,
   ) async {
     final updateMap = UpdateBuilder.operationsToMap(operations);

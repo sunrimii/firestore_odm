@@ -366,7 +366,7 @@ extension TypeConverterExtensions on TypeConverter {
   Expression toConverterExpr() {
     switch (this) {
       case DirectConverter _:
-        return refer('PrimitiveConverter').call([]);
+        return refer('PrimitiveConverter').constInstance([]);
       case DefaultConverter defaultConverter:
         return defaultConverter._expression;
       case NullableConverter nullableConverter:

@@ -117,14 +117,17 @@ class TypeAnalyzer {
   }
 
   /// Get the element type of any iterable using proper type analysis
-  static DartType? getIterableElementType(DartType iterableType) {
+  static DartType getIterableElementType(DartType iterableType) {
     final nonNullableType = _getNonNullableType(iterableType);
 
     if (nonNullableType is ParameterizedType &&
         nonNullableType.typeArguments.isNotEmpty) {
       return nonNullableType.typeArguments.first;
     }
-    return null;
+    
+    throw ArgumentError(
+      'Type $iterableType is not a valid iterable type',
+    );
   }
 
   /// Check if a type is a custom class (not primitive or built-in)

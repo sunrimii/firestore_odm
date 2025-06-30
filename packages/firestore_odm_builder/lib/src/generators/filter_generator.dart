@@ -129,7 +129,7 @@ class FilterGenerator {
         ..name = '${className}FilterSelectorExtension'
         ..types.addAll(typeParameters.references)
         ..on = targetType
-        ..docs.add('/// Generated FilterSelector for $type')
+        ..docs.add('/// Generated FilterSelector for `$type`')
         ..methods.addAll(methods),
     );
   }

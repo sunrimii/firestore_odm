@@ -333,7 +333,7 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
   ) {
     final builder = UpdateBuilder<T>();
     final operations = patches(builder);
-    return QueryHandler.patch(_query, _documentIdField, operations);
+    return QueryHandler.patch(_query, operations);
   }
 
   /// Modify multiple documents in this ordered query using diff-based updates.
