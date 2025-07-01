@@ -1,3 +1,7 @@
+## 3.0.1
+
+ - Bump "firestore_odm_annotation" to `3.0.1`.
+
 ## 3.0.0
 
 ## 1.3.0
