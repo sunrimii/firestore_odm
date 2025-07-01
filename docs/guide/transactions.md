@@ -19,7 +19,6 @@ The transaction object (`tx`) intelligently handles this rule by using **deferre
 All write operations are supported within a transaction:
 - `patch()`
 - `modify()`
-- `incrementalModify()`
 - `delete()`
 
 ```dart
@@ -38,12 +37,12 @@ Future<void> transferFunds(String fromUserId, String toUserId, int amount) async
     }
 
     // 2. Perform all writes. These are deferred and sent at the end.
-    // Using incrementalModify for safe, atomic updates.
-    await tx.users(fromUserId).incrementalModify((user) => user.copyWith(
+    // Using modify for safe, atomic updates.
+    await tx.users(fromUserId).modify((user) => user.copyWith(
       balance: user.balance - amount, // Becomes atomic decrement
     ));
 
-    await tx.users(toUserId).incrementalModify((user) => user.copyWith(
+    await tx.users(toUserId).modify((user) => user.copyWith(
       balance: user.balance + amount, // Becomes atomic increment
     ));
   });

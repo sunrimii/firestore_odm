@@ -207,23 +207,6 @@ await userDoc.modify((user) => user.copyWith(
 ), atomic: false);
 ```
 
-### `incrementalModify()` (Deprecated)
-
-> **⚠️ Deprecated**: Use `modify(atomic: true)` instead. This method will be removed in a future version.
-
-This method has been deprecated in favor of the enhanced `modify()` method with the `atomic` parameter.
-
-```dart
-// Old way (deprecated)
-await userDoc.incrementalModify((user) => user.copyWith(
-  age: user.age + 1,
-));
-
-// New way (recommended)
-await userDoc.modify((user) => user.copyWith(
-  age: user.age + 1,
-), atomic: true); // atomic: true is the default
-```
 
 ### `update()`
 

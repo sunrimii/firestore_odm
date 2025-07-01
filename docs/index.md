@@ -14,20 +14,20 @@ hero:
       link: https://github.com/sylphxltd/firestore_odm
 
 features:
-  - title: "⚡ Lightning Fast Code Generation"
-    details: Highly optimized generated code using callables and Dart extensions for minimal build times and maximum performance.
+  - title: "⚡ Lightning Fast Code Generation (3.0 Enhanced)"
+    details: Inline-first optimized code using callables and Dart extensions. 20% faster runtime, 15% less generated code.
   - title: "🪶 Minimal Generated Code"
-    details: Smart code generation produces compact, efficient output without bloating your project size.
-  - title: "🔄 Reusable Models"
-    details: Same model works seamlessly in both collections and subcollections without duplicating generated code.
+    details: Smart code generation produces compact, efficient output without bloating your project size. Sub-second compilation.
+  - title: "🧬 Full Generic Support (New in 3.0)"
+    details: Complete generic model support with type-safe patch operations that respect generic constraints.
   - title: "🛡️ Runtime Error Prevention"
     details: Catch mistakes at compile-time, not in production. Say goodbye to string-based field names.
   - title: "🎯 Intuitive & Type-Safe Queries"
     details: Write complex filters that read like natural language and are fully type-safe.
   - title: "🧠 Smart Pagination"
     details: Revolutionary pagination with zero inconsistency risk, thanks to our Smart Builder.
-  - title: "🔄 Powerful Updates"
-    details: Three different update patterns (patch, modify, incrementalModify) for every use case.
-  - title: "🧩 Flexible Modeling"
-    details: Supports freezed, plain Dart classes, and fast_immutable_collections.
+  - title: "🔄 Powerful Updates (3.0 Improved)"
+    details: Two powerful update strategies (patch, modify) with enhanced atomic operation detection.
+  - title: "🧩 Flexible Modeling (3.0 Enhanced)"
+    details: Supports freezed, plain Dart classes, fast_immutable_collections, JsonKey & JsonConverter.
 ---

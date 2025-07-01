@@ -183,7 +183,7 @@ await db.users.insert(User(
   isActive: true,
 ));
 
-// Update with three powerful strategies:
+// Update with two powerful strategies:
 
 // 1. Patch - Explicit atomic operations
 await db.users('user123').patch(($) => [
@@ -192,8 +192,8 @@ await db.users('user123').patch(($) => [
   $.lastLogin.serverTimestamp(),
 ]);
 
-// 2. IncrementalModify - Smart atomic detection
-await db.users('user123').incrementalModify((user) => user.copyWith(
+// 2. Modify - Smart atomic detection (reads then applies optimized updates)
+await db.users('user123').modify((user) => user.copyWith(
   age: user.age + 1, // Auto-detects -> FieldValue.increment(1)
   tags: [...user.tags, 'premium'], // Auto-detects -> FieldValue.arrayUnion()
   lastLogin: FirestoreODM.serverTimestamp,
@@ -205,13 +205,12 @@ await db.users('user123').incrementalModify((user) => user.copyWith(
 2. **Convert manual maps** to typed model instances
 3. **Choose update strategy**:
    - Use `patch()` for explicit atomic operations
-   - Use `incrementalModify()` for smart automatic detection
-   - Use `modify()` for simple field updates
+   - Use `modify()` for smart automatic detection (reads current values first)
 4. **Replace `FieldValue` operations** with ODM equivalents
 
 ### Benefits After Migration:
-- ✅ **Three update strategies** - Choose the best approach for each use case
-- ✅ **Automatic atomic operations** - `incrementalModify` detects and optimizes updates
+- ✅ **Two powerful update strategies** - Choose the best approach for each use case
+- ✅ **Automatic atomic operations** - `modify` detects and optimizes updates
 - ✅ **Type-safe field updates** - No more string-based field names
 - ✅ **Server timestamp helpers** - Easy server timestamp handling
 
@@ -526,11 +525,11 @@ await db.runTransaction((tx) async {
   }
   
   // Writes are automatically deferred until the end
-  await tx.users('user1').incrementalModify((user) => user.copyWith(
+  await tx.users('user1').modify((user) => user.copyWith(
     balance: user.balance - 100, // Becomes atomic decrement
   ));
   
-  await tx.users('user2').incrementalModify((user) => user.copyWith(
+  await tx.users('user2').modify((user) => user.copyWith(
     balance: user.balance + 100, // Becomes atomic increment
   ));
 });

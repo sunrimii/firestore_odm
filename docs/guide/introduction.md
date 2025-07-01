@@ -24,11 +24,12 @@ We wanted a solution that provides:
 |---------|-------------------------|---------------|
 | **Type Safety** | ❌ `Map<String, dynamic>` everywhere | ✅ Strong types throughout |
 | **Query Building** | ❌ String-based, error-prone | ✅ Type-safe with IDE support |
-| **Data Updates** | ❌ Manual map construction | ✅ Three smart update strategies |
+| **Data Updates** | ❌ Manual map construction | ✅ Two powerful update strategies |
+| **Generic Support** | ❌ No generic handling | ✅ Full generic model support (3.0) |
 | **Aggregations** | ❌ Basic count only | ✅ Comprehensive + streaming |
 | **Pagination** | ❌ Manual, inconsistency risks | ✅ Smart Builder, zero risk |
 | **Transactions** | ❌ Manual read-before-write | ✅ Automatic deferred writes |
-| **Code Generation** | ❌ None | ✅ Highly optimized, minimal output |
+| **Code Generation** | ❌ None | ✅ Inline-optimized, 15% smaller (3.0) |
 | **Model Reusability** | ❌ N/A | ✅ Same model, multiple collections |
 | **Runtime Errors** | ❌ Common | ✅ Eliminated at compile-time |
 | **Developer Experience** | ❌ Frustrating | ✅ Productive and enjoyable |

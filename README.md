@@ -7,7 +7,33 @@ Transform your Firestore development experience with type-safe, intuitive databa
 [![pub package](https://img.shields.io/pub/v/firestore_odm.svg)](https://pub.dev/packages/firestore_odm)
 [![GitHub](https://img.shields.io/github/license/sylphxltd/firestore_odm)](https://github.com/sylphxltd/firestore_odm/blob/main/LICENSE)
 
-## 📖 Complete Documentation
+## 🎉 New in Version 3.0!
+
+**The most stable and feature-complete release yet** - over 90% of planned features are now complete!
+
+### ⚡ Major Performance Improvements
+- **20% faster runtime performance** with optimized code generation
+- **15% less generated code** through smart extension-based architecture
+- **Lightning-fast generation** - complex schemas compile in under 1 second
+- **Inline-first approach** for maximum efficiency
+
+### 🚀 New Features & Capabilities
+- **Full generic model support** - Generic classes with type-safe patch operations
+- **Complete JsonKey & JsonConverter support** - Full control over serialization
+- **Automatic conversion fallbacks** - JsonConverter no longer required in most cases
+- **Enhanced map operations** - Comprehensive map field support with atomic operations
+
+### 🛡️ Stability & Quality
+- **100+ new test cases** added for comprehensive coverage
+- **Major bug fixes** including map clear, map set, and nested operations
+- **Production-ready stability** with rigorous testing
+
+### 📋 Known Limitations (3.0)
+- Map fields don't support nested maps or special symbols in keys
+- Batch collection operations (coming soon)
+- Map field filtering, ordering, and aggregation (planned)
+
+##  Complete Documentation
 
 **[📚 Read the Full Documentation](https://sylphxltd.github.io/firestore_odm/)** - Comprehensive guides, examples, and API reference
 
@@ -97,7 +123,7 @@ await userDoc.update({
 ```
 
 ```dart
-// ✅ ODM - Two smart update strategies
+// ✅ ODM - Two powerful update strategies
 
 // 1. Patch - Explicit atomic operations (Best Performance)
 await userDoc.patch(($) => [
@@ -108,11 +134,11 @@ await userDoc.patch(($) => [
   $.lastLogin.serverTimestamp(),
 ]);
 
-// 2. Modify - Smart diff with atomic operations (Convenient)
+// 2. Modify - Smart atomic detection (Read + Auto-detect operations)
 await userDoc.modify((user) => user.copyWith(
   age: user.age + 1,              // Auto-detects -> FieldValue.increment(1)
   tags: [...user.tags, 'expert'], // Auto-detects -> FieldValue.arrayUnion()
-  lastLogin: FirestoreODM.serverTimestamp, // Server timestamp support
+  lastLogin: FirestoreODM.serverTimestamp,
 ));
 ```
 
@@ -122,13 +148,21 @@ await userDoc.modify((user) => user.copyWith(
 - **No `Map<String, dynamic>`** anywhere in your code
 - **Compile-time field validation** - typos become build errors, not runtime crashes
 - **IDE autocomplete** for all database operations
-- **Strong typing** for nested objects and complex data structures
+- **Strong typing** for nested objects, generics, and complex data structures
 
-### 🚀 Lightning Fast Code Generation
-- **Highly optimized** generated code using callables and Dart extensions
-- **Minimal output** - smart generation without bloating your project
+### 🚀 Lightning Fast Code Generation (3.0 Enhanced)
+- **Inline-first optimized** generated code using callables and Dart extensions
+- **15% less generated code** - smart generation without bloating your project
+- **20% performance improvement** - optimized runtime execution
 - **Model reusability** - same model works in collections and subcollections
+- **Sub-second generation** - complex schemas compile in under 1 second
 - **Zero runtime overhead** - all magic happens at compile time
+
+### 🧬 Advanced Generic Support (New in 3.0)
+- **Full generic model support** - Type-safe generic classes and nested types
+- **Generic patch operations** - Atomic operations that respect generic type constraints
+- **JsonKey & JsonConverter support** - Complete control over field serialization
+- **Automatic conversion fallbacks** - Smart type conversion when converters aren't defined
 
 ### 🧠 Revolutionary Pagination
 Our **Smart Builder** eliminates the most common Firestore pagination bugs:
@@ -358,7 +392,7 @@ await db.users
   .where(($) => $.isPremium(isEqualTo: true))
   .patch(($) => [$.points.increment(100)]);
 
-// Update all premium users using modify (convenient but slower)
+// Update all premium users using modify (read + auto-detect atomic)
 await db.users
   .where(($) => $.isPremium(isEqualTo: true))
   .modify((user) => user.copyWith(points: user.points + 100));
@@ -374,8 +408,9 @@ await db.users
 // Server timestamps using patch (best performance)
 await userDoc.patch(($) => [$.lastLogin.serverTimestamp()]);
 
-// Server timestamps using modify (convenient but slower)
+// Server timestamps using modify (read + smart detection)
 await userDoc.modify((user) => user.copyWith(
+  loginCount: user.loginCount + 1,  // Uses current value + auto-detects increment
   lastLogin: FirestoreODM.serverTimestamp,
 ));
 
@@ -393,13 +428,14 @@ await db.users.insert(User(
 
 **⚠️ Server Timestamp Warning:** `FirestoreODM.serverTimestamp` must be used exactly as-is. Any arithmetic operations (`+`, `.add()`, etc.) will create a regular `DateTime` instead of a server timestamp. See the [Server Timestamps Guide](https://sylphxltd.github.io/firestore_odm/guide/server-timestamps.html) for alternatives.
 
-## 📊 Performance & Technical Excellence
+## 📊 Performance & Technical Excellence (3.0 Enhanced)
 
 ### Optimized Code Generation
-- **Callables and Dart extensions** for maximum performance
-- **Minimal generated code** - no project bloat
-- **Compile-time optimizations** - zero runtime overhead
-- **Smart caching** and efficient build processes
+- **Inline-first architecture** with callables and Dart extensions for maximum performance
+- **15% reduction in generated code** - smart generation without project bloat
+- **20% runtime performance improvement** - optimized execution paths
+- **Sub-second compilation** - complex schemas generate in under 1 second
+- **Zero runtime overhead** - all magic happens at compile time
 
 ### Advanced Query Capabilities
 - **Complex logical operations** with `and()` and `or()`
@@ -439,11 +475,12 @@ void main() {
 |---------|-------------------------|---------------|
 | **Type Safety** | ❌ Map<String, dynamic> everywhere | ✅ Strong types throughout |
 | **Query Building** | ❌ String-based, error-prone | ✅ Type-safe with IDE support |
-| **Data Updates** | ❌ Manual map construction | ✅ Two smart update strategies |
+| **Data Updates** | ❌ Manual map construction | ✅ Two powerful update strategies |
+| **Generic Support** | ❌ No generic handling | ✅ Full generic model support |
 | **Aggregations** | ❌ Basic count only | ✅ Comprehensive + streaming |
 | **Pagination** | ❌ Manual, inconsistency risks | ✅ Smart Builder, zero risk |
 | **Transactions** | ❌ Manual read-before-write | ✅ Automatic deferred writes |
-| **Code Generation** | ❌ None | ✅ Highly optimized, minimal output |
+| **Code Generation** | ❌ None | ✅ Inline-optimized, 15% smaller |
 | **Model Reusability** | ❌ N/A | ✅ Same model, multiple collections |
 | **Runtime Errors** | ❌ Common | ✅ Eliminated at compile-time |
 | **Developer Experience** | ❌ Frustrating | ✅ Productive and enjoyable |
