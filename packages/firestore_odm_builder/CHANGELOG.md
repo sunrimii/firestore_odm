@@ -1,3 +1,7 @@
+## 3.0.1
+
+ - **FIX**: update parameter types for fromJson and toJson methods in ConverterFactory. ([d424c904](https://github.com/sylphxltd/firestore_odm/commit/d424c9041f4a33b56a37d7f34cdffd52c9dcd04e))
+
 ## 3.0.0
 
  - **REFACTOR**(model_analyzer): streamline JsonConverter support check and remove unused getBaseTypeName method. ([89921d46](https://github.com/sylphxltd/firestore_odm/commit/89921d46fc32e808fae43169313b754bf67a7fd7))

@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_builder` - `v3.0.1`](#firestore_odm_builder---v301)
+
+---
+
+#### `firestore_odm_builder` - `v3.0.1`
+
+ - **FIX**: update parameter types for fromJson and toJson methods in ConverterFactory. ([d424c904](https://github.com/sylphxltd/firestore_odm/commit/d424c9041f4a33b56a37d7f34cdffd52c9dcd04e))
+
+
+## 2025-07-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm_annotation` - `v3.0.1`](#firestore_odm_annotation---v301)
 
 ---
