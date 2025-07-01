@@ -1,3 +1,5 @@
+## 3.0.1
+
 ## 3.0.0
 
  - **REFACTOR**: ensure key conversion to string in MapFieldUpdate operations. ([5713124b](https://github.com/sylphxltd/firestore_odm/commit/5713124bafa988e5f8a1a6028cda3166834e01ac))

@@ -11,6 +11,25 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm` - `v3.0.1`](#firestore_odm---v301)
+
+---
+
+#### `firestore_odm` - `v3.0.1`
+
+
+## 2025-07-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
  - [`firestore_odm` - `v3.0.0`](#firestore_odm---v300)
  - [`firestore_odm_annotation` - `v3.0.0`](#firestore_odm_annotation---v300)
  - [`firestore_odm_builder` - `v3.0.0`](#firestore_odm_builder---v300)
