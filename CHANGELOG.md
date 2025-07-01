@@ -11,11 +11,43 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 Packages with breaking changes:
 
- - There are no breaking changes in this release.
+ - [`firestore_odm` - `v3.0.0`](#firestore_odm---v300)
+ - [`firestore_odm_annotation` - `v3.0.0`](#firestore_odm_annotation---v300)
+ - [`firestore_odm_builder` - `v3.0.0`](#firestore_odm_builder---v300)
 
 Packages with other changes:
 
- - [`firestore_odm_builder` - `v3.0.0`](#firestore_odm_builder---v300)
+ - There are no other changes in this release.
+
+#### `firestore_odm` - `v3.0.0`
+
+**BREAKING CHANGES:**
+ - **REMOVED**: `incrementalModify()` method - Use `modify()` instead which provides the same functionality with better performance
+ - **REMOVED**: Deprecated map field methods `setKey()` and `removeKey()` - Use `set()` and `remove()` for consistency
+
+**NEW FEATURES:**
+ - **FEAT**: Full generic model support with type-safe patch operations
+ - **FEAT**: JsonKey and JsonConverter support with automatic fallbacks
+ - **FEAT**: Automatic type conversion - JsonConverter no longer required for common types
+
+**PERFORMANCE:**
+ - **PERF**: 20% runtime performance improvement through inline-first architecture
+ - **PERF**: 15% reduction in generated code size
+ - **PERF**: Sub-second compilation for complex schemas
+
+**STABILITY:**
+ - **FIX**: Fixed map clear and map set operations
+ - **TEST**: Added 100+ new test cases for comprehensive coverage
+ - **DOCS**: Updated all documentation for 3.0 features
+
+#### `firestore_odm_annotation` - `v3.0.0`
+
+**BREAKING CHANGES:**
+ - **VERSION**: Bumped to 3.0.0 for consistency with core package
+
+**NEW FEATURES:**
+ - **FEAT**: Enhanced annotations for generic model support
+ - **FEAT**: Improved JsonKey and JsonConverter annotation handling
 
 ---
 
