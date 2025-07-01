@@ -116,7 +116,8 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   TypeReference get fromType => type.element3.reference;
 
   TypeReference get toType =>
-      type.element3.getMethod2('toJson')?.returnType.reference ?? TypeReferences.dynamic;
+      type.element3.getMethod2('toJson')?.returnType.reference ??
+      TypeReferences.dynamic;
 
   TypeReference get expectType =>
       TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
@@ -217,14 +218,15 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
     return type.reference.withoutNullability().newInstance(
       [],
       Map.fromEntries(
-        fields.values.map(
-          (field) => MapEntry(
+        fields.values.map((field) {
+          return MapEntry(
             field.parameterName,
             _transform(field.type, field.element)
                 .withNullable(field.isNullable)
-                .fromFirestore(source.index(literalString(field.jsonName))),
-          ),
-        ),
+                .fromFirestore(source.index(literalString(field.jsonName)))
+                .asA(field.type.reference),
+          );
+        }),
       ),
     );
   }
@@ -362,7 +364,6 @@ class TypeParameterPlaceholder implements TypeConverter, MaybeGeneric {
 final converterFactory = ConverterFactory.instance;
 
 extension TypeConverterExtensions on TypeConverter {
-
   Expression toConverterExpr() {
     switch (this) {
       case DirectConverter _:
@@ -384,8 +385,7 @@ extension TypeConverterExtensions on TypeConverter {
               Map.fromIterables(
                 converter.type.element3.typeParameters2.map((e) => e.name3!),
                 converter.type.typeArguments.map(
-                  (e) =>
-                      converterFactory.getConverter(e),
+                  (e) => converterFactory.getConverter(e),
                 ),
               ),
             )
