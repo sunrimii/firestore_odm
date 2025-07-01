@@ -270,7 +270,13 @@ class ConverterFactory {
                 ..name = 'fromJson'
                 ..annotations.add(refer('override'))
                 ..returns = fromTypeResult
-                ..requiredParameters.add(Parameter((b) => b..name = 'data'))
+                ..requiredParameters.add(
+                  Parameter(
+                    (b) => b
+                      ..name = 'data'
+                      ..type = toTypeResult,
+                  ),
+                )
                 ..body = converter.fromFirestore(refer('data')).code,
             ),
             Method(
@@ -278,7 +284,13 @@ class ConverterFactory {
                 ..name = 'toJson'
                 ..annotations.add(refer('override'))
                 ..returns = toTypeResult
-                ..requiredParameters.add(Parameter((b) => b..name = 'value'))
+                ..requiredParameters.add(
+                  Parameter(
+                    (b) => b
+                      ..name = 'value'
+                      ..type = fromTypeResult,
+                  ),
+                )
                 ..body = (cast
                     ? converter
                           .toFirestore(refer('value'))
