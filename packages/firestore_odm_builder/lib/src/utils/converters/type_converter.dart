@@ -62,7 +62,7 @@ class VariableConverter extends DefaultConverter {
 class AnnotationConverter implements TypeConverter, WithName {
   final InterfaceType type;
 
-  String get name => '${type.element3.name3}AnnotationConverter';
+  String get name => '_\$${type.element3.name3}AnnotationConverter';
   WithName get baseConverter => AnnotationConverter(type.element.thisType);
 
   List<TypeParameterElement> get typeParameters => [];
@@ -107,7 +107,7 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   final Map<String, TypeConverter> typeParameterMapping;
   WithName get baseConverter => JsonMethodConverter(type: type);
 
-  String get name => '${type.element3.name3}JsonConverter';
+  String get name => '_\$${type.element3.name3}JsonConverter';
 
   List<DartType> get typeArguments => type.typeArguments.toList();
 
@@ -116,10 +116,10 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   TypeReference get fromType => type.element3.reference;
 
   TypeReference get toType =>
-      type.element3.getMethod2('toJson')?.returnType.reference ??
+      type.lookUpMethod3('toJson', type.element3.library2)?.returnType.reference ??
       TypeReferences.dynamic;
 
-  TypeReference get expectType =>
+  TypeReference get expectType => 
       TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
       ? TypeReferences.listOf(TypeReferences.dynamic)
       : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
@@ -184,7 +184,7 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
   final InterfaceType type;
   final Map<String, TypeConverter> typeParameterMapping;
 
-  String get name => '${type.element.name}ModelConverter';
+  String get name => '_\$${type.element.name}ModelConverter';
   WithName get baseConverter => ModelConverter(
     type: type.element3.thisType,
     typeParameterMapping: typeParameterMapping,

@@ -44,14 +44,8 @@ class ConverterFactory {
     }
 
     // 4. Check for fromJson/toJson methods
-    if (_hasJsonMethods(type) && type is InterfaceType) {
-      return JsonMethodConverter(
-        type: type,
-        typeParameterMapping: {
-          for (final t in type.element3.typeParameters2)
-            t.name3!: VariableConverter('converter${t.name3}'),
-        },
-      );
+    if (type is InterfaceType && _hasJsonMethods(type)) {
+      return JsonMethodConverter(type: type);
     }
 
     // 1. Check for primitives
@@ -113,17 +107,13 @@ class ConverterFactory {
     return annotation.type as InterfaceType;
   }
 
-  bool _hasJsonMethods(DartType type) {
-    if (type is! InterfaceType) return false;
-
-    final element = type.element;
+  bool _hasJsonMethods(InterfaceType type) {
     // Check if type has fromJson factory and toJson method
-    final fromJson =
-        element.constructors.where((c) => c.name == 'fromJson').firstOrNull ??
-        element.methods
-            .where((m) => m.isStatic && m.name == 'fromJson')
-            .firstOrNull;
-    final toJson = element.methods.where((m) => m.name == 'toJson').firstOrNull;
+    final fromJson = type.lookUpConstructor2(
+      'fromJson',
+      type.element3.library2,
+    );
+    final toJson = type.lookUpMethod3('toJson', type.element3.library2);
 
     return fromJson != null && toJson != null;
   }
