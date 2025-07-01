@@ -1,3 +1,5 @@
+## 3.0.0
+
 ## 1.3.0
 
  - **FEAT**: refactor project folder structure. ([d4907075](https://github.com/sylphxltd/firestore_odm/commit/d49070757a19ea643d73e2aa0664754f0c67da44))
