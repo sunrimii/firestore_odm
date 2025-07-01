@@ -1,3 +1,7 @@
+## 3.0.2
+
+ - **REFACTOR**: simplify JSON method checks and improve converter naming conventions. ([6d55a580](https://github.com/sylphxltd/firestore_odm/commit/6d55a5801d6982f53a4ea0096aeacff2d944ca51))
+
 ## 3.0.1
 
  - **FIX**: update parameter types for fromJson and toJson methods in ConverterFactory. ([d424c904](https://github.com/sylphxltd/firestore_odm/commit/d424c9041f4a33b56a37d7f34cdffd52c9dcd04e))

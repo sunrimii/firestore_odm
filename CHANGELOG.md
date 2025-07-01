@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_builder` - `v3.0.2`](#firestore_odm_builder---v302)
+
+---
+
+#### `firestore_odm_builder` - `v3.0.2`
+
+ - **REFACTOR**: simplify JSON method checks and improve converter naming conventions. ([6d55a580](https://github.com/sylphxltd/firestore_odm/commit/6d55a5801d6982f53a4ea0096aeacff2d944ca51))
+
+
+## 2025-07-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm_builder` - `v3.0.1`](#firestore_odm_builder---v301)
 
 ---
