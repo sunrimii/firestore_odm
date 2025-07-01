@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_annotation` - `v3.0.2`](#firestore_odm_annotation---v302)
+
+---
+
+#### `firestore_odm_annotation` - `v3.0.2`
+
+ - Bump "firestore_odm_annotation" to `3.0.2`.
+
+
+## 2025-07-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm_builder` - `v3.0.2`](#firestore_odm_builder---v302)
 
 ---
