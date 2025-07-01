@@ -1188,7 +1188,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   UpdateOperation addAll(Map<K, V> entries) {
     final entriesMap = entries.map(
       (key, value) => MapEntry(
-        '${$path}.${_keyConverter.toJson(key)}',
+        _keyConverter.toJson(key).toString(),
         _valueConverter.toJson(value),
       ),
     );
@@ -1201,7 +1201,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
     final entriesMap = Map.fromEntries(
       entries.map(
         (entry) => MapEntry(
-          '${$path}.${_keyConverter.toJson(entry.key)}',
+          _keyConverter.toJson(entry.key).toString(),
           _valueConverter.toJson(entry.value),
         ),
       ),
@@ -1228,7 +1228,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   /// Usage: $.permissions.setAll(['read', 'write'], true)
   UpdateOperation setAll(Iterable<K> keys, V value) {
     final entriesMap = Map.fromIterables(
-      keys.map((key) => '${$path}.${_keyConverter.toJson(key)}'),
+      keys.map((key) => _keyConverter.toJson(key).toString()),
       Iterable.generate(keys.length, (_) => _valueConverter.toJson(value)),
     );
     return MapPutAllOperation($path, entriesMap);
