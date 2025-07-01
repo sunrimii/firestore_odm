@@ -1,3 +1,27 @@
+## 3.0.0
+
+ - **REFACTOR**: ensure key conversion to string in MapFieldUpdate operations. ([5713124b](https://github.com/sylphxltd/firestore_odm/commit/5713124bafa988e5f8a1a6028cda3166834e01ac))
+ - **REFACTOR**: simplify SetOperation instantiation in PatchBuilder. ([975182b6](https://github.com/sylphxltd/firestore_odm/commit/975182b61990fedcb5865aad429d0f63fde25475))
+ - **REFACTOR**: rework to focus on extension-based architecture. ([945d8dd0](https://github.com/sylphxltd/firestore_odm/commit/945d8dd0cf63daf2d5862638d9cf932911812d1d))
+ - **REFACTOR**: enhance type safety and streamline update operations across multiple classes. ([3bee1678](https://github.com/sylphxltd/firestore_odm/commit/3bee16789728a40abe96eed3d9e9aa9f52036454))
+ - **REFACTOR**: streamline update operation classes and enhance type safety. ([82e3ad7d](https://github.com/sylphxltd/firestore_odm/commit/82e3ad7dfdde8e4cac512b31bf5efef4dc26de0b))
+ - **REFACTOR**: update patch method signatures and improve import organization. ([ce678f25](https://github.com/sylphxltd/firestore_odm/commit/ce678f25ec2753f7b7743d0e1df39d2e8c6b4d3f))
+ - **REFACTOR**: simplify converter and workflow. ([a681be50](https://github.com/sylphxltd/firestore_odm/commit/a681be508eadd68ce8dbce6e5d7e184fd7f2318a))
+ - **REFACTOR**: firestore ODM Converter Logic. ([3a93e52e](https://github.com/sylphxltd/firestore_odm/commit/3a93e52e8f0e3f9c2d3ddfc2f212e43565dd8385))
+ - **REFACTOR**: replace toJson/fromJson functions with FirestoreConverter for improved type safety and consistency. ([65e5a85f](https://github.com/sylphxltd/firestore_odm/commit/65e5a85f4ab906923004b24fe58b12afe256d3df))
+ - **REFACTOR**: remove deprecated incrementalModify method and streamline update logic. ([fee7ef08](https://github.com/sylphxltd/firestore_odm/commit/fee7ef089fa262b9ed96312428206cf19dd2deec))
+ - **REFACTOR**: rework converters. ([4c0fdf19](https://github.com/sylphxltd/firestore_odm/commit/4c0fdf1933e2faf57d358693cf14a7c56c2525c8))
+ - **REFACTOR**: improve DurationFieldUpdate converter handling with type-safe method. ([42a85ab2](https://github.com/sylphxltd/firestore_odm/commit/42a85ab2b881d4b1a3202776ccf59a01d9f0ebcb))
+ - **REFACTOR**(filter_builder): clean up whitespace and improve readability in UpdateBuilder class. ([c203cfe0](https://github.com/sylphxltd/firestore_odm/commit/c203cfe058ed6ed9e43bfe6aba801c7e8a78dd34))
+ - **REFACTOR**: streamline JSON converter handling and enhance type reference management. ([4470a1be](https://github.com/sylphxltd/firestore_odm/commit/4470a1bea69a649b98293cab5f2da07242c872fa))
+ - **REFACTOR**: reworking builder. ([e076e310](https://github.com/sylphxltd/firestore_odm/commit/e076e310154e9fe94e7e6665c3e974f7ff682e50))
+ - **REFACTOR**(firestore_converters): simplify parameter passing for list and map converter creation. ([07bc60da](https://github.com/sylphxltd/firestore_odm/commit/07bc60daa2ca371137f7cd68a121990f9357ac43))
+ - **REFACTOR**(model_converter): simplify constructor parameters for MapConverter and ListConverter. ([90b483a0](https://github.com/sylphxltd/firestore_odm/commit/90b483a024ccbbc4287896f61909a8174ecb1ff3))
+ - **FEAT**: supports map field clear and set operation. ([1f1e3773](https://github.com/sylphxltd/firestore_odm/commit/1f1e3773a77f2398d40f0cf7b99734809ad6b601))
+ - **FEAT**: rework builders. ([c96df342](https://github.com/sylphxltd/firestore_odm/commit/c96df342c5140bbb48d74af1a8d64f65b9f80e28))
+ - **FEAT**(model_converter): add DefaultConverter for custom fromJson/toJson handling. ([8c467ef3](https://github.com/sylphxltd/firestore_odm/commit/8c467ef32e61fe42c3bbc4784b2e14e7d71535e2))
+ - **FEAT**(converters): introduce generic converters for custom types and enhance type analysis. ([534f391a](https://github.com/sylphxltd/firestore_odm/commit/534f391a6c79f7c78ac025a205b5a012cdd5d54a))
+
 ## 2.7.1
 
  - **REFACTOR**(generator): simplify update builder generation by using converter parameter. ([99923a5f](https://github.com/sylphxltd/firestore_odm/commit/99923a5fadfda8d8c7ae60938ed71817d8689b58))
