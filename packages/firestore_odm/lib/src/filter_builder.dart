@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
+import 'package:cloud_firestore/cloud_firestore.dart' show FieldPath, FieldValue;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/types.dart';
@@ -216,12 +216,15 @@ class RootFilterSelector<T> extends FilterSelector<T> {
 
 /// Represents a single update operation
 sealed class UpdateOperation {
-  final String field;
+  final List<String> fieldPath;
 
-  const UpdateOperation(this.field);
+  const UpdateOperation(this.fieldPath);
+
+  /// Convert fieldPath to a string representation for compatibility
+  String get field => fieldPath.join('.');
 
   @override
-  String toString() => 'UpdateOperation($field)';
+  String toString() => 'UpdateOperation(${fieldPath.join('.')})';
 }
 
 class SetOperation<T> extends UpdateOperation {
@@ -299,6 +302,23 @@ class MapRemoveAllOperation<K> extends UpdateOperation {
 
   @override
   String toString() => 'MapRemoveAllOperation($field, $keys)';
+}
+
+class MapClearOperation extends UpdateOperation {
+
+  MapClearOperation(super.field);
+
+  @override
+  String toString() => 'MapClearOperation($field)';
+}
+
+class MapSetOperation<K, V> extends UpdateOperation {
+  final Map<K, V> entries;
+
+  MapSetOperation(super.field, this.entries);
+
+  @override
+  String toString() => 'MapSetOperation($field, $entries)';
 }
 
 /// Convert operations to Firestore update map
@@ -379,6 +399,27 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
           updateMap[keyPath] = FieldValue.delete();
         }
         break;
+      case MapClearOperation mapClearOp:
+        // For map clear, delete the entire map field
+        updateMap[mapClearOp.field] = FieldValue.delete();
+        // Note: Firestore does not support clearing a map field directly,
+        // so we delete the field instead.
+
+        // This is a workaround to clear the map field and preserve the structure
+        updateMap[mapClearOp.field + '._tmp'] = FieldValue.delete();
+        break;
+
+      case MapSetOperation mapSetOp:
+        // for map set, delete the existing map field
+        updateMap[mapSetOp.field] = FieldValue.delete();
+
+        // For map set, set multiple nested fields
+        final data = mapSetOp.entries;
+        for (final entry in data.entries) {
+          final keyPath = '${mapSetOp.field}.${entry.key}';
+          updateMap[keyPath] = entry.value;
+        }
+        break;
     }
   }
 
@@ -434,6 +475,8 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
     updateMap[entry.key] = FieldValue.arrayRemove(entry.value);
   }
 
+  print('Generated update map: $updateMap');
+
   return updateMap;
 }
 
@@ -451,7 +494,7 @@ class PatchBuilder<T> extends Node {
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
     final convertedValue = _converter.toJson(value);
-    return SetOperation($path, convertedValue);
+    return SetOperation($parts, convertedValue);
   }
 }
 
@@ -481,8 +524,6 @@ class FieldNameOrDocumentId {
 /// Base callable filter class
 abstract class CallableFilter extends Node {
   CallableFilter({super.name, super.parent});
-
-  dynamic get fieldPath => $path;
 }
 
 /// String field callable filter
@@ -502,63 +543,63 @@ class StringFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (isLessThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThan,
         value: isLessThan,
       );
     }
     if (isLessThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThanOrEqualTo,
         value: isLessThanOrEqualTo,
       );
     }
     if (isGreaterThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThan,
         value: isGreaterThan,
       );
     }
     if (isGreaterThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThanOrEqualTo,
         value: isGreaterThanOrEqualTo,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -586,63 +627,63 @@ class NumericFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (isLessThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThan,
         value: isLessThan,
       );
     }
     if (isLessThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThanOrEqualTo,
         value: isLessThanOrEqualTo,
       );
     }
     if (isGreaterThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThan,
         value: isGreaterThan,
       );
     }
     if (isGreaterThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThanOrEqualTo,
         value: isGreaterThanOrEqualTo,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -666,35 +707,35 @@ class BoolFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -722,63 +763,63 @@ class DateTimeFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (isLessThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThan,
         value: isLessThan,
       );
     }
     if (isLessThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThanOrEqualTo,
         value: isLessThanOrEqualTo,
       );
     }
     if (isGreaterThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThan,
         value: isGreaterThan,
       );
     }
     if (isGreaterThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThanOrEqualTo,
         value: isGreaterThanOrEqualTo,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -804,49 +845,49 @@ class ArrayFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (arrayContains != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.arrayContains,
         value: arrayContains,
       );
     }
     if (arrayContainsAny != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.arrayContainsAny,
         value: arrayContainsAny,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -865,21 +906,21 @@ class MapFieldFilter extends CallableFilter {
   FirestoreFilter call({Map? isEqualTo, Map? isNotEqualTo, bool? isNull}) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -914,63 +955,63 @@ class MapKeyFieldFilter extends CallableFilter {
   }) {
     if (isEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isEqualTo,
         value: isEqualTo,
       );
     }
     if (isNotEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isNotEqualTo,
         value: isNotEqualTo,
       );
     }
     if (isLessThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThan,
         value: isLessThan,
       );
     }
     if (isLessThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isLessThanOrEqualTo,
         value: isLessThanOrEqualTo,
       );
     }
     if (isGreaterThan != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThan,
         value: isGreaterThan,
       );
     }
     if (isGreaterThanOrEqualTo != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.isGreaterThanOrEqualTo,
         value: isGreaterThanOrEqualTo,
       );
     }
     if (whereIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereIn,
         value: whereIn,
       );
     }
     if (whereNotIn != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: FilterOperator.whereNotIn,
         value: whereNotIn,
       );
     }
     if (isNull != null) {
       return FirestoreFilter.field(
-        field: fieldPath,
+        field: FieldPath($parts),
         operator: isNull
             ? FilterOperator.isEqualTo
             : FilterOperator.isNotEqualTo,
@@ -1076,7 +1117,7 @@ class NumericFieldUpdate<T extends num?> extends PatchBuilder<T> {
   /// Increment field value
   UpdateOperation increment(T value) {
     return IncrementOperation(
-      $path,
+      $parts,
       value as num, // Ensure value is a num
     );
   }
@@ -1095,26 +1136,26 @@ class ListFieldUpdate<T, E> extends PatchBuilder<T> {
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return ArrayAddAllOperation($path, [_elementConverter.toJson(value)]);
+    return ArrayAddAllOperation($parts, [_elementConverter.toJson(value)]);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
     return ArrayAddAllOperation(
-      $path,
+      $parts,
       values.map(_elementConverter.toJson).toList(),
     );
   }
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return ArrayRemoveAllOperation($path, [_elementConverter.toJson(value)]);
+    return ArrayRemoveAllOperation($parts, [_elementConverter.toJson(value)]);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
     return ArrayRemoveAllOperation(
-      $path,
+      $parts,
       values.map(_elementConverter.toJson).toList(),
     );
   }
@@ -1132,7 +1173,7 @@ class DateTimeFieldUpdate<T> extends PatchBuilder<T> {
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return ServerTimestampOperation($path);
+    return ServerTimestampOperation($parts);
   }
 }
 
@@ -1149,7 +1190,7 @@ class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T> {
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
     final int milliseconds = const DurationConverter().toJson(value);
-    return IncrementOperation($path, milliseconds);
+    return IncrementOperation($parts, milliseconds);
   }
 }
 
@@ -1167,11 +1208,26 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   final FirestoreConverter<K, dynamic> _keyConverter;
   final FirestoreConverter<V, dynamic> _valueConverter;
 
+  @override
+  UpdateOperation call(T value) {
+    return MapSetOperation(
+      $parts,
+      value is Map<K, V>
+          ? value.map(
+              (key, val) => MapEntry(
+                _keyConverter.toJson(key).toString(),
+                _valueConverter.toJson(val),
+              ),
+            )
+          : {},
+    );
+  }
+
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
     final convertedKey = _keyConverter.toJson(key);
-    final keyPath = '${$path}.$convertedKey';
+    final keyPath = [...$parts, convertedKey.toString()];
     return SetOperation<V>(keyPath, _valueConverter.toJson(value));
   }
 
@@ -1179,7 +1235,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
     final convertedKey = _keyConverter.toJson(key);
-    final keyPath = '${$path}.$convertedKey';
+    final keyPath = [...$parts, convertedKey.toString()];
     return DeleteOperation(keyPath);
   }
 
@@ -1192,7 +1248,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
         _valueConverter.toJson(value),
       ),
     );
-    return MapPutAllOperation($path, entriesMap);
+    return MapPutAllOperation($parts, entriesMap);
   }
 
   /// Add multiple entries from MapEntry iterable (more flexible)
@@ -1206,20 +1262,20 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
         ),
       ),
     );
-    return MapPutAllOperation($path, entriesMap);
+    return MapPutAllOperation($parts, entriesMap);
   }
 
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
     final keysList = keys.map((key) => _keyConverter.toJson(key)).toList();
-    return MapRemoveAllOperation($path, keysList);
+    return MapRemoveAllOperation($parts, keysList);
   }
 
   /// Clear all entries (like map.clear())
   /// Usage: $.settings.clear()
   UpdateOperation clear() {
-    return SetOperation<Map<String, dynamic>>($path, {});
+    return MapClearOperation($parts);
   }
 
   // ===== Convenience Methods =====
@@ -1231,6 +1287,6 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
       keys.map((key) => _keyConverter.toJson(key).toString()),
       Iterable.generate(keys.length, (_) => _valueConverter.toJson(value)),
     );
-    return MapPutAllOperation($path, entriesMap);
+    return MapPutAllOperation($parts, entriesMap);
   }
 }
