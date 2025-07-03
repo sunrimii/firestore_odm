@@ -1,3 +1,7 @@
+## 3.1.0
+
+ - **FEAT**: add tests for snake_case to camelCase conversion in Firestore collections. ([742a3bc3](https://github.com/sylphxltd/firestore_odm/commit/742a3bc31371a40797227272026ed452fde9a4e2))
+
 ## 3.0.2
 
  - **REFACTOR**: simplify JSON method checks and improve converter naming conventions. ([6d55a580](https://github.com/sylphxltd/firestore_odm/commit/6d55a5801d6982f53a4ea0096aeacff2d944ca51))
