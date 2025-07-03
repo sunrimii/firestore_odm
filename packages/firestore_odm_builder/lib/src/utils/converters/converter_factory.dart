@@ -8,9 +8,10 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 
 class ConverterFactory {
-  static final ConverterFactory instance = ConverterFactory._internal();
 
-  ConverterFactory._internal();
+  final ModelAnalyzer modelAnalyzer;
+  // Add public constructor for creating fresh instances
+  ConverterFactory(this.modelAnalyzer);
 
   final Map<(DartType, Element?), TypeConverter> _baseConverterCache = {};
   final List<Spec> _modelConverters = [];
@@ -40,12 +41,12 @@ class ConverterFactory {
     // 3. Check for @JsonConverter annotation
     final annotation = _findJsonConverterAnnotation(element);
     if (annotation != null) {
-      return AnnotationConverter(annotation);
+      return AnnotationConverter(annotation, converterFactory: this);
     }
 
     // 4. Check for fromJson/toJson methods
     if (type is InterfaceType && _hasJsonMethods(type)) {
-      return JsonMethodConverter(type: type);
+      return JsonMethodConverter(converterFactory: this, type: type);
     }
 
     // 1. Check for primitives
@@ -91,7 +92,11 @@ class ConverterFactory {
 
     // 5. Create custom model converter
     if (type is InterfaceType) {
-      return ModelConverter(type: type);
+      return ModelConverter(
+        type: type,
+        modelAnalyzer: modelAnalyzer,
+        converterFactory: this,
+      );
     }
 
     throw UnimplementedError('No converter for type: $type');

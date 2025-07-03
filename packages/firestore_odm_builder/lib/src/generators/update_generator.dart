@@ -19,10 +19,16 @@ class Updater {
 /// Generator for update builders and related classes using code_builder
 class UpdateGenerator {
   /// Generate the update builder extension using pre-analyzed model information
-  static Spec? generateUpdateBuilderClass(InterfaceType type) {
-    final typeFields = ModelAnalyzer.instance.getFields(type);
+  static Spec? generateUpdateBuilderClass(
+    String schemaName,
+    InterfaceType type, {
+      required ModelAnalyzer modelAnalyzer,
+      required ConverterFactory converterFactory,
+    }
+  ) {
+    final typeFields = modelAnalyzer.getFields(type);
 
-    final baseTypeFields = ModelAnalyzer.instance.getFields(
+    final baseTypeFields = modelAnalyzer.getFields(
       type.element.thisType,
     );
 
@@ -35,11 +41,11 @@ class UpdateGenerator {
     final typeArguments = type.typeArguments.references;
 
     // Generate methods for all updateable fields
-    final methods = ModelAnalyzer.instance
+    final methods = modelAnalyzer
         .getFields(type)
         .values
         .where((f) => isOpenGeneric(baseTypeFields[f.parameterName]!.type))
-        .map((field) => _generateGenericFieldUpdateMethod(field, {}));
+        .map((field) => _generateGenericFieldUpdateMethod(field, {}, converterFactory: converterFactory));
 
     if (methods.isEmpty) {
       return null; // No methods to generate
@@ -48,7 +54,7 @@ class UpdateGenerator {
     return Extension(
       (b) => b
         ..name =
-            '${className}PatchBuilder' +
+            '${schemaName}${className}PatchBuilder' +
             Object.hashAll(typeArguments).abs().toRadixString(36).upperFirst()
         ..on = TypeReference(
           (b) => b
@@ -66,8 +72,14 @@ class UpdateGenerator {
   }
 
   /// Generate the update builder extension using pre-analyzed model information
-  static Spec? generateGenericUpdateBuilderClass(InterfaceType type) {
-    final typeFields = ModelAnalyzer.instance.getFields(type);
+  static Spec? generateGenericUpdateBuilderClass(
+    String schemaName,
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+    required ConverterFactory converterFactory,
+    }
+  ) {
+    final typeFields = modelAnalyzer.getFields(type);
 
     // If there are no fields, we cannot generate an update builder
     if (typeFields.isEmpty) {
@@ -78,11 +90,11 @@ class UpdateGenerator {
     final typeParameters = type.element3.typeParameters2.references;
 
     // Generate methods for all updateable fields
-    final methods = ModelAnalyzer.instance
+    final methods = modelAnalyzer
         .getFields(type)
         .values
         .where((f) => !isOpenGeneric(f.type))
-        .map((field) => _generateGenericFieldUpdateMethod(field, {}));
+        .map((field) => _generateGenericFieldUpdateMethod(field, {}, converterFactory: converterFactory));
 
     if (methods.isEmpty) {
       return null; // No methods to generate
@@ -90,7 +102,7 @@ class UpdateGenerator {
 
     return Extension(
       (b) => b
-        ..name = '${className}PatchBuilder'
+        ..name = '${schemaName}${className}PatchBuilder'
         ..types.addAll(typeParameters)
         ..on = TypeReference(
           (b) => b
@@ -135,12 +147,14 @@ class UpdateGenerator {
   /// Generate field update method for generic types
   static Method _generateGenericFieldUpdateMethod(
     FieldInfo field,
-    Map<String, VariableConverter> mapping,
+    Map<String, VariableConverter> mapping, {
+    required ConverterFactory converterFactory,
+    }
   ) {
     final fieldType = field.type;
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonName;
-    final converter = ConverterFactory.instance
+    final converter = converterFactory
         .getConverter(field.type, element: field.element)
         .apply(mapping)
         .withNullable(field.isNullable);
@@ -224,11 +238,11 @@ class UpdateGenerator {
               'name': literalString(jsonFieldName),
               'parent': refer('this'),
               'converter': converter.toConverterExpr(),
-              'keyConverter': ConverterFactory.instance
+              'keyConverter': converterFactory
                   .getConverter(TypeAnalyzer.getMapKeyType(fieldType))
                   .apply(mapping)
                   .toConverterExpr(),
-              'valueConverter': ConverterFactory.instance
+              'valueConverter': converterFactory
                   .getConverter(TypeAnalyzer.getMapValueType(fieldType))
                   .apply(mapping)
                   .toConverterExpr(),
@@ -248,7 +262,7 @@ class UpdateGenerator {
               'name': literalString(jsonFieldName),
               'parent': refer('this'),
               'converter': converter.toConverterExpr(),
-              'elementConverter': ConverterFactory.instance
+              'elementConverter': converterFactory
                   .getConverter(TypeAnalyzer.getIterableElementType(fieldType))
                   .apply(mapping)
                   .toConverterExpr(),

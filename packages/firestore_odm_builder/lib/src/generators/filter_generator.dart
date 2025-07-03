@@ -12,9 +12,7 @@ class FilterGenerator {
       (b) => b
         ..docs.add('/// Filter by document ID (${field.jsonName} field)')
         ..annotations.add(
-          refer('pragma').call(
-            [literalString('vm:prefer-inline')],
-          ),
+          refer('pragma').call([literalString('vm:prefer-inline')]),
         )
         ..type = MethodType.getter
         ..name = field.parameterName
@@ -29,17 +27,13 @@ class FilterGenerator {
 
   /// Generate nested filter getter method
   static Method _generateNestedFilterGetter(FieldInfo field) {
-    final nestedTypeName = field.type.getDisplayString(
-      withNullability: false,
-    );
+    final nestedTypeName = field.type.getDisplayString(withNullability: false);
 
     return Method(
       (b) => b
         ..docs.add('/// Access nested ${field.parameterName} filters')
         ..annotations.add(
-          refer('pragma').call(
-            [literalString('vm:prefer-inline')],
-          ),
+          refer('pragma').call([literalString('vm:prefer-inline')]),
         )
         ..type = MethodType.getter
         ..name = field.parameterName
@@ -101,7 +95,10 @@ class FilterGenerator {
 
   /// Generate filter selector extension using ModelAnalysis
   static Extension generateFilterSelectorClassFromAnalysis(
-    InterfaceType type,
+    String schemaName,
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+    }
   ) {
     final className = type.element.name;
 
@@ -121,7 +118,7 @@ class FilterGenerator {
     );
 
     // Generate methods for all fields
-    final fields = ModelAnalyzer.instance.getFields(type);
+    final fields = modelAnalyzer.getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
       if (field.isDocumentId) {
@@ -136,7 +133,7 @@ class FilterGenerator {
     // Create extension
     return Extension(
       (b) => b
-        ..name = '${className}FilterSelectorExtension'
+        ..name = '${schemaName}${className}FilterSelectorExtension'
         ..types.addAll(typeParameters.references)
         ..on = targetType
         ..docs.add('/// Generated FilterSelector for `$type`')

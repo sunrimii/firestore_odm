@@ -1,7 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/comment.dart';
 import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/user.dart';
 
 part 'secondary_schema.odm.dart';

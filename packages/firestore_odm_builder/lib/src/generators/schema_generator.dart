@@ -223,6 +223,11 @@ class SchemaGenerator {
     List<SchemaCollectionInfo> collections,
   ) {
     final specs = <Spec>[];
+    
+    // Create fresh instances for this schema to avoid cache pollution
+    final modelAnalyzer = ModelAnalyzer();
+    final converterFactory = ConverterFactory(modelAnalyzer);
+
     specs.addAll(_generateCollectionIdentifiers(collections));
 
     // Use variable name for clean class name (e.g., "schema" -> "Schema", "helloSchema" -> "HelloSchema")
@@ -238,20 +243,21 @@ class SchemaGenerator {
       _generateSchemaClassAndConstant(schemaClassName, schemaConstName),
     );
 
-    specs.addAll(_generateFilterAndOrderBySelectors(collections));
+    specs.addAll(_generateFilterAndOrderBySelectors(collections, schemaClassName, 
+        converterFactory: converterFactory, modelAnalyzer: modelAnalyzer));
     // Generate filter and order by builders for each model type
 
     // Generate ODM extensions
-    specs.add(_generateODMExtensions(schemaClassName, collections));
+    specs.add(_generateODMExtensions(schemaClassName, collections, converterFactory, modelAnalyzer));
 
     // Generate transaction context extensions
-    specs.add(_generateTransactionContext(schemaClassName, collections));
-    specs.addAll(_generateTransactionDocuments(schemaClassName, collections));
+    specs.add(_generateTransactionContext(schemaClassName, collections, converterFactory, modelAnalyzer));
+    specs.addAll(_generateTransactionDocuments(schemaClassName, collections, converterFactory, modelAnalyzer));
 
     // Generate batch context extensions
 
     // Generate unique document classes for each collection path
-    specs.addAll(_generateUniqueDocumentClasses(schemaClassName, collections));
+    specs.addAll(_generateUniqueDocumentClasses(schemaClassName, collections, converterFactory, modelAnalyzer));
 
     // Generate document extensions for subcollections (path-specific)
     // specs.addAll(_generateDocumentExtensions(schemaClassName, collections));
@@ -260,10 +266,12 @@ class SchemaGenerator {
     final batchExtension = _generateBatchContextExtensions(
       schemaClassName,
       collections,
+      converterFactory,
+      modelAnalyzer,
     );
     if (batchExtension != null) specs.add(batchExtension);
     specs.addAll(
-      _generateBatchDocumentExtensions(schemaClassName, collections),
+      _generateBatchDocumentExtensions(schemaClassName, collections, converterFactory, modelAnalyzer),
     );
 
     specs.addAll(converterFactory.specs);
@@ -306,13 +314,18 @@ class SchemaGenerator {
 
   /// Generate filter and order by builders for all model types
   static List<Spec> _generateFilterAndOrderBySelectors(
-    List<SchemaCollectionInfo> collections,
+      List<SchemaCollectionInfo> collections,
+    String schemaClassName, {
+    required ConverterFactory converterFactory,
+    required ModelAnalyzer modelAnalyzer,
+
+    }
   ) {
     final specs = <Spec>[];
 
     for (final entry
         in collections
-            .expand((c) => run(c.modelType))
+            .expand((c) => run(c.modelType, modelAnalyzer))
             .where(isUserType)
             .whereType<InterfaceType>()
             .groupSetsBy((t) => t.element.thisType)
@@ -321,25 +334,30 @@ class SchemaGenerator {
 
       // Generate FilterSelector class using ModelAnalysis
       final filterClass =
-          FilterGenerator.generateFilterSelectorClassFromAnalysis(baseType);
+          FilterGenerator.generateFilterSelectorClassFromAnalysis(schemaClassName, baseType, modelAnalyzer: modelAnalyzer);
       specs.add(filterClass);
 
       // Generate OrderBySelector class using ModelAnalysis
       final orderByExtension =
-          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(baseType);
+          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(schemaClassName, baseType, modelAnalyzer: modelAnalyzer);
       specs.add(orderByExtension);
 
       // Generate AggregateFieldSelector extension using ModelAnalysis
       final aggregateExtension =
           AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(
+            schemaClassName,
             baseType,
+            modelAnalyzer: modelAnalyzer,
           );
       if (aggregateExtension != null) {
         specs.add(aggregateExtension);
       }
 
       final updateExtension = UpdateGenerator.generateGenericUpdateBuilderClass(
+        schemaClassName,
         baseType,
+        modelAnalyzer: modelAnalyzer,
+        converterFactory: converterFactory,
       );
       if (updateExtension != null) {
         specs.add(updateExtension);
@@ -348,7 +366,10 @@ class SchemaGenerator {
       for (final type in entry.value) {
         // Generate UpdateBuilder extension using ModelAnalysis
         final updateExtension = UpdateGenerator.generateUpdateBuilderClass(
+          schemaClassName,
           type,
+          modelAnalyzer: modelAnalyzer,
+          converterFactory: converterFactory,
         );
         if (updateExtension != null) {
           specs.add(updateExtension);
@@ -363,6 +384,8 @@ class SchemaGenerator {
   static Extension _generateODMExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -398,11 +421,11 @@ class SchemaGenerator {
               'query': refer(
                 'firestore',
               ).property('collection').call([literalString(collection.path)]),
-              'converter': ConverterFactory.instance
+              'converter': converterFactory
                   .getConverter(collection.modelType)
                   .toConverterExpr(),
               'documentIdField': literalString(
-                ModelAnalyzer.instance.getDocumentIdFieldName(
+                modelAnalyzer.getDocumentIdFieldName(
                   collection.modelType,
                 ),
               ),
@@ -430,6 +453,8 @@ class SchemaGenerator {
   static Extension _generateTransactionContext(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -465,11 +490,11 @@ class SchemaGenerator {
                 'ref',
               ).property('collection').call([literalString(collection.path)]),
               'context': refer('this'),
-              'converter': ConverterFactory.instance
+              'converter': converterFactory
                   .getConverter(collection.modelType)
                   .toConverterExpr(),
               'documentIdField': literalString(
-                ModelAnalyzer.instance.getDocumentIdFieldName(
+                modelAnalyzer.getDocumentIdFieldName(
                   collection.modelType,
                 ),
               ),
@@ -499,6 +524,8 @@ class SchemaGenerator {
   static List<Spec> _generateTransactionDocuments(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final specs = <Spec>[];
 
@@ -538,11 +565,11 @@ class SchemaGenerator {
                   literalString(_getCollectionName(subcol.path)),
                 ]),
                 'context': refer('context'),
-                'converter': ConverterFactory.instance
+                'converter': converterFactory
                     .getConverter(subcol.modelType)
                     .toConverterExpr(),
                 'documentIdField': literalString(
-                  ModelAnalyzer.instance.getDocumentIdFieldName(
+                  modelAnalyzer.getDocumentIdFieldName(
                     subcol.modelType,
                   ),
                 ),
@@ -580,6 +607,8 @@ class SchemaGenerator {
   static Extension? _generateBatchContextExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final rootCollections = collections
         .where((c) => !c.isSubcollection)
@@ -589,7 +618,7 @@ class SchemaGenerator {
     final methods = <Method>[];
 
     for (final collection in rootCollections) {
-      final documentIdFieldName = ModelAnalyzer.instance.getDocumentIdFieldName(
+      final documentIdFieldName = modelAnalyzer.getDocumentIdFieldName(
         collection.modelType,
       );
       methods.add(
@@ -643,6 +672,8 @@ class SchemaGenerator {
   static List<Spec> _generateUniqueDocumentClasses(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final specs = <Spec>[];
 
@@ -664,7 +695,7 @@ class SchemaGenerator {
       for (final subcol in getSubcollections(collections, collection)) {
         final subcollectionName = _getCollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
-        final documentIdFieldName = ModelAnalyzer.instance
+        final documentIdFieldName = modelAnalyzer
             .getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
@@ -764,6 +795,8 @@ class SchemaGenerator {
   static List<Spec> _generateDocumentExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final specs = <Spec>[];
     final subcollections = collections.where((c) => c.isSubcollection).toList();
@@ -791,7 +824,7 @@ class SchemaGenerator {
       for (final subcol in subcolsForParent) {
         final subcollectionName = _getCollectionName(subcol.path);
         final getterName = subcollectionName.camelCase().lowerFirst();
-        final documentIdFieldName = ModelAnalyzer.instance
+        final documentIdFieldName = modelAnalyzer
             .getDocumentIdFieldName(subcol.modelType);
 
         // Generate unique collection class name for this subcollection path
@@ -843,6 +876,8 @@ class SchemaGenerator {
   static List<Spec> _generateBatchDocumentExtensions(
     String schemaClassName,
     List<SchemaCollectionInfo> collections,
+    ConverterFactory converterFactory,
+    ModelAnalyzer modelAnalyzer,
   ) {
     final specs = <Spec>[];
 
@@ -880,11 +915,11 @@ class SchemaGenerator {
               ..body = refer('getBatchCollection').call([], {
                 'parent': refer('this'),
                 'name': literalString(_getCollectionName(subcol.path)),
-                'converter': ConverterFactory.instance
+                'converter': converterFactory
                     .getConverter(subcol.modelType)
                     .toConverterExpr(),
                 'documentIdField': literalString(
-                  ModelAnalyzer.instance.getDocumentIdFieldName(
+                  modelAnalyzer.getDocumentIdFieldName(
                     subcol.modelType,
                   ),
                 ),
@@ -919,22 +954,23 @@ class SchemaGenerator {
   }
 
   static Iterable<DartType> run(
-    DartType type, [
+    DartType type,
+    ModelAnalyzer modelAnalyzer, [
     Element? annotatedElement,
   ]) sync* {
     yield type;
 
     if (type is! InterfaceType) return;
 
-    final fields = ModelAnalyzer.instance.getFields(type);
+    final fields = modelAnalyzer.getFields(type);
     // Recursively find all nested InterfaceTypes in the fields of this type
     for (final field in fields.values) {
-      yield* run(field.type, field.element);
+      yield* run(field.type, modelAnalyzer, field.element);
     }
 
     // If this is a ParameterizedType, analyze its type arguments as well
     for (final arg in type.typeArguments) {
-      yield* run(arg);
+      yield* run(arg, modelAnalyzer);
     }
   }
 }

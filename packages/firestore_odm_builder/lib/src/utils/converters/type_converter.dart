@@ -15,6 +15,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 
 sealed class TypeConverter {
+  
   // TypeReference fromType = TypeReferences.dynamic;
   // TypeReference toType = TypeReferences.dynamic;
   Expression fromFirestore(Expression source);
@@ -29,6 +30,7 @@ abstract class MaybeGeneric {
 }
 
 abstract class WithName implements TypeConverter {
+  ConverterFactory get converterFactory;
   /// The name of the converter, used for generating code
   String get name;
   InterfaceType get type;
@@ -63,7 +65,7 @@ class AnnotationConverter implements TypeConverter, WithName {
   final InterfaceType type;
 
   String get name => '_\$${type.element3.name3}AnnotationConverter';
-  WithName get baseConverter => AnnotationConverter(type.element.thisType);
+  WithName get baseConverter => AnnotationConverter(type.element.thisType, converterFactory: converterFactory);
 
   List<TypeParameterElement> get typeParameters => [];
   List<DartType> get typeArguments => [];
@@ -74,7 +76,11 @@ class AnnotationConverter implements TypeConverter, WithName {
   TypeReference get toType => type.getMethod2('toJson')!.returnType.reference;
   TypeReference get expectType => toType;
 
-  const AnnotationConverter(this.type);
+  final ConverterFactory converterFactory;
+
+  const AnnotationConverter(this.type, {
+    required this.converterFactory,
+  });
 
   @override
   Expression fromFirestore(Expression source) {
@@ -105,7 +111,11 @@ class AnnotationConverter implements TypeConverter, WithName {
 class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   final InterfaceType type;
   final Map<String, TypeConverter> typeParameterMapping;
-  WithName get baseConverter => JsonMethodConverter(type: type);
+  WithName get baseConverter => JsonMethodConverter(
+    converterFactory: converterFactory,
+    type: type,
+    typeParameterMapping: typeParameterMapping,
+  );
 
   String get name => '_\$${type.element3.name3}JsonConverter';
 
@@ -116,23 +126,27 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   TypeReference get fromType => type.element3.reference;
 
   TypeReference get toType =>
-      type.lookUpMethod3('toJson', type.element3.library2)?.returnType.reference ??
+      type
+          .lookUpMethod3('toJson', type.element3.library2)
+          ?.returnType
+          .reference ??
       TypeReferences.dynamic;
 
-  TypeReference get expectType => 
+  TypeReference get expectType =>
       TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)
       ? TypeReferences.listOf(TypeReferences.dynamic)
       : TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
 
   const JsonMethodConverter({
+    required this.converterFactory,
     required this.type,
     this.typeParameterMapping = const {},
   });
 
+  final ConverterFactory converterFactory;
+
   TypeConverter _transform(DartType type) {
-    return ConverterFactory.instance
-        .getConverter(type)
-        .apply(typeParameterMapping);
+    return converterFactory.getConverter(type).apply(typeParameterMapping);
   }
 
   @override
@@ -173,6 +187,7 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
   /// Create a specialized version with concrete converters
   JsonMethodConverter apply(Map<String, TypeConverter> typeArgs) {
     return JsonMethodConverter(
+      converterFactory: converterFactory,
       type: type.element.thisType,
       typeParameterMapping: {...typeParameterMapping, ...typeArgs},
     );
@@ -186,6 +201,8 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
 
   String get name => '_\$${type.element.name}ModelConverter';
   WithName get baseConverter => ModelConverter(
+    modelAnalyzer: modelAnalyzer,
+    converterFactory: converterFactory,
     type: type.element3.thisType,
     typeParameterMapping: typeParameterMapping,
   );
@@ -201,17 +218,24 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
 
   List<DartType> get typeArguments => type.typeArguments.toList();
 
-  ModelConverter({required this.type, this.typeParameterMapping = const {}});
+  ModelConverter({
+    required this.type,
+    this.typeParameterMapping = const {},
+    required this.modelAnalyzer,
+    required this.converterFactory,
+  });
 
   TypeConverter _transform(DartType fieldType, Element? element) {
-    return ConverterFactory.instance
+    return converterFactory
         .getConverter(fieldType, element: element)
         .apply(typeParameterMapping);
   }
 
-  late final Map<String, FieldInfo> fields = ModelAnalyzer.instance.getFields(
-    type,
-  );
+  final ModelAnalyzer modelAnalyzer;
+
+  final ConverterFactory converterFactory;
+
+  late final Map<String, FieldInfo> fields = modelAnalyzer.getFields(type);
 
   @override
   Expression fromFirestore(Expression source) {
@@ -252,6 +276,8 @@ class ModelConverter implements TypeConverter, WithName, MaybeGeneric {
     return ModelConverter(
       type: type.element3.thisType,
       typeParameterMapping: {...typeParameterMapping, ...typeArgs},
+      modelAnalyzer: modelAnalyzer,
+      converterFactory: converterFactory,
     );
   }
 }
@@ -361,7 +387,6 @@ class TypeParameterPlaceholder implements TypeConverter, MaybeGeneric {
   }
 }
 
-final converterFactory = ConverterFactory.instance;
 
 extension TypeConverterExtensions on TypeConverter {
   Expression toConverterExpr() {
@@ -385,7 +410,7 @@ extension TypeConverterExtensions on TypeConverter {
               Map.fromIterables(
                 converter.type.element3.typeParameters2.map((e) => e.name3!),
                 converter.type.typeArguments.map(
-                  (e) => converterFactory.getConverter(e),
+                  (e) => converter.converterFactory.getConverter(e),
                 ),
               ),
             )

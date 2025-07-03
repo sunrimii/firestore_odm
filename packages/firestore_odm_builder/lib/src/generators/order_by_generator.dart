@@ -69,12 +69,12 @@ class OrderByGenerator {
 
   /// Generate order by selector class using ModelAnalysis
   static Extension generateOrderBySelectorClassFromAnalysis(
-    InterfaceType type,
-  ) {
-    final className = type.element?.name;
-    if (className == null) {
-      throw ArgumentError('ModelAnalysis must have a valid Dart type element.');
+    String schemaName,
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
     }
+  ) {
+    final className = type.element.name;
 
     final typeParameters = type.typeParameters;
 
@@ -94,7 +94,7 @@ class OrderByGenerator {
     );
 
     // Generate methods for all fields
-    final fields = ModelAnalyzer.instance.getFields(type);
+    final fields = modelAnalyzer.getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
       final fieldType = field.type;
@@ -113,12 +113,10 @@ class OrderByGenerator {
     // Create extension
     return Extension(
       (b) => b
-        ..name = '${className}OrderByFieldSelectorExtension'
+        ..name = '${schemaName}${className}OrderByFieldSelectorExtension'
         ..types.addAll(typeParameters.references)
         ..on = targetType
-        ..docs.add(
-          '/// Generated OrderByFieldSelector for `$type`',
-        )
+        ..docs.add('/// Generated OrderByFieldSelector for `$type`')
         ..methods.addAll(methods),
     );
   }

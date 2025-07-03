@@ -48,9 +48,12 @@ class AggregateGenerator {
 
   /// Generate aggregate field selector extension using ModelAnalysis
   static Extension? generateAggregateFieldSelectorFromAnalysis(
-    InterfaceType type,
+    String schemaName,
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+    }
   ) {
-    final fields = ModelAnalyzer.instance.getFields(type);
+    final fields = modelAnalyzer.getFields(type);
     if (fields.isEmpty) {
       return null;
     }
@@ -97,7 +100,7 @@ class AggregateGenerator {
     // Create extension
     return Extension(
       (b) => b
-        ..name = '${className}AggregateFieldSelectorExtension'
+        ..name = '${schemaName}${className}AggregateFieldSelectorExtension'
         ..types.addAll(typeParameters)
         ..on = targetType
         ..docs.add(

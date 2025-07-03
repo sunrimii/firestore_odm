@@ -27,9 +27,9 @@ class FieldInfo {
 
 /// Analyzer for complete model structure including JSON field mapping
 class ModelAnalyzer {
-  static final ModelAnalyzer instance = ModelAnalyzer._internal();
-
-  ModelAnalyzer._internal();
+  
+  // Add public constructor for creating fresh instances
+  ModelAnalyzer();
 
   final Map<InterfaceType, Map<String, FieldInfo>> _cachedFields = {};
 
