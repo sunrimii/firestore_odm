@@ -56,4 +56,7 @@ part 'test_schema.odm.dart';
 ) // IList with JsonConverter test
 @Collection<StringGeneric>("stringGenerics") // Generic collection test
 @Collection<IntGeneric>("intGenerics") // Generic collection test
+@Collection<User>("snake_case_users") // Test snake_case to camelCase conversion
+@Collection<Post>("snake_case_users/*/user_posts") // Test snake_case subcollection
+@Collection<Comment>("snake_case_users/*/user_posts/*/post_comments") // Test nested snake_case subcollection
 final testSchema = _$TestSchema;

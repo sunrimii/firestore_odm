@@ -390,7 +390,7 @@ class SchemaGenerator {
         Method(
           (b) => b
             ..docs.add('/// Access ${collection.path} collection')
-            ..name = collectionName
+            ..name = collectionName.camelCase().lowerFirst()
             ..returns = collectionType
             ..type = MethodType.getter
             ..annotations.add(preferInlineAnnotation)
