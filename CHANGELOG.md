@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-07-04
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`firestore_odm_builder` - `v3.1.1`](#firestore_odm_builder---v311)
+
+---
+
+#### `firestore_odm_builder` - `v3.1.1`
+
+ - **FEAT**: refactor model analysis and converter factory for improved instance management. ([d078ba72](https://github.com/sylphxltd/firestore_odm/commit/d078ba726052b08bebc9bf478a7a7a18fce789d3))
+
+
 ## 2025-07-03
 
 ### Changes
