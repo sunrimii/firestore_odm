@@ -146,7 +146,7 @@ getBatchCollection<S extends FirestoreSchema, C, Path extends Record>({
 
 /// Batch document for handling document-level batch operations
 class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
-    implements SynchronousDeletable, SynchronousPatchable<T> {
+    implements Deletable, Patchable<T> {
   final BatchContext<S> _context;
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;
@@ -183,9 +183,9 @@ class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
 /// Batch collection for handling collection-level batch operations
 class BatchCollection<S extends FirestoreSchema, T, Path extends Record>
     implements
-        SynchronousInsertable<T>,
-        SynchronousUpdatable<T>,
-        SynchronousUpsertable<T> {
+        Insertable<T>,
+        Updatable<T>,
+        Upsertable<T> {
   final BatchContext<S> _context;
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;

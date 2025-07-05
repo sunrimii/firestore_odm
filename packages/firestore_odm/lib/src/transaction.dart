@@ -72,9 +72,9 @@ class TransactionDocument<S extends FirestoreSchema, T, Path extends Record>
     implements
         Gettable<T?>,
         Modifiable<T>,
-        SynchronousPatchable<T>,
+        Patchable<T>,
         Existable,
-        SynchronousDeletable {
+        Deletable {
   final firestore.DocumentReference<Map<String, dynamic>> ref;
   final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
