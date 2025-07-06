@@ -21,42 +21,42 @@ part 'test_schema.odm.dart';
 
 /// Test schema that includes all collections used in existing tests.
 @Schema()
-@Collection<User>("users")
-@Collection<Post>("posts")
-@Collection<Post>("users/*/posts") // User subcollection
-@Collection<User>("users2") // Second User collection WITHOUT posts subcollection
-@Collection<Comment>("comments") // Root comments collection
-@Collection<Comment>("posts/*/comments") // Comments on posts in main collection
-@Collection<Comment>("users/*/posts/*/comments") // Nested: Comments on user posts (DEEP NESTING)
-@Collection<SimpleStory>("simpleStories")
-@Collection<SharedPost>("sharedPosts") // Different path to avoid conflict
-@Collection<SharedPost>("users/*/sharedPosts") // Different subcollection path
-@Collection<ImmutableUser>("immutableUsers") // Fast immutable collections test
-@Collection<JsonKeyUser>("jsonKeyUsers") // JsonKey annotation test
+@Collection<User>('users')
+@Collection<Post>('posts')
+@Collection<Post>('users/*/posts') // User subcollection
+@Collection<User>('users2') // Second User collection WITHOUT posts subcollection
+@Collection<Comment>('comments') // Root comments collection
+@Collection<Comment>('posts/*/comments') // Comments on posts in main collection
+@Collection<Comment>('users/*/posts/*/comments') // Nested: Comments on user posts (DEEP NESTING)
+@Collection<SimpleStory>('simpleStories')
+@Collection<SharedPost>('sharedPosts') // Different path to avoid conflict
+@Collection<SharedPost>('users/*/sharedPosts') // Different subcollection path
+@Collection<ImmutableUser>('immutableUsers') // Fast immutable collections test
+@Collection<JsonKeyUser>('jsonKeyUsers') // JsonKey annotation test
 @Collection<DartImmutableUser>(
-  "dartImmutableUsers",
+  'dartImmutableUsers',
 ) // Pure Dart immutable + json_serializable test
 @Collection<ManualUser>(
-  "manualUsers",
+  'manualUsers',
 ) // Manual toJson/fromJson implementation test
 @Collection<ManualUser2>(
-  "manualUsers2",
+  'manualUsers2',
 ) // without toJson/fromJson implementation test
 @Collection<ManualUser3<ManualUser3Profile<Book>>>(
-  "manualUsers3",
+  'manualUsers3',
 ) // complicated generic without toJson/fromJson implementation test
 
 @Collection<ManualUser3<ManualUser3Profile<String>>>(
-  "manualUsers3Strings", // different collection name to avoid conflicts
+  'manualUsers3Strings', // different collection name to avoid conflicts
 ) // complicated generic with different type parameter test
 
-@Collection<Task>("tasks") // Duration field test
+@Collection<Task>('tasks') // Duration field test
 @Collection<ListLengthModel>(
-  "listLengthModels",
+  'listLengthModels',
 ) // IList with JsonConverter test
-@Collection<StringGeneric>("stringGenerics") // Generic collection test
-@Collection<IntGeneric>("intGenerics") // Generic collection test
-@Collection<User>("snake_case_users") // Test snake_case to camelCase conversion
-@Collection<Post>("snake_case_users/*/user_posts") // Test snake_case subcollection
-@Collection<Comment>("snake_case_users/*/user_posts/*/post_comments") // Test nested snake_case subcollection
+@Collection<StringGeneric>('stringGenerics') // Generic collection test
+@Collection<IntGeneric>('intGenerics') // Generic collection test
+@Collection<User>('snake_case_users') // Test snake_case to camelCase conversion
+@Collection<Post>('snake_case_users/*/user_posts') // Test snake_case subcollection
+@Collection<Comment>('snake_case_users/*/user_posts/*/post_comments') // Test nested snake_case subcollection
 final testSchema = _$TestSchema;

@@ -1,7 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart' show FieldPath, FieldValue;
+import 'package:cloud_firestore/cloud_firestore.dart'
+    show FieldPath, FieldValue;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/types.dart';
+import 'package:flutter/foundation.dart';
 
 /// Filter types
 enum FilterType { field, and, or }
@@ -77,12 +79,83 @@ class FirestoreFilter {
 /// Base filter builder class using Node-based architecture
 class FilterSelector<T> extends Node {
   /// Create a FilterSelector with optional name and parent for nested objects
-  FilterSelector({super.name, super.parent});
+  const FilterSelector({super.name, super.parent});
 }
 
-class RootFilterSelector<T> extends FilterSelector<T> {
-  RootFilterSelector();
+abstract class RootFilterSelector<T> {
 
+  factory RootFilterSelector() = RootFilterSelectorImpl<T>;
+
+  /// Create OR filter with type safety (supports up to 30 filters)
+  FirestoreFilter or(
+    FirestoreFilter filter1,
+    FirestoreFilter filter2, [
+    FirestoreFilter? filter3,
+    FirestoreFilter? filter4,
+    FirestoreFilter? filter5,
+    FirestoreFilter? filter6,
+    FirestoreFilter? filter7,
+    FirestoreFilter? filter8,
+    FirestoreFilter? filter9,
+    FirestoreFilter? filter10,
+    FirestoreFilter? filter11,
+    FirestoreFilter? filter12,
+    FirestoreFilter? filter13,
+    FirestoreFilter? filter14,
+    FirestoreFilter? filter15,
+    FirestoreFilter? filter16,
+    FirestoreFilter? filter17,
+    FirestoreFilter? filter18,
+    FirestoreFilter? filter19,
+    FirestoreFilter? filter20,
+    FirestoreFilter? filter21,
+    FirestoreFilter? filter22,
+    FirestoreFilter? filter23,
+    FirestoreFilter? filter24,
+    FirestoreFilter? filter25,
+    FirestoreFilter? filter26,
+    FirestoreFilter? filter27,
+    FirestoreFilter? filter28,
+    FirestoreFilter? filter29,
+    FirestoreFilter? filter30,
+  ]);
+
+  /// Create AND filter with type safety (supports up to 30 filters)
+  FirestoreFilter and(
+    FirestoreFilter filter1,
+    FirestoreFilter filter2, [
+    FirestoreFilter? filter3,
+    FirestoreFilter? filter4,
+    FirestoreFilter? filter5,
+    FirestoreFilter? filter6,
+    FirestoreFilter? filter7,
+    FirestoreFilter? filter8,
+    FirestoreFilter? filter9,
+    FirestoreFilter? filter10,
+    FirestoreFilter? filter11,
+    FirestoreFilter? filter12,
+    FirestoreFilter? filter13,
+    FirestoreFilter? filter14,
+    FirestoreFilter? filter15,
+    FirestoreFilter? filter16,
+    FirestoreFilter? filter17,
+    FirestoreFilter? filter18,
+    FirestoreFilter? filter19,
+    FirestoreFilter? filter20,
+    FirestoreFilter? filter21,
+    FirestoreFilter? filter22,
+    FirestoreFilter? filter23,
+    FirestoreFilter? filter24,
+    FirestoreFilter? filter25,
+    FirestoreFilter? filter26,
+    FirestoreFilter? filter27,
+    FirestoreFilter? filter28,
+    FirestoreFilter? filter29,
+    FirestoreFilter? filter30,
+  ]);
+}
+
+mixin RootFilterMixin<T> on FilterSelector<T> implements RootFilterSelector<T> {
   /// Create OR filter with type safety (supports up to 30 filters)
   FirestoreFilter or(
     FirestoreFilter filter1,
@@ -214,6 +287,10 @@ class RootFilterSelector<T> extends FilterSelector<T> {
   }
 }
 
+class RootFilterSelectorImpl<T> extends FilterSelector<T> with RootFilterMixin<T> {
+  const RootFilterSelectorImpl();
+}
+
 /// Represents a single update operation
 sealed class UpdateOperation {
   final List<String> fieldPath;
@@ -305,7 +382,6 @@ class MapRemoveAllOperation<K> extends UpdateOperation {
 }
 
 class MapClearOperation extends UpdateOperation {
-
   MapClearOperation(super.field);
 
   @override
@@ -1112,7 +1188,11 @@ class DocumentIdFieldFilter extends CallableFilter {
 
 /// Numeric field callable updater
 class NumericFieldUpdate<T extends num?> extends PatchBuilder<T> {
-  const NumericFieldUpdate({required super.name, super.parent, required super.converter});
+  const NumericFieldUpdate({
+    required super.name,
+    super.parent,
+    required super.converter,
+  });
 
   /// Increment field value
   UpdateOperation increment(T value) {

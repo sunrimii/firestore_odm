@@ -3,8 +3,10 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'comment.freezed.dart';
 part 'comment.g.dart';
+part 'comment.odm.dart';
 
 @freezed
+@firestoreOdm
 abstract class Comment with _$Comment {
   const factory Comment({
     @DocumentIdField() required String id,

@@ -1,10 +1,13 @@
+import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter_example/models/story.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'story.dart';
 
 part 'profile.freezed.dart';
 part 'profile.g.dart';
+part 'profile.odm.dart';
 
 @freezed
+@firestoreOdm
 abstract class Profile with _$Profile {
   const factory Profile({
     required String bio,

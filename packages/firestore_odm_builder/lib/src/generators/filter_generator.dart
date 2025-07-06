@@ -1,6 +1,9 @@
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
+import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
+import 'package:firestore_odm_builder/src/utils/string_utils.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
@@ -83,6 +86,9 @@ class FilterGenerator {
       (b) => b
         ..docs.add('/// Filter by ${field.parameterName}')
         ..type = MethodType.getter
+        ..annotations.add(
+          refer('pragma').call([literalString('vm:prefer-inline')]),
+        )
         ..name = field.parameterName
         ..lambda = true
         ..returns = refer(filterType)
@@ -98,8 +104,7 @@ class FilterGenerator {
     String schemaName,
     InterfaceType type, {
     required ModelAnalyzer modelAnalyzer,
-    }
-  ) {
+  }) {
     final className = type.element.name;
 
     final typeParameters = type.typeParameters;
@@ -139,5 +144,143 @@ class FilterGenerator {
         ..docs.add('/// Generated FilterSelector for `$type`')
         ..methods.addAll(methods),
     );
+  }
+
+  static Class generateFilterSelectorClass(
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+  }) {
+    final className = type.element.name;
+
+    final typeParameters = type.typeParameters;
+
+    // Create the target type (FilterSelector<ClassName<T>>)
+    final targetType = TypeReference(
+      (b) => b
+        ..symbol = 'FilterSelector'
+        ..types.add(type.reference),
+    );
+
+    // Generate methods for all fields
+    final fields = modelAnalyzer.getFields(type);
+    final methods = <Method>[];
+    for (final field in fields.values) {
+      if (field.isDocumentId) {
+        // Document ID field
+        methods.add(_generateDocumentIdFilterGetter(field));
+      } else {
+        // Regular field
+        methods.add(_generateFieldGetter(field));
+      }
+    }
+
+    // Create extension
+    return Class(
+      (b) => b
+        ..name = '${className}FilterBuilder'
+        ..types.addAll(typeParameters.references)
+        ..extend = targetType
+        ..docs.add('/// Generated FilterBuilder for `$type`')
+        ..constructors.add(
+          Constructor(
+            (b) => b
+              ..constant = true
+              ..docs.add('/// Creates a filter selector for `$className`')
+              ..optionalParameters.addAll([
+                Parameter(
+                  (b) => b
+                    ..name = 'name'
+                    ..toSuper = true
+                    ..named = true,
+                ),
+                Parameter(
+                  (b) => b
+                    ..name = 'parent'
+                    ..toSuper = true
+                    ..named = true,
+                ),
+              ]),
+          ),
+        )
+        ..methods.addAll(methods),
+    );
+  }
+
+  static Class generateRootFilterSelectorClass(
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+  }) {
+    final className = type.element.name;
+
+    final typeParameters = type.typeParameters;
+
+    // Create extension
+    return Class(
+      (b) => b
+        ..name = '${className}RootFilterBuilder'
+        ..types.addAll(typeParameters.references)
+        ..extend = TypeReference(
+          (b) => b
+            ..symbol = '${className}FilterBuilder'
+            ..types.addAll(typeParameters.references),
+        )
+        ..mixins.add(refer('RootFilterMixin'))
+        ..implements.add(
+          TypeReference(
+            (b) => b
+              ..symbol = 'RootFilterSelector'
+              ..types.add(type.reference),
+          ),
+        )
+        ..docs.add('/// Generated RootFilterBuilder for `$type`')
+        ..constructors.add(
+          Constructor(
+            (b) => b
+              ..constant = true
+              ..docs.add('/// Creates a root filter selector for `$className`'),
+          ),
+        ),
+    );
+  }
+
+  static List<Spec> generateFilterSelectorClasses(
+    InterfaceType type, {
+    required ModelAnalyzer modelAnalyzer,
+  }) {
+    final specs = <Spec>[];
+
+    // Generate FilterSelector class
+    specs.add(generateFilterSelectorClass(type, modelAnalyzer: modelAnalyzer));
+
+    // Generate RootFilterSelector class
+    specs.add(
+      generateRootFilterSelectorClass(type, modelAnalyzer: modelAnalyzer),
+    );
+
+    return specs;
+  }
+
+  static TypeReference getFilterBuilderType(InterfaceType type) {
+    return TypeReference(
+      (b) => b
+        ..symbol = type.element.name + 'FilterBuilder'
+        ..types.addAll(type.typeArguments.map((t) => t.reference)),
+    );
+  }
+
+  static Expression getFilterBuilderInstanceExpression(InterfaceType type) {
+    return getFilterBuilderType(type).constInstance([]);
+  }
+
+  static TypeReference getRootFilterBuilderType(InterfaceType type) {
+    return TypeReference(
+      (b) => b
+        ..symbol = type.element.name + 'RootFilterBuilder'
+        ..types.addAll(type.typeArguments.map((t) => t.reference)),
+    );
+  }
+
+  static Expression getRootFilterBuilderInstanceExpression(InterfaceType type) {
+    return getRootFilterBuilderType(type).constInstance([]);
   }
 }

@@ -22,15 +22,12 @@ class UpdateGenerator {
   static Spec? generateUpdateBuilderClass(
     String schemaName,
     InterfaceType type, {
-      required ModelAnalyzer modelAnalyzer,
-      required ConverterFactory converterFactory,
-    }
-  ) {
+    required ModelAnalyzer modelAnalyzer,
+    required ConverterFactory converterFactory,
+  }) {
     final typeFields = modelAnalyzer.getFields(type);
 
-    final baseTypeFields = modelAnalyzer.getFields(
-      type.element.thisType,
-    );
+    final baseTypeFields = modelAnalyzer.getFields(type.element.thisType);
 
     // If there are no fields, we cannot generate an update builder
     if (typeFields.isEmpty) {
@@ -45,7 +42,13 @@ class UpdateGenerator {
         .getFields(type)
         .values
         .where((f) => isOpenGeneric(baseTypeFields[f.parameterName]!.type))
-        .map((field) => _generateGenericFieldUpdateMethod(field, {}, converterFactory: converterFactory));
+        .map(
+          (field) => _generateGenericFieldUpdateMethod(
+            field,
+            {},
+            converterFactory: converterFactory,
+          ),
+        );
 
     if (methods.isEmpty) {
       return null; // No methods to generate
@@ -77,8 +80,7 @@ class UpdateGenerator {
     InterfaceType type, {
     required ModelAnalyzer modelAnalyzer,
     required ConverterFactory converterFactory,
-    }
-  ) {
+  }) {
     final typeFields = modelAnalyzer.getFields(type);
 
     // If there are no fields, we cannot generate an update builder
@@ -94,7 +96,13 @@ class UpdateGenerator {
         .getFields(type)
         .values
         .where((f) => !isOpenGeneric(f.type))
-        .map((field) => _generateGenericFieldUpdateMethod(field, {}, converterFactory: converterFactory));
+        .map(
+          (field) => _generateGenericFieldUpdateMethod(
+            field,
+            {},
+            converterFactory: converterFactory,
+          ),
+        );
 
     if (methods.isEmpty) {
       return null; // No methods to generate
@@ -149,8 +157,7 @@ class UpdateGenerator {
     FieldInfo field,
     Map<String, VariableConverter> mapping, {
     required ConverterFactory converterFactory,
-    }
-  ) {
+  }) {
     final fieldType = field.type;
     final fieldName = field.parameterName;
     final jsonFieldName = field.jsonName;
@@ -301,6 +308,173 @@ class UpdateGenerator {
         ..lambda = true
         ..returns = updater.type
         ..body = bodyExpression.code,
+    );
+  }
+
+  /// Generate field update method for generic types
+  static Field generateGenericFieldUpdateField(
+    FieldInfo field,
+    Map<String, VariableConverter> mapping, {
+    required ConverterFactory converterFactory,
+  }) {
+    final fieldType = field.type;
+    final fieldName = field.parameterName;
+    final jsonFieldName = field.jsonName;
+    final converter = converterFactory
+        .getConverter(field.type, element: field.element)
+        .apply(mapping)
+        .withNullable(field.isNullable);
+
+    // Check if this field is actually a type parameter (like T)
+    final isTypeParameter = fieldType is TypeParameterType;
+
+    // For type parameter fields, we need to use the appropriate converter
+    // For concrete type fields (like String), use the standard logic
+    final updater = isTypeParameter
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'PatchBuilder'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isDateTimeType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DateTimeFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+            },
+          )
+        : TypeAnalyzer.isDurationType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'DurationFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+            },
+          )
+        : TypeAnalyzer.isNumericType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'NumericFieldUpdate'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isMapType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'MapFieldUpdate'
+                ..types.addAll([
+                  fieldType.reference,
+
+                  TypeAnalyzer.getMapKeyType(fieldType).reference,
+                  TypeAnalyzer.getMapValueType(fieldType).reference,
+                ]),
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
+              'keyConverter': converterFactory
+                  .getConverter(TypeAnalyzer.getMapKeyType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+              'valueConverter': converterFactory
+                  .getConverter(TypeAnalyzer.getMapValueType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isIterableType(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'ListFieldUpdate'
+                ..types.addAll([
+                  fieldType.reference,
+                  TypeAnalyzer.getIterableElementType(fieldType).reference,
+                ]), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
+              'elementConverter': converterFactory
+                  .getConverter(TypeAnalyzer.getIterableElementType(fieldType))
+                  .apply(mapping)
+                  .toConverterExpr(),
+            },
+          )
+        : TypeAnalyzer.isCustomClass(fieldType)
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = '${fieldType.reference.symbol}PatchBuilder'
+                ..types.addAll(
+                  fieldType.reference.types,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this')
+            },
+          )
+        : Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'PatchBuilder'
+                ..types.add(
+                  fieldType.reference,
+                ), // Use the actual type parameter
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'converter': converter.toConverterExpr(),
+            },
+          );
+    final bodyExpression = updater.type.withoutTypeArguments().newInstance(
+      [],
+      updater.arguments,
+    );
+
+    return Field(
+      (b) => b
+        ..docs.add('/// Update $fieldName field `${field.type}`')
+        ..name = fieldName
+        ..type = updater.type
+        ..modifier = FieldModifier.final$
+        ..late = true
+        ..assignment = bodyExpression.code,
     );
   }
 }

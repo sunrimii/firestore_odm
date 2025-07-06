@@ -4,8 +4,10 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user_data.freezed.dart';
 part 'user_data.g.dart';
+part 'user_data.odm.dart';
 
 @freezed
+@firestoreOdm
 abstract class UserData with _$UserData {
   const factory UserData({
     @DocumentIdField() @Default('') String userId,
@@ -35,6 +37,7 @@ abstract class UserData with _$UserData {
 }
 
 @freezed
+@firestoreOdm
 abstract class DailyMission with _$DailyMission {
   const factory DailyMission({
     required String id,
@@ -53,6 +56,7 @@ abstract class DailyMission with _$DailyMission {
 }
 
 @freezed
+@firestoreOdm
 abstract class DailyMissionsDocument with _$DailyMissionsDocument {
   const factory DailyMissionsDocument({
     required String date,

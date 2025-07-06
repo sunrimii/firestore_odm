@@ -1,5 +1,8 @@
 import 'package:firestore_odm/firestore_odm.dart';
 
+part 'manual_user.odm.dart';
+
+@firestoreOdm
 class ManualUser {
   @DocumentIdField()
   final String id;

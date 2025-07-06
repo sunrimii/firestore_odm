@@ -5,6 +5,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 part 'list_length_model.freezed.dart';
 part 'list_length_model.g.dart';
+part 'list_length_model.odm.dart';
 
 /// JsonConverter that converts between List<String> and int (list length)
 /// This demonstrates bidirectional conversion: List ↔ int
@@ -44,6 +45,7 @@ class ListSumConverter implements JsonConverter<IList<int>, int> {
 }
 
 @freezed
+@firestoreOdm
 abstract class ListLengthModel with _$ListLengthModel {
   const ListLengthModel._();
 

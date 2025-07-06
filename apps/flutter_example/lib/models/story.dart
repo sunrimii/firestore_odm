@@ -1,9 +1,12 @@
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'story.freezed.dart';
 part 'story.g.dart';
+part 'story.odm.dart';
 
 @freezed
+@firestoreOdm
 abstract class Story with _$Story {
   const factory Story({
     required String name,
@@ -17,6 +20,7 @@ abstract class Story with _$Story {
 }
 
 @freezed
+@firestoreOdm
 abstract class Place with _$Place {
   const factory Place({
     required String name,
@@ -29,6 +33,7 @@ abstract class Place with _$Place {
 }
 
 @freezed
+@firestoreOdm
 abstract class Coordinates with _$Coordinates {
   const factory Coordinates({
     required double latitude,

@@ -4,4 +4,4 @@ import 'firestore_generator.dart';
 
 /// Creates a builder for Firestore ODM code generation
 Builder firestoreOdmBuilder(BuilderOptions options) =>
-    PartBuilder([const FirestoreGenerator()], '.odm.dart');
+    PartBuilder([const FirestoreGenerator(), FirestoreGenerator3()], '.odm.dart');

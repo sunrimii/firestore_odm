@@ -14,7 +14,7 @@ import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record>
+class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T>, F extends RootFilterSelector<T>>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -37,23 +37,31 @@ class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record>
   /// Document ID field name (detected from model analysis)
   final String documentIdField;
 
+  final P _patchBuilder;
+
+  final F _filterBuilder;
+
   /// Creates a new FirestoreCollection instance
   const FirestoreCollection({
     required this.query,
     required this.converter,
     required this.documentIdField,
-  });
+    required P patchBuilder,
+    required F filterBuilder,
+  })  : _patchBuilder = patchBuilder,
+        _filterBuilder = filterBuilder;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  FirestoreDocument<S, T, Path> call(String id) => doc(id);
+  FirestoreDocument<S, T, Path, P> call(String id) => doc(id);
 
-  FirestoreDocument<S, T, Path> doc(String id) =>
-      FirestoreDocument<S, T, Path>(
-        query.doc(id),
-        converter,
-        documentIdField,
+  FirestoreDocument<S, T, Path, P> doc(String id) =>
+      FirestoreDocument<S, T, Path, P>(
+        ref: query.doc(id),
+        converter: converter,
+        documentIdField: documentIdField,
+        patchBuilder: _patchBuilder,
       );
 
   /// Upsert a document using the id field as document ID
@@ -98,41 +106,41 @@ class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record>
   }
 
   @override
-  Query<S, T> where(FilterBuilder<T> filterBuilder) {
-    final filter = QueryFilterHandler.buildFilter(filterBuilder);
+  Query<S, T, F> where(FirestoreFilter Function(F selector) filterFunc) {
+    final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
-    return Query<S, T>(
-      newQuery,
-      converter,
-      documentIdField,
-    );
-  }
-
-  @override
-  Query<S, T> limit(int limit) {
-    final newQuery = QueryLimitHandler.applyLimit(query, limit);
-    return Query<S, T>(
-      newQuery,
-      converter,
-      documentIdField,
-    );
-  }
-
-  @override
-  Query<S, T> limitToLast(int limit) {
-    final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
-    return Query<S, T>(
-      newQuery,
-      converter,
-      documentIdField,
-    );
-  }
-
-  @override
-  Future<void> patch(List<UpdateOperation> Function(PatchBuilder<T> patches) patches) {
-    final _patchBuilder = PatchBuilder<T>(
+    return Query<S, T, F>(
+      query: newQuery,
       converter: converter,
+      documentIdField: documentIdField,
+      filterBuilder: _filterBuilder,
     );
+  }
+
+  @override
+  Query<S, T, F> limit(int limit) {
+    final newQuery = QueryLimitHandler.applyLimit(query, limit);
+    return Query<S, T, F>(
+      query: newQuery,
+      converter: converter,
+      documentIdField: documentIdField,
+      filterBuilder: _filterBuilder,
+    );
+  }
+
+  @override
+  Query<S, T, F> limitToLast(int limit) {
+    final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
+    return Query<S, T, F>(
+      query: newQuery,
+      converter: converter,
+      documentIdField: documentIdField,
+      filterBuilder: _filterBuilder,
+    );
+  }
+
+  @override
+  Future<void> patch(List<UpdateOperation> Function(P patches) patches) {
     final operations = patches(_patchBuilder);
     return QueryHandler.patch(query, operations);
   }

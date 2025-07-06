@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firestore_odm/src/transaction.dart';
 import 'package:firestore_odm/src/batch.dart';
-import 'schema.dart';
+import 'package:firestore_odm/src/schema.dart';
+import 'package:firestore_odm/src/transaction.dart';
 
 /// Internal variable to store the current server timestamp constant
 DateTime _currentServerTimestamp = DateTime.fromMillisecondsSinceEpoch(

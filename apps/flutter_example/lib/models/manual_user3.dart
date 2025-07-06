@@ -2,6 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
+part 'manual_user3.odm.dart';
+
+@firestoreOdm
 class ManualUser3<T> with EquatableMixin {
   @DocumentIdField()
   final String id;

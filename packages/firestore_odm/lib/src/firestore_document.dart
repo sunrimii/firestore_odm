@@ -9,13 +9,13 @@ import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
+import 'package:firestore_odm/src/schema.dart';
 import 'services/update_operations_service.dart';
 import 'filter_builder.dart';
-import 'schema.dart';
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record>
+class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T>>
     implements
         Gettable<T?>,
         Streamable<T?>,
@@ -32,8 +32,16 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record>
   /// The document ID
   final DocumentReference<Map<String, dynamic>> ref;
 
+  /// The patch builder for this document
+  final P _patchBuilder;
+
   /// Creates a new FirestoreDocument instance from a collection and document ID
-  const FirestoreDocument(this.ref, this.converter, this.documentIdField);
+  const FirestoreDocument({
+    required this.ref,
+    required this.converter,
+    required this.documentIdField,
+    required P patchBuilder,
+  }) : _patchBuilder = patchBuilder;
 
   /// Stream of document snapshots
   @override
@@ -93,13 +101,10 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record>
 
   @override
   Future<void> patch(
-    List<UpdateOperation> Function(PatchBuilder<T> updateBuilder)
+    List<UpdateOperation> Function(P updateBuilder)
     patches,
   ) {
-    final builder = PatchBuilder<T>(
-      converter: converter,
-    );
-    final operations = patches(builder);
+    final operations = patches(_patchBuilder);
     return DocumentHandler.patch(ref, operations);
   }
 }

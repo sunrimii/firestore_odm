@@ -4,9 +4,13 @@ import 'profile.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
+part 'user.odm.dart';
 
+/// Represents a user in the Firestore database.
 @freezed
+@firestoreOdm
 abstract class User with _$User {
+  /// Creates a new User instance.
   const factory User({
     @DocumentIdField() required String id,
     required String name,
@@ -25,5 +29,6 @@ abstract class User with _$User {
     DateTime? updatedAt,
   }) = _User;
 
+  /// Creates a User instance from a JSON map.
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }

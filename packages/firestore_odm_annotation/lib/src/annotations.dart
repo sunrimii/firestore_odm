@@ -57,3 +57,12 @@ class Schema {
   /// Creates a [Schema] annotation
   const Schema();
 }
+
+
+@Target({TargetKind.classType})
+@immutable
+class FirestoreOdm {
+  const FirestoreOdm();
+}
+
+const FirestoreOdm firestoreOdm = FirestoreOdm();

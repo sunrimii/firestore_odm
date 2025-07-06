@@ -1,9 +1,12 @@
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'simple_generic.freezed.dart';
 part 'simple_generic.g.dart';
+part 'simple_generic.odm.dart';
 
 @Freezed(genericArgumentFactories: true)
+@firestoreOdm
 abstract class SimpleGeneric<T> with _$SimpleGeneric<T> {
   const factory SimpleGeneric({
     required String id,

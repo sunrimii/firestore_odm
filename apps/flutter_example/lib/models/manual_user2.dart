@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
+part 'manual_user2.odm.dart';
+
+@firestoreOdm
 class ManualUser2 with EquatableMixin {
   @DocumentIdField()
   final String id;

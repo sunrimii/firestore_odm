@@ -8,13 +8,13 @@ import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
+import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/pagination.dart';
-import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:firestore_odm/src/utils.dart';
 

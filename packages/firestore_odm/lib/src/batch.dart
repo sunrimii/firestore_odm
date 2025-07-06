@@ -11,8 +11,6 @@ import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
-import 'package:flutter/widgets.dart';
-import 'package:meta/meta.dart';
 
 /// Batch field for type-safe batch operations
 class BatchField<T> extends Node {

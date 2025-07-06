@@ -15,7 +15,7 @@ import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 
-class Query<S extends FirestoreSchema, T>
+class Query<S extends FirestoreSchema, T, F extends RootFilterSelector<T>>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -33,7 +33,17 @@ class Query<S extends FirestoreSchema, T>
   /// The underlying Firestore query
   final firestore.Query<Map<String, dynamic>> _query;
 
-  const Query(this._query, this._converter, this._documentIdField);
+  final F _filterBuilder;
+
+  const Query({
+    required firestore.Query<Map<String, dynamic>> query,
+    required FirestoreConverter<T, Map<String, dynamic>> converter,
+    required String documentIdField,
+    required F filterBuilder,
+  })  : _query = query,
+        _converter = converter,
+        _documentIdField = documentIdField,
+        _filterBuilder = filterBuilder;
 
   @override
   Future<List<T>> get() =>
@@ -44,13 +54,18 @@ class Query<S extends FirestoreSchema, T>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
 
   @override
-  Query<S, T> where(
-    FirestoreFilter Function(RootFilterSelector<T> builder) filterBuilder,
+  Query<S, T, F> where(
+    FirestoreFilter Function(F builder) filterFunc,
   ) {
-    final filter = QueryFilterHandler.buildFilter(filterBuilder);
+    final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     // Handle different types of query objects
-    return Query<S, T>(newQuery, _converter, _documentIdField);
+    return Query<S, T, F>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      filterBuilder: _filterBuilder,
+    );
   }
 
   @override
@@ -66,16 +81,26 @@ class Query<S extends FirestoreSchema, T>
   }
 
   @override
-  Query<S, T> limit(int limit) {
+  Query<S, T, F> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
-    return Query<S, T>(newQuery, _converter, _documentIdField);
+    return Query<S, T, F>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      filterBuilder: _filterBuilder,
+    );
   }
 
   @override
-  Query<S, T> limitToLast(int limit) {
+  Query<S, T, F> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
 
-    return Query<S, T>(newQuery, _converter, _documentIdField);
+    return Query<S, T, F>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      filterBuilder: _filterBuilder,
+    );
   }
 
   @override
