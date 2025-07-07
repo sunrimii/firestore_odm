@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:firestore_odm/src/interfaces/orderable.dart';
-import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/recordHelper.dart';
 
@@ -11,23 +9,25 @@ abstract class QueryPaginationHandler {
 
   /// Smart value extraction using the SAME builder function as orderBy
   /// This ensures perfect consistency and type safety
-  static List<dynamic> buildValuesFromObject<T, O extends Record>(
-    T object,
-    Map<String, dynamic> Function(T) toJson,
-    OrderByBuilder<T, O> orderByBuilder,
-    String documentIdFieldName,
-  ) {
+  static List<dynamic> buildValuesFromObject<T, O extends Record, OB extends OrderByFieldNode>({
+    required T object,
+    required Map<String, dynamic> Function(T) toJson,
+    required O Function(OB selector) orderByFunc,
+    required OB Function(OrderByContext context) orderBuilderFunc,
+    required String documentIdFieldName,
+  }) {
     // Convert object to Map for extraction
     final objectMap = toJson(object);
 
-    // Create extraction-mode selector with the same object
-    final extractionSelector = RootOrderByFieldExtractor<T>(objectMap);
+    final context = OrderByExtractorContext(data: objectMap);
+
+    final builder = orderBuilderFunc(context);
 
     // Reuse the SAME builder function to extract values!
     // This guarantees perfect consistency with orderBy
-    orderByBuilder(extractionSelector);
+    orderByFunc(builder);
 
-    return extractionSelector.extractedValues;
+    return context.extractedValues;
   }
 
   static firestore.Query<R> applyStartAt<R>(

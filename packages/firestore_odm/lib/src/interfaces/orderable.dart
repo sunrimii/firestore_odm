@@ -1,13 +1,4 @@
-import 'package:firestore_odm/src/orderby.dart';
-
-/// A typedef for building strongly-typed order-by clauses for Firestore queries.
-///
-/// [T] represents the type of the model for which the ordering is being defined.
-/// [O] represents the record/tuple type that defines the fields to order by
-/// and their corresponding values for pagination (e.g., `(String, int)` for
-/// ordering by a string field and an integer field).
-typedef OrderByBuilder<T, O extends Record> =
-    O Function(OrderByFieldSelector<T> selector);
+import 'package:firestore_odm/firestore_odm.dart';
 
 /// An interface for ordering the results of a Firestore query.
 ///
@@ -29,5 +20,5 @@ abstract interface class Orderable<T> {
   ///
   /// Returns a dynamic type that represents an `OrderedQuery` that supports
   /// strongly-typed pagination.
-  dynamic orderBy<O extends Record>(OrderByBuilder<T, O> orderBuilder);
+  OrderedQuery<FirestoreSchema, T, O, OrderByFieldNode> orderBy<O extends Record>(O Function(OrderByFieldNode builder) orderByEntries);
 }

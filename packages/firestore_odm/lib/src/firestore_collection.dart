@@ -14,7 +14,14 @@ import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
-class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T>, F extends RootFilterSelector<T>>
+class FirestoreCollection<
+  S extends FirestoreSchema,
+  T,
+  Path extends Record,
+  P extends PatchBuilder<T>,
+  F extends RootFilterSelector<T>,
+  OB extends OrderByFieldNode
+>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -41,6 +48,8 @@ class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record, P e
 
   final F _filterBuilder;
 
+  final OB Function(OrderByContext context) _orderByBuilderFunc;
+
   /// Creates a new FirestoreCollection instance
   const FirestoreCollection({
     required this.query,
@@ -48,8 +57,10 @@ class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record, P e
     required this.documentIdField,
     required P patchBuilder,
     required F filterBuilder,
-  })  : _patchBuilder = patchBuilder,
-        _filterBuilder = filterBuilder;
+    required OB Function(OrderByContext context) orderByBuilderFunc,
+  }) : _patchBuilder = patchBuilder,
+       _filterBuilder = filterBuilder,
+       _orderByBuilderFunc = orderByBuilderFunc;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -89,53 +100,58 @@ class FirestoreCollection<S extends FirestoreSchema, T, Path extends Record, P e
       QueryHandler.stream(query, converter.fromJson, documentIdField);
 
   @override
-  OrderedQuery<S, T, O> orderBy<O extends Record>(
-    O Function(OrderByFieldSelector<T> selector) orderBuilder,
+  OrderedQuery<S, T, O, OB> orderBy<O extends Record>(
+    O Function(OB selector) orderByFunc,
   ) {
     final config = QueryOrderbyHandler.buildOrderBy(
-      orderBuilder,
-      documentIdField,
+      orderByFunc: orderByFunc,
+      orderByBuilderFunc: _orderByBuilderFunc,
+      documentIdFieldName: documentIdField,
     );
     final newQuery = QueryOrderbyHandler.applyOrderBy(query, config);
     return OrderedQuery(
-      newQuery,
-      converter,
-      documentIdField,
-      config,
+      query: newQuery,
+      converter: converter,
+      documentIdField: documentIdField,
+      orderByConfig: config,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F> where(FirestoreFilter Function(F selector) filterFunc) {
+  Query<S, T, F, OB> where(FirestoreFilter Function(F selector) filterFunc) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
-    return Query<S, T, F>(
+    return Query<S, T, F, OB>(
       query: newQuery,
       converter: converter,
       documentIdField: documentIdField,
       filterBuilder: _filterBuilder,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F> limit(int limit) {
+  Query<S, T, F, OB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(query, limit);
-    return Query<S, T, F>(
+    return Query<S, T, F, OB>(
       query: newQuery,
       converter: converter,
       documentIdField: documentIdField,
       filterBuilder: _filterBuilder,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F> limitToLast(int limit) {
+  Query<S, T, F, OB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
-    return Query<S, T, F>(
+    return Query<S, T, F, OB>(
       query: newQuery,
       converter: converter,
       documentIdField: documentIdField,
       filterBuilder: _filterBuilder,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 

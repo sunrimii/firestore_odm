@@ -18,45 +18,61 @@ import 'package:firestore_odm/src/pagination.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:firestore_odm/src/utils.dart';
 
-class OrderByField<T> extends Node {
-  OrderByField({super.name, super.parent, this.type});
+typedef OrderByBuilderFunc<OB extends OrderByFieldNode> =
+    OB Function({
+      required OrderByContext context,
+      String name,
+      OrderByFieldNode? parent,
+    });
+
+class OrderByFieldNode extends Node {
+  final OrderByContext $context;
+
+  /// Creates a new OrderByFieldNode with the given context
+  const OrderByFieldNode({
+    super.name,
+    super.parent,
+    required OrderByContext context,
+  }) : $context = context;
+}
+
+class OrderByField<T> extends OrderByFieldNode {
+  OrderByField({super.name, super.parent, this.type, required super.context});
   final FieldPathType? type;
 
   T call({bool descending = false}) {
-    switch ($root) {
-      case RootOrderByFieldSelector selector:
-        // Call the addField method on the root selector
-        selector._fields.add(
-          OrderByFieldInfo(type?.toFirestore() ?? $path, descending),
-        );
-      case RootOrderByFieldExtractor extractor:
-        // Extract the value from the source object using the field path
-        final value = resolveJsonWithParts(extractor.data, $parts);
-        // Add the extracted value to the list
-        extractor.extractedValues.add(value);
-      default:
-        throw StateError('Invalid root type for OrderByField: ${$root}');
-    }
+    $context.resolver($parts, descending);
     return defaultValue<T>();
   }
 }
 
-class OrderByFieldSelector<T> extends Node {
-  /// Create a field selector with optional prefix for nested fields
-  /// If parentFields is provided, nested selectors will share the same field collection
-  OrderByFieldSelector({super.name, super.parent});
+/// Base class for orderBy field selectors
+abstract class OrderByContext {
+  void resolver(List<String> parts, bool descending);
 }
 
-class RootOrderByFieldSelector<T> extends OrderByFieldSelector<T> {
-  RootOrderByFieldSelector();
+class OrderByBuilderContext extends OrderByContext {
+  OrderByBuilderContext();
 
-  final List<OrderByFieldInfo> _fields = [];
+  final List<OrderByFieldInfo> fields = [];
+
+  @override
+  void resolver(List<String> parts, bool descending) {
+    /// Add the field to the list of orderBy fields
+    fields.add(OrderByFieldInfo(parts.join('.'), descending));
+  }
 }
 
-class RootOrderByFieldExtractor<T> extends OrderByFieldSelector<T> {
-  RootOrderByFieldExtractor(this.data);
+class OrderByExtractorContext extends OrderByContext {
+  OrderByExtractorContext({required this.data});
   final Map<String, dynamic> data;
   final List<dynamic> extractedValues = [];
+
+  @override
+  void resolver(List<String> parts, bool descending) {
+    final value = resolveJsonWithParts(data, parts);
+    extractedValues.add(value);
+  }
 }
 
 /// Information about an orderBy field for pagination
@@ -70,13 +86,10 @@ class OrderByFieldInfo {
   String toString() => 'OrderByFieldInfo($fieldPath, desc: $descending)';
 }
 
-typedef OrderByBuilderFunction<T, O extends Record> =
-    O Function(OrderByFieldSelector<T> selector);
-
 /// Container for orderBy configuration used in pagination
-class OrderByConfiguration<T, O extends Record> {
+class OrderByConfiguration<O extends Record, OB extends OrderByFieldNode> {
   final List<OrderByFieldInfo> fields;
-  final OrderByBuilderFunction<T, O> builder;
+  final O Function(OB selector) builder;
 
   const OrderByConfiguration(this.fields, this.builder);
 
@@ -85,19 +98,19 @@ class OrderByConfiguration<T, O extends Record> {
 }
 
 abstract class QueryOrderbyHandler {
-  static OrderByConfiguration<T, O> buildOrderBy<T, O extends Record>(
-    O Function(OrderByFieldSelector<T> selector) orderBuilder,
-    String documentIdFieldName,
-  ) {
-    final selector = RootOrderByFieldSelector<T>();
+  static OrderByConfiguration<O, OB>
+  buildOrderBy<T, O extends Record, OB extends OrderByFieldNode>({
+    required O Function(OB selector) orderByFunc,
+    required OB Function(OrderByContext context) orderByBuilderFunc,
+    required String documentIdFieldName,
+  }) {
+    final context = OrderByBuilderContext();
+    final builder = orderByBuilderFunc(context);
 
     // Call the order builder to populate the selector
-    orderBuilder(selector);
+    orderByFunc(builder);
 
-    final pgFields = selector._fields
-        .map((f) => OrderByFieldInfo(f.fieldPath, f.descending))
-        .toList();
-    return OrderByConfiguration(pgFields, orderBuilder);
+    return OrderByConfiguration<O, OB>(context.fields, orderByFunc);
   }
 
   static firestore.Query<Map<String, dynamic>> applyOrderBy<
@@ -117,7 +130,12 @@ abstract class QueryOrderbyHandler {
   }
 }
 
-class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
+class OrderedQuery<
+  S extends FirestoreSchema,
+  T,
+  O extends Record,
+  OB extends OrderByFieldNode
+>
     implements
         Gettable<List<T>>,
         Streamable<List<T>>,
@@ -128,25 +146,28 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
         Modifiable<T>,
         Aggregatable<S, T>,
         Deletable {
-          
-          final FirestoreConverter<T, Map<String, dynamic>> _converter;
+  final FirestoreConverter<T, Map<String, dynamic>> _converter;
 
   final String _documentIdField;
 
   /// The underlying Firestore query
   final firestore.Query<Map<String, dynamic>> _query;
 
-  final OrderByConfiguration<T, O> _orderByConfig;
+  final OrderByConfiguration<O, OB> _orderByConfig;
 
-  const OrderedQuery(
-    firestore.Query<Map<String, dynamic>> _query,
-    FirestoreConverter<T, Map<String, dynamic>> converter,
-    String _documentIdField,
-    OrderByConfiguration<T, O> orderByConfig,
-  ) : _query = _query,
-      _converter = converter,
-      _documentIdField = _documentIdField,
-      _orderByConfig = orderByConfig;
+  final OB Function(OrderByContext context) _orderByBuilderFunc;
+
+  const OrderedQuery({
+    required firestore.Query<Map<String, dynamic>> query,
+    required FirestoreConverter<T, Map<String, dynamic>> converter,
+    required String documentIdField,
+    required OrderByConfiguration<O, OB> orderByConfig,
+    required OB Function(OrderByContext context) orderByBuilderFunc,
+  }) : _orderByBuilderFunc = orderByBuilderFunc,
+       _query = query,
+       _converter = converter,
+       _documentIdField = documentIdField,
+       _orderByConfig = orderByConfig;
 
   @override
   Future<List<T>> get() =>
@@ -157,154 +178,169 @@ class OrderedQuery<S extends FirestoreSchema, T, O extends Record>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
 
   @override
-  OrderedQuery<S, T, O> limit(int limit) {
+  OrderedQuery<S, T, O, OB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> limitToLast(int limit) {
+  OrderedQuery<S, T, O, OB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> endAt(O cursorValues) {
+  OrderedQuery<S, T, O, OB> endAt(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyEndAt(_query, cursors);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> endAtObject(T object) {
+  OrderedQuery<S, T, O, OB> endAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
-      object,
-      _converter.toJson,
-      _orderByConfig.builder,
-      _documentIdField,
+      object: object,
+      toJson: _converter.toJson,
+      orderByFunc: _orderByConfig.builder,
+      documentIdFieldName: _documentIdField,
+      orderBuilderFunc: _orderByBuilderFunc,
     );
     final newQuery = QueryPaginationHandler.applyEndAt(_query, values);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> endBefore(O cursorValues) {
+  OrderedQuery<S, T, O, OB> endBefore(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, cursors);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> endBeforeObject(T object) {
+  OrderedQuery<S, T, O, OB> endBeforeObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
-      object,
-      _converter.toJson,
-      _orderByConfig.builder,
-      _documentIdField,
+      object: object,
+      toJson: _converter.toJson,
+      orderByFunc: _orderByConfig.builder,
+      documentIdFieldName: _documentIdField,
+      orderBuilderFunc: _orderByBuilderFunc,
     );
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, values);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> startAfter(O cursorValues) {
+  OrderedQuery<S, T, O, OB> startAfter(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, cursors);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> startAfterObject(T object) {
+  OrderedQuery<S, T, O, OB> startAfterObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
-      object,
-      _converter.toJson,
-      _orderByConfig.builder,
-      _documentIdField,
+      object: object,
+      toJson: _converter.toJson,
+      orderByFunc: _orderByConfig.builder,
+      documentIdFieldName: _documentIdField,
+      orderBuilderFunc: _orderByBuilderFunc,
     );
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, values);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> startAt(O cursorValues) {
+  OrderedQuery<S, T, O, OB> startAt(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyStartAt(_query, cursors);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> startAtObject(T object) {
+  OrderedQuery<S, T, O, OB> startAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
-      object,
-      _converter.toJson,
-      _orderByConfig.builder,
-      _documentIdField,
+      object: object,
+      toJson: _converter.toJson,
+      orderByFunc: _orderByConfig.builder,
+      documentIdFieldName: _documentIdField,
+      orderBuilderFunc: _orderByBuilderFunc,
     );
     final newQuery = QueryPaginationHandler.applyStartAt(_query, values);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O> where(
+  OrderedQuery<S, T, O, OB> where(
     FirestoreFilter Function(RootFilterSelector<T> builder) filterBuilder,
   ) {
     final filter = QueryFilterHandler.buildFilter(filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
-    return OrderedQuery<S, T, O>(
-      newQuery,
-      _converter,
-      _documentIdField,
-      _orderByConfig,
+    return OrderedQuery<S, T, O, OB>(
+      query: newQuery,
+      converter: _converter,
+      documentIdField: _documentIdField,
+      orderByConfig: _orderByConfig,
+      orderByBuilderFunc: _orderByBuilderFunc,
     );
   }
 

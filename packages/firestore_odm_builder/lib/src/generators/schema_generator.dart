@@ -166,14 +166,21 @@ class SchemaGenerator {
     );
   }
 
-  static Expression _getPatchBuilderInstanceExpression(SchemaCollectionInfo collection, {
+  static Expression _getPatchBuilderInstanceExpression(
+    SchemaCollectionInfo collection, {
     required ConverterFactory converterFactory,
   }) {
-    return _getPatchBuilderType(collection).newInstance([], 
-    Map.fromIterables(
-      collection.modelType.element.typeParameters.map((e) => 'converter${e.name.camelCase()}'),
-      collection.modelType.typeArguments.map((e) => converterFactory.getConverter(e).toConverterExpr()),
-    ));
+    return _getPatchBuilderType(collection).newInstance(
+      [],
+      Map.fromIterables(
+        collection.modelType.element.typeParameters.map(
+          (e) => 'converter${e.name.camelCase()}',
+        ),
+        collection.modelType.typeArguments.map(
+          (e) => converterFactory.getConverter(e).toConverterExpr(),
+        ),
+      ),
+    );
   }
 
   static RecordType _getPathRecord(String path) {
@@ -514,13 +521,11 @@ class SchemaGenerator {
       specs.add(filterClass);
 
       // Generate OrderBySelector class using ModelAnalysis
-      final orderByExtension =
-          OrderByGenerator.generateOrderBySelectorClassFromAnalysis(
-            schemaClassName,
-            baseType,
-            modelAnalyzer: modelAnalyzer,
-          );
-      specs.add(orderByExtension);
+      final orderByClasses = OrderByGenerator.generateOrderByClasses(
+        baseType,
+        modelAnalyzer: modelAnalyzer,
+      );
+      specs.addAll(orderByClasses);
 
       // Generate AggregateFieldSelector extension using ModelAnalysis
       final aggregateExtension =
@@ -583,8 +588,10 @@ class SchemaGenerator {
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
             _getPatchBuilderType(collection),
-            FilterGenerator.getRootFilterBuilderType(
-              collection.modelType,
+            FilterGenerator.getRootFilterBuilderType(collection.modelType),
+            OrderByGenerator.getOrderByBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
             ),
           ]),
       );
@@ -596,24 +603,42 @@ class SchemaGenerator {
             ..returns = collectionType
             ..type = MethodType.getter
             ..annotations.add(preferInlineAnnotation)
-            ..body = collectionType.newInstance([], {
-              'query': refer(
-                'firestore',
-              ).property('collection').call([literalString(collection.path)]),
-              'converter': converterFactory
-                  .getConverter(collection.modelType)
-                  .toConverterExpr(),
-              'documentIdField': literalString(
-                modelAnalyzer.getDocumentIdFieldName(collection.modelType),
-              ),
-              'patchBuilder': _getPatchBuilderInstanceExpression(
-                collection,
-                converterFactory: converterFactory,
-              ),
-              'filterBuilder': FilterGenerator.getRootFilterBuilderInstanceExpression(
-                collection.modelType,
-              ),
-            }).code,
+            ..body = collectionType
+                // to simplify the type arguments
+                .rebuild((b) => b..types.replace([]))
+                .newInstance([], {
+                  'query': refer('firestore').property('collection').call([
+                    literalString(collection.path),
+                  ]),
+                  'converter': converterFactory
+                      .getConverter(collection.modelType)
+                      .toConverterExpr(),
+                  'documentIdField': literalString(
+                    modelAnalyzer.getDocumentIdFieldName(collection.modelType),
+                  ),
+                  'patchBuilder': _getPatchBuilderInstanceExpression(
+                    collection,
+                    converterFactory: converterFactory,
+                  ),
+                  'filterBuilder':
+                      FilterGenerator.getRootFilterBuilderInstanceExpression(
+                        collection.modelType,
+                      ),
+                  'orderByBuilderFunc': Method(
+                    (b) => b
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'context'),
+                      )
+                      ..lambda = true
+                      ..body =
+                          OrderByGenerator.getOrderByBuilderInstanceExpression(
+                            type: collection.modelType,
+                            context: refer('context'),
+                            modelAnalyzer: modelAnalyzer,
+                          ).code,
+                  ).closure,
+                })
+                .code,
         ),
       );
     }
@@ -660,8 +685,10 @@ class SchemaGenerator {
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
             _getPatchBuilderType(collection),
-            FilterGenerator.getRootFilterBuilderType(
-              collection.modelType,
+            FilterGenerator.getRootFilterBuilderType(collection.modelType),
+            OrderByGenerator.getOrderByBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
             ),
           ]),
       );
@@ -673,24 +700,42 @@ class SchemaGenerator {
             ..returns = collectionType
             ..type = MethodType.getter
             ..annotations.add(preferInlineAnnotation)
-            ..body = collectionType.newInstance([], {
-              'query': refer(
-                'firestore',
-              ).property('collection').call([literalString(collection.path)]),
-              'converter': converterFactory
-                  .getConverter(collection.modelType)
-                  .toConverterExpr(),
-              'documentIdField': literalString(
-                modelAnalyzer.getDocumentIdFieldName(collection.modelType),
-              ),
-              'patchBuilder': _getPatchBuilderInstanceExpression(
-                collection,
-                converterFactory: converterFactory,
-              ),
-              'filterBuilder': FilterGenerator.getRootFilterBuilderInstanceExpression(
-                collection.modelType,
-              ),
-            }).code,
+            ..body = collectionType
+                // to simplify the type arguments
+                .rebuild((b) => b..types.replace([]))
+                .newInstance([], {
+                  'query': refer('firestore').property('collection').call([
+                    literalString(collection.path),
+                  ]),
+                  'converter': converterFactory
+                      .getConverter(collection.modelType)
+                      .toConverterExpr(),
+                  'documentIdField': literalString(
+                    modelAnalyzer.getDocumentIdFieldName(collection.modelType),
+                  ),
+                  'patchBuilder': _getPatchBuilderInstanceExpression(
+                    collection,
+                    converterFactory: converterFactory,
+                  ),
+                  'filterBuilder':
+                      FilterGenerator.getRootFilterBuilderInstanceExpression(
+                        collection.modelType,
+                      ),
+                  'orderByBuilderFunc': Method(
+                    (b) => b
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'context'),
+                      )
+                      ..lambda = true
+                      ..body =
+                          OrderByGenerator.getOrderByBuilderInstanceExpression(
+                            type: collection.modelType,
+                            context: refer('context'),
+                            modelAnalyzer: modelAnalyzer,
+                          ).code,
+                  ).closure,
+                })
+                .code,
         ),
       );
     }
@@ -975,8 +1020,10 @@ class SchemaGenerator {
               subcol.modelType.reference,
               _getPathRecord(subcol.path),
               _getPatchBuilderType(subcol),
-              FilterGenerator.getRootFilterBuilderType(
-                subcol.modelType,
+              FilterGenerator.getRootFilterBuilderType(subcol.modelType),
+              OrderByGenerator.getOrderByBuilderType(
+                type: subcol.modelType,
+                modelAnalyzer: modelAnalyzer,
               ),
             ]),
         );
@@ -988,22 +1035,40 @@ class SchemaGenerator {
               ..name = getterName
               ..returns = collectionType
               ..lambda = true
-              ..body = collectionType.newInstance([], {
-                'query': refer('ref').property('collection').call([
-                  literalString(subcollectionName),
-                ]),
-                'converter': converterFactory
-                    .getConverter(subcol.modelType)
-                    .toConverterExpr(),
-                'documentIdField': literalString(documentIdFieldName),
-                'patchBuilder':  _getPatchBuilderInstanceExpression(
-                  subcol,
-                  converterFactory: converterFactory,
-                ),
-                'filterBuilder': FilterGenerator.getRootFilterBuilderInstanceExpression(
-                  subcol.modelType,
-                ),
-              }).code,
+              ..body = collectionType
+                  // to simplify the type arguments
+                  .rebuild((b) => b..types.replace([]))
+                  .newInstance([], {
+                    'query': refer('ref').property('collection').call([
+                      literalString(subcollectionName),
+                    ]),
+                    'converter': converterFactory
+                        .getConverter(subcol.modelType)
+                        .toConverterExpr(),
+                    'documentIdField': literalString(documentIdFieldName),
+                    'patchBuilder': _getPatchBuilderInstanceExpression(
+                      subcol,
+                      converterFactory: converterFactory,
+                    ),
+                    'filterBuilder':
+                        FilterGenerator.getRootFilterBuilderInstanceExpression(
+                          subcol.modelType,
+                        ),
+                    'orderByBuilderFunc': Method(
+                      (b) => b
+                        ..requiredParameters.add(
+                          Parameter((b) => b..name = 'context'),
+                        )
+                        ..lambda = true
+                        ..body =
+                            OrderByGenerator.getOrderByBuilderInstanceExpression(
+                              type: subcol.modelType,
+                              context: refer('context'),
+                              modelAnalyzer: modelAnalyzer,
+                            ).code,
+                    ).closure,
+                  })
+                  .code,
           ),
         );
       }

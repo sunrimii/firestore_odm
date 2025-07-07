@@ -5,6 +5,7 @@ import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:firestore_odm_builder/src/generators/filter_generator.dart';
+import 'package:firestore_odm_builder/src/generators/order_by_generator.dart';
 import 'package:firestore_odm_builder/src/generators/update_generator.dart';
 import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
 import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
@@ -128,6 +129,14 @@ class FirestoreGenerator3 extends Generator {
 
       specs.addAll(
         FilterGenerator.generateFilterSelectorClasses(
+          element.thisType,
+          modelAnalyzer: modelAnalyzer,
+        ),
+      );
+
+      
+      specs.addAll(
+        OrderByGenerator.generateOrderByClasses(
           element.thisType,
           modelAnalyzer: modelAnalyzer,
         ),

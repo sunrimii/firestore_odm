@@ -57,8 +57,7 @@ class UpdateGenerator {
     return Extension(
       (b) => b
         ..name =
-            '${schemaName}${className}PatchBuilder' +
-            Object.hashAll(typeArguments).abs().toRadixString(36).upperFirst()
+            '${schemaName}${className}PatchBuilder' + hashTypes(typeArguments)
         ..on = TypeReference(
           (b) => b
             ..symbol = 'PatchBuilder'
