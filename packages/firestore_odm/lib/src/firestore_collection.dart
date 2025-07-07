@@ -20,7 +20,8 @@ class FirestoreCollection<
   Path extends Record,
   P extends PatchBuilder<T>,
   F extends RootFilterSelector<T>,
-  OB extends OrderByFieldNode
+  OB extends OrderByFieldNode,
+  AB extends AggregateFieldRoot
 >
     implements
         Gettable<List<T>>,
@@ -32,7 +33,7 @@ class FirestoreCollection<
         Filterable<T>,
         Patchable<T>,
         Modifiable<T>,
-        Aggregatable<S, T>,
+        Aggregatable<T>,
         Limitable,
         Deletable {
   /// The underlying Firestore collection reference
@@ -50,6 +51,8 @@ class FirestoreCollection<
 
   final OB Function(OrderByContext context) _orderByBuilderFunc;
 
+  final AB Function(AggregateContext context) _aggregateBuilderFunc;
+
   /// Creates a new FirestoreCollection instance
   const FirestoreCollection({
     required this.query,
@@ -58,9 +61,11 @@ class FirestoreCollection<
     required P patchBuilder,
     required F filterBuilder,
     required OB Function(OrderByContext context) orderByBuilderFunc,
+    required AB Function(AggregateContext context) aggregateBuilderFunc,
   }) : _patchBuilder = patchBuilder,
        _filterBuilder = filterBuilder,
-       _orderByBuilderFunc = orderByBuilderFunc;
+       _orderByBuilderFunc = orderByBuilderFunc,
+       _aggregateBuilderFunc = aggregateBuilderFunc;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
@@ -100,7 +105,7 @@ class FirestoreCollection<
       QueryHandler.stream(query, converter.fromJson, documentIdField);
 
   @override
-  OrderedQuery<S, T, O, OB> orderBy<O extends Record>(
+  OrderedQuery<S, T, O, OB, AB> orderBy<O extends Record>(
     O Function(OB selector) orderByFunc,
   ) {
     final config = QueryOrderbyHandler.buildOrderBy(
@@ -115,44 +120,40 @@ class FirestoreCollection<
       documentIdField: documentIdField,
       orderByConfig: config,
       orderByBuilderFunc: _orderByBuilderFunc,
+      aggregateBuilderFunc: _aggregateBuilderFunc,
+    );
+  }
+
+  Query<S, T, F, OB, AB> _newQuery(
+    firestore.Query<Map<String, dynamic>> newQuery,
+  ) {
+    return Query<S, T, F, OB, AB>(
+      query: newQuery,
+      converter: converter,
+      documentIdField: documentIdField,
+      filterBuilder: _filterBuilder,
+      orderByBuilderFunc: _orderByBuilderFunc,
+      aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F, OB> where(FirestoreFilter Function(F selector) filterFunc) {
+  Query<S, T, F, OB, AB> where(FirestoreFilter Function(F selector) filterFunc) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
-    return Query<S, T, F, OB>(
-      query: newQuery,
-      converter: converter,
-      documentIdField: documentIdField,
-      filterBuilder: _filterBuilder,
-      orderByBuilderFunc: _orderByBuilderFunc,
-    );
+    return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB> limit(int limit) {
+  Query<S, T, F, OB, AB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(query, limit);
-    return Query<S, T, F, OB>(
-      query: newQuery,
-      converter: converter,
-      documentIdField: documentIdField,
-      filterBuilder: _filterBuilder,
-      orderByBuilderFunc: _orderByBuilderFunc,
-    );
+    return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB> limitToLast(int limit) {
+  Query<S, T, F, OB, AB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
-    return Query<S, T, F, OB>(
-      query: newQuery,
-      converter: converter,
-      documentIdField: documentIdField,
-      filterBuilder: _filterBuilder,
-      orderByBuilderFunc: _orderByBuilderFunc,
-    );
+    return _newQuery(newQuery);
   }
 
   @override
@@ -162,10 +163,13 @@ class FirestoreCollection<
   }
 
   @override
-  AggregateQuery<S, T, R> aggregate<R extends Record>(
-    R Function(RootAggregateFieldSelector<T> selector) builder,
+  AggregateQuery<T, R, AB> aggregate<R extends Record>(
+    R Function(AggregateFieldRoot selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(builder);
+    final config = QueryAggregatableHandler.buildAggregate(
+      builder,
+      _aggregateBuilderFunc,
+    );
     final newQuery = QueryAggregatableHandler.applyAggregate(
       query,
       config.operations,
@@ -176,6 +180,7 @@ class FirestoreCollection<
       converter.fromJson,
       documentIdField,
       config,
+      _aggregateBuilderFunc,
     );
   }
 

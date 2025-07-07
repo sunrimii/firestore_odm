@@ -1,18 +1,10 @@
 import 'package:firestore_odm/src/aggregate.dart';
-import 'package:firestore_odm/src/schema.dart';
-
-/// A typedef for building strongly-typed aggregate queries.
-///
-/// [T] represents the type of the model for which the aggregation is being performed.
-/// [R] represents the return type of the aggregate operation, typically a record/tuple.
-typedef AggregateBuilder<T, R> =
-    R Function(RootAggregateFieldSelector<T> selector);
 
 /// An interface for performing aggregate operations on a Firestore collection.
 ///
 /// [S] is the FirestoreSchema associated with the collection.
 /// [T] is the type of the model in the collection.
-abstract interface class Aggregatable<S extends FirestoreSchema, T> {
+abstract interface class Aggregatable<T> {
   /// Performs strongly-typed aggregate operations on the collection.
   ///
   /// This method allows you to define complex aggregation queries using a builder
@@ -33,11 +25,11 @@ abstract interface class Aggregatable<S extends FirestoreSchema, T> {
   /// print('Total followers: ${result.totalFollowers}'); // num
   /// ```
   ///
-  /// [builder]: A function that constructs the aggregate query using a [RootAggregateFieldSelector].
+  /// [builder]: A function that constructs the aggregate query using a [AggregateFieldRoot].
   /// Returns an [AggregateQuery] that, when executed (e.g., with `.get()`), will
   /// yield the aggregated results.
-  AggregateQuery<S, T, R> aggregate<R extends Record>(
-    AggregateBuilder<T, R> builder,
+  AggregateQuery<T, R, AggregateFieldRoot> aggregate<R extends Record>(
+    R Function(AggregateFieldRoot builder) handler,
   );
 
   /// Gets the count of documents matching the current query.

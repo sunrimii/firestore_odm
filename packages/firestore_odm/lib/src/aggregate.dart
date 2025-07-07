@@ -6,19 +6,62 @@ import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/utils.dart';
 
-/// Selector that provides strongly-typed field access for aggregations
-class AggregateFieldSelector<T> extends Node {
-  AggregateFieldSelector({super.name = '', super.parent});
+abstract class AggregateContext {
+  R resolve<R extends num>(AggregateOperation operation);
 }
 
-class RootAggregateFieldSelector<T> extends AggregateFieldSelector<T> {
+class AggregateBuilderContext extends AggregateContext {
   final List<AggregateOperation> operations = [];
+
+  @override
+  R resolve<R extends num>(AggregateOperation operation) {
+    operations.add(operation);
+    return defaultValue<R>();
+  }
+}
+
+class AggregateResultContext extends AggregateContext {
+  final Map<String, dynamic> results;
+
+  AggregateResultContext(this.results);
+
+  @override
+  R resolve<R extends num>(AggregateOperation operation) {
+    if (results.containsKey(operation.key)) {
+      final value = results[operation.key];
+      if (value is R) {
+        return value;
+      } else {
+        throw ArgumentError(
+          'Expected result for ${operation.key} to be of type $R, but got ${value.runtimeType}',
+        );
+      }
+    } else {
+      throw ArgumentError('No result found for operation: ${operation.key}');
+    }
+  }
+}
+
+/// Selector that provides strongly-typed field access for aggregations
+class AggregateFieldNode extends Node {
+  final AggregateContext $context;
+  const AggregateFieldNode({
+    super.name = '',
+    super.parent,
+    required AggregateContext context,
+  }) : $context = context;
+}
+
+class AggregateFieldRoot extends AggregateFieldNode {
+  const AggregateFieldRoot({
+    super.name = '',
+    super.parent,
+    required super.context,
+  });
 
   /// Get count of documents
   int count() {
-    final key = 'count_${operations.length}';
-    operations.add(CountOperation(key));
-    return 0; // Placeholder return value
+    return $context.resolve(CountOperation('count'));
   }
 }
 
@@ -30,18 +73,18 @@ class RootAggregateFieldSelector<T> extends AggregateFieldSelector<T> {
 /// Type parameters:
 /// - [T]: The document type being aggregated
 /// - [R]: The result record type containing the aggregated values
-class AggregateConfiguration<T, R> {
+class AggregateConfiguration<R, AB extends AggregateFieldRoot> {
   /// List of aggregate operations to be performed
   final List<AggregateOperation> operations;
-  
+
   /// Builder function that constructs the result record
-  final AggregateBuilder<T, R> builder;
+  final R Function(AB selector) aggregates;
 
   /// Creates a new aggregate configuration.
   ///
   /// [operations] - The list of aggregate operations to perform
-  /// [builder] - Function that builds the result record from aggregated data
-  AggregateConfiguration(this.operations, this.builder);
+  /// [aggregates] - Function that builds the result record from aggregated data
+  AggregateConfiguration(this.operations, this.aggregates);
 }
 
 abstract class QueryAggregatableHandler {
@@ -51,14 +94,16 @@ abstract class QueryAggregatableHandler {
     return query.count();
   }
 
-  static AggregateConfiguration<T, R> buildAggregate<T, R extends Record>(
-    AggregateBuilder<T, R> builder,
+  static AggregateConfiguration<R, AB>
+  buildAggregate<T, R extends Record, AB extends AggregateFieldRoot>(
+    R Function(AB selector) aggregates,
+    AB Function(AggregateContext context) builderFunc,
   ) {
     // Create the selector and build the aggregate specification
-    final selector = RootAggregateFieldSelector<T>();
-    builder(selector); // Call builder to populate operations
-
-    return AggregateConfiguration(selector.operations, builder);
+    final context = AggregateBuilderContext();
+    final builder = builderFunc(context);
+    aggregates(builder);
+    return AggregateConfiguration(context.operations, aggregates);
   }
 
   static firestore.AggregateQuery applyAggregate<R extends Record>(
@@ -66,19 +111,18 @@ abstract class QueryAggregatableHandler {
     List<AggregateOperation> operations,
   ) {
     // Build the aggregate query using the operations collected
-    final fields = operations.map((op) {
-      if (op is CountOperation) {
-        return firestore.count();
-      } else if (op is SumOperation) {
-        return firestore.sum(op.fieldPath);
-      } else if (op is AverageOperation) {
-        return firestore.average(op.fieldPath);
-      } else {
-        throw ArgumentError(
-          'Unsupported aggregate operation: ${op.runtimeType}',
-        );
-      }
-    }).toList();
+    final fields = operations
+        .map(
+          (op) => switch (op) {
+            CountOperation() => firestore.count(),
+            SumOperation(:final fieldPath) => firestore.sum(fieldPath),
+            AverageOperation(:final fieldPath) => firestore.average(fieldPath),
+            _ => throw ArgumentError(
+              'Unsupported aggregate operation: ${op.runtimeType}',
+            ),
+          },
+        )
+        .toList();
     // Create the aggregate query using native Firestore API
     // Firestore supports up to 30 aggregate fields
     if (fields.length > 30) {
@@ -121,55 +165,63 @@ abstract class QueryAggregatableHandler {
     );
   }
 
-  static Future<R> get<T, R>(
+  static Future<R> get<T, R, AB extends AggregateFieldRoot>(
     firestore.AggregateQuery query,
-    AggregateConfiguration<T, R> configuration,
+    AB Function(AggregateContext context) builderFunc,
+    AggregateConfiguration<R, AB> configuration,
   ) async {
     return query.get().then((snapshot) {
       // Build the result record from the snapshot
-      return _buildResultRecordFromSnapshot(snapshot, configuration);
+      return _buildResultRecordFromSnapshot(
+        snapshot,
+        builderFunc,
+        configuration,
+      );
     });
   }
 
-  static R _buildResultRecordFromSnapshot<T, R>(
+  static R _buildResultRecordFromSnapshot<
+    T,
+    R,
+    AB extends AggregateFieldRoot
+  >(
     firestore.AggregateQuerySnapshot snapshot,
-    AggregateConfiguration<T, R> configuration,
+    AB Function(AggregateContext context) builderFunc,
+    AggregateConfiguration<R, AB> configuration,
   ) {
-    final results = <String, dynamic>{};
+    final results = {
+      for (final op in configuration.operations)
+        op.key: switch (op) {
+          CountOperation() => snapshot.count ?? 0,
+          SumOperation(:final fieldPath) => snapshot.getSum(fieldPath) ?? 0,
+          AverageOperation(:final fieldPath) =>
+            snapshot.getAverage(fieldPath) ?? 0.0,
+          _ => throw ArgumentError(
+            'Unsupported aggregate operation: ${op.runtimeType}',
+          ),
+        },
+    };
 
-    // Use results from native aggregate query
-    for (final op in configuration.operations) {
-      if (op is CountOperation) {
-        results[op.key] = snapshot.count ?? 0;
-      } else if (op is SumOperation) {
-        results[op.key] = snapshot.getSum(op.fieldPath) ?? 0;
-      } else if (op is AverageOperation) {
-        results[op.key] = snapshot.getAverage(op.fieldPath) ?? 0.0;
-      }
-    }
-
-    // Create a dummy record spec to get the structure
-    final selector = RootAggregateFieldSelector<T>();
-    final recordSpec = configuration.builder(selector);
-
-    return _buildResultRecord(recordSpec, results, configuration);
+    return _buildResultRecord(
+      results: results,
+      builderFunc: builderFunc,
+      configuration: configuration,
+    );
   }
 
-  static Stream<R> stream<T, R>(
+  static Stream<R> stream<T, R, AB extends AggregateFieldRoot>(
     firestore.AggregateQuery query,
     Map<String, dynamic> Function(T) _toJson,
     T Function(Map<String, dynamic>) _fromJson,
     String _documentIdField,
-    AggregateConfiguration<T, R> configuration,
+    AB Function(AggregateContext context) builderFunc,
+    AggregateConfiguration<R, AB> configuration,
   ) {
     return (query.query as firestore.Query<Map<String, dynamic>>)
         .snapshots()
         .map(
-          (snapshot) => processQuerySnapshot(
-            snapshot,
-            _fromJson,
-            _documentIdField,
-          ),
+          (snapshot) =>
+              processQuerySnapshot(snapshot, _fromJson, _documentIdField),
         )
         .map(
           (data) => _calculateAggregationsFromSnapshot(
@@ -179,28 +231,22 @@ abstract class QueryAggregatableHandler {
           ),
         )
         .map((data) {
-          final valueSelector = _AggregateValueSelector<T>(
-            data,
-            configuration.operations,
+          return _buildResultRecord(
+            results: data,
+            builderFunc: builderFunc,
+            configuration: configuration,
           );
-          final recordSpec = configuration.builder(valueSelector);
-          return _buildResultRecord(recordSpec, data, configuration);
         });
   }
 
-  static R _buildResultRecord<T, R>(
-    R template,
-    Map<String, dynamic> results,
-    AggregateConfiguration<T, R> configuration,
-  ) {
-    // Create a value selector that returns actual computed results
-    final valueSelector = _AggregateValueSelector<T>(
-      results,
-      configuration.operations,
-    );
-
-    // Re-call the builder function with the value selector to get the final record
-    return configuration.builder(valueSelector);
+  static R _buildResultRecord<T, R, AB extends AggregateFieldRoot>({
+    required Map<String, dynamic> results,
+    required AB Function(AggregateContext context) builderFunc,
+    required AggregateConfiguration<R, AB> configuration,
+  }) {
+    final context = AggregateResultContext(results);
+    final builder = builderFunc(context);
+    return configuration.aggregates(builder);
   }
 
   /// Calculate aggregations from snapshot for streaming
@@ -288,114 +334,14 @@ abstract class QueryAggregatableHandler {
   }
 }
 
-class _AggregateValueSelector<T> extends RootAggregateFieldSelector<T> {
-  final Map<String, dynamic> _results;
-  final List<AggregateOperation> _operations;
-
-  _AggregateValueSelector(this._results, this._operations);
-
-  @override
-  int count() {
-    // Return the actual count result if available
-    for (final entry in _results.entries) {
-      if (entry.key == 'count' || entry.key.startsWith('count_')) {
-        return entry.value as int? ?? 0;
-      }
-    }
-    return 0;
-  }
-}
-
-/// Strongly-typed aggregate field that knows its numeric type
-class AggregateField<T extends num?> extends Node {
-  AggregateField({super.name, super.parent});
-
-  /// Create sum aggregation - returns the correct field type
-  T sum() {
-    // Check if this is a value selector (second pass) or operation collector (first pass)
-    switch ($root) {
-      case _AggregateValueSelector root:
-        // Find the sum operation for this field and return its result
-        final sumOp = root._operations
-            .whereType<SumOperation>()
-            .where((op) => op.fieldPath == $path)
-            .firstOrNull;
-        if (sumOp != null) {
-          final value = root._results[sumOp.key];
-          if (value != null) {
-            // Convert from double (Firestore's default numeric type) to the expected type
-            switch (T) {
-              case int:
-                return (value as num).toInt() as T;
-              case double:
-                return (value as num).toDouble() as T;
-              case num:
-                return value as T; // Firestore returns num by default
-              default:
-                throw UnsupportedError('Unsupported numeric type: $T');
-            }
-          }
-        }
-        return _getDefaultValue();
-      case RootAggregateFieldSelector root:
-        // First pass: collect operation
-        final key = 'sum_${root.operations.length}';
-        root.operations.add(SumOperation(key, $path));
-        return _getDefaultValue();
-      default:
-        throw UnsupportedError('Unsupported numeric type: $T');
-    }
-  }
-
-  /// Create average aggregation - always returns double
-  double average() {
-    switch ($root) {
-      case _AggregateValueSelector root:
-        // Find the average operation for this field and return its result
-        final avgOp = root._operations
-            .whereType<AverageOperation>()
-            .where((op) => op.fieldPath == $path)
-            .firstOrNull;
-        if (avgOp != null) {
-          final value = root._results[avgOp.key];
-          if (value != null) {
-            return (value as num).toDouble();
-          }
-        }
-        return 0.0; // Default value if no average found
-      case RootAggregateFieldSelector _selector:
-        // First pass: collect operation
-        final key = 'avg_${_selector.operations.length}';
-        _selector.operations.add(AverageOperation(key, $path));
-        return 0.0; // Placeholder
-      default:
-        throw UnsupportedError('Unsupported numeric type for average: $T');
-    }
-  }
-
-  /// Get default value for the specific numeric type
-  T _getDefaultValue() {
-    switch (T) {
-      case int:
-        return 0 as T;
-      case double:
-        return 0.0 as T;
-      case num:
-        return 0 as T; // Firestore returns num by default
-      default:
-        throw UnsupportedError('Unsupported numeric type: $T');
-    }
-  }
-}
-
 /// Base class for aggregate operations.
 ///
 /// All aggregate operations (count, sum, average) extend this class
 /// and provide a unique key for identifying the operation result.
-abstract class AggregateOperation {
+sealed class AggregateOperation {
   /// Unique identifier for this aggregate operation
   final String key;
-  
+
   /// Creates a new aggregate operation with the given key.
   ///
   /// [key] - Unique identifier for this operation
@@ -414,7 +360,7 @@ class CountOperation extends AggregateOperation {
 class SumOperation extends AggregateOperation {
   /// The field path to sum values from
   final String fieldPath;
-  
+
   /// Creates a sum operation.
   ///
   /// [key] - Unique identifier for this operation
@@ -426,7 +372,7 @@ class SumOperation extends AggregateOperation {
 class AverageOperation extends AggregateOperation {
   /// The field path to calculate average from
   final String fieldPath;
-  
+
   /// Creates an average operation.
   ///
   /// [key] - Unique identifier for this operation
@@ -443,7 +389,7 @@ class AverageOperation extends AggregateOperation {
 /// - [S]: The Firestore schema type
 /// - [T]: The document type being aggregated
 /// - [R]: The result record type containing aggregated values
-class AggregateQuery<S extends FirestoreSchema, T, R>
+class AggregateQuery<T, R, AB extends AggregateFieldRoot>
     implements Gettable<R>, Streamable<R> {
   /// Creates a new aggregate query.
   ///
@@ -457,25 +403,29 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
     this._fromJson,
     this._documentIdField,
     this._configuration,
+    this._builderFunc,
   );
-  
+
   /// Model converter for document serialization (used in streaming)
   final Map<String, dynamic> Function(T) _toJson;
   final T Function(Map<String, dynamic>) _fromJson;
-  
+
   /// The document ID field name (used in streaming)
   final String _documentIdField;
-  
+
   /// The underlying Firestore aggregate query
   final firestore.AggregateQuery query;
-  
+
   /// The aggregate configuration defining operations and result building
-  final AggregateConfiguration<T, R> _configuration;
+  final AggregateConfiguration<R, AB> _configuration;
+
+
+  final AB Function(AggregateContext context) _builderFunc;
 
   /// Executes the aggregate query and returns the result.
   ///
   /// Returns a [Future] that completes with the aggregated result record.
-  Future<R> get() => QueryAggregatableHandler.get(query, _configuration);
+  Future<R> get() => QueryAggregatableHandler.get(query, _builderFunc, _configuration);
 
   @override
   /// Returns a stream that emits aggregated results in real-time.
@@ -487,6 +437,7 @@ class AggregateQuery<S extends FirestoreSchema, T, R>
     _toJson,
     _fromJson,
     _documentIdField,
+    _builderFunc,
     _configuration,
   );
 }
@@ -500,7 +451,7 @@ class AggregateCountQuery implements Gettable<int>, Streamable<int> {
   ///
   /// [query] - The underlying Firestore aggregate query
   AggregateCountQuery(this.query);
-  
+
   /// The underlying Firestore aggregate query
   final firestore.AggregateQuery query;
 
@@ -519,8 +470,9 @@ class AggregateCountQuery implements Gettable<int>, Streamable<int> {
   /// The stream will emit a new count value whenever the underlying
   /// collection changes in a way that affects the query results.
   Stream<int> get stream =>
-      (query.query as firestore.Query<Map<String, dynamic>>).snapshots()
-      .map((snapshot) {
+      (query.query as firestore.Query<Map<String, dynamic>>).snapshots().map((
+        snapshot,
+      ) {
         return snapshot.docs.length;
       });
 }

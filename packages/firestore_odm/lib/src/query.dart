@@ -19,7 +19,8 @@ class Query<
   S extends FirestoreSchema,
   T,
   F extends RootFilterSelector<T>,
-  OB extends OrderByFieldNode
+  OB extends OrderByFieldNode,
+  AB extends AggregateFieldRoot
 >
     implements
         Gettable<List<T>>,
@@ -28,7 +29,7 @@ class Query<
         Orderable<T>,
         Patchable<T>,
         Modifiable<T>,
-        Aggregatable<S, T>,
+        Aggregatable<T>,
         Limitable,
         Deletable {
   final FirestoreConverter<T, Map<String, dynamic>> _converter;
@@ -41,17 +42,21 @@ class Query<
 
   final OB Function(OrderByContext) _orderByBuilderFunc;
 
+  final AB Function(AggregateContext) _aggregateBuilderFunc;
+
   const Query({
     required firestore.Query<Map<String, dynamic>> query,
     required FirestoreConverter<T, Map<String, dynamic>> converter,
     required String documentIdField,
     required F filterBuilder,
     required OB Function(OrderByContext) orderByBuilderFunc,
+    required AB Function(AggregateContext) aggregateBuilderFunc,
   }) : _query = query,
        _converter = converter,
        _documentIdFieldName = documentIdField,
        _filterBuilder = filterBuilder,
-       _orderByBuilderFunc = orderByBuilderFunc;
+       _orderByBuilderFunc = orderByBuilderFunc,
+       _aggregateBuilderFunc = aggregateBuilderFunc;
 
   @override
   Future<List<T>> get() =>
@@ -61,22 +66,29 @@ class Query<
   Stream<List<T>> get stream =>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdFieldName);
 
-  @override
-  Query<S, T, F, OB> where(FirestoreFilter Function(F builder) filterFunc) {
-    final filter = filterFunc(_filterBuilder);
-    final newQuery = QueryFilterHandler.applyFilter(_query, filter);
-    // Handle different types of query objects
-    return Query<S, T, F, OB>(
+  Query<S, T, F, OB, AB> _newQuery(
+    firestore.Query<Map<String, dynamic>> newQuery,
+  ) {
+    return Query<S, T, F, OB, AB>(
       query: newQuery,
       converter: _converter,
       documentIdField: _documentIdFieldName,
       filterBuilder: _filterBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
+      aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O, OB> orderBy<O extends Record>(
+  Query<S, T, F, OB, AB> where(FirestoreFilter Function(F builder) filterFunc) {
+    final filter = filterFunc(_filterBuilder);
+    final newQuery = QueryFilterHandler.applyFilter(_query, filter);
+    // Handle different types of query objects
+    return _newQuery(newQuery);
+  }
+
+  @override
+  OrderedQuery<S, T, O, OB, AB> orderBy<O extends Record>(
     O Function(OB selector) orderByFunc,
   ) {
     final config = QueryOrderbyHandler.buildOrderBy<T, O, OB>(
@@ -85,38 +97,26 @@ class Query<
       documentIdFieldName: _documentIdFieldName,
     );
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
-    return OrderedQuery(
+    return OrderedQuery<S, T, O, OB ,AB>(
       query: newQuery,
       converter: _converter,
       documentIdField: _documentIdFieldName,
       orderByConfig: config,
       orderByBuilderFunc: _orderByBuilderFunc,
+      aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F, OB> limit(int limit) {
+  Query<S, T, F, OB, AB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
-    return Query<S, T, F, OB>(
-      query: newQuery,
-      converter: _converter,
-      documentIdField: _documentIdFieldName,
-      filterBuilder: _filterBuilder,
-      orderByBuilderFunc: _orderByBuilderFunc,
-    );
+    return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB> limitToLast(int limit) {
+  Query<S, T, F, OB, AB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
-
-    return Query<S, T, F, OB>(
-      query: newQuery,
-      converter: _converter,
-      documentIdField: _documentIdFieldName,
-      filterBuilder: _filterBuilder,
-      orderByBuilderFunc: _orderByBuilderFunc,
-    );
+    return _newQuery(newQuery);
   }
 
   @override
@@ -168,10 +168,10 @@ class Query<
       );
 
   @override
-  AggregateQuery<S, T, R> aggregate<R extends Record>(
-    R Function(RootAggregateFieldSelector<T> selector) builder,
+  AggregateQuery<T, R, AB> aggregate<R extends Record>(
+    R Function(AB selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(builder);
+    final config = QueryAggregatableHandler.buildAggregate(builder, _aggregateBuilderFunc);
     final newQuery = QueryAggregatableHandler.applyAggregate(
       _query,
       config.operations,
@@ -182,6 +182,7 @@ class Query<
       _converter.fromJson,
       _documentIdFieldName,
       config,
+      _aggregateBuilderFunc,
     );
   }
 
