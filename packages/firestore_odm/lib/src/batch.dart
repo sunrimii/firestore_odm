@@ -128,6 +128,21 @@ class BatchContext<S extends FirestoreSchema> {
   }
 }
 
+/// it is a convenience function to create a batch document
+BatchCollection<S, C, Path, P>
+getBatchCollection<S extends FirestoreSchema, C, Path extends Record, P extends PatchBuilder<C>>({
+  required BatchDocument<S, dynamic, Record, dynamic> parent,
+  required String name,
+  required FirestoreConverter<C, Map<String, dynamic>> converter,
+  required String documentIdField,
+}) => BatchCollection(
+  collection: parent._ref.collection(name),
+  converter: converter,
+  context: parent._context,
+  documentIdField: documentIdField,
+  patchBuilder: parent._patchBuilder,
+);
+
 /// Batch document for handling document-level batch operations
 class BatchDocument<S extends FirestoreSchema, T, Path extends Record, P
 extends PatchBuilder<T>>

@@ -1005,6 +1005,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(modelType),
                   _getPathRecord(collection.path),
+                  _getPatchBuilderType(collection),
                 ]),
             )
             ..methods.addAll(methods),
@@ -1399,10 +1400,6 @@ class SchemaGenerator {
                 'documentIdField': literalString(
                   modelAnalyzer.getDocumentIdFieldName(subcol.modelType),
                 ),
-                'patchBuilder': _getPatchBuilderInstanceExpression(
-                  subcol,
-                  converterFactory: converterFactory,
-                ),
               }).code,
           ),
         );
@@ -1422,6 +1419,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(modelType),
                   _getPathRecord(collection.path),
+                  _getPatchBuilderType(collection),
                 ]),
             )
             ..methods.addAll(methods),
