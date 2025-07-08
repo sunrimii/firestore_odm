@@ -70,7 +70,7 @@ void main() {
       print('🧪 Test 1: Filter by profile.socialLinks.github');
       final githubUsers = await odm.users
           .where(
-            ($) => $.profile.socialLinks.key("github")(isEqualTo: "alice-dev"),
+            ($) => $.profile.socialLinks.key('github')(isEqualTo: 'alice-dev'),
           )
           .get();
 
@@ -81,7 +81,7 @@ void main() {
       // Test 2: Filter by top-level map key
       print('🧪 Test 2: Filter by settings.theme');
       final darkThemeUsers = await odm.users
-          .where(($) => $.settings.key("theme")(isEqualTo: "dark"))
+          .where(($) => $.settings.key('theme')(isEqualTo: 'dark'))
           .get();
 
       expect(darkThemeUsers, hasLength(1));
@@ -91,7 +91,7 @@ void main() {
       // Test 3: Filter by Map<String, dynamic> key
       print('🧪 Test 3: Filter by metadata.verified');
       final verifiedUsers = await odm.users
-          .where(($) => $.metadata.key("verified")(isEqualTo: true))
+          .where(($) => $.metadata.key('verified')(isEqualTo: true))
           .get();
 
       expect(verifiedUsers, hasLength(1));
@@ -102,7 +102,7 @@ void main() {
       print('🧪 Test 4: Filter by non-existent map key');
       final noResults = await odm.users
           .where(
-            ($) => $.profile.socialLinks.key("instagram")(isEqualTo: "test"),
+            ($) => $.profile.socialLinks.key('instagram')(isEqualTo: 'test'),
           )
           .get();
 
@@ -319,7 +319,7 @@ void main() {
       // Test 1: Bulk update map keys using query
       print('🧪 Test 1: Bulk update map keys');
       await odm.users
-          .where(($) => $.metadata.key("group")(isEqualTo: "bulk"))
+          .where(($) => $.metadata.key('group')(isEqualTo: 'bulk'))
           .patch(
             ($) => [
               $.metadata.set('processed', true),
@@ -331,7 +331,7 @@ void main() {
           );
 
       final processedUsers = await odm.users
-          .where(($) => $.metadata.key("processed")(isEqualTo: true))
+          .where(($) => $.metadata.key('processed')(isEqualTo: true))
           .get();
 
       expect(processedUsers, hasLength(3));
@@ -344,7 +344,7 @@ void main() {
       // Test 2: Filter and update specific map values
       print('🧪 Test 2: Filter by map key and update other maps');
       await odm.users
-          .where(($) => $.settings.key("level")(isEqualTo: "1"))
+          .where(($) => $.settings.key('level')(isEqualTo: '1'))
           .patch(
             ($) => [
               $.settings.set('featured', 'true'),
@@ -353,7 +353,7 @@ void main() {
           );
 
       final featuredUser = await odm.users
-          .where(($) => $.settings.key("featured")(isEqualTo: "true"))
+          .where(($) => $.settings.key('featured')(isEqualTo: 'true'))
           .get();
 
       expect(featuredUser, hasLength(1));
