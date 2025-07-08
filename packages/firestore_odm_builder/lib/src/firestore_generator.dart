@@ -4,6 +4,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
+import 'package:firestore_odm_builder/src/generators/aggregate_generator.dart';
 import 'package:firestore_odm_builder/src/generators/filter_generator.dart';
 import 'package:firestore_odm_builder/src/generators/order_by_generator.dart';
 import 'package:firestore_odm_builder/src/generators/update_generator.dart';
@@ -137,6 +138,13 @@ class FirestoreGenerator3 extends Generator {
       
       specs.addAll(
         OrderByGenerator.generateOrderByClasses(
+          element.thisType,
+          modelAnalyzer: modelAnalyzer,
+        ),
+      );
+
+      specs.addAll(
+        AggregateGenerator.generateAggregateClasses(
           element.thisType,
           modelAnalyzer: modelAnalyzer,
         ),

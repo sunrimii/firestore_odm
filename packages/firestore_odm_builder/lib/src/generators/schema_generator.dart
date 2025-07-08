@@ -593,6 +593,11 @@ class SchemaGenerator {
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
             ),
+            AggregateGenerator.getBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
+              isRoot: true,
+            ),
           ]),
       );
       methods.add(
@@ -636,6 +641,19 @@ class SchemaGenerator {
                             context: refer('context'),
                             modelAnalyzer: modelAnalyzer,
                           ).code,
+                  ).closure,
+                  'aggregateBuilderFunc': Method(
+                    (b) => b
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'context'),
+                      )
+                      ..lambda = true
+                      ..body = AggregateGenerator.getBuilderInstanceExpression(
+                        type: collection.modelType,
+                        context: refer('context'),
+                        modelAnalyzer: modelAnalyzer,
+                        isRoot: true,
+                      ).code,
                   ).closure,
                 })
                 .code,
@@ -690,6 +708,11 @@ class SchemaGenerator {
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
             ),
+            AggregateGenerator.getBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
+              isRoot: true,
+            ),
           ]),
       );
       methods.add(
@@ -733,6 +756,19 @@ class SchemaGenerator {
                             context: refer('context'),
                             modelAnalyzer: modelAnalyzer,
                           ).code,
+                  ).closure,
+                  'aggregateBuilderFunc': Method(
+                    (b) => b
+                      ..requiredParameters.add(
+                        Parameter((b) => b..name = 'context'),
+                      )
+                      ..lambda = true
+                      ..body = AggregateGenerator.getBuilderInstanceExpression(
+                        type: collection.modelType,
+                        context: refer('context'),
+                        modelAnalyzer: modelAnalyzer,
+                        isRoot: true,
+                      ).code,
                   ).closure,
                 })
                 .code,
@@ -1025,6 +1061,11 @@ class SchemaGenerator {
                 type: subcol.modelType,
                 modelAnalyzer: modelAnalyzer,
               ),
+              AggregateGenerator.getBuilderType(
+                type: subcol.modelType,
+                modelAnalyzer: modelAnalyzer,
+                isRoot: true,
+              ),
             ]),
         );
         methods.add(
@@ -1065,6 +1106,20 @@ class SchemaGenerator {
                               type: subcol.modelType,
                               context: refer('context'),
                               modelAnalyzer: modelAnalyzer,
+                            ).code,
+                    ).closure,
+                    'aggregateBuilderFunc': Method(
+                      (b) => b
+                        ..requiredParameters.add(
+                          Parameter((b) => b..name = 'context'),
+                        )
+                        ..lambda = true
+                        ..body =
+                            AggregateGenerator.getBuilderInstanceExpression(
+                              type: subcol.modelType,
+                              context: refer('context'),
+                              modelAnalyzer: modelAnalyzer,
+                              isRoot: true,
                             ).code,
                     ).closure,
                   })

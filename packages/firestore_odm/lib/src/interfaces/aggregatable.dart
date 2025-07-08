@@ -25,11 +25,11 @@ abstract interface class Aggregatable<T> {
   /// print('Total followers: ${result.totalFollowers}'); // num
   /// ```
   ///
-  /// [builder]: A function that constructs the aggregate query using a [AggregateFieldRoot].
+  /// [builder]: A function that constructs the aggregate query using a [AggregateBuilderRoot].
   /// Returns an [AggregateQuery] that, when executed (e.g., with `.get()`), will
   /// yield the aggregated results.
-  AggregateQuery<T, R, AggregateFieldRoot> aggregate<R extends Record>(
-    R Function(AggregateFieldRoot builder) handler,
+  AggregateQuery<T, R, AggregateBuilderRoot> aggregate<R extends Record>(
+    R Function(AggregateBuilderRoot builder) handler,
   );
 
   /// Gets the count of documents matching the current query.

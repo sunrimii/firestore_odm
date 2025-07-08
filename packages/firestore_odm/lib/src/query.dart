@@ -20,7 +20,7 @@ class Query<
   T,
   F extends RootFilterSelector<T>,
   OB extends OrderByFieldNode,
-  AB extends AggregateFieldRoot
+  AB extends AggregateBuilderRoot
 >
     implements
         Gettable<List<T>>,

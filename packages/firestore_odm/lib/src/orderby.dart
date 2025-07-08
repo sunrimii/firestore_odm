@@ -135,7 +135,7 @@ class OrderedQuery<
   T,
   O extends Record,
   OB extends OrderByFieldNode,
-  AB extends AggregateFieldRoot
+  AB extends AggregateBuilderRoot
 >
     implements
         Gettable<List<T>>,
@@ -344,7 +344,7 @@ class OrderedQuery<
 
   @override
   AggregateQuery<T, R, AB> aggregate<R extends Record>(
-    R Function(AggregateFieldRoot selector) builder,
+    R Function(AggregateBuilderRoot selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(builder, 
       _aggregateBuilderFunc,

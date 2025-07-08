@@ -34,6 +34,7 @@ class ManualUser3<T> with EquatableMixin {
   List<Object?> get props => [id, name, customField];
 }
 
+@firestoreOdm
 class ManualUser3Profile<T> with EquatableMixin {
   final String email;
   final int age;
@@ -81,6 +82,7 @@ class ManualUser3Profile<T> with EquatableMixin {
   List<Object?> get props => [email, age, isPremium, rating, tags, preferences, customList];
 }
 
+@firestoreOdm
 class Book with EquatableMixin {
   final String title;
   final String author;

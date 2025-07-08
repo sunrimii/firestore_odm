@@ -21,7 +21,7 @@ class FirestoreCollection<
   P extends PatchBuilder<T>,
   F extends RootFilterSelector<T>,
   OB extends OrderByFieldNode,
-  AB extends AggregateFieldRoot
+  AB extends AggregateBuilderRoot
 >
     implements
         Gettable<List<T>>,
@@ -164,7 +164,7 @@ class FirestoreCollection<
 
   @override
   AggregateQuery<T, R, AB> aggregate<R extends Record>(
-    R Function(AggregateFieldRoot selector) builder,
+    R Function(AB selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(
       builder,
