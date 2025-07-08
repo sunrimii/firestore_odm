@@ -44,48 +44,58 @@ class TransactionContext<Schema extends FirestoreSchema> {
   }
 }
 
-class TransactionCollection<S extends FirestoreSchema, T, Path extends Record> {
+class TransactionCollection<
+  S extends FirestoreSchema,
+  T,
+  Path extends Record,
+  P extends PatchBuilder<T>
+> {
   final firestore.CollectionReference<Map<String, dynamic>> query;
   final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> context;
+  final P _patchBuilder;
 
   TransactionCollection({
     required this.query,
     required this.converter,
     required this.context,
     required this.documentIdField,
-  });
+    required P patchBuilder,
+  }) : _patchBuilder = patchBuilder;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
-  TransactionDocument<S, T, Path> call(String id) => TransactionDocument(
-    query.doc(id),
-    converter,
-    documentIdField,
-    context,
+  TransactionDocument<S, T, Path, P> call(String id) => TransactionDocument(
+    ref: query.doc(id),
+    converter: converter,
+    documentIdField: documentIdField,
+    context: context,
+    patchBuilder: _patchBuilder,
   );
 }
 
-class TransactionDocument<S extends FirestoreSchema, T, Path extends Record>
-    implements
-        Gettable<T?>,
-        Modifiable<T>,
-        Patchable<T>,
-        Existable,
-        Deletable {
+class TransactionDocument<
+  S extends FirestoreSchema,
+  T,
+  Path extends Record,
+  P extends PatchBuilder<T>
+>
+    implements Gettable<T?>, Modifiable<T>, Patchable<T>, Existable, Deletable {
   final firestore.DocumentReference<Map<String, dynamic>> ref;
   final FirestoreConverter<T, Map<String, dynamic>> converter;
   final String documentIdField;
   final TransactionContext<S> context;
+  final P _patchBuilder;
 
-  TransactionDocument(
-    this.ref,
-    this.converter,
-    this.documentIdField,
-    this.context,
-  );
+  TransactionDocument({
+    required this.ref,
+    required this.converter,
+    required this.documentIdField,
+    required this.context,
+    required P patchBuilder,
+  }) : _patchBuilder = patchBuilder;
 
   @override
   Future<T?> get() async {
@@ -143,7 +153,10 @@ class TransactionDocument<S extends FirestoreSchema, T, Path extends Record>
   /// });
   /// ```
   @override
-  Future<void> modify(T Function(T docData) modifier, {bool atomic = true}) async {
+  Future<void> modify(
+    T Function(T docData) modifier, {
+    bool atomic = true,
+  }) async {
     // Read the document and prepare the write operation
     final snapshot = await _getSnapshot();
     final patch = DocumentHandler.processPatch(
@@ -161,17 +174,14 @@ class TransactionDocument<S extends FirestoreSchema, T, Path extends Record>
   }
 
   @override
-  void patch(
-    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patchBuilder,
-  ) {
-    final builder = PatchBuilder<T>(
-      converter: converter,
-    );
-    final operations = patchBuilder(builder);
+  void patch(List<UpdateOperation> Function(P patchBuilder) patchBuilder) {
+    final operations = patchBuilder(_patchBuilder);
     final updateMap = operationsToMap(operations);
     if (updateMap.isNotEmpty) {
       // Defer the write operation
-      context._addDeferredWrite(() => context.transaction.update(ref, updateMap));
+      context._addDeferredWrite(
+        () => context.transaction.update(ref, updateMap),
+      );
     }
   }
 
