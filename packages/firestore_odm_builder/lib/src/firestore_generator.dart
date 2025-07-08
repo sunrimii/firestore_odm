@@ -111,7 +111,6 @@ class FirestoreGenerator3 extends Generator {
     for (var element in library.allElements.where(
       (e) => nestedTypeChecker.hasAnnotationOf(e, throwOnUnresolved: true),
     )) {
-      print('Generating schema for ${element.name}');
       if (element is! InterfaceElement) {
         throw InvalidGenerationSourceError(
           'Schema annotation can only be applied to classes.',

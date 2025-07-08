@@ -1047,11 +1047,13 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(collection.modelTypeName),
                   _getPathRecord(collection.path),
+                  _getPatchBuilderType(collection),
                 ]),
             )
             ..lambda = true
             ..body = TypeReference((b) => b..symbol = 'BatchCollection')
                 .newInstance([], {
+                  'context': refer('this'),
                   'collection': refer('firestoreInstance')
                       .property('collection')
                       .call([literalString(collection.path)]),
@@ -1059,7 +1061,10 @@ class SchemaGenerator {
                       .getConverter(collection.modelType)
                       .toConverterExpr(),
                   'documentIdField': literalString(documentIdFieldName),
-                  'context': refer('this'),
+                  'patchBuilder': _getPatchBuilderInstanceExpression(
+                    collection,
+                    converterFactory: converterFactory,
+                  ),
                 })
                 .code,
         ),
@@ -1370,6 +1375,7 @@ class SchemaGenerator {
               refer(schemaClassName),
               refer(subcol.modelTypeName),
               _getPathRecord(subcol.path),
+              _getPatchBuilderType(subcol),
             ]),
         );
 
@@ -1392,6 +1398,10 @@ class SchemaGenerator {
                     .toConverterExpr(),
                 'documentIdField': literalString(
                   modelAnalyzer.getDocumentIdFieldName(subcol.modelType),
+                ),
+                'patchBuilder': _getPatchBuilderInstanceExpression(
+                  subcol,
+                  converterFactory: converterFactory,
                 ),
               }).code,
           ),

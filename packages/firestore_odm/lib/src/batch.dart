@@ -128,34 +128,24 @@ class BatchContext<S extends FirestoreSchema> {
   }
 }
 
-/// it is a convenience function to create a batch document
-BatchCollection<S, C, Path>
-getBatchCollection<S extends FirestoreSchema, C, Path extends Record>({
-  required BatchDocument<S, dynamic, Record> parent,
-  required String name,
-  required FirestoreConverter<C, Map<String, dynamic>> converter,
-  required String documentIdField,
-}) => BatchCollection(
-  collection: parent._ref.collection(name),
-  converter: converter,
-  context: parent._context,
-  documentIdField: documentIdField,
-);
-
 /// Batch document for handling document-level batch operations
-class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
+class BatchDocument<S extends FirestoreSchema, T, Path extends Record, P
+extends PatchBuilder<T>>
     implements Deletable, Patchable<T> {
   final BatchContext<S> _context;
   final firestore.DocumentReference<Map<String, dynamic>> _ref;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;
+  final P _patchBuilder;
 
   const BatchDocument({
     required BatchContext<S> context,
     required firestore.DocumentReference<Map<String, dynamic>> ref,
     required FirestoreConverter<T, Map<String, dynamic>> converter,
+    required P patchBuilder,
   }) : _context = context,
        _ref = ref,
-       _converter = converter;
+       _converter = converter,
+       _patchBuilder = patchBuilder;
 
   @override
   void delete() {
@@ -164,10 +154,9 @@ class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
 
   @override
   void patch(
-    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patchBuilder,
+    List<UpdateOperation> Function(P patchBuilder) patchBuilder,
   ) {
-    final builder = PatchBuilder<T>(converter: _converter);
-    final operations = patchBuilder(builder);
+    final operations = patchBuilder(_patchBuilder);
     final updateMap = operationsToMap(operations);
 
     if (updateMap.isEmpty) {
@@ -179,7 +168,7 @@ class BatchDocument<S extends FirestoreSchema, T, Path extends Record>
 }
 
 /// Batch collection for handling collection-level batch operations
-class BatchCollection<S extends FirestoreSchema, T, Path extends Record>
+class BatchCollection<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T>>
     implements
         Insertable<T>,
         Updatable<T>,
@@ -188,24 +177,28 @@ class BatchCollection<S extends FirestoreSchema, T, Path extends Record>
   final firestore.CollectionReference<Map<String, dynamic>> _collection;
   final FirestoreConverter<T, Map<String, dynamic>> _converter;
   final String _documentIdField;
+  final P _patchBuilder;
 
   const BatchCollection({
     required firestore.CollectionReference<Map<String, dynamic>> collection,
     required FirestoreConverter<T, Map<String, dynamic>> converter,
     required BatchContext<S> context,
     required String documentIdField,
+    required P patchBuilder,
   }) : _collection = collection,
        _converter = converter,
        _context = context,
-       _documentIdField = documentIdField;
+       _documentIdField = documentIdField,
+       _patchBuilder = patchBuilder;
 
   /// Gets a document reference for batch operations
-  BatchDocument<S, T, Path> call(String id) => doc(id);
+  BatchDocument<S, T, Path, P> call(String id) => doc(id);
 
-  BatchDocument<S, T, Path> doc(String id) => BatchDocument(
+  BatchDocument<S, T, Path, P> doc(String id) => BatchDocument(
     context: _context,
     ref: _collection.doc(id),
     converter: _converter,
+    patchBuilder: _patchBuilder,
   );
 
   @override
