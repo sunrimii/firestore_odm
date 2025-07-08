@@ -11,6 +11,17 @@ import '../utils/model_analyzer.dart';
 class OrderByGenerator {
   /// Generate OrderBy field selector method
   static Method _generateOrderByFieldSelectorMethod(FieldInfo field) {
+    final constructorArgs = <String, Expression>{
+      'name': literalString(field.jsonName),
+      'parent': refer('this'),
+      'context': refer('\$context'),
+    };
+
+    // Add type parameter for document ID fields
+    if (field.isDocumentId) {
+      constructorArgs['type'] = refer('FieldPathType.documentId');
+    }
+
     return Method(
       (b) => b
         ..docs.add('/// Order by ${field.parameterName}')
@@ -22,11 +33,7 @@ class OrderByGenerator {
             ..symbol = 'OrderByField'
             ..types.add(field.type.reference),
         )
-        ..body = refer('OrderByField').newInstance([], {
-          'name': literalString(field.jsonName),
-          'parent': refer('this'),
-          'context': refer('\$context'),
-        }).code,
+        ..body = refer('OrderByField').newInstance([], constructorArgs).code,
     );
   }
 

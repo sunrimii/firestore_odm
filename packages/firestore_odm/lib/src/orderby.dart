@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
+import 'package:cloud_firestore/cloud_firestore.dart' show FieldPath;
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
@@ -41,14 +42,14 @@ class OrderByField<T> extends OrderByFieldNode {
   final FieldPathType? type;
 
   T call({bool descending = false}) {
-    $context.resolver($parts, descending);
+    $context.resolver($parts, descending, type);
     return defaultValue<T>();
   }
 }
 
 /// Base class for orderBy field selectors
 abstract class OrderByContext {
-  void resolver(List<String> parts, bool descending);
+  void resolver(List<String> parts, bool descending, [FieldPathType? type]);
 }
 
 class OrderByBuilderContext extends OrderByContext {
@@ -57,9 +58,14 @@ class OrderByBuilderContext extends OrderByContext {
   final List<OrderByFieldInfo> fields = [];
 
   @override
-  void resolver(List<String> parts, bool descending) {
+  void resolver(List<String> parts, bool descending, [FieldPathType? type]) {
     /// Add the field to the list of orderBy fields
-    fields.add(OrderByFieldInfo(parts.join('.'), descending));
+    /// Use FieldPath.documentId for document ID fields
+    if (type == FieldPathType.documentId) {
+      fields.add(OrderByFieldInfo(FieldPath.documentId, descending));
+    } else {
+      fields.add(OrderByFieldInfo(parts.join('.'), descending));
+    }
   }
 }
 
@@ -69,7 +75,7 @@ class OrderByExtractorContext extends OrderByContext {
   final List<dynamic> extractedValues = [];
 
   @override
-  void resolver(List<String> parts, bool descending) {
+  void resolver(List<String> parts, bool descending, [FieldPathType? type]) {
     final value = resolveJsonWithParts(data, parts);
     extractedValues.add(value);
   }
