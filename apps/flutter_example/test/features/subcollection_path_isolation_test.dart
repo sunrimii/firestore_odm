@@ -272,16 +272,16 @@ void main() {
 
       // Verify different document types
       expect(
-        users1.runtimeType,
-        equals(FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>),
+        users1,
+        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
       );
       expect(
-        users2_1.runtimeType,
-        equals(FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>),
+        users2_1,
+        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
       );
       expect(
-        posts1.runtimeType,
-        equals(FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>),
+        posts1,
+        isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
       );
 
       // The core bug test: users2 cannot access posts
