@@ -163,7 +163,7 @@ class JsonMethodConverter implements TypeConverter, WithName, MaybeGeneric {
           ).closure,
         );
     return type.element3.reference.property('fromJson').call([
-      source,
+      source.asA(expectType),
       ...converterLambdas,
     ]);
   }
