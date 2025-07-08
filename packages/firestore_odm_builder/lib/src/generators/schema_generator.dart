@@ -1400,6 +1400,10 @@ class SchemaGenerator {
                 'documentIdField': literalString(
                   modelAnalyzer.getDocumentIdFieldName(subcol.modelType),
                 ),
+                'patchBuilder': _getPatchBuilderInstanceExpression(
+                  subcol,
+                  converterFactory: converterFactory,
+                ),
               }).code,
           ),
         );

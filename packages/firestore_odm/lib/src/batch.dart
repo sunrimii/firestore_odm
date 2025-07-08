@@ -135,12 +135,13 @@ getBatchCollection<S extends FirestoreSchema, C, Path extends Record, P extends 
   required String name,
   required FirestoreConverter<C, Map<String, dynamic>> converter,
   required String documentIdField,
+  required P patchBuilder,
 }) => BatchCollection(
   collection: parent._ref.collection(name),
   converter: converter,
   context: parent._context,
   documentIdField: documentIdField,
-  patchBuilder: parent._patchBuilder,
+  patchBuilder: patchBuilder,
 );
 
 /// Batch document for handling document-level batch operations
