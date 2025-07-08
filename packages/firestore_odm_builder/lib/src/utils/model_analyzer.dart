@@ -135,6 +135,9 @@ class ModelAnalyzer {
 bool isHandledType(DartType type) {
   // Check if the type is a known Firestore ODM type
   return isPrimitive(type) ||
+      TypeChecker.fromRuntime(Iterable).isAssignableFromType(type) ||
+      TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
+      TypeChecker.fromRuntime(IMap).isAssignableFromType(type) ||
       TypeChecker.fromRuntime(DateTime).isExactlyType(type) ||
       TypeChecker.fromRuntime(Duration).isExactlyType(type);
 }
@@ -150,8 +153,5 @@ bool isPrimitive(DartType type) {
       type.isDartCoreDouble ||
       type.isDartCoreString ||
       type.isDartCoreNull ||
-      TypeChecker.fromRuntime(Iterable).isAssignableFromType(type) ||
-      TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
-      TypeChecker.fromRuntime(IMap).isAssignableFromType(type) ||
       type.name == 'dynamic';
 }
