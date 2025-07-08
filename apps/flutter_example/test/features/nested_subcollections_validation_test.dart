@@ -18,85 +18,121 @@ void main() {
       odm = FirestoreODM(testSchema, firestore: firestore);
     });
 
-    test('✅ should correctly generate comments extension on Post document, not User', () {
-      // Test that the bug fix is working correctly
-      // For the collection path "users/*/posts/*/comments"
-      // The comments extension should be on Post documents, not User documents
+    test(
+      '✅ should correctly generate comments extension on Post document, not User',
+      () {
+        // Test that the bug fix is working correctly
+        // For the collection path "users/*/posts/*/comments"
+        // The comments extension should be on Post documents, not User documents
 
-      final userDoc = odm.users('test_user');
-      final postDoc = odm.posts('test_post');
-      final userPostDoc = userDoc.posts('user_post');
+        final userDoc = odm.users('test_user');
+        final postDoc = odm.posts('test_post');
+        final userPostDoc = userDoc.posts('user_post');
 
-      // Comments should be accessible from Post documents
-      expect(postDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
-      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
+        // Comments should be accessible from Post documents
+        expect(
+          postDoc.comments,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Comment,
+              dynamic,
+              CommentPatchBuilder,
+              CommentFilterBuilderRoot,
+              CommentOrderByBuilder,
+              CommentAggregateBuilderRoot
+            >
+          >(),
+        );
+        expect(
+          userPostDoc.comments,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Comment,
+              dynamic,
+              CommentPatchBuilder,
+              CommentFilterBuilderRoot,
+              CommentOrderByBuilder,
+              CommentAggregateBuilderRoot
+            >
+          >(),
+        );
 
-      // Verify the correct collection paths
-      expect(
-        postDoc.comments.query.path,
-        equals('posts/test_post/comments'),
-        reason: 'Comments on main posts should have correct path',
-      );
+        // Verify the correct collection paths
+        expect(
+          postDoc.comments.query.path,
+          equals('posts/test_post/comments'),
+          reason: 'Comments on main posts should have correct path',
+        );
 
-      expect(
-        userPostDoc.comments.query.path,
-        equals('users/test_user/posts/user_post/comments'),
-        reason: 'Comments on user posts should have correct nested path',
-      );
-    });
+        expect(
+          userPostDoc.comments.query.path,
+          equals('users/test_user/posts/user_post/comments'),
+          reason: 'Comments on user posts should have correct nested path',
+        );
+      },
+    );
 
-    test('✅ should support the expected API pattern for nested collections', () async {
-      // This validates that the expected API works as described in the GitHub issue
-      final profile = Profile(
-        bio: 'Test bio',
-        avatar: 'avatar.jpg',
-        socialLinks: {},
-        interests: ['coding', 'testing'],
-      );
+    test(
+      '✅ should support the expected API pattern for nested collections',
+      () async {
+        // This validates that the expected API works as described in the GitHub issue
+        final profile = Profile(
+          bio: 'Test bio',
+          avatar: 'avatar.jpg',
+          socialLinks: {},
+          interests: ['coding', 'testing'],
+        );
 
-      final user = User(
-        id: 'user_123',
-        name: 'Test User',
-        email: 'test@example.com',
-        age: 25,
-        profile: profile,
-      );
+        final user = User(
+          id: 'user_123',
+          name: 'Test User',
+          email: 'test@example.com',
+          age: 25,
+          profile: profile,
+        );
 
-      final post = Post(
-        id: 'post_456',
-        title: 'Test Post',
-        content: 'This is a test post',
-        authorId: 'user_123',
-        tags: ['test'],
-        metadata: {},
-        createdAt: DateTime.now(),
-      );
+        final post = Post(
+          id: 'post_456',
+          title: 'Test Post',
+          content: 'This is a test post',
+          authorId: 'user_123',
+          tags: ['test'],
+          metadata: {},
+          createdAt: DateTime.now(),
+        );
 
-      final comment = Comment(
-        id: 'comment_789',
-        content: 'Great post!',
-        authorId: 'user_123',
-        authorName: 'Test User',
-        postId: 'post_456',
-        createdAt: DateTime.now(),
-      );
+        final comment = Comment(
+          id: 'comment_789',
+          content: 'Great post!',
+          authorId: 'user_123',
+          authorName: 'Test User',
+          postId: 'post_456',
+          createdAt: DateTime.now(),
+        );
 
-      // Create the data hierarchy
-      await odm.users('user_123').update(user);
-      await odm.users('user_123').posts('post_456').update(post);
-      await odm.users('user_123').posts('post_456').comments('comment_789').update(comment);
+        // Create the data hierarchy
+        await odm.users('user_123').update(user);
+        await odm.users('user_123').posts('post_456').update(post);
+        await odm
+            .users('user_123')
+            .posts('post_456')
+            .comments('comment_789')
+            .update(comment);
 
-      // Verify the expected API works:
-      // FirestoreODM(appSchema).users('user_id').posts('post_id').comments
-      final retrievedComment = await odm
-          .users('user_123')
-          .posts('post_456')
-          .comments('comment_789')
-          .get();
+        // Verify the expected API works:
+        // FirestoreODM(appSchema).users('user_id').posts('post_id').comments
+        final retrievedComment = await odm
+            .users('user_123')
+            .posts('post_456')
+            .comments('comment_789')
+            .get();
 
-      expect(retrievedComment?.content, equals('Great post!'));
-      expect(retrievedComment?.authorId, equals('user_123'));
-    });
+        expect(retrievedComment?.content, equals('Great post!'));
+        expect(retrievedComment?.authorId, equals('user_123'));
+      },
+    );
 
     test('✅ should maintain type safety for all nesting levels', () {
       // Verify type safety is maintained at all levels
@@ -105,46 +141,86 @@ void main() {
       final userPostCommentDoc = userPostDoc.comments('comment_id');
 
       // Check types are correct
-      expect(userDoc, isA<FirestoreDocument<TestSchema, User, dynamic>>());
-      expect(userPostDoc, isA<FirestoreDocument<TestSchema, Post, dynamic>>());
-      expect(userPostCommentDoc, isA<FirestoreDocument<TestSchema, Comment, dynamic>>());
+      expect(
+        userDoc,
+        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
+      );
+      expect(
+        userPostDoc,
+        isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
+      );
+      expect(
+        userPostCommentDoc,
+        isA<
+          FirestoreDocument<TestSchema, Comment, dynamic, CommentPatchBuilder>
+        >(),
+      );
 
       // Check collection types are correct
-      expect(userDoc.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
-      expect(userPostDoc.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
-    });
-
-    test('🏗️ should generate correct extensions for multiple subcollection paths', () {
-      // Validate that different subcollection patterns work correctly
-
-      // 1. Simple subcollection: "posts/*/comments"
-      final mainPostComment = odm.posts('main_post').comments;
       expect(
-        mainPostComment.query.path,
-        equals('posts/main_post/comments'),
+        userDoc.posts,
+        isA<
+          FirestoreCollection<
+            TestSchema,
+            Post,
+            dynamic,
+            PostPatchBuilder,
+            PostFilterBuilderRoot,
+            PostOrderByBuilder,
+            PostAggregateBuilderRoot
+          >
+        >(),
       );
-
-      // 2. Nested subcollection: "users/*/posts/*/comments"
-      final userPostComment = odm.users('user').posts('post').comments;
       expect(
-        userPostComment.query.path,
-        equals('users/user/posts/post/comments'),
-      );
-
-      // 3. User posts subcollection: "users/*/posts"
-      final userPosts = odm.users('user').posts;
-      expect(
-        userPosts.query.path,
-        equals('users/user/posts'),
-      );
-
-      // 4. User shared posts subcollection: "users/*/sharedPosts"
-      final userSharedPosts = odm.users('user').sharedPosts;
-      expect(
-        userSharedPosts.query.path,
-        equals('users/user/sharedPosts'),
+        userPostDoc.comments,
+        isA<
+          FirestoreCollection<
+            TestSchema,
+            Comment,
+            dynamic,
+            CommentPatchBuilder,
+            CommentFilterBuilderRoot,
+            CommentOrderByBuilder,
+            CommentAggregateBuilderRoot
+          >
+        >(),
       );
     });
+
+    test(
+      '🏗️ should generate correct extensions for multiple subcollection paths',
+      () {
+        // Validate that different subcollection patterns work correctly
+
+        // 1. Simple subcollection: "posts/*/comments"
+        final mainPostComment = odm.posts('main_post').comments;
+        expect(
+          mainPostComment.query.path,
+          equals('posts/main_post/comments'),
+        );
+
+        // 2. Nested subcollection: "users/*/posts/*/comments"
+        final userPostComment = odm.users('user').posts('post').comments;
+        expect(
+          userPostComment.query.path,
+          equals('users/user/posts/post/comments'),
+        );
+
+        // 3. User posts subcollection: "users/*/posts"
+        final userPosts = odm.users('user').posts;
+        expect(
+          userPosts.query.path,
+          equals('users/user/posts'),
+        );
+
+        // 4. User shared posts subcollection: "users/*/sharedPosts"
+        final userSharedPosts = odm.users('user').sharedPosts;
+        expect(
+          userSharedPosts.query.path,
+          equals('users/user/sharedPosts'),
+        );
+      },
+    );
 
     test('🎯 should demonstrate the fix for the original GitHub issue', () {
       // This test demonstrates that the original issue is now fixed
@@ -156,7 +232,7 @@ void main() {
 
       // Before fix: This would have been incorrectly available on userDoc
       // After fix: comments is only available on postDoc (correct behavior)
-      
+
       // This should work (correct nested access)
       expect(
         postDoc.comments.query.path,

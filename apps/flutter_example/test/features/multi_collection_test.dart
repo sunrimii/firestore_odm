@@ -320,21 +320,77 @@ void main() {
     group('🎯 Collection Type Safety', () {
       test('should maintain type safety across collections', () async {
         // Ensure each collection returns the correct type
-        expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
-        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
+        expect(
+          odm.users,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              User,
+              dynamic,
+              UserPatchBuilder,
+              UserFilterBuilderRoot,
+              UserOrderByBuilder,
+              UserAggregateBuilderRoot
+            >
+          >(),
+        );
+        expect(
+          odm.posts,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Post,
+              dynamic,
+              PostPatchBuilder,
+              PostFilterBuilderRoot,
+              PostOrderByBuilder,
+              PostAggregateBuilderRoot
+            >
+          >(),
+        );
         expect(
           odm.sharedPosts,
-          isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              SharedPost,
+              dynamic,
+              SharedPostPatchBuilder,
+              SharedPostFilterBuilderRoot,
+              SharedPostOrderByBuilder,
+              SharedPostAggregateBuilderRoot
+            >
+          >(),
         );
 
         // Subcollections should also be properly typed
         expect(
           odm.users('test').posts,
-          isA<FirestoreCollection<TestSchema, Post, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Post,
+              dynamic,
+              PostPatchBuilder,
+              PostFilterBuilderRoot,
+              PostOrderByBuilder,
+              PostAggregateBuilderRoot
+            >
+          >(),
         );
         expect(
           odm.users('test').sharedPosts,
-          isA<FirestoreCollection<TestSchema, SharedPost, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              SharedPost,
+              dynamic,
+              SharedPostPatchBuilder,
+              SharedPostFilterBuilderRoot,
+              SharedPostOrderByBuilder,
+              SharedPostAggregateBuilderRoot
+            >
+          >(),
         );
       });
 

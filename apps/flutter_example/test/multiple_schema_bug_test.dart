@@ -238,7 +238,7 @@ void main() {
           await Future.wait([
             mainODM.runTransaction((tx) async {
               final currentUser = await tx.users(user.id).get();
-              await tx.users(user.id).patch(($) => [
+              tx.users(user.id).patch(($) => [
                 $.name('Main TX Updated'),
                 $.rating.increment(0.5),
               ]);
@@ -301,11 +301,11 @@ void main() {
             mainODM.users
                 .where(($) => $.isActive(isEqualTo: true)
                     .and($.rating(isGreaterThan: 3.0)))
-                .orderBy(($) => $.age.asc())
+                .orderBy(($) => ($.age(), ))
                 .get(),
             secondaryODM.secondaryUsers
                 .where(($) => $.isPremium(isEqualTo: true))
-                .orderBy(($) => $.rating.desc())
+                .orderBy(($) => ($.rating(descending: true), ))
                 .get(),
             mainODM.users
                 .where(($) => $.profile.interests(arrayContains: 'query'))

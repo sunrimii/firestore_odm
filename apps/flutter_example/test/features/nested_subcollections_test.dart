@@ -21,13 +21,13 @@ void main() {
       test('should have correct paths for all comment collections', () {
         // Root comments collection
         expect(odm.comments.query.path, equals('comments'));
-        
+
         // Comments on main posts collection
         expect(
           odm.posts('post_id').comments.query.path,
           equals('posts/post_id/comments'),
         );
-        
+
         // Comments on user posts (deeply nested)
         expect(
           odm.users('user_id').posts('post_id').comments.query.path,
@@ -35,15 +35,21 @@ void main() {
         );
       });
 
-      test('should access nested collections through proper parent documents', () {
-        final userDoc = odm.users('test_user');
-        final postDoc = userDoc.posts('test_post');
-        final commentsCollection = postDoc.comments;
+      test(
+        'should access nested collections through proper parent documents',
+        () {
+          final userDoc = odm.users('test_user');
+          final postDoc = userDoc.posts('test_post');
+          final commentsCollection = postDoc.comments;
 
-        expect(userDoc.ref.path, equals('users/test_user'));
-        expect(postDoc.ref.path, equals('users/test_user/posts/test_post'));
-        expect(commentsCollection.query.path, equals('users/test_user/posts/test_post/comments'));
-      });
+          expect(userDoc.ref.path, equals('users/test_user'));
+          expect(postDoc.ref.path, equals('users/test_user/posts/test_post'));
+          expect(
+            commentsCollection.query.path,
+            equals('users/test_user/posts/test_post/comments'),
+          );
+        },
+      );
     });
 
     group('💬 Root Level Comments', () {
@@ -59,7 +65,7 @@ void main() {
         );
 
         await odm.comments('root_comment_1').update(comment);
-        
+
         final retrieved = await odm.comments('root_comment_1').get();
         expect(retrieved, isNotNull);
         expect(retrieved!.content, equals('This is a root level comment'));
@@ -97,46 +103,58 @@ void main() {
             .get();
 
         expect(postComments.length, equals(2));
-        expect(postComments.map((c) => c.id).toSet(), equals({'root_1', 'root_2'}));
+        expect(
+          postComments.map((c) => c.id).toSet(),
+          equals({'root_1', 'root_2'}),
+        );
       });
     });
 
     group('📝 Comments on Main Posts', () {
-      test('should create and access comments on main posts collection', () async {
-        // Create a post in main collection
-        final post = Post(
-          id: 'main_post_1',
-          title: 'Main Post with Comments',
-          content: 'This post will have comments',
-          authorId: 'post_author',
-          tags: ['discussion'],
-          metadata: {},
-          likes: 20,
-          published: true,
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should create and access comments on main posts collection',
+        () async {
+          // Create a post in main collection
+          final post = Post(
+            id: 'main_post_1',
+            title: 'Main Post with Comments',
+            content: 'This post will have comments',
+            authorId: 'post_author',
+            tags: ['discussion'],
+            metadata: {},
+            likes: 20,
+            published: true,
+            createdAt: DateTime.now(),
+          );
 
-        await odm.posts('main_post_1').update(post);
+          await odm.posts('main_post_1').update(post);
 
-        // Add comment to the post
-        final comment = Comment(
-          id: 'main_comment_1',
-          content: 'Great post!',
-          authorId: 'commenter_1',
-          authorName: 'Comment Author',
-          postId: 'main_post_1',
-          likes: 3,
-          createdAt: DateTime.now(),
-        );
+          // Add comment to the post
+          final comment = Comment(
+            id: 'main_comment_1',
+            content: 'Great post!',
+            authorId: 'commenter_1',
+            authorName: 'Comment Author',
+            postId: 'main_post_1',
+            likes: 3,
+            createdAt: DateTime.now(),
+          );
 
-        await odm.posts('main_post_1').comments('main_comment_1').update(comment);
+          await odm
+              .posts('main_post_1')
+              .comments('main_comment_1')
+              .update(comment);
 
-        // Retrieve comment
-        final retrieved = await odm.posts('main_post_1').comments('main_comment_1').get();
-        expect(retrieved, isNotNull);
-        expect(retrieved!.content, equals('Great post!'));
-        expect(retrieved.postId, equals('main_post_1'));
-      });
+          // Retrieve comment
+          final retrieved = await odm
+              .posts('main_post_1')
+              .comments('main_comment_1')
+              .get();
+          expect(retrieved, isNotNull);
+          expect(retrieved!.content, equals('Great post!'));
+          expect(retrieved.postId, equals('main_post_1'));
+        },
+      );
 
       test('should query comments within a main post', () async {
         final post = Post(
@@ -261,20 +279,23 @@ void main() {
 
       test('should demonstrate the issue: comments extension location', () {
         // This test demonstrates the architectural issue mentioned in the GitHub issue
-        
+
         final userDoc = odm.users('test_user');
         final postDoc = userDoc.posts('test_post');
-        
+
         // Comments should be accessible through the post document
         // This is the CORRECT way according to the issue:
         final commentsViaPost = postDoc.comments;
-        expect(commentsViaPost.query.path, equals('users/test_user/posts/test_post/comments'));
-        
+        expect(
+          commentsViaPost.query.path,
+          equals('users/test_user/posts/test_post/comments'),
+        );
+
         // The issue is that the generator might create comments extension on User instead of Post
         // If there was a comments extension directly on User document, it would be wrong:
         // userDoc.comments would point to 'users/test_user/comments' which is NOT what we want
         // for the deeply nested collection 'users/*/posts/*/comments'
-        
+
         // The correct pattern should be: user -> post -> comments
         // NOT: user -> comments (for deeply nested collections)
       });
@@ -390,7 +411,10 @@ void main() {
           createdAt: DateTime.now(),
         );
 
-        await odm.posts('cross_post_main').comments('cross_main').update(mainComment);
+        await odm
+            .posts('cross_post_main')
+            .comments('cross_main')
+            .update(mainComment);
 
         // Create a comment in user posts subcollection
         final user = User(
@@ -444,7 +468,10 @@ void main() {
             .update(userComment);
 
         // Verify both comments exist in their respective locations
-        final mainRetrieved = await odm.posts('cross_post_main').comments('cross_main').get();
+        final mainRetrieved = await odm
+            .posts('cross_post_main')
+            .comments('cross_main')
+            .get();
         final userRetrieved = await odm
             .users('cross_user')
             .posts('cross_post_user')
@@ -461,156 +488,255 @@ void main() {
     group('🧪 Type Safety and Extensions', () {
       test('should maintain proper type safety for nested collections', () {
         // Verify type safety at each level
-        expect(odm.users, isA<FirestoreCollection<TestSchema, User, dynamic>>());
-        expect(odm.posts, isA<FirestoreCollection<TestSchema, Post, dynamic>>());
-        expect(odm.comments, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
+        expect(
+          odm.users,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              User,
+              dynamic,
+              UserPatchBuilder,
+              UserFilterBuilderRoot,
+              UserOrderByBuilder,
+              UserAggregateBuilderRoot
+            >
+          >(),
+        );
+        expect(
+          odm.posts,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Post,
+              dynamic,
+              PostPatchBuilder,
+              PostFilterBuilderRoot,
+              PostOrderByBuilder,
+              PostAggregateBuilderRoot
+            >
+          >(),
+        );
+        expect(
+          odm.comments,
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Comment,
+              dynamic,
+              CommentPatchBuilder,
+              CommentFilterBuilderRoot,
+              CommentOrderByBuilder,
+              CommentAggregateBuilderRoot
+            >
+          >(),
+        );
 
         // Verify subcollection types
         expect(
           odm.users('test').posts,
-          isA<FirestoreCollection<TestSchema, Post, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Post,
+              dynamic,
+              PostPatchBuilder,
+              PostFilterBuilderRoot,
+              PostOrderByBuilder,
+              PostAggregateBuilderRoot
+            >
+          >(),
         );
         expect(
           odm.posts('test').comments,
-          isA<FirestoreCollection<TestSchema, Comment, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Comment,
+              dynamic,
+              CommentPatchBuilder,
+              CommentFilterBuilderRoot,
+              CommentOrderByBuilder,
+              CommentAggregateBuilderRoot
+            >
+          >(),
         );
         expect(
           odm.users('test').posts('test').comments,
-          isA<FirestoreCollection<TestSchema, Comment, dynamic>>(),
+          isA<
+            FirestoreCollection<
+              TestSchema,
+              Comment,
+              dynamic,
+              CommentPatchBuilder,
+              CommentFilterBuilderRoot,
+              CommentOrderByBuilder,
+              CommentAggregateBuilderRoot
+            >
+          >(),
         );
 
         // Verify document types
         expect(
           odm.users('test'),
-          isA<FirestoreDocument<TestSchema, User, dynamic>>(),
+          isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
         );
         expect(
           odm.posts('test'),
-          isA<FirestoreDocument<TestSchema, Post, dynamic>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
         );
         expect(
           odm.users('test').posts('test'),
-          isA<FirestoreDocument<TestSchema, Post, dynamic>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
         );
       });
 
-      test('should demonstrate correct extension placement for nested collections', () {
-        // This test verifies that the code generator places extensions correctly
-        
-        // For collection "users/*/posts/*/comments":
-        // - Comments extension should be on FirestoreDocument<TestSchema, Post>
-        // - NOT on FirestoreDocument<TestSchema, User>
-        
-        final userDoc = odm.users('extension_user');
-        final postDoc = userDoc.posts('extension_post');
-        
-        // Comments should be accessible through post document
-        final commentsCollection = postDoc.comments;
-        expect(commentsCollection, isA<FirestoreCollection<TestSchema, Comment, dynamic>>());
-        expect(commentsCollection.query.path, equals('users/extension_user/posts/extension_post/comments'));
-        
-        // This is the architectural pattern that should work:
-        // users('id') -> posts('id') -> comments
-        // Each step in the chain should provide access to the next level
-      });
+      test(
+        'should demonstrate correct extension placement for nested collections',
+        () {
+          // This test verifies that the code generator places extensions correctly
+
+          // For collection "users/*/posts/*/comments":
+          // - Comments extension should be on FirestoreDocument<TestSchema, Post>
+          // - NOT on FirestoreDocument<TestSchema, User>
+
+          final userDoc = odm.users('extension_user');
+          final postDoc = userDoc.posts('extension_post');
+
+          // Comments should be accessible through post document
+          final commentsCollection = postDoc.comments;
+          expect(
+            commentsCollection,
+            isA<
+              FirestoreCollection<
+                TestSchema,
+                Comment,
+                dynamic,
+                CommentPatchBuilder,
+                CommentFilterBuilderRoot,
+                CommentOrderByBuilder,
+                CommentAggregateBuilderRoot
+              >
+            >(),
+          );
+          expect(
+            commentsCollection.query.path,
+            equals('users/extension_user/posts/extension_post/comments'),
+          );
+
+          // This is the architectural pattern that should work:
+          // users('id') -> posts('id') -> comments
+          // Each step in the chain should provide access to the next level
+        },
+      );
     });
 
     group('🎯 Batch Operations with Nested Collections', () {
-      test('should support batch operations across nested comment collections', () async {
-        // Set up user and post
-        final user = User(
-          id: 'batch_user',
-          name: 'Batch User',
-          email: 'batch@example.com',
-          age: 40,
-          profile: Profile(
-            bio: 'Batch testing user',
-            avatar: 'batch.jpg',
-            socialLinks: {},
-            interests: ['batch_testing'],
-            followers: 300,
-          ),
-          rating: 4.9,
-          isActive: true,
-          isPremium: true,
-          createdAt: DateTime.now(),
-        );
+      test(
+        'should support batch operations across nested comment collections',
+        () async {
+          // Set up user and post
+          final user = User(
+            id: 'batch_user',
+            name: 'Batch User',
+            email: 'batch@example.com',
+            age: 40,
+            profile: Profile(
+              bio: 'Batch testing user',
+              avatar: 'batch.jpg',
+              socialLinks: {},
+              interests: ['batch_testing'],
+              followers: 300,
+            ),
+            rating: 4.9,
+            isActive: true,
+            isPremium: true,
+            createdAt: DateTime.now(),
+          );
 
-        await odm.users('batch_user').update(user);
+          await odm.users('batch_user').update(user);
 
-        final post = Post(
-          id: 'batch_post',
-          title: 'Batch Operations Post',
-          content: 'Testing batch operations with nested comments',
-          authorId: 'batch_user',
-          tags: ['batch'],
-          metadata: {},
-          likes: 25,
-          published: true,
-          createdAt: DateTime.now(),
-        );
+          final post = Post(
+            id: 'batch_post',
+            title: 'Batch Operations Post',
+            content: 'Testing batch operations with nested comments',
+            authorId: 'batch_user',
+            tags: ['batch'],
+            metadata: {},
+            likes: 25,
+            published: true,
+            createdAt: DateTime.now(),
+          );
 
-        await odm.users('batch_user').posts('batch_post').update(post);
+          await odm.users('batch_user').posts('batch_post').update(post);
 
-        // Perform batch operations with nested comments
-        await odm.runBatch((batch) {
-          // Add multiple comments in a batch
-          batch
+          // Perform batch operations with nested comments
+          await odm.runBatch((batch) {
+            // Add multiple comments in a batch
+            batch
+                .users('batch_user')
+                .posts('batch_post')
+                .comments
+                .insert(
+                  Comment(
+                    id: 'batch_comment_1',
+                    content: 'First batch comment',
+                    authorId: 'batch_commenter_1',
+                    authorName: 'Batch Commenter 1',
+                    postId: 'batch_post',
+                    likes: 0,
+                    createdAt: DateTime.now(),
+                  ),
+                );
+
+            batch
+                .users('batch_user')
+                .posts('batch_post')
+                .comments
+                .insert(
+                  Comment(
+                    id: 'batch_comment_2',
+                    content: 'Second batch comment',
+                    authorId: 'batch_commenter_2',
+                    authorName: 'Batch Commenter 2',
+                    postId: 'batch_post',
+                    likes: 0,
+                    createdAt: DateTime.now(),
+                  ),
+                );
+
+            // Update a comment's likes using collection update
+            batch
+                .users('batch_user')
+                .posts('batch_post')
+                .comments
+                .update(
+                  Comment(
+                    id: 'batch_comment_1',
+                    content: 'First batch comment',
+                    authorId: 'batch_commenter_1',
+                    authorName: 'Batch Commenter 1',
+                    postId: 'batch_post',
+                    likes: 5, // Updated likes
+                    createdAt: DateTime.now(),
+                  ),
+                );
+          });
+
+          // Verify batch operations
+          final comments = await odm
               .users('batch_user')
               .posts('batch_post')
               .comments
-              .insert(Comment(
-                id: 'batch_comment_1',
-                content: 'First batch comment',
-                authorId: 'batch_commenter_1',
-                authorName: 'Batch Commenter 1',
-                postId: 'batch_post',
-                likes: 0,
-                createdAt: DateTime.now(),
-              ));
+              .get();
 
-          batch
-              .users('batch_user')
-              .posts('batch_post')
-              .comments
-              .insert(Comment(
-                id: 'batch_comment_2',
-                content: 'Second batch comment',
-                authorId: 'batch_commenter_2',
-                authorName: 'Batch Commenter 2',
-                postId: 'batch_post',
-                likes: 0,
-                createdAt: DateTime.now(),
-              ));
+          expect(comments.length, equals(2));
 
-          // Update a comment's likes using collection update
-          batch
-              .users('batch_user')
-              .posts('batch_post')
-              .comments
-              .update(Comment(
-                id: 'batch_comment_1',
-                content: 'First batch comment',
-                authorId: 'batch_commenter_1',
-                authorName: 'Batch Commenter 1',
-                postId: 'batch_post',
-                likes: 5, // Updated likes
-                createdAt: DateTime.now(),
-              ));
-        });
-
-        // Verify batch operations
-        final comments = await odm
-            .users('batch_user')
-            .posts('batch_post')
-            .comments
-            .get();
-
-        expect(comments.length, equals(2));
-        
-        final firstComment = comments.firstWhere((c) => c.id == 'batch_comment_1');
-        expect(firstComment.likes, equals(5)); // Should be updated by patch
-      });
+          final firstComment = comments.firstWhere(
+            (c) => c.id == 'batch_comment_1',
+          );
+          expect(firstComment.likes, equals(5)); // Should be updated by patch
+        },
+      );
     });
   });
 }

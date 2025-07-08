@@ -76,6 +76,14 @@ class FirestoreFilter {
         value: other.value,
         filters: other.filters,
       );
+
+  FirestoreFilter and(FirestoreFilter other) {
+    return FirestoreFilter.and([...?filters, other]);
+  }
+
+  FirestoreFilter or(FirestoreFilter other) {
+    return FirestoreFilter.or([...?filters, other]);
+  }
 }
 
 /// Base filter builder class using Node-based architecture
@@ -753,12 +761,11 @@ abstract class ArrayFieldFilter<T> implements CallableFilter {
     FieldPathType? type,
   }) = ArrayFieldFilterImpl;
 
-
   FirestoreFilter call({
     List<T>? isEqualTo,
     List<T>? isNotEqualTo,
     T? arrayContains,
-    List<T>? arrayContainsAny
+    List<T>? arrayContainsAny,
   });
 }
 
