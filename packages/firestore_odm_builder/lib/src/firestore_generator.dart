@@ -129,7 +129,7 @@ class FirestoreGenerator3 extends Generator {
 
 
       specs.addAll(
-        FilterGenerator.generateFilterSelectorClasses(
+        FilterGenerator.generateClasses(
           element.thisType,
           modelAnalyzer: modelAnalyzer,
         ),
@@ -144,7 +144,7 @@ class FirestoreGenerator3 extends Generator {
       );
 
       specs.addAll(
-        AggregateGenerator.generateAggregateClasses(
+        AggregateGenerator.generateClasses(
           element.thisType,
           modelAnalyzer: modelAnalyzer,
         ),

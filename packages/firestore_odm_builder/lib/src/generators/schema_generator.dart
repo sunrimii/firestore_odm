@@ -61,9 +61,20 @@ class SchemaGenerator {
     TopLevelVariableElement variableElement,
     List<SchemaCollectionInfo> collections,
   ) {
+    // Create fresh instances for this schema to avoid cache pollution
+    final modelAnalyzer = ModelAnalyzer();
+    final converterFactory = ConverterFactory(modelAnalyzer);
+
+    validate(collections: collections, modelAnalyzer: modelAnalyzer);
+
     final library = Library(
       (b) => b.body.addAll(
-        generateAllLibraryMembers(variableElement, collections),
+        generateAllLibraryMembers(
+          variableElement: variableElement,
+          collections: collections,
+          modelAnalyzer: modelAnalyzer,
+          converterFactory: converterFactory,
+        ),
       ),
     );
 
@@ -262,6 +273,47 @@ class SchemaGenerator {
     return path.split('/').last;
   }
 
+  static void validate({
+    required List<SchemaCollectionInfo> collections,
+    required ModelAnalyzer modelAnalyzer,
+  }) {
+    // Ensure all collections have unique paths
+    final uniquePaths = <String>{};
+    for (final collection in collections) {
+      if (!uniquePaths.add(collection.path)) {
+        throw ArgumentError(
+          'Duplicate collection path found: ${collection.path}',
+        );
+      }
+    }
+
+    // Ensure no subcollection has the same path as a root collection
+    final rootPaths = collections
+        .where((c) => !c.isSubcollection)
+        .map((c) => c.path)
+        .toSet();
+    for (final collection in collections.where((c) => c.isSubcollection)) {
+      if (rootPaths.contains(collection.path)) {
+        throw ArgumentError(
+          'Subcollection path "${collection.path}" conflicts with root collection',
+        );
+      }
+    }
+    const odmTypeChecker = TypeChecker.fromRuntime(FirestoreOdm);
+    final missingAnnotations = collections
+        .expand((c) => run(c.modelType, modelAnalyzer))
+        .where(isUserType)
+        .whereType<InterfaceType>()
+        .map((t) => t.element.thisType)
+        .where((t) => !odmTypeChecker.hasAnnotationOf(t.element));
+    if (missingAnnotations.isNotEmpty) {
+      throw ArgumentError(
+        'The following model types are missing @FirestoreOdm annotation: '
+        '${missingAnnotations.map((t) => t.element.name).join(', ')}',
+      );
+    }
+  }
+
   static List<Spec> generateAllLibraryMembers2(
     ClassElement classElement,
     List<SchemaCollectionInfo> collections,
@@ -277,14 +329,14 @@ class SchemaGenerator {
     // temporary: use class name as schema type name
     final schemaClassName = collections.first.schemaTypeName;
 
-    specs.addAll(
-      generateFilterAndOrderBySelectors(
-        collections,
-        schemaClassName,
-        converterFactory: converterFactory,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    // specs.addAll(
+    //   generateFilterAndOrderBySelectors(
+    //     collections,
+    //     schemaClassName,
+    //     converterFactory: converterFactory,
+    //     modelAnalyzer: modelAnalyzer,
+    //   ),
+    // );
     // Generate filter and order by builders for each model type
 
     // Generate ODM extensions
@@ -353,15 +405,13 @@ class SchemaGenerator {
   }
 
   /// Generate all library members
-  static List<Spec> generateAllLibraryMembers(
-    TopLevelVariableElement variableElement,
-    List<SchemaCollectionInfo> collections,
-  ) {
+  static List<Spec> generateAllLibraryMembers({
+    required TopLevelVariableElement variableElement,
+    required List<SchemaCollectionInfo> collections,
+    required ModelAnalyzer modelAnalyzer,
+    required ConverterFactory converterFactory,
+  }) {
     final specs = <Spec>[];
-
-    // Create fresh instances for this schema to avoid cache pollution
-    final modelAnalyzer = ModelAnalyzer();
-    final converterFactory = ConverterFactory(modelAnalyzer);
 
     specs.addAll(generateCollectionIdentifiers(collections));
 
@@ -378,14 +428,14 @@ class SchemaGenerator {
       generateSchemaClassAndConstant(schemaClassName, schemaConstName),
     );
 
-    specs.addAll(
-      generateFilterAndOrderBySelectors(
-        collections,
-        schemaClassName,
-        converterFactory: converterFactory,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    // specs.addAll(
+    //   generateFilterAndOrderBySelectors(
+    //     collections,
+    //     schemaClassName,
+    //     converterFactory: converterFactory,
+    //     modelAnalyzer: modelAnalyzer,
+    //   ),
+    // );
     // Generate filter and order by builders for each model type
 
     // Generate ODM extensions
@@ -588,7 +638,11 @@ class SchemaGenerator {
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
             _getPatchBuilderType(collection),
-            FilterGenerator.getRootFilterBuilderType(collection.modelType),
+            FilterGenerator.getBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
+              isRoot: true,
+            ),
             OrderByGenerator.getOrderByBuilderType(
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
@@ -626,9 +680,11 @@ class SchemaGenerator {
                     converterFactory: converterFactory,
                   ),
                   'filterBuilder':
-                      FilterGenerator.getRootFilterBuilderInstanceExpression(
-                        collection.modelType,
-                      ),
+                      FilterGenerator.getBuilderInstanceExpression(
+                    type: collection.modelType,
+                    modelAnalyzer: modelAnalyzer,
+                    isRoot: true,
+                  ),
                   'orderByBuilderFunc': Method(
                     (b) => b
                       ..requiredParameters.add(
@@ -703,7 +759,10 @@ class SchemaGenerator {
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
             _getPatchBuilderType(collection),
-            FilterGenerator.getRootFilterBuilderType(collection.modelType),
+            FilterGenerator.getBuilderType(
+              type: collection.modelType,
+              modelAnalyzer: modelAnalyzer,
+            ),
             OrderByGenerator.getOrderByBuilderType(
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
@@ -741,9 +800,11 @@ class SchemaGenerator {
                     converterFactory: converterFactory,
                   ),
                   'filterBuilder':
-                      FilterGenerator.getRootFilterBuilderInstanceExpression(
-                        collection.modelType,
-                      ),
+                      FilterGenerator.getBuilderInstanceExpression(
+                    type: collection.modelType,
+                    modelAnalyzer: modelAnalyzer,
+                    isRoot: true,
+                  ),
                   'orderByBuilderFunc': Method(
                     (b) => b
                       ..requiredParameters.add(
@@ -1056,7 +1117,11 @@ class SchemaGenerator {
               subcol.modelType.reference,
               _getPathRecord(subcol.path),
               _getPatchBuilderType(subcol),
-              FilterGenerator.getRootFilterBuilderType(subcol.modelType),
+              FilterGenerator.getBuilderType(
+                type: subcol.modelType,
+                modelAnalyzer: modelAnalyzer,
+                isRoot: true,
+              ),
               OrderByGenerator.getOrderByBuilderType(
                 type: subcol.modelType,
                 modelAnalyzer: modelAnalyzer,
@@ -1092,9 +1157,11 @@ class SchemaGenerator {
                       converterFactory: converterFactory,
                     ),
                     'filterBuilder':
-                        FilterGenerator.getRootFilterBuilderInstanceExpression(
-                          subcol.modelType,
-                        ),
+                      FilterGenerator.getBuilderInstanceExpression(
+                    type: subcol.modelType,
+                    modelAnalyzer: modelAnalyzer,
+                    isRoot: true,
+                  ),
                     'orderByBuilderFunc': Method(
                       (b) => b
                         ..requiredParameters.add(

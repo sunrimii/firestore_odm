@@ -18,7 +18,8 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 class Query<
   S extends FirestoreSchema,
   T,
-  F extends RootFilterSelector<T>,
+  P extends PatchBuilder<T>,
+  F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
 >
@@ -38,6 +39,8 @@ class Query<
   /// The underlying Firestore query
   final firestore.Query<Map<String, dynamic>> _query;
 
+  final P _patchBuilder;
+
   final F _filterBuilder;
 
   final OB Function(OrderByContext) _orderByBuilderFunc;
@@ -48,12 +51,14 @@ class Query<
     required firestore.Query<Map<String, dynamic>> query,
     required FirestoreConverter<T, Map<String, dynamic>> converter,
     required String documentIdField,
+    required P patchBuilder,
     required F filterBuilder,
     required OB Function(OrderByContext) orderByBuilderFunc,
     required AB Function(AggregateContext) aggregateBuilderFunc,
   }) : _query = query,
        _converter = converter,
        _documentIdFieldName = documentIdField,
+       _patchBuilder = patchBuilder,
        _filterBuilder = filterBuilder,
        _orderByBuilderFunc = orderByBuilderFunc,
        _aggregateBuilderFunc = aggregateBuilderFunc;
@@ -66,13 +71,14 @@ class Query<
   Stream<List<T>> get stream =>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdFieldName);
 
-  Query<S, T, F, OB, AB> _newQuery(
+  Query<S, T, P, F, OB, AB> _newQuery(
     firestore.Query<Map<String, dynamic>> newQuery,
   ) {
-    return Query<S, T, F, OB, AB>(
+    return Query<S, T, P, F, OB, AB>(
       query: newQuery,
       converter: _converter,
       documentIdField: _documentIdFieldName,
+      patchBuilder: _patchBuilder,
       filterBuilder: _filterBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
       aggregateBuilderFunc: _aggregateBuilderFunc,
@@ -80,7 +86,7 @@ class Query<
   }
 
   @override
-  Query<S, T, F, OB, AB> where(FirestoreFilter Function(F builder) filterFunc) {
+  Query<S, T, P, F, OB, AB> where(FirestoreFilter Function(F builder) filterFunc) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     // Handle different types of query objects
@@ -88,7 +94,7 @@ class Query<
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> orderBy<O extends Record>(
+  OrderedQuery<S, T, O, P, F, OB, AB> orderBy<O extends Record>(
     O Function(OB selector) orderByFunc,
   ) {
     final config = QueryOrderbyHandler.buildOrderBy<T, O, OB>(
@@ -97,34 +103,35 @@ class Query<
       documentIdFieldName: _documentIdFieldName,
     );
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
-    return OrderedQuery<S, T, O, OB ,AB>(
+    return OrderedQuery<S, T, O, P, F, OB ,AB>(
       query: newQuery,
       converter: _converter,
       documentIdField: _documentIdFieldName,
       orderByConfig: config,
+      patchBuilder: _patchBuilder,
+      filterBuilder: _filterBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
       aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
   @override
-  Query<S, T, F, OB, AB> limit(int limit) {
+  Query<S, T, P, F, OB, AB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
     return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB, AB> limitToLast(int limit) {
+  Query<S, T, P, F, OB, AB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
     return _newQuery(newQuery);
   }
 
   @override
   Future<void> patch(
-    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patches,
+    List<UpdateOperation> Function(P patchBuilder) patches,
   ) {
-    final builder = PatchBuilder<T>(converter: _converter);
-    final operations = patches(builder);
+    final operations = patches(_patchBuilder);
     return QueryHandler.patch(_query, operations);
   }
 

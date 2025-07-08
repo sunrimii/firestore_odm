@@ -134,6 +134,8 @@ class OrderedQuery<
   S extends FirestoreSchema,
   T,
   O extends Record,
+  P extends PatchBuilder<T>,
+  F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
 >
@@ -156,6 +158,10 @@ class OrderedQuery<
 
   final OrderByConfiguration<O, OB> _orderByConfig;
 
+  final P _patchBuilder;
+
+  final F _filterBuilder;
+
   final OB Function(OrderByContext context) _orderByBuilderFunc;
 
   final AB Function(AggregateContext context) _aggregateBuilderFunc;
@@ -165,12 +171,16 @@ class OrderedQuery<
     required FirestoreConverter<T, Map<String, dynamic>> converter,
     required String documentIdField,
     required OrderByConfiguration<O, OB> orderByConfig,
+    required P patchBuilder,
+    required F filterBuilder,
     required OB Function(OrderByContext context) orderByBuilderFunc,
     required AB Function(AggregateContext context) aggregateBuilderFunc,
   }) : _query = query,
        _converter = converter,
        _documentIdField = documentIdField,
        _orderByConfig = orderByConfig,
+       _patchBuilder = patchBuilder,
+       _filterBuilder = filterBuilder,
        _orderByBuilderFunc = orderByBuilderFunc,
        _aggregateBuilderFunc = aggregateBuilderFunc;
 
@@ -182,40 +192,42 @@ class OrderedQuery<
   Stream<List<T>?> get stream =>
       QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
 
-  OrderedQuery<S, T, O, OB, AB> _newQuery(
+  OrderedQuery<S, T, O, P, F, OB, AB> _newQuery(
     firestore.Query<Map<String, dynamic>> newQuery,
   ) {
-    return OrderedQuery<S, T, O, OB, AB>(
+    return OrderedQuery<S, T, O, P, F, OB, AB>(
       query: newQuery,
       converter: _converter,
       documentIdField: _documentIdField,
       orderByConfig: _orderByConfig,
+      filterBuilder: _filterBuilder,
+      patchBuilder: _patchBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
       aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> limit(int limit) {
+  OrderedQuery<S, T, O, P, F, OB, AB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(_query, limit);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> limitToLast(int limit) {
+  OrderedQuery<S, T, O, P, F, OB, AB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(_query, limit);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> endAt(O cursorValues) {
+  OrderedQuery<S, T, O, P, F, OB, AB> endAt(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyEndAt(_query, cursors);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> endAtObject(T object) {
+  OrderedQuery<S, T, O, P, F, OB, AB> endAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
       toJson: _converter.toJson,
@@ -228,14 +240,14 @@ class OrderedQuery<
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> endBefore(O cursorValues) {
+  OrderedQuery<S, T, O, P, F, OB, AB> endBefore(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyEndBefore(_query, cursors);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> endBeforeObject(T object) {
+  OrderedQuery<S, T, O, P, F, OB, AB> endBeforeObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
       toJson: _converter.toJson,
@@ -248,14 +260,14 @@ class OrderedQuery<
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> startAfter(O cursorValues) {
+  OrderedQuery<S, T, O, P, F, OB, AB> startAfter(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyStartAfter(_query, cursors);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> startAfterObject(T object) {
+  OrderedQuery<S, T, O, P, F, OB, AB> startAfterObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
       toJson: _converter.toJson,
@@ -268,14 +280,14 @@ class OrderedQuery<
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> startAt(O cursorValues) {
+  OrderedQuery<S, T, O, P, F, OB, AB> startAt(O cursorValues) {
     final cursors = QueryPaginationHandler.build(cursorValues);
     final newQuery = QueryPaginationHandler.applyStartAt(_query, cursors);
     return _newQuery(newQuery);
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> startAtObject(T object) {
+  OrderedQuery<S, T, O, P, F, OB, AB> startAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
       toJson: _converter.toJson,
@@ -288,20 +300,22 @@ class OrderedQuery<
   }
 
   @override
-  OrderedQuery<S, T, O, OB, AB> where(
-    FirestoreFilter Function(RootFilterSelector<T> builder) filterBuilder,
+  OrderedQuery<S, T, O, P, F, OB, AB> where(
+    FirestoreFilter Function(F builder) filterBuilder,
   ) {
-    final filter = QueryFilterHandler.buildFilter(filterBuilder);
+    final filter = QueryFilterHandler.buildFilter(
+      filterBuilder: filterBuilder,
+      builderRoot: _filterBuilder
+    );
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     return _newQuery(newQuery);
   }
 
   @override
   Future<void> patch(
-    List<UpdateOperation> Function(PatchBuilder<T> patchBuilder) patches,
+    List<UpdateOperation> Function(P patchBuilder) patches,
   ) {
-    final builder = PatchBuilder<T>(converter: _converter);
-    final operations = patches(builder);
+    final operations = patches(_patchBuilder);
     return QueryHandler.patch(_query, operations);
   }
 
@@ -344,7 +358,7 @@ class OrderedQuery<
 
   @override
   AggregateQuery<T, R, AB> aggregate<R extends Record>(
-    R Function(AggregateBuilderRoot selector) builder,
+    R Function(AB selector) builder,
   ) {
     final config = QueryAggregatableHandler.buildAggregate(builder, 
       _aggregateBuilderFunc,

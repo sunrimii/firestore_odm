@@ -120,7 +120,7 @@ class AggregateGenerator {
     );
   }
 
-  static List<Spec> generateAggregateClasses(
+  static List<Spec> generateClasses(
     InterfaceType type, {
     required ModelAnalyzer modelAnalyzer,
   }) {

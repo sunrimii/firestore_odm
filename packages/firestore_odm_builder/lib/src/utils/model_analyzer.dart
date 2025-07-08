@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -149,7 +150,8 @@ bool isPrimitive(DartType type) {
       type.isDartCoreDouble ||
       type.isDartCoreString ||
       type.isDartCoreNull ||
-      type.isDartCoreList ||
-      type.isDartCoreMap ||
+      TypeChecker.fromRuntime(Iterable).isAssignableFromType(type) ||
+      TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
+      TypeChecker.fromRuntime(IMap).isAssignableFromType(type) ||
       type.name == 'dynamic';
 }

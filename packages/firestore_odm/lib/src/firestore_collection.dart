@@ -19,7 +19,7 @@ class FirestoreCollection<
   T,
   Path extends Record,
   P extends PatchBuilder<T>,
-  F extends RootFilterSelector<T>,
+  F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
 >
@@ -105,7 +105,7 @@ class FirestoreCollection<
       QueryHandler.stream(query, converter.fromJson, documentIdField);
 
   @override
-  OrderedQuery<S, T, O, OB, AB> orderBy<O extends Record>(
+  OrderedQuery<S, T, O, P, F, OB, AB> orderBy<O extends Record>(
     O Function(OB selector) orderByFunc,
   ) {
     final config = QueryOrderbyHandler.buildOrderBy(
@@ -119,18 +119,21 @@ class FirestoreCollection<
       converter: converter,
       documentIdField: documentIdField,
       orderByConfig: config,
+      patchBuilder: _patchBuilder,
+      filterBuilder: _filterBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
       aggregateBuilderFunc: _aggregateBuilderFunc,
     );
   }
 
-  Query<S, T, F, OB, AB> _newQuery(
+  Query<S, T, P, F, OB, AB> _newQuery(
     firestore.Query<Map<String, dynamic>> newQuery,
   ) {
-    return Query<S, T, F, OB, AB>(
+    return Query<S, T, P, F, OB, AB>(
       query: newQuery,
       converter: converter,
       documentIdField: documentIdField,
+      patchBuilder: _patchBuilder,
       filterBuilder: _filterBuilder,
       orderByBuilderFunc: _orderByBuilderFunc,
       aggregateBuilderFunc: _aggregateBuilderFunc,
@@ -138,20 +141,20 @@ class FirestoreCollection<
   }
 
   @override
-  Query<S, T, F, OB, AB> where(FirestoreFilter Function(F selector) filterFunc) {
+  Query<S, T, P, F, OB, AB> where(FirestoreFilter Function(F selector) filterFunc) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);
     return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB, AB> limit(int limit) {
+  Query<S, T, P, F, OB, AB> limit(int limit) {
     final newQuery = QueryLimitHandler.applyLimit(query, limit);
     return _newQuery(newQuery);
   }
 
   @override
-  Query<S, T, F, OB, AB> limitToLast(int limit) {
+  Query<S, T, P, F, OB, AB> limitToLast(int limit) {
     final newQuery = QueryLimitHandler.applyLimitToLast(query, limit);
     return _newQuery(newQuery);
   }
