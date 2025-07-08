@@ -12,14 +12,14 @@ typedef AggregateBuilderFunc<AB extends AggregateFieldNode> =
     });
 
 abstract class AggregateContext {
-  R resolve<R extends num>(AggregateOperation operation);
+  R resolve<R extends num?>(AggregateOperation operation);
 }
 
 class AggregateBuilderContext extends AggregateContext {
   final List<AggregateOperation> operations = [];
 
   @override
-  R resolve<R extends num>(AggregateOperation operation) {
+  R resolve<R extends num?>(AggregateOperation operation) {
     operations.add(operation);
     return defaultValue<R>();
   }
@@ -31,16 +31,18 @@ class AggregateResultContext extends AggregateContext {
   AggregateResultContext(this.results);
 
   @override
-  R resolve<R extends num>(AggregateOperation operation) {
+  R resolve<R extends num?>(AggregateOperation operation) {
     if (results.containsKey(operation.key)) {
       final value = results[operation.key];
-      if (value is R) {
-        return value;
-      } else {
-        throw ArgumentError(
-          'Expected result for ${operation.key} to be of type $R, but got ${value.runtimeType}',
-        );
-      }
+      return value is R
+          ? value
+          : R == int
+          ? (value as num).toInt() as R
+          : R == double
+          ? (value as num).toDouble() as R
+          : throw ArgumentError(
+              'Expected type $R but found ${value.runtimeType} for operation: ${operation.key}',
+            );
     } else {
       throw ArgumentError('No result found for operation: ${operation.key}');
     }
@@ -75,8 +77,7 @@ mixin AggregateRootMixin on AggregateFieldNode implements AggregateBuilderRoot {
   }
 }
 
-class AggregateField<T extends num?>
-    extends AggregateFieldNode {
+class AggregateField<T extends num?> extends AggregateFieldNode {
   /// Creates a new aggregate field node for a specific field type.
   ///
   /// [name] - The name of the field in the document
@@ -89,12 +90,12 @@ class AggregateField<T extends num?>
 
   /// Get sum of this field
   T sum() {
-    return $context.resolve(SumOperation('sum(${$path})', $path));
+    return $context.resolve<T>(SumOperation('sum:${$path}', $path));
   }
 
   /// Get average of this field
   double average() {
-    return $context.resolve(AverageOperation('avg(${$path})', $path));
+    return $context.resolve<double>(AverageOperation('avg:${$path}', $path));
   }
 }
 
@@ -213,7 +214,8 @@ abstract class QueryAggregatableHandler {
     });
   }
 
-  static R _buildResultRecordFromSnapshot<T, R, AB extends AggregateBuilderRoot>(
+  static R
+  _buildResultRecordFromSnapshot<T, R, AB extends AggregateBuilderRoot>(
     firestore.AggregateQuerySnapshot snapshot,
     AB Function(AggregateContext context) builderFunc,
     AggregateConfiguration<R, AB> configuration,
