@@ -219,7 +219,7 @@ T resolveJsonWithParts<T>(Map<String, dynamic> json, List<String> parts) {
         );
       }
     } else {
-      // 字符串鍵 (object access)
+      // String key (object access)
       if (current is Map<String, dynamic>) {
         if (current.containsKey(part)) {
           current = current[part];
@@ -236,7 +236,7 @@ T resolveJsonWithParts<T>(Map<String, dynamic> json, List<String> parts) {
     }
   }
 
-  // 類型檢查並轉換
+  // Type checking and conversion
   if (current is T) {
     return current;
   } else {
@@ -247,21 +247,21 @@ T resolveJsonWithParts<T>(Map<String, dynamic> json, List<String> parts) {
 }
 
 T defaultValue<T>() {
-  // 處理 nullable 類型
+  // Handle nullable types
   if (null is T) return null as T;
 
-  // 數字類型
+  // Numeric types
   if (T == int) return 0 as T;
   if (T == double) return 0.0 as T;
   if (T == num) return 0 as T;
 
-  // 布爾類型
+  // Boolean type
   if (T == bool) return false as T;
 
-  // 字符串類型
+  // String type
   if (T == String) return '' as T;
 
-  // 集合類型 - 使用反射檢查
+  // Collection types - use reflection check
   final typeString = T.toString();
   if (typeString.startsWith('List<')) return <dynamic>[] as T;
   if (typeString.startsWith('Set<')) return <dynamic>{} as T;
@@ -273,6 +273,6 @@ T defaultValue<T>() {
   // Duration
   if (T == Duration) return Duration.zero as T;
 
-  // 無法處理的類型
+  // Unsupported types
   throw UnsupportedError('Cannot create default value for type $T');
 }
