@@ -10,7 +10,6 @@ import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/orderable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
-import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
@@ -18,7 +17,7 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 class Query<
   S extends FirestoreSchema,
   T,
-  P extends PatchBuilder<T>,
+  P extends PatchBuilder<T, Map<String, dynamic>>,
   F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
@@ -33,7 +32,8 @@ class Query<
         Aggregatable<T>,
         Limitable,
         Deletable {
-  final FirestoreConverter<T, Map<String, dynamic>> _converter;
+          final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
   final String _documentIdFieldName;
 
   /// The underlying Firestore query
@@ -49,14 +49,16 @@ class Query<
 
   const Query({
     required firestore.Query<Map<String, dynamic>> query,
-    required FirestoreConverter<T, Map<String, dynamic>> converter,
+    required Map<String, dynamic> Function(T) toJson,
+    required T Function(Map<String, dynamic>) fromJson,
     required String documentIdField,
     required P patchBuilder,
     required F filterBuilder,
     required OB Function(OrderByContext) orderByBuilderFunc,
     required AB Function(AggregateContext) aggregateBuilderFunc,
   }) : _query = query,
-       _converter = converter,
+       _toJson = toJson,
+       _fromJson = fromJson,
        _documentIdFieldName = documentIdField,
        _patchBuilder = patchBuilder,
        _filterBuilder = filterBuilder,
@@ -65,18 +67,19 @@ class Query<
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _converter.fromJson, _documentIdFieldName);
+      QueryHandler.get(_query, _fromJson, _documentIdFieldName);
 
   @override
   Stream<List<T>> get stream =>
-      QueryHandler.stream(_query, _converter.fromJson, _documentIdFieldName);
+      QueryHandler.stream(_query, _fromJson, _documentIdFieldName);
 
   Query<S, T, P, F, OB, AB> _newQuery(
     firestore.Query<Map<String, dynamic>> newQuery,
   ) {
     return Query<S, T, P, F, OB, AB>(
       query: newQuery,
-      converter: _converter,
+      toJson: _toJson,
+      fromJson: _fromJson,
       documentIdField: _documentIdFieldName,
       patchBuilder: _patchBuilder,
       filterBuilder: _filterBuilder,
@@ -105,7 +108,8 @@ class Query<
     final newQuery = QueryOrderbyHandler.applyOrderBy(_query, config);
     return OrderedQuery<S, T, O, P, F, OB ,AB>(
       query: newQuery,
-      converter: _converter,
+      toJson: _toJson,
+      fromJson: _fromJson,
       documentIdField: _documentIdFieldName,
       orderByConfig: config,
       patchBuilder: _patchBuilder,
@@ -168,8 +172,8 @@ class Query<
       QueryHandler.modify(
         _query,
         _documentIdFieldName,
-        _converter.toJson,
-        _converter.fromJson,
+        _toJson,
+        _fromJson,
         modifier,
         atomic: atomic,
       );
@@ -185,8 +189,8 @@ class Query<
     );
     return AggregateQuery(
       newQuery,
-      _converter.toJson,
-      _converter.fromJson,
+      _toJson,
+      _fromJson,
       _documentIdFieldName,
       config,
       _aggregateBuilderFunc,

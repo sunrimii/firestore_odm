@@ -4,6 +4,7 @@ import 'package:code_builder/code_builder.dart';
 import 'package:collection/collection.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:firestore_odm_builder/src/generators/aggregate_generator.dart';
+import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
 import 'package:firestore_odm_builder/src/generators/filter_generator.dart';
 import 'package:firestore_odm_builder/src/generators/order_by_generator.dart';
 import 'package:firestore_odm_builder/src/generators/update_generator.dart';
@@ -82,19 +83,6 @@ class SchemaGenerator {
     return library.accept(emitter).toString();
   }
 
-  /// Generate schema class and extensions from annotated variable (with converters)
-  static String generateSchemaCode2(
-    ClassElement classElement,
-    List<SchemaCollectionInfo> collections,
-  ) {
-    final library = Library(
-      (b) =>
-          b.body.addAll(generateAllLibraryMembers2(classElement, collections)),
-    );
-
-    final emitter = DartEmitter(useNullSafetySyntax: true);
-    return library.accept(emitter).toString();
-  }
 
   /// Extract the assigned value from a variable element (e.g., "_$TestSchema" from "final testSchema = _$TestSchema;")
   static String _extractAssignedValue(TopLevelVariableElement variableElement) {
@@ -165,33 +153,6 @@ class SchemaGenerator {
         .toList();
 
     return capitalizedSegments;
-  }
-
-  static TypeReference _getPatchBuilderType(SchemaCollectionInfo collection) {
-    return TypeReference(
-      (b) => b
-        ..symbol = collection.modelType.element.name + 'PatchBuilder'
-        ..types.addAll(
-          collection.modelType.typeArguments.map((t) => t.reference),
-        ),
-    );
-  }
-
-  static Expression _getPatchBuilderInstanceExpression(
-    SchemaCollectionInfo collection, {
-    required ConverterFactory converterFactory,
-  }) {
-    return _getPatchBuilderType(collection).newInstance(
-      [],
-      Map.fromIterables(
-        collection.modelType.element.typeParameters.map(
-          (e) => 'converter${e.name.camelCase()}',
-        ),
-        collection.modelType.typeArguments.map(
-          (e) => converterFactory.getConverter(e).toConverterExpr(),
-        ),
-      ),
-    );
   }
 
   static RecordType _getPathRecord(String path) {
@@ -399,7 +360,7 @@ class SchemaGenerator {
       ),
     );
 
-    specs.addAll(converterFactory.specs);
+    // specs.addAll(converterFactory.specs);
 
     return specs;
   }
@@ -498,7 +459,7 @@ class SchemaGenerator {
       ),
     );
 
-    specs.addAll(converterFactory.specs);
+    // specs.addAll(converterFactory.specs);
 
     return specs;
   }
@@ -536,85 +497,6 @@ class SchemaGenerator {
     return specs;
   }
 
-  /// Generate filter and order by builders for all model types
-  static List<Spec> generateFilterAndOrderBySelectors(
-    List<SchemaCollectionInfo> collections,
-    String schemaClassName, {
-    required ConverterFactory converterFactory,
-    required ModelAnalyzer modelAnalyzer,
-  }) {
-    final specs = <Spec>[];
-
-    for (final entry
-        in collections
-            .expand((c) => run(c.modelType, modelAnalyzer))
-            .where(isUserType)
-            .whereType<InterfaceType>()
-            .groupSetsBy((t) => t.element.thisType)
-            .entries) {
-      if (TypeChecker.fromRuntime(
-        FirestoreOdm,
-      ).hasAnnotationOf(entry.key.element)) {
-        // Skip types that are annotated with @FirestoreOdm
-        continue;
-      }
-
-      final baseType = entry.key;
-
-      // Generate FilterSelector class using ModelAnalysis
-      final filterClass =
-          FilterGenerator.generateFilterSelectorClassFromAnalysis(
-            schemaClassName,
-            baseType,
-            modelAnalyzer: modelAnalyzer,
-          );
-      specs.add(filterClass);
-
-      // Generate OrderBySelector class using ModelAnalysis
-      final orderByClasses = OrderByGenerator.generateOrderByClasses(
-        baseType,
-        modelAnalyzer: modelAnalyzer,
-      );
-      specs.addAll(orderByClasses);
-
-      // Generate AggregateFieldSelector extension using ModelAnalysis
-      final aggregateExtension =
-          AggregateGenerator.generateAggregateFieldSelectorFromAnalysis(
-            schemaClassName,
-            baseType,
-            modelAnalyzer: modelAnalyzer,
-          );
-      if (aggregateExtension != null) {
-        specs.add(aggregateExtension);
-      }
-
-      final updateExtension = UpdateGenerator.generateGenericUpdateBuilderClass(
-        schemaClassName,
-        baseType,
-        modelAnalyzer: modelAnalyzer,
-        converterFactory: converterFactory,
-      );
-      if (updateExtension != null) {
-        specs.add(updateExtension);
-      }
-
-      for (final type in entry.value) {
-        // Generate UpdateBuilder extension using ModelAnalysis
-        final updateExtension = UpdateGenerator.generateUpdateBuilderClass(
-          schemaClassName,
-          type,
-          modelAnalyzer: modelAnalyzer,
-          converterFactory: converterFactory,
-        );
-        if (updateExtension != null) {
-          specs.add(updateExtension);
-        }
-      }
-    }
-
-    return specs;
-  }
-
   /// Generate ODM extensions for the schema
   static Extension generateODMExtensions(
     String schemaClassName,
@@ -637,7 +519,7 @@ class SchemaGenerator {
             refer(schemaClassName),
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
-            _getPatchBuilderType(collection),
+            UpdateGenerator.getBuilderType(type: collection.modelType),
             FilterGenerator.getBuilderType(
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
@@ -669,18 +551,15 @@ class SchemaGenerator {
                   'query': refer('firestore').property('collection').call([
                     literalString(collection.path),
                   ]),
-                  'converter': converterFactory
-                      .getConverter(collection.modelType)
-                      .toConverterExpr(),
+                  'toJson': ConverterGenerator.getToJsonEnsured(type: collection.modelType),
+                  'fromJson': ConverterGenerator.getFromJsonEnsured(type: collection.modelType),
                   'documentIdField': literalString(
                     modelAnalyzer.getDocumentIdFieldName(collection.modelType),
                   ),
-                  'patchBuilder': _getPatchBuilderInstanceExpression(
-                    collection,
-                    converterFactory: converterFactory,
+                  'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                    type: collection.modelType,
                   ),
-                  'filterBuilder':
-                      FilterGenerator.getBuilderInstanceExpression(
+                  'filterBuilder': FilterGenerator.getBuilderInstanceExpression(
                     type: collection.modelType,
                     modelAnalyzer: modelAnalyzer,
                     isRoot: true,
@@ -758,7 +637,7 @@ class SchemaGenerator {
             refer(schemaClassName),
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
-            _getPatchBuilderType(collection),
+            UpdateGenerator.getBuilderType(type: collection.modelType),
             FilterGenerator.getBuilderType(
               type: collection.modelType,
               modelAnalyzer: modelAnalyzer,
@@ -789,18 +668,15 @@ class SchemaGenerator {
                   'query': refer('firestore').property('collection').call([
                     literalString(collection.path),
                   ]),
-                  'converter': converterFactory
-                      .getConverter(collection.modelType)
-                      .toConverterExpr(),
+                  'toJson': ConverterGenerator.getToJsonEnsured(type: collection.modelType),
+                  'fromJson': ConverterGenerator.getFromJsonEnsured(type: collection.modelType),
                   'documentIdField': literalString(
                     modelAnalyzer.getDocumentIdFieldName(collection.modelType),
                   ),
-                  'patchBuilder': _getPatchBuilderInstanceExpression(
-                    collection,
-                    converterFactory: converterFactory,
+                  'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                    type: collection.modelType,
                   ),
-                  'filterBuilder':
-                      FilterGenerator.getBuilderInstanceExpression(
+                  'filterBuilder': FilterGenerator.getBuilderInstanceExpression(
                     type: collection.modelType,
                     modelAnalyzer: modelAnalyzer,
                     isRoot: true,
@@ -882,7 +758,7 @@ class SchemaGenerator {
             refer(schemaClassName),
             refer(collection.modelTypeName),
             _getPathRecord(collection.path),
-            _getPatchBuilderType(collection),
+            UpdateGenerator.getBuilderType(type: collection.modelType),
           ]),
       );
       methods.add(
@@ -898,15 +774,17 @@ class SchemaGenerator {
                 'ref',
               ).property('collection').call([literalString(collection.path)]),
               'context': refer('this'),
-              'converter': converterFactory
-                  .getConverter(collection.modelType)
-                  .toConverterExpr(),
+              'toJson': ConverterGenerator.getToJsonEnsured(
+                type: collection.modelType,
+              ),
+              'fromJson': ConverterGenerator.getFromJsonEnsured(
+                type: collection.modelType,
+              ),
               'documentIdField': literalString(
                 modelAnalyzer.getDocumentIdFieldName(collection.modelType),
               ),
-              'patchBuilder': _getPatchBuilderInstanceExpression(
-                collection,
-                converterFactory: converterFactory,
+              'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                type: collection.modelType,
               ),
             }).code,
         ),
@@ -956,7 +834,7 @@ class SchemaGenerator {
               refer(schemaClassName),
               refer(subcol.modelTypeName),
               _getPathRecord(subcol.path),
-              _getPatchBuilderType(subcol),
+              UpdateGenerator.getBuilderType(type: subcol.modelType),
             ]),
         );
 
@@ -976,15 +854,17 @@ class SchemaGenerator {
                   literalString(_getCollectionName(subcol.path)),
                 ]),
                 'context': refer('context'),
-                'converter': converterFactory
-                    .getConverter(subcol.modelType)
-                    .toConverterExpr(),
+                'toJson': ConverterGenerator.getToJsonEnsured(
+                  type: subcol.modelType,
+                ),
+                'fromJson': ConverterGenerator.getFromJsonEnsured(
+                  type: subcol.modelType,
+                ),
                 'documentIdField': literalString(
                   modelAnalyzer.getDocumentIdFieldName(subcol.modelType),
                 ),
-                'patchBuilder': _getPatchBuilderInstanceExpression(
-                  subcol,
-                  converterFactory: converterFactory,
+                'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                  type: subcol.modelType,
                 ),
               }).code,
           ),
@@ -1005,7 +885,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(modelType),
                   _getPathRecord(collection.path),
-                  _getPatchBuilderType(collection),
+                  UpdateGenerator.getBuilderType(type: collection.modelType),
                 ]),
             )
             ..methods.addAll(methods),
@@ -1048,7 +928,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(collection.modelTypeName),
                   _getPathRecord(collection.path),
-                  _getPatchBuilderType(collection),
+                  UpdateGenerator.getBuilderType(type: collection.modelType),
                 ]),
             )
             ..lambda = true
@@ -1058,13 +938,15 @@ class SchemaGenerator {
                   'collection': refer('firestoreInstance')
                       .property('collection')
                       .call([literalString(collection.path)]),
-                  'converter': converterFactory
-                      .getConverter(collection.modelType)
-                      .toConverterExpr(),
+                  'toJson': ConverterGenerator.getToJsonEnsured(
+                    type: collection.modelType,
+                  ),
+                  'fromJson': ConverterGenerator.getFromJsonEnsured(
+                    type: collection.modelType,
+                  ),
                   'documentIdField': literalString(documentIdFieldName),
-                  'patchBuilder': _getPatchBuilderInstanceExpression(
-                    collection,
-                    converterFactory: converterFactory,
+                  'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                    type: collection.modelType,
                   ),
                 })
                 .code,
@@ -1132,7 +1014,7 @@ class SchemaGenerator {
               refer(schemaClassName),
               subcol.modelType.reference,
               _getPathRecord(subcol.path),
-              _getPatchBuilderType(subcol),
+              UpdateGenerator.getBuilderType(type: subcol.modelType),
               FilterGenerator.getBuilderType(
                 type: subcol.modelType,
                 modelAnalyzer: modelAnalyzer,
@@ -1164,20 +1046,21 @@ class SchemaGenerator {
                     'query': refer('ref').property('collection').call([
                       literalString(subcollectionName),
                     ]),
-                    'converter': converterFactory
-                        .getConverter(subcol.modelType)
-                        .toConverterExpr(),
+                    'toJson':
+                        ConverterGenerator.getToJsonEnsured(type: subcol.modelType),
+                    'fromJson':
+                        ConverterGenerator.getFromJsonEnsured(type: subcol.modelType),
                     'documentIdField': literalString(documentIdFieldName),
-                    'patchBuilder': _getPatchBuilderInstanceExpression(
-                      subcol,
-                      converterFactory: converterFactory,
-                    ),
+                    'patchBuilder':
+                        UpdateGenerator.getBuilderInstanceExpression(
+                          type: subcol.modelType,
+                        ),
                     'filterBuilder':
-                      FilterGenerator.getBuilderInstanceExpression(
-                    type: subcol.modelType,
-                    modelAnalyzer: modelAnalyzer,
-                    isRoot: true,
-                  ),
+                        FilterGenerator.getBuilderInstanceExpression(
+                          type: subcol.modelType,
+                          modelAnalyzer: modelAnalyzer,
+                          isRoot: true,
+                        ),
                     'orderByBuilderFunc': Method(
                       (b) => b
                         ..requiredParameters.add(
@@ -1224,7 +1107,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(modelTypeName),
                   _getPathRecord(collection.path),
-                  _getPatchBuilderType(collection),
+                  UpdateGenerator.getBuilderType(type: collection.modelType),
                 ]),
             )
             ..methods.addAll(methods),
@@ -1376,7 +1259,7 @@ class SchemaGenerator {
               refer(schemaClassName),
               refer(subcol.modelTypeName),
               _getPathRecord(subcol.path),
-              _getPatchBuilderType(subcol),
+              UpdateGenerator.getBuilderType(type: subcol.modelType),
             ]),
         );
 
@@ -1394,15 +1277,17 @@ class SchemaGenerator {
               ..body = refer('getBatchCollection').call([], {
                 'parent': refer('this'),
                 'name': literalString(_getCollectionName(subcol.path)),
-                'converter': converterFactory
-                    .getConverter(subcol.modelType)
-                    .toConverterExpr(),
+                'toJson': ConverterGenerator.getToJsonEnsured(
+                  type: subcol.modelType,
+                ),
+                'fromJson': ConverterGenerator.getFromJsonEnsured(
+                  type: subcol.modelType,
+                ),
                 'documentIdField': literalString(
                   modelAnalyzer.getDocumentIdFieldName(subcol.modelType),
                 ),
-                'patchBuilder': _getPatchBuilderInstanceExpression(
-                  subcol,
-                  converterFactory: converterFactory,
+                'patchBuilder': UpdateGenerator.getBuilderInstanceExpression(
+                  type: subcol.modelType,
                 ),
               }).code,
           ),
@@ -1423,7 +1308,7 @@ class SchemaGenerator {
                   refer(schemaClassName),
                   refer(modelType),
                   _getPathRecord(collection.path),
-                  _getPatchBuilderType(collection),
+                  UpdateGenerator.getBuilderType(type: collection.modelType),
                 ]),
             )
             ..methods.addAll(methods),

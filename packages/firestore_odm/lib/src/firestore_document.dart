@@ -15,7 +15,7 @@ import 'filter_builder.dart';
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T>>
+class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>>>
     implements
         Gettable<T?>,
         Streamable<T?>,
@@ -25,7 +25,8 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P ext
         Deletable,
         Updatable<T> {
   /// The collection this document belongs to (nullable for fromRef constructor)
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
 
   final String documentIdField;
 
@@ -38,15 +39,18 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P ext
   /// Creates a new FirestoreDocument instance from a collection and document ID
   const FirestoreDocument({
     required this.ref,
-    required this.converter,
+    required Map<String, dynamic> Function(T) toJson,
+    required T Function(Map<String, dynamic>) fromJson,
     required this.documentIdField,
     required P patchBuilder,
-  }) : _patchBuilder = patchBuilder;
+  })  : _toJson = toJson,
+        _fromJson = fromJson,
+        _patchBuilder = patchBuilder;
 
   /// Stream of document snapshots
   @override
   Stream<T?> get stream =>
-      DocumentHandler.stream<T>(ref, converter.fromJson, documentIdField);
+      DocumentHandler.stream<T>(ref, _fromJson, documentIdField);
 
   /// Checks if the document exists
   @override
@@ -55,12 +59,12 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P ext
   /// Gets the document data
   @override
   Future<T?> get() =>
-      DocumentHandler.get(ref, converter.fromJson, documentIdField);
+      DocumentHandler.get(ref, _fromJson, documentIdField);
 
   /// Sets the document data
   @override
   Future<void> update(T state) =>
-      DocumentHandler.update(ref, state, converter.toJson, documentIdField);
+      DocumentHandler.update(ref, state, _toJson, documentIdField);
 
   /// Modify a document using diff-based updates.
   ///
@@ -93,7 +97,7 @@ class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P ext
   /// ```
   @override
   Future<void> modify(T Function(T docData) modifier, {bool atomic = true}) =>
-      DocumentHandler.modify(ref, modifier, converter.toJson, converter.fromJson, documentIdField, atomic: atomic);
+      DocumentHandler.modify(ref, modifier, _toJson, _fromJson, documentIdField, atomic: atomic);
 
   /// Delete this document
   @override

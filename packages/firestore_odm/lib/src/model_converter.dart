@@ -71,16 +71,39 @@ class IterableConverter<T>
   }
 }
 
-class ListConverter<T>
-    implements FirestoreConverter<List<T>, List<dynamic>> {
-  final FirestoreConverter<T, dynamic> elementConverter;
+Map<String, R> mapToJson<K, V, R>(
+    Map<K, V> data, String Function(K) keyToJson, R Function(V) valueToJson) {
+  return data.map((key, value) {
+    return MapEntry(keyToJson(key), valueToJson(value));
+  });
+}
+
+Map<K, V> mapFromJson<K, V, R>(
+    Map<String, R> data, K Function(String) keyFromJson, V Function(R) valueFromJson) {
+  return data.map((key, value) {
+    return MapEntry(keyFromJson(key), valueFromJson(value));
+  });
+}
+
+List<R> listToJson<T, R>(Iterable<T> data, R Function(T) elementToJson) {
+  return data.map((item) => elementToJson(item)).toList();
+}
+
+List<T> listFromJson<R, T>(
+    List<R> data, T Function(R) elementFromJson) {
+  return data.map((item) => elementFromJson(item)).toList();
+}
+
+class ListConverter<T, R>
+    implements FirestoreConverter<List<T>, List<R>> {
+  final FirestoreConverter<T, R> elementConverter;
   const ListConverter(this.elementConverter);
 
   @override
-  List<T> fromJson(List<dynamic> data) => data.map((item) => elementConverter.fromJson(item)).toList();
+  List<T> fromJson(List<R> data) => data.map((item) => elementConverter.fromJson(item)).toList();
 
   @override
-  List<dynamic> toJson(Iterable<T> data) => data.map((item) => elementConverter.toJson(item)).toList();
+  List<R> toJson(Iterable<T> data) => listToJson(data, elementConverter.toJson);
 }
 
 class SetConverter<T> extends IterableConverter<T> {
@@ -91,33 +114,16 @@ class SetConverter<T> extends IterableConverter<T> {
 }
 
 /// Converter for DateTime <-> Timestamp
-class DateTimeConverter implements FirestoreConverter<DateTime, dynamic> {
+class DateTimeConverter implements FirestoreConverter<DateTime, Timestamp> {
   const DateTimeConverter();
 
   @override
-  DateTime fromJson(dynamic data) {
-    if (data is Timestamp) {
-      return data.toDate();
-    } else if (data is String) {
-      // Handle test environment where Timestamp might be serialized as String
-      return DateTime.parse(data);
-    } else if (data is int) {
-      // Handle milliseconds since epoch
-      return DateTime.fromMillisecondsSinceEpoch(data);
-    } else {
-      throw ArgumentError(
-        'Unsupported DateTime data type: ${data.runtimeType}',
-      );
-    }
+  DateTime fromJson(Timestamp data) {
+    return data.toDate();
   }
 
   @override
-  dynamic toJson(DateTime data) {
-    // Check if this is the special server timestamp constant
-    // If so, return it as-is so _replaceServerTimestamps can handle it later
-    if (data == FirestoreODM.serverTimestamp) {
-      return data;
-    }
+  Timestamp toJson(DateTime data) {
     return Timestamp.fromDate(data);
   }
 }

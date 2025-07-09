@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart'
-    show FieldPath, FieldValue;
+    show FieldPath, FieldValue, Timestamp;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/types.dart';
@@ -566,20 +566,23 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
   return updateMap;
 }
 
-class PatchBuilder<T> extends Node {
+typedef PatchBuilderFunc<T, PB extends PatchBuilder<T, dynamic>> =
+    PB Function({
+      String name,
+      PatchBuilder<dynamic, dynamic>? parent,
+    });
+
+class PatchBuilder<T, R> extends Node {
   /// Converter function to transform the value before storing in Firestore
-  final FirestoreConverter<T, dynamic> _converter;
+  final R Function(T) _toJson;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  const PatchBuilder({
-    super.name,
-    super.parent,
-    required FirestoreConverter<T, dynamic> converter,
-  }) : _converter = converter;
+  const PatchBuilder({super.name, super.parent, required R Function(T) toJson})
+    : _toJson = toJson;
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
-    final convertedValue = _converter.toJson(value);
+    final convertedValue = _toJson(value);
     return SetOperation($parts, convertedValue);
   }
 }
@@ -804,12 +807,9 @@ abstract class MapFieldFilter<K, V> extends CallableFilter {
 }
 
 /// Numeric field callable updater
-class NumericFieldUpdate<T extends num?> extends PatchBuilder<T> {
-  const NumericFieldUpdate({
-    required super.name,
-    super.parent,
-    required super.converter,
-  });
+class NumericFieldUpdate<T extends num?> extends PatchBuilder<T, T> {
+  NumericFieldUpdate({required super.name, super.parent})
+    : super(toJson: (value) => value);
 
   /// Increment field value
   UpdateOperation increment(T value) {
@@ -821,51 +821,47 @@ class NumericFieldUpdate<T extends num?> extends PatchBuilder<T> {
 }
 
 /// List field callable updater
-class ListFieldUpdate<T, E> extends PatchBuilder<T> {
-  const ListFieldUpdate({
+class ListFieldUpdate<T extends Iterable<E>?, E, R>
+    extends PatchBuilder<T, List<R>?> {
+  ListFieldUpdate({
     required super.name,
     super.parent,
-    required super.converter,
-    required FirestoreConverter<E, dynamic> elementConverter,
-  }) : _elementConverter = elementConverter;
+    required R Function(E) elementToJson,
+  }) : _elementToJson = elementToJson,
+       super(toJson: (value) => value?.map(elementToJson).toList());
 
-  final FirestoreConverter<E, dynamic> _elementConverter;
+  final R Function(E) _elementToJson;
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return ArrayAddAllOperation($parts, [_elementConverter.toJson(value)]);
+    return ArrayAddAllOperation($parts, [_elementToJson(value)]);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
-    return ArrayAddAllOperation(
-      $parts,
-      values.map(_elementConverter.toJson).toList(),
-    );
+    return ArrayAddAllOperation($parts, values.map(_elementToJson).toList());
   }
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return ArrayRemoveAllOperation($parts, [_elementConverter.toJson(value)]);
+    return ArrayRemoveAllOperation($parts, [_elementToJson(value)]);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
-    return ArrayRemoveAllOperation(
-      $parts,
-      values.map(_elementConverter.toJson).toList(),
-    );
+    return ArrayRemoveAllOperation($parts, values.map(_elementToJson).toList());
   }
 }
 
 /// DateTime field callable updater
-class DateTimeFieldUpdate<T> extends PatchBuilder<T> {
-  const DateTimeFieldUpdate({required super.name, super.parent})
+class DateTimeFieldUpdate<T extends DateTime?>
+    extends PatchBuilder<T, Timestamp?> {
+  DateTimeFieldUpdate({required super.name, super.parent})
     : super(
-        converter: null is T
-            ? const NullableConverter(DateTimeConverter())
-                  as FirestoreConverter<T, dynamic>
-            : const DateTimeConverter() as FirestoreConverter<T, dynamic>,
+        toJson: (value) {
+          if (value == null) return null;
+          return Timestamp.fromDate(value);
+        },
       );
 
   /// Set field to server timestamp
@@ -875,13 +871,13 @@ class DateTimeFieldUpdate<T> extends PatchBuilder<T> {
 }
 
 /// Duration field callable updater
-class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T> {
-  const DurationFieldUpdate({required super.name, super.parent})
+class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T, int?> {
+  DurationFieldUpdate({required super.name, super.parent})
     : super(
-        converter: null is T
-            ? const NullableConverter(DurationConverter())
-                  as FirestoreConverter<T, int?>
-            : const DurationConverter() as FirestoreConverter<T, int?>,
+        toJson: (value) {
+          if (value == null) return null;
+          return DurationConverter().toJson(value);
+        },
       );
 
   /// Increment field value by a Duration
@@ -891,47 +887,36 @@ class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T> {
   }
 }
 
-/// Map field callable updater with clean, consistent Dart Map-like operations
-class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
-  const MapFieldUpdate({
+class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
+  MapFieldUpdate({
     required super.name,
     super.parent,
-    required super.converter,
-    required FirestoreConverter<K, dynamic> keyConverter,
-    required FirestoreConverter<V, dynamic> valueConverter,
-  }) : _keyConverter = keyConverter,
-       _valueConverter = valueConverter;
+    required super.toJson,
+    required String Function(K) keyToJson,
+    required R Function(V) valueToJson,
+  }) : _keyToJson = keyToJson,
+       _valueToJson = valueToJson;
 
-  final FirestoreConverter<K, dynamic> _keyConverter;
-  final FirestoreConverter<V, dynamic> _valueConverter;
+  final String Function(K) _keyToJson;
+  final R Function(V) _valueToJson;
 
   @override
   UpdateOperation call(T value) {
-    return MapSetOperation(
-      $parts,
-      value is Map<K, V>
-          ? value.map(
-              (key, val) => MapEntry(
-                _keyConverter.toJson(key).toString(),
-                _valueConverter.toJson(val),
-              ),
-            )
-          : {},
-    );
+    return MapSetOperation($parts, _toJson(value));
   }
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
-    final convertedKey = _keyConverter.toJson(key);
+    final convertedKey = _keyToJson(key);
     final keyPath = [...$parts, convertedKey.toString()];
-    return SetOperation<V>(keyPath, _valueConverter.toJson(value));
+    return SetOperation<R>(keyPath, _valueToJson(value));
   }
 
   /// Remove a single key (like map.remove(key))
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
-    final convertedKey = _keyConverter.toJson(key);
+    final convertedKey = _keyToJson(key);
     final keyPath = [...$parts, convertedKey.toString()];
     return DeleteOperation(keyPath);
   }
@@ -940,10 +925,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   /// Usage: $.settings.addAll({'theme': 'dark', 'language': 'en'})
   UpdateOperation addAll(Map<K, V> entries) {
     final entriesMap = entries.map(
-      (key, value) => MapEntry(
-        _keyConverter.toJson(key).toString(),
-        _valueConverter.toJson(value),
-      ),
+      (key, value) => MapEntry(_keyToJson(key).toString(), _valueToJson(value)),
     );
     return MapPutAllOperation($parts, entriesMap);
   }
@@ -954,8 +936,8 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
     final entriesMap = Map.fromEntries(
       entries.map(
         (entry) => MapEntry(
-          _keyConverter.toJson(entry.key).toString(),
-          _valueConverter.toJson(entry.value),
+          _keyToJson(entry.key).toString(),
+          _valueToJson(entry.value),
         ),
       ),
     );
@@ -965,7 +947,7 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
-    final keysList = keys.map((key) => _keyConverter.toJson(key)).toList();
+    final keysList = keys.map((key) => _keyToJson(key)).toList();
     return MapRemoveAllOperation($parts, keysList);
   }
 
@@ -981,9 +963,20 @@ class MapFieldUpdate<T, K, V> extends PatchBuilder<T> {
   /// Usage: $.permissions.setAll(['read', 'write'], true)
   UpdateOperation setAll(Iterable<K> keys, V value) {
     final entriesMap = Map.fromIterables(
-      keys.map((key) => _keyConverter.toJson(key).toString()),
-      Iterable.generate(keys.length, (_) => _valueConverter.toJson(value)),
+      keys.map((key) => _keyToJson(key).toString()),
+      Iterable.generate(keys.length, (_) => _valueToJson(value)),
     );
     return MapPutAllOperation($parts, entriesMap);
   }
+}
+
+/// Map field callable updater with clean, consistent Dart Map-like operations
+class DartMapFieldUpdate<T extends Map<K, V>, K, V, R>
+    extends MapFieldUpdate<T, K, V, R> {
+  DartMapFieldUpdate({
+    required super.name,
+    super.parent,
+    required super.keyToJson,
+    required super.valueToJson,
+  }) : super(toJson: (value) => mapToJson(value, keyToJson, valueToJson));
 }

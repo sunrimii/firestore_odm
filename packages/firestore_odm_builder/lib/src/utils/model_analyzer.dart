@@ -28,7 +28,6 @@ class FieldInfo {
 
 /// Analyzer for complete model structure including JSON field mapping
 class ModelAnalyzer {
-  
   // Add public constructor for creating fresh instances
   ModelAnalyzer();
 
@@ -154,4 +153,97 @@ bool isPrimitive(DartType type) {
       type.isDartCoreString ||
       type.isDartCoreNull ||
       type.name == 'dynamic';
+}
+
+Map<String, FieldInfo> getFields(InterfaceType type) {
+  final constructor = getDefaultConstructor(type);
+
+  if (constructor == null) {
+    return {};
+  }
+
+  final documentIdParamName = getDocumentIdFieldName(type);
+
+  // Second pass: analyze all parameters
+  final fields = Map<String, FieldInfo>();
+
+  // Simplified field analysis
+  for (final parameter in constructor.parameters) {
+    if (parameter.isStatic) continue;
+
+    var jsonName = parameter.name;
+    // check JsonKey annotation for custom names
+    if (parameter.metadata.isNotEmpty) {
+      final jsonKey = TypeChecker.fromRuntime(
+        JsonKey,
+      ).firstAnnotationOfExact(parameter);
+      if (jsonKey != null) {
+        final reader = ConstantReader(jsonKey);
+
+        jsonName =
+            reader.read('name').literalValue as String? ?? parameter.name;
+
+        final includeFromJson =
+            reader.read('includeFromJson').literalValue as bool? ?? true;
+        final includeToJson =
+            reader.read('includeToJson').literalValue as bool? ?? true;
+        if (!includeFromJson || !includeToJson) {
+          continue;
+        }
+      }
+    }
+
+    fields[parameter.name] = FieldInfo(
+      parameterName: parameter.name,
+      jsonName: jsonName,
+      type: parameter.type,
+      element: parameter,
+      isDocumentId: parameter.name == documentIdParamName,
+      isNullable:
+          parameter.type.nullabilitySuffix == NullabilitySuffix.question,
+    );
+  }
+
+  return fields;
+}
+
+ConstructorElement? getDefaultConstructor(InterfaceType type) {
+  final constructor = type.constructors
+      .where((c) => c.name.isEmpty)
+      .firstOrNull;
+
+  return constructor;
+}
+
+String getDocumentIdFieldName(InterfaceType type) {
+  final constructor = getDefaultConstructor(type);
+
+  if (constructor == null) {
+    throw ArgumentError(
+      'No default constructor found in ${type.getDisplayString(withNullability: false)}',
+    );
+  }
+
+  final params = constructor.parameters.where(
+    (p) => TypeChecker.fromRuntime(DocumentIdField).hasAnnotationOf(p),
+  );
+
+  if (params.length > 1) {
+    throw ArgumentError(
+      'Multiple document ID fields found in ${type.getDisplayString(withNullability: false)}',
+    );
+  }
+
+  final documentIdParam = params.length == 1
+      ? params.single
+      : constructor.parameters.where((p) => p.name == 'id').firstOrNull;
+
+  // Check type
+  if (documentIdParam != null && !documentIdParam.type.isDartCoreString) {
+    throw ArgumentError(
+      'Document ID field must be a String in ${type.getDisplayString(withNullability: false)}',
+    );
+  }
+
+  return documentIdParam?.name ?? 'id';
 }

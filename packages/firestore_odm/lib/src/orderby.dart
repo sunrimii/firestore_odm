@@ -14,7 +14,6 @@ import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
-import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/pagination.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:firestore_odm/src/utils.dart';
@@ -140,7 +139,7 @@ class OrderedQuery<
   S extends FirestoreSchema,
   T,
   O extends Record,
-  P extends PatchBuilder<T>,
+  P extends PatchBuilder<T, Map<String, dynamic>>,
   F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
@@ -155,7 +154,8 @@ class OrderedQuery<
         Modifiable<T>,
         Aggregatable<T>,
         Deletable {
-  final FirestoreConverter<T, Map<String, dynamic>> _converter;
+  final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
 
   final String _documentIdField;
 
@@ -174,7 +174,8 @@ class OrderedQuery<
 
   const OrderedQuery({
     required firestore.Query<Map<String, dynamic>> query,
-    required FirestoreConverter<T, Map<String, dynamic>> converter,
+    required Map<String, dynamic> Function(T) toJson,
+    required T Function(Map<String, dynamic>) fromJson,
     required String documentIdField,
     required OrderByConfiguration<O, OB> orderByConfig,
     required P patchBuilder,
@@ -182,7 +183,8 @@ class OrderedQuery<
     required OB Function(OrderByContext context) orderByBuilderFunc,
     required AB Function(AggregateContext context) aggregateBuilderFunc,
   }) : _query = query,
-       _converter = converter,
+       _toJson = toJson,
+       _fromJson = fromJson,
        _documentIdField = documentIdField,
        _orderByConfig = orderByConfig,
        _patchBuilder = patchBuilder,
@@ -192,18 +194,19 @@ class OrderedQuery<
 
   @override
   Future<List<T>> get() =>
-      QueryHandler.get(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.get(_query, _fromJson, _documentIdField);
 
   @override
   Stream<List<T>?> get stream =>
-      QueryHandler.stream(_query, _converter.fromJson, _documentIdField);
+      QueryHandler.stream(_query, _fromJson, _documentIdField);
 
   OrderedQuery<S, T, O, P, F, OB, AB> _newQuery(
     firestore.Query<Map<String, dynamic>> newQuery,
   ) {
     return OrderedQuery<S, T, O, P, F, OB, AB>(
       query: newQuery,
-      converter: _converter,
+      toJson: _toJson,
+      fromJson: _fromJson,
       documentIdField: _documentIdField,
       orderByConfig: _orderByConfig,
       filterBuilder: _filterBuilder,
@@ -236,7 +239,7 @@ class OrderedQuery<
   OrderedQuery<S, T, O, P, F, OB, AB> endAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
-      toJson: _converter.toJson,
+      toJson: _toJson,
       orderByFunc: _orderByConfig.builder,
       documentIdFieldName: _documentIdField,
       orderBuilderFunc: _orderByBuilderFunc,
@@ -256,7 +259,7 @@ class OrderedQuery<
   OrderedQuery<S, T, O, P, F, OB, AB> endBeforeObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
-      toJson: _converter.toJson,
+      toJson: _toJson,
       orderByFunc: _orderByConfig.builder,
       documentIdFieldName: _documentIdField,
       orderBuilderFunc: _orderByBuilderFunc,
@@ -276,7 +279,7 @@ class OrderedQuery<
   OrderedQuery<S, T, O, P, F, OB, AB> startAfterObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
-      toJson: _converter.toJson,
+      toJson: _toJson,
       orderByFunc: _orderByConfig.builder,
       documentIdFieldName: _documentIdField,
       orderBuilderFunc: _orderByBuilderFunc,
@@ -296,7 +299,7 @@ class OrderedQuery<
   OrderedQuery<S, T, O, P, F, OB, AB> startAtObject(T object) {
     final values = QueryPaginationHandler.buildValuesFromObject(
       object: object,
-      toJson: _converter.toJson,
+      toJson: _toJson,
       orderByFunc: _orderByConfig.builder,
       documentIdFieldName: _documentIdField,
       orderBuilderFunc: _orderByBuilderFunc,
@@ -356,8 +359,8 @@ class OrderedQuery<
       QueryHandler.modify(
         _query,
         _documentIdField,
-        _converter.toJson,
-        _converter.fromJson,
+        _toJson,
+        _fromJson,
         modifier,
         atomic: atomic,
       );
@@ -375,8 +378,8 @@ class OrderedQuery<
     );
     return AggregateQuery(
       newQuery,
-      _converter.toJson,
-      _converter.fromJson,
+      _toJson,
+      _fromJson,
       _documentIdField,
       config,
       _aggregateBuilderFunc,

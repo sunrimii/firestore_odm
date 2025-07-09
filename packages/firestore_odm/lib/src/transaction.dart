@@ -48,28 +48,33 @@ class TransactionCollection<
   S extends FirestoreSchema,
   T,
   Path extends Record,
-  P extends PatchBuilder<T>
+  P extends PatchBuilder<T, Map<String, dynamic>>
 > {
   final firestore.CollectionReference<Map<String, dynamic>> query;
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
   final String documentIdField;
   final TransactionContext<S> context;
   final P _patchBuilder;
 
   TransactionCollection({
     required this.query,
-    required this.converter,
+    required Map<String, dynamic> Function(T) toJson,
+    required T Function(Map<String, dynamic>) fromJson,
     required this.context,
     required this.documentIdField,
     required P patchBuilder,
-  }) : _patchBuilder = patchBuilder;
+  })  : _toJson = toJson,
+        _fromJson = fromJson,
+        _patchBuilder = patchBuilder;
 
   /// Gets a document reference with the specified ID
   /// Documents are cached to ensure consistency
   /// Usage: users('id')
   TransactionDocument<S, T, Path, P> call(String id) => TransactionDocument(
     ref: query.doc(id),
-    converter: converter,
+    toJson: _toJson,
+    fromJson: _fromJson,
     documentIdField: documentIdField,
     context: context,
     patchBuilder: _patchBuilder,
@@ -80,22 +85,26 @@ class TransactionDocument<
   S extends FirestoreSchema,
   T,
   Path extends Record,
-  P extends PatchBuilder<T>
+  P extends PatchBuilder<T, Map<String, dynamic>>
 >
     implements Gettable<T?>, Modifiable<T>, Patchable<T>, Existable, Deletable {
   final firestore.DocumentReference<Map<String, dynamic>> ref;
-  final FirestoreConverter<T, Map<String, dynamic>> converter;
+  final Map<String, dynamic> Function(T) _toJson;
+  final T Function(Map<String, dynamic>) _fromJson;
   final String documentIdField;
   final TransactionContext<S> context;
   final P _patchBuilder;
 
   TransactionDocument({
     required this.ref,
-    required this.converter,
+    required Map<String, dynamic> Function(T) toJson,
+    required T Function(Map<String, dynamic>) fromJson,
     required this.documentIdField,
     required this.context,
     required P patchBuilder,
-  }) : _patchBuilder = patchBuilder;
+  })  : _toJson = toJson,
+        _fromJson = fromJson,
+        _patchBuilder = patchBuilder;
 
   @override
   Future<T?> get() async {
@@ -104,7 +113,7 @@ class TransactionDocument<
     context._cacheDocument(snapshot);
     if (!snapshot.exists) return null;
     return fromFirestoreData(
-      converter.fromJson,
+      _fromJson,
       snapshot.data()!,
       documentIdField,
       snapshot.id,
@@ -162,8 +171,8 @@ class TransactionDocument<
     final patch = DocumentHandler.processPatch(
       snapshot,
       modifier,
-      converter.toJson,
-      converter.fromJson,
+      _toJson,
+      _fromJson,
       documentIdField,
       atomic ? computeDiffWithAtomicOperations : computeDiff,
     );
