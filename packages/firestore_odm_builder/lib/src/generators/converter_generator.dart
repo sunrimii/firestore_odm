@@ -18,10 +18,7 @@ class ConverterGenerator {
       return TypeReferences.timestamp;
     }
     if (TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)) {
-      return TypeReferences.mapOf(
-        TypeReferences.string,
-        getJsonType(type: type.typeArguments.first),
-      );
+      return TypeReferences.listOf(getJsonType(type: type.typeArguments.first));
     }
 
     if (TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
