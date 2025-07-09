@@ -1,4 +1,3 @@
-import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
@@ -9,13 +8,8 @@ import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
 import 'package:firestore_odm_builder/src/generators/filter_generator.dart';
 import 'package:firestore_odm_builder/src/generators/order_by_generator.dart';
 import 'package:firestore_odm_builder/src/generators/update_generator.dart';
-import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
-import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/model_analyzer.dart';
-import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
-import 'package:firestore_odm_builder/src/utils/type_analyzer.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:firestore_odm_builder/src/generators/schema_generator.dart';
 
@@ -105,8 +99,6 @@ class FirestoreGenerator3 extends GeneratorForAnnotation<FirestoreOdm> {
     ConstantReader annotation,
     BuildStep buildStep,
   ) {
-    final modelAnalyzer = ModelAnalyzer();
-
     List<Spec> specs = [];
 
     if (element is! InterfaceElement) {
@@ -116,33 +108,13 @@ class FirestoreGenerator3 extends GeneratorForAnnotation<FirestoreOdm> {
       );
     }
 
-    specs.addAll(
-      UpdateGenerator.generateClasses(
-        type: element.thisType,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    specs.addAll(UpdateGenerator.generateClasses(type: element.thisType));
 
-    specs.addAll(
-      FilterGenerator.generateClasses(
-        element.thisType,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    specs.addAll(FilterGenerator.generateClasses(element.thisType));
 
-    specs.addAll(
-      OrderByGenerator.generateOrderByClasses(
-        element.thisType,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    specs.addAll(OrderByGenerator.generateOrderByClasses(element.thisType));
 
-    specs.addAll(
-      AggregateGenerator.generateClasses(
-        element.thisType,
-        modelAnalyzer: modelAnalyzer,
-      ),
-    );
+    specs.addAll(AggregateGenerator.generateClasses(element.thisType));
 
     specs.addAll(ConverterGenerator.generate(type: element.thisType));
 

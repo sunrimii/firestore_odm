@@ -60,10 +60,9 @@ class AggregateGenerator {
   /// Generate aggregate field selector extension using ModelAnalysis
   static Extension? generateAggregateFieldSelectorFromAnalysis(
     String schemaName,
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
-    final fields = modelAnalyzer.getFields(type);
+    InterfaceType type,
+  ) {
+    final fields = getFields(type);
     if (fields.isEmpty) {
       return null;
     }
@@ -120,42 +119,32 @@ class AggregateGenerator {
     );
   }
 
-  static List<Spec> generateClasses(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static List<Spec> generateClasses(InterfaceType type) {
     final specs = <Spec>[];
 
     // Generate OrderByFieldSelector class
-    specs.add(generateAggregateClass(type, modelAnalyzer: modelAnalyzer));
+    specs.add(generateAggregateClass(type));
 
-    specs.add(generateAggregateRootClass(type, modelAnalyzer: modelAnalyzer));
+    specs.add(generateAggregateRootClass(type));
 
     return specs;
   }
 
   static Set<TypeParameterElement2> computeNeededBuilders({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.typeArguments,
       type.element3.typeParameters2,
     );
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final fieldTypes = fields.values.map((field) => field.type).toSet();
     return fieldTypes.map((fieldType) => map[fieldType]).nonNulls.toSet();
   }
 
-  static Class generateAggregateRootClass(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static Class generateAggregateRootClass(InterfaceType type) {
     final className = type.element3.name3;
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
     return Class(
       (b) => b
         ..name = '${className}AggregateBuilderRoot'
@@ -200,7 +189,6 @@ class AggregateGenerator {
                 ),
                 for (final typeParam in computeNeededBuilders(
                   type: type.element3.thisType,
-                  modelAnalyzer: modelAnalyzer,
                 ))
                   Parameter(
                     (b) => b
@@ -227,20 +215,14 @@ class AggregateGenerator {
     );
   }
 
-  static Class generateAggregateClass(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static Class generateAggregateClass(InterfaceType type) {
     final className = type.element3.name3;
 
-    final builders = computeNeededBuilders(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type);
 
     // Generate methods for all aggregatable fields
     final methods = <Method>[];
-    for (final field in modelAnalyzer.getFields(type).values) {
+    for (final field in getFields(type).values) {
       // Skip document ID field
       if (field.isDocumentId) continue;
 
@@ -337,7 +319,6 @@ class AggregateGenerator {
 
   static TypeReference getBuilderType({
     required DartType type,
-    required ModelAnalyzer modelAnalyzer,
     bool isRoot = false,
   }) {
     if (type is! InterfaceType || !TypeAnalyzer.isCustomClass(type)) {
@@ -354,10 +335,7 @@ class AggregateGenerator {
       type.element3.typeParameters2,
       type.typeArguments,
     );
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
     return TypeReference(
       (b) => b
         ..symbol = isRoot
@@ -367,8 +345,7 @@ class AggregateGenerator {
           map.entries.expand(
             (t) => [
               t.value.reference,
-              if (builders.contains(t.key))
-                getBuilderType(type: t.value, modelAnalyzer: modelAnalyzer),
+              if (builders.contains(t.key)) getBuilderType(type: t.value),
             ],
           ),
         ),
@@ -377,16 +354,12 @@ class AggregateGenerator {
 
   static Map<String, Expression> getConstructorBuildersParameters({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.element3.typeParameters2,
       type.typeArguments,
     );
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
 
     return Map.fromEntries(
       map.entries
@@ -421,7 +394,6 @@ class AggregateGenerator {
                     context: refer('context'),
                     name: refer('name'),
                     parent: refer('parent'),
-                    modelAnalyzer: modelAnalyzer,
                   ).code,
               ).closure,
             ),
@@ -434,7 +406,6 @@ class AggregateGenerator {
     required Expression context,
     Expression? name,
     Expression? parent,
-    required ModelAnalyzer modelAnalyzer,
     bool isRoot = false,
   }) {
     if (!isUserType(type) &&
@@ -443,19 +414,12 @@ class AggregateGenerator {
         'throw UnsupportedError',
       ).call([literalString('Unsupported type for aggregation')]);
     }
-    return getBuilderType(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-      isRoot: isRoot,
-    ).newInstance([], {
+    return getBuilderType(type: type, isRoot: isRoot).newInstance([], {
       'context': context,
       if (name != null) 'name': name,
       if (parent != null) 'parent': parent,
       if (type is InterfaceType)
-        ...getConstructorBuildersParameters(
-          type: type,
-          modelAnalyzer: modelAnalyzer,
-        ),
+        ...getConstructorBuildersParameters(type: type),
     });
   }
 }

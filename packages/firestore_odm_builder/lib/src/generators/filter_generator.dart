@@ -9,17 +9,10 @@ import '../utils/model_analyzer.dart';
 /// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
   /// Generate field getter method based on field type
-  static Method _generateFieldGetter({
-    required FieldInfo field,
-    required ModelAnalyzer modelAnalyzer,
-  }) {
-    
+  static Method _generateFieldGetter({required FieldInfo field}) {
     final typeRef = field.type is TypeParameterType
         ? TypeReference((b) => b..symbol = '\$${field.type.element3!.name3}')
-        : getBuilderType(
-      type: field.type,
-      modelAnalyzer: modelAnalyzer,
-    );
+        : getBuilderType(type: field.type);
     final initializerTypeRef = field.type is TypeParameterType
         ? refer('_builderFunc${field.type.element3!.name3!.camelCase()}')
         : typeRef;
@@ -39,8 +32,7 @@ class FilterGenerator {
         ..body = initializerTypeRef.newInstance([], {
           'name': literalString(fieldName),
           'parent': refer('this'),
-          if (field.isDocumentId)
-            'type': refer('FieldPathType.documentId'),
+          if (field.isDocumentId) 'type': refer('FieldPathType.documentId'),
         }).code,
     );
   }
@@ -48,9 +40,8 @@ class FilterGenerator {
   /// Generate filter selector extension using ModelAnalysis
   static Extension generateFilterSelectorClassFromAnalysis(
     String schemaName,
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+    InterfaceType type,
+  ) {
     final className = type.element.name;
 
     final typeParameters = type.typeParameters;
@@ -69,14 +60,11 @@ class FilterGenerator {
     );
 
     // Generate methods for all fields
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
       // Regular field
-      methods.add(_generateFieldGetter(
-        field: field,
-        modelAnalyzer: modelAnalyzer,
-      ));
+      methods.add(_generateFieldGetter(field: field));
     }
 
     // Create extension
@@ -90,26 +78,17 @@ class FilterGenerator {
     );
   }
 
-  static Class generateFilterSelectorClass(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static Class generateFilterSelectorClass(InterfaceType type) {
     final className = type.element.name;
 
-    final builders = computeNeededBuilders(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type);
 
     // Generate methods for all fields
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
-        // Regular field
-        methods.add(_generateFieldGetter(
-          field: field,
-          modelAnalyzer: modelAnalyzer,
-        ));
+      // Regular field
+      methods.add(_generateFieldGetter(field: field));
     }
 
     // Create extension
@@ -189,15 +168,9 @@ class FilterGenerator {
     );
   }
 
-  static Class generateRootFilterSelectorClass(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static Class generateRootFilterSelectorClass(InterfaceType type) {
     final className = type.element3.name3;
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
     // Create extension
     return Class(
       (b) => b
@@ -239,7 +212,6 @@ class FilterGenerator {
               ..optionalParameters.addAll([
                 for (final typeParam in computeNeededBuilders(
                   type: type.element3.thisType,
-                  modelAnalyzer: modelAnalyzer,
                 ))
                   Parameter(
                     (b) => b
@@ -256,37 +228,30 @@ class FilterGenerator {
 
   static Set<TypeParameterElement2> computeNeededBuilders({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.typeArguments,
       type.element3.typeParameters2,
     );
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final fieldTypes = fields.values.map((field) => field.type).toSet();
     return fieldTypes.map((fieldType) => map[fieldType]).nonNulls.toSet();
   }
 
-  static List<Spec> generateClasses(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static List<Spec> generateClasses(InterfaceType type) {
     final specs = <Spec>[];
 
     // Generate FilterSelector class
-    specs.add(generateFilterSelectorClass(type, modelAnalyzer: modelAnalyzer));
+    specs.add(generateFilterSelectorClass(type));
 
     // Generate RootFilterSelector class
-    specs.add(
-      generateRootFilterSelectorClass(type, modelAnalyzer: modelAnalyzer),
-    );
+    specs.add(generateRootFilterSelectorClass(type));
 
     return specs;
   }
 
   static TypeReference getBuilderType({
     required DartType type,
-    required ModelAnalyzer modelAnalyzer,
     bool isRoot = false,
   }) {
     if (TypeAnalyzer.isMapType(type)) {
@@ -315,10 +280,7 @@ class FilterGenerator {
         type.element3.typeParameters2,
         type.typeArguments,
       );
-      final builders = computeNeededBuilders(
-        type: type.element3.thisType,
-        modelAnalyzer: modelAnalyzer,
-      );
+      final builders = computeNeededBuilders(type: type.element3.thisType);
       return TypeReference(
         (b) => b
           ..symbol = isRoot
@@ -328,8 +290,7 @@ class FilterGenerator {
             map.entries.expand(
               (t) => [
                 t.value.reference,
-                if (builders.contains(t.key))
-                  getBuilderType(type: t.value, modelAnalyzer: modelAnalyzer),
+                if (builders.contains(t.key)) getBuilderType(type: t.value),
               ],
             ),
           ),
@@ -345,14 +306,9 @@ class FilterGenerator {
 
   static Expression getFilterBuilderInstanceExpression({
     required DartType type,
-    required ModelAnalyzer modelAnalyzer,
     bool isRoot = false,
   }) {
-    return getBuilderType(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-      isRoot: isRoot,
-    ).constInstance([]);
+    return getBuilderType(type: type, isRoot: isRoot).constInstance([]);
   }
 
   static TypeReference getRootFilterBuilderType(InterfaceType type) {
@@ -365,16 +321,12 @@ class FilterGenerator {
 
   static Map<String, Expression> getConstructorBuildersParameters({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.element3.typeParameters2,
       type.typeArguments,
     );
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
 
     return Map.fromEntries(
       map.entries
@@ -402,7 +354,6 @@ class FilterGenerator {
                     type: entry.value,
                     name: refer('name'),
                     parent: refer('parent'),
-                    modelAnalyzer: modelAnalyzer,
                   ).code,
               ).closure,
             ),
@@ -414,21 +365,13 @@ class FilterGenerator {
     required DartType type,
     Expression? name,
     Expression? parent,
-    required ModelAnalyzer modelAnalyzer,
     bool isRoot = false,
   }) {
-    return getBuilderType(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-      isRoot: isRoot,
-    ).newInstance([], {
+    return getBuilderType(type: type, isRoot: isRoot).newInstance([], {
       if (name != null) 'name': name,
       if (parent != null) 'parent': parent,
       if (type is InterfaceType)
-        ...getConstructorBuildersParameters(
-          type: type,
-          modelAnalyzer: modelAnalyzer,
-        ),
+        ...getConstructorBuildersParameters(type: type),
     });
   }
 }

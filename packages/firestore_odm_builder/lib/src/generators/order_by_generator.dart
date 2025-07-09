@@ -67,9 +67,8 @@ class OrderByGenerator {
   /// Generate order by selector class using ModelAnalysis
   static Extension generateOrderBySelectorClassFromAnalysis(
     String schemaName,
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+    InterfaceType type,
+  ) {
     final className = type.element.name;
 
     final typeParameters = type.typeParameters;
@@ -90,7 +89,7 @@ class OrderByGenerator {
     );
 
     // Generate methods for all fields
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final methods = <Method>[];
     for (final field in fields.values) {
       final fieldType = field.type;
@@ -116,12 +115,8 @@ class OrderByGenerator {
 
   static Map<TypeParameterElement2, InterfaceType> matchedBuilders({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
-    final builders = computeNeededBuilders(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type);
     final map = Map.fromIterables(
       type.element3.typeParameters2,
       type.typeArguments,
@@ -135,16 +130,12 @@ class OrderByGenerator {
 
   static Map<String, Expression> getConstructorBuildersParameters({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.element3.typeParameters2,
       type.typeArguments,
     );
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
 
     return Map.fromEntries(
       map.entries
@@ -179,7 +170,6 @@ class OrderByGenerator {
                     context: refer('context'),
                     name: refer('name'),
                     parent: refer('parent'),
-                    modelAnalyzer: modelAnalyzer,
                   ).code,
               ).closure,
             ),
@@ -189,27 +179,20 @@ class OrderByGenerator {
 
   static Set<TypeParameterElement2> computeNeededBuilders({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final map = Map.fromIterables(
       type.typeArguments,
       type.element3.typeParameters2,
     );
-    final fields = modelAnalyzer.getFields(type);
+    final fields = getFields(type);
     final fieldTypes = fields.values.map((field) => field.type).toSet();
     return fieldTypes.map((fieldType) => map[fieldType]).nonNulls.toSet();
   }
 
-  static Class generateOrderByClass(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
-    final fields = modelAnalyzer.getFields(type);
+  static Class generateOrderByClass(InterfaceType type) {
+    final fields = getFields(type);
     final methods = <Method>[];
-    final builders = computeNeededBuilders(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type);
     for (final field in fields.values) {
       final fieldType = field.type;
       if (TypeAnalyzer.isCustomClass(fieldType)) {
@@ -309,22 +292,16 @@ class OrderByGenerator {
     );
   }
 
-  static List<Spec> generateOrderByClasses(
-    InterfaceType type, {
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static List<Spec> generateOrderByClasses(InterfaceType type) {
     final specs = <Spec>[];
 
     // Generate OrderByFieldSelector class
-    specs.add(generateOrderByClass(type, modelAnalyzer: modelAnalyzer));
+    specs.add(generateOrderByClass(type));
 
     return specs;
   }
 
-  static TypeReference getOrderByBuilderType({
-    required DartType type,
-    required ModelAnalyzer modelAnalyzer,
-  }) {
+  static TypeReference getOrderByBuilderType({required DartType type}) {
     if (type is! InterfaceType || !TypeAnalyzer.isCustomClass(type)) {
       return TypeReference(
         (b) => b
@@ -336,10 +313,7 @@ class OrderByGenerator {
       type.element3.typeParameters2,
       type.typeArguments,
     );
-    final builders = computeNeededBuilders(
-      type: type.element3.thisType,
-      modelAnalyzer: modelAnalyzer,
-    );
+    final builders = computeNeededBuilders(type: type.element3.thisType);
     return TypeReference(
       (b) => b
         ..symbol = '${type.element3.name3}OrderByBuilder'
@@ -348,10 +322,7 @@ class OrderByGenerator {
             (t) => [
               t.value.reference,
               if (builders.contains(t.key))
-                getOrderByBuilderType(
-                  type: t.value,
-                  modelAnalyzer: modelAnalyzer,
-                ),
+                getOrderByBuilderType(type: t.value),
             ],
           ),
         ),
@@ -363,32 +334,23 @@ class OrderByGenerator {
     required Expression context,
     Expression? name,
     Expression? parent,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     if (type is! InterfaceType) {
       return TypeReference(
         (b) => b
           ..symbol = 'OrderByField'
-          ..types.add(
-            type.reference
-          ),
+          ..types.add(type.reference),
       ).newInstance([], {
         'context': context,
         if (name != null) 'name': name,
         if (parent != null) 'parent': parent,
       });
     }
-    return getOrderByBuilderType(
-      type: type,
-      modelAnalyzer: modelAnalyzer,
-    ).newInstance([], {
+    return getOrderByBuilderType(type: type).newInstance([], {
       'context': context,
       if (name != null) 'name': name,
       if (parent != null) 'parent': parent,
-      ...getConstructorBuildersParameters(
-        type: type,
-        modelAnalyzer: modelAnalyzer,
-      ),
+      ...getConstructorBuildersParameters(type: type),
     });
   }
 }

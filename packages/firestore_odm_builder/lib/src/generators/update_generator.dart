@@ -5,8 +5,6 @@ import 'package:analyzer/dart/element/type.dart' hide FunctionType;
 import 'package:code_builder/code_builder.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
-import 'package:firestore_odm_builder/src/utils/converters/converter_factory.dart';
-import 'package:firestore_odm_builder/src/utils/converters/type_converter.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
 import 'package:source_gen/source_gen.dart';
@@ -264,7 +262,6 @@ class UpdateGenerator {
 
   static Class generateBuilderClass({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final fields = getFields(type);
     final builders = computeNeededBuilders(type: type);
@@ -410,11 +407,10 @@ class UpdateGenerator {
 
   static List<Spec> generateClasses({
     required InterfaceType type,
-    required ModelAnalyzer modelAnalyzer,
   }) {
     final specs = <Spec>[];
 
-    specs.add(generateBuilderClass(type: type, modelAnalyzer: modelAnalyzer));
+    specs.add(generateBuilderClass(type: type));
 
     return specs;
   }
