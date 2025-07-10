@@ -7,6 +7,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:source_gen/source_gen.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
@@ -36,10 +37,23 @@ class UpdateGenerator {
 
     // Check if this field is actually a type parameter (like T)
     final isTypeParameter = fieldType is TypeParameterType;
-
     // For type parameter fields, we need to use the appropriate converter
     // For concrete type fields (like String), use the standard logic
-    final updater = isTypeParameter
+    final updater = field.customConverter != null
+        ? Updater(
+            type: TypeReference(
+              (b) => b
+                ..symbol = 'PatchBuilder'
+                ..types.add(fieldType.reference)
+                ..types.add(field.customConverter!.jsonType.reference),
+            ),
+            arguments: {
+              'name': literalString(jsonFieldName),
+              'parent': refer('this'),
+              'toJson': field.customConverter!.toJson,
+            },
+          )
+        : isTypeParameter
         ? Updater(
             type: TypeReference(
               (b) => b..symbol = '\$${field.type.element3!.name3}',
@@ -103,7 +117,7 @@ class UpdateGenerator {
                   fieldType.reference,
                   TypeAnalyzer.getMapKeyType(fieldType).reference,
                   TypeAnalyzer.getMapValueType(fieldType).reference,
-                  ConverterGenerator.getJsonType(
+                  getJsonType(
                     type: TypeAnalyzer.getMapValueType(fieldType),
                   ),
                 ]),
@@ -134,7 +148,7 @@ class UpdateGenerator {
                   fieldType.reference,
                   TypeAnalyzer.getMapKeyType(fieldType).reference,
                   TypeAnalyzer.getMapValueType(fieldType).reference,
-                  ConverterGenerator.getJsonType(
+                  getJsonType(
                     type: TypeAnalyzer.getMapValueType(fieldType),
                   ),
                 ]),
@@ -160,7 +174,7 @@ class UpdateGenerator {
                 ..types.addAll([
                   fieldType.reference,
                   TypeAnalyzer.getIterableElementType(fieldType).reference,
-                  ConverterGenerator.getJsonType(
+                  getJsonType(
                     type: TypeAnalyzer.getIterableElementType(fieldType),
                   ),
                 ]), // Use the actual type parameter
@@ -197,7 +211,7 @@ class UpdateGenerator {
               (b) => b
                 ..symbol = 'PatchBuilder'
                 ..types.add(fieldType.reference)
-                ..types.add(ConverterGenerator.getJsonType(type: fieldType)),
+                ..types.add(getJsonType(type: fieldType)),
             ),
             arguments: {
               'name': literalString(jsonFieldName),
@@ -260,9 +274,7 @@ class UpdateGenerator {
         .toSet();
   }
 
-  static Class generateBuilderClass({
-    required InterfaceType type,
-  }) {
+  static Class generateBuilderClass({required InterfaceType type}) {
     final fields = getFields(type);
     final builders = computeNeededBuilders(type: type);
     final toJsons = computeNeededToJsons(type: type);
@@ -405,9 +417,7 @@ class UpdateGenerator {
     );
   }
 
-  static List<Spec> generateClasses({
-    required InterfaceType type,
-  }) {
+  static List<Spec> generateClasses({required InterfaceType type}) {
     final specs = <Spec>[];
 
     specs.add(generateBuilderClass(type: type));
@@ -424,7 +434,7 @@ class UpdateGenerator {
         (b) => b
           ..symbol = 'PatchBuilder'
           ..types.add(type.reference)
-          ..types.add(ConverterGenerator.getJsonType(type: type)),
+          ..types.add(getJsonType(type: type)),
       );
     }
     final map = Map.fromIterables(

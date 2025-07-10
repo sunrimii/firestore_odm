@@ -9,34 +9,33 @@ import '../utils/model_analyzer.dart';
 
 /// Generator for update builders and related classes using code_builder
 class ConverterGenerator {
-  static TypeReference getJsonType({required DartType type}) {
-    if (isPrimitive(type)) {
-      return type.reference;
+  static Expression callToJsonByField({
+    required FieldInfo field,
+    required Expression value,
+    Map<DartType, Expression> typeConverters = const {},
+  }) {
+    if (field.customConverter != null) {
+      // If a custom converter is provided, use it directly
+      return field.customConverter!.toJson.call([value]);
     }
+    return callToJson(
+      type: field.type,
+      value: value,
+      typeConverters: typeConverters,
+    );
+  }
 
-    if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(type)) {
-      return TypeReferences.timestamp;
+  static Expression _handleNullalbe(
+    DartType type,
+    Expression value,
+    Expression Function(Expression) expressionFunc,
+  ) {
+    if (type.isNullable) {
+      return value
+          .equalTo(literalNull)
+          .conditional(literalNull, expressionFunc(value.nullChecked));
     }
-    if (TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)) {
-      return TypeReferences.listOf(getJsonType(type: type.typeArguments.first));
-    }
-
-    if (TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
-        TypeChecker.fromRuntime(IMap).isAssignableFromType(type)) {
-      return TypeReferences.mapOf(
-        TypeReferences.string,
-        getJsonType(type: type.typeArguments.last),
-      );
-    }
-
-    if (type is InterfaceType) {
-      return TypeReferences.mapOf(
-        TypeReferences.string,
-        TypeReferences.dynamic,
-      );
-    }
-
-    return TypeReferences.dynamic;
+    return expressionFunc(value);
   }
 
   static Expression callToJson({
@@ -54,31 +53,43 @@ class ConverterGenerator {
     }
 
     if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(type)) {
-      return refer('const DateTimeConverter().toJson').call([value]);
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer('const DateTimeConverter().toJson').call([value]),
+      );
     }
 
     if (TypeChecker.fromRuntime(List).isAssignableFromType(type)) {
-      return refer('listToJson').call([
+      return _handleNullalbe(
+        type,
         value,
-        getToJsonEnsured(
-          type: type.typeArguments.first,
-          typeConverters: typeConverters,
-        ),
-      ]);
+        (value) => refer('listToJson').call([
+          value,
+          getToJsonEnsured(
+            type: type.typeArguments.first,
+            typeConverters: typeConverters,
+          ),
+        ]),
+      );
     }
 
     if (TypeChecker.fromRuntime(Map).isAssignableFromType(type)) {
-      return refer('mapToJson').call([
+      return _handleNullalbe(
+        type,
         value,
-        getToJsonEnsured(
-          type: type.typeArguments.first,
-          typeConverters: typeConverters,
-        ),
-        getToJsonEnsured(
-          type: type.typeArguments.last,
-          typeConverters: typeConverters,
-        ),
-      ]);
+        (value) => refer('mapToJson').call([
+          value,
+          getToJsonEnsured(
+            type: type.typeArguments.first,
+            typeConverters: typeConverters,
+          ),
+          getToJsonEnsured(
+            type: type.typeArguments.last,
+            typeConverters: typeConverters,
+          ),
+        ]),
+      );
     }
 
     if (type is InterfaceType) {
@@ -119,6 +130,24 @@ class ConverterGenerator {
     return value; // refer('(value) => value');
   }
 
+  static Expression callFromJsonByField({
+    required FieldInfo field,
+    required Expression value,
+    Map<DartType, Expression> typeConverters = const {},
+  }) {
+    if (field.customConverter != null) {
+      // If a custom converter is provided, use it directly
+      return field.customConverter!.fromJson.call([
+        value.asA(field.customConverter!.jsonType.reference),
+      ]);
+    }
+    return callFromJson(
+      type: field.type,
+      value: value,
+      typeConverters: typeConverters,
+    );
+  }
+
   static Expression callFromJson({
     required DartType type,
     required Expression value,
@@ -134,38 +163,51 @@ class ConverterGenerator {
     }
 
     if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(type)) {
-      return refer('const DateTimeConverter().fromJson').call([value]);
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer(
+          'const DateTimeConverter().fromJson',
+        ).call([value.asA(TypeReferences.string)]),
+      );
     }
 
     if (TypeChecker.fromRuntime(List).isAssignableFromType(type)) {
-      return refer('listFromJson').call([
-        value.asA(TypeReferences.listOf(TypeReferences.dynamic)),
-        getFromJsonEnsured(
-          type: type.typeArguments.first,
-          typeConverters: typeConverters,
-        ),
-      ]);
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer('listFromJson').call([
+          value.asA(TypeReferences.listOf(TypeReferences.dynamic)),
+          getFromJsonEnsured(
+            type: type.typeArguments.first,
+            typeConverters: typeConverters,
+          ),
+        ]),
+      );
     }
 
     if (TypeChecker.fromRuntime(Map).isAssignableFromType(type)) {
-      return refer('mapFromJson').call([
-        value.asA(
-          TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
-        ),
-        getFromJsonEnsured(
-          type: type.typeArguments.first,
-          typeConverters: typeConverters,
-        ),
-        getFromJsonEnsured(
-          type: type.typeArguments.last,
-          typeConverters: typeConverters,
-        ),
-      ]);
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer('mapFromJson').call([
+          value.asA(
+            TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic),
+          ),
+          getFromJsonEnsured(
+            type: type.typeArguments.first,
+            typeConverters: typeConverters,
+          ),
+          getFromJsonEnsured(
+            type: type.typeArguments.last,
+            typeConverters: typeConverters,
+          ),
+        ]),
+      );
     }
 
     if (type is InterfaceType) {
       final expectedType = type.reference;
-
       final fromJson = type.lookUpConstructor2(
         'fromJson',
         type.element3.library2,
@@ -177,7 +219,7 @@ class ConverterGenerator {
         ];
         final actualType = fromJson.returnType.reference;
         final invokeExp = type.reference.property('fromJson').call([
-          value,
+          value.asA(getJsonType(type: type)),
           ...args,
         ]);
         // If the type has a toJson method, use it directly
@@ -241,6 +283,38 @@ class ConverterGenerator {
     ).closure;
   }
 
+  static Expression getToJsonEnsuredByField({
+    required FieldInfo field,
+    Map<DartType, Expression> typeConverters = const {},
+  }) {
+    return Method(
+      (b) => b
+        ..requiredParameters.add(Parameter((b) => b..name = 'value'))
+        ..returns = getJsonType(type: field.type)
+        ..body = callToJsonByField(
+          field: field,
+          value: refer('value'),
+          typeConverters: typeConverters,
+        ).code,
+    ).closure;
+  }
+
+  static Expression getFromJsonEnsuredByField({
+    required FieldInfo field,
+    Map<DartType, Expression> typeConverters = const {},
+  }) {
+    return Method(
+      (b) => b
+        ..requiredParameters.add(Parameter((b) => b..name = 'value'))
+        ..returns = field.type.reference
+        ..body = callFromJsonByField(
+          field: field,
+          value: refer('value'),
+          typeConverters: typeConverters,
+        ).code,
+    ).closure;
+  }
+
   static Method generateToJsonMethod({required InterfaceType type}) {
     final fields = getFields(type);
     return Method(
@@ -271,8 +345,8 @@ class ConverterGenerator {
         ])
         ..body = literalMap({
           for (final field in fields.values)
-            field.jsonName: callToJson(
-              type: field.type,
+            field.jsonName: callToJsonByField(
+              field: field,
               value: refer('data').property(field.parameterName),
               typeConverters: {
                 for (final (i, typeParam) in type.typeArguments.indexed)
@@ -317,8 +391,8 @@ class ConverterGenerator {
         ..body = type.reference
             .newInstance([], {
               for (final field in fields.values)
-                field.jsonName: callFromJson(
-                  type: field.type,
+                field.jsonName: callFromJsonByField(
+                  field: field,
                   value: refer('data').index(literalString(field.jsonName)),
                   typeConverters: {
                     for (final (i, typeParam) in type.typeArguments.indexed)
@@ -351,107 +425,4 @@ class ConverterGenerator {
 
     return specs;
   }
-
-  // static Class generateConverterClass({
-  //   required InterfaceType type,
-  //   required ModelAnalyzer modelAnalyzer,
-  //   required ConverterFactory converterFactory,
-  // }) {
-  //   final fromTypeRef = type.reference;
-  //   final toTypeRef = TypeReferences.mapOf(
-  //     TypeReferences.string,
-  //     TypeReferences.dynamic,
-  //   );
-  //   return Class(
-  //       (b) => b
-  //         ..docs.addAll([
-  //           '/// Converter for ${type.name} model',
-  //           '/// Generated by Firestore ODM Builder',
-  //         ])
-  //         ..name = '${type.name}JsonConverter'
-  //       ..types.addAll(
-  //         type.element3.typeParameters2.expand(
-  //           (t) => [
-  //             t.reference,
-  //           ],
-  //         ),
-  //       )
-  //         ..implements.add(
-  //           TypeReference(
-  //             (b) => b
-  //               ..symbol = 'FirestoreConverter'
-  //               ..types.addAll([
-  //                 fromTypeRef,
-  //                 toTypeRef,
-  //               ]),
-  //           ),
-  //         )
-  //         ..fields.addAll(
-  //           type.element3.typeParameters2.map(
-  //             (t) => Field(
-  //               (b) => b
-  //                 ..name = 'converter${t.name3}'
-  //                 ..type = TypeReference(
-  //                   (b) => b
-  //                     ..symbol = 'FirestoreConverter'
-  //                     ..types.addAll([t.reference, TypeReferences.dynamic]),
-  //                 )
-  //                 ..modifier = FieldModifier.final$,
-  //             ),
-  //           ),
-  //         )
-  //         ..constructors.add(
-  //           Constructor(
-  //             (b) => b
-  //               ..constant = true
-  //               ..optionalParameters.addAll(
-  //                 type.element3.typeParameters2.map(
-  //                   (t) => Parameter(
-  //                     (b) => b
-  //                       ..required = true
-  //                       ..named = true
-  //                       ..name = 'converter${t.name3}'
-  //                       ..toThis = true,
-  //                   ),
-  //                 ),
-  //               ),
-  //           ),
-  //         )
-  //         ..methods.addAll([
-  //           Method(
-  //             (b) => b
-  //               ..name = 'fromJson'
-  //               ..annotations.add(refer('override'))
-  //               ..returns = type.reference
-  //               ..requiredParameters.add(
-  //                 Parameter(
-  //                   (b) => b
-  //                     ..name = 'data'
-  //                     ..type = toTypeRef,
-  //                 ),
-  //               )
-  //               ..body = converter.fromFirestore(refer('data')).code,
-  //           ),
-  //           Method(
-  //             (b) => b
-  //               ..name = 'toJson'
-  //               ..annotations.add(refer('override'))
-  //               ..returns = toTypeRef
-  //               ..requiredParameters.add(
-  //                 Parameter(
-  //                   (b) => b
-  //                     ..name = 'value'
-  //                     ..type = fromTypeRef,
-  //                 ),
-  //               )
-  //               ..body = (cast
-  //                   ? converter
-  //                         .toFirestore(refer('value'))
-  //                         .asA(toTypeResult)
-  //                         .code
-  //                   : converter.toFirestore(refer('value')).code),
-  //           ),
-  //         ]),
-  //     ),
-  // }
 }

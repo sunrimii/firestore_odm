@@ -114,17 +114,33 @@ class SetConverter<T> extends IterableConverter<T> {
 }
 
 /// Converter for DateTime <-> Timestamp
-class DateTimeConverter implements FirestoreConverter<DateTime, Timestamp> {
+// class DateTimeConverter implements FirestoreConverter<DateTime?, Timestamp?> {
+//   const DateTimeConverter();
+
+//   @override
+//   DateTime? fromJson(Timestamp? data) {
+//     return data?.toDate();
+//   }
+
+//   @override
+//   Timestamp? toJson(DateTime? data) {
+//     return data != null ? Timestamp.fromDate(data) : null;
+//   }
+// }
+
+
+class DateTimeConverter implements FirestoreConverter<DateTime, String> {
   const DateTimeConverter();
 
   @override
-  DateTime fromJson(Timestamp data) {
-    return data.toDate();
+  DateTime fromJson(String data) {
+    return DateTime.parse(data);
   }
 
+
   @override
-  Timestamp toJson(DateTime data) {
-    return Timestamp.fromDate(data);
+  String toJson(DateTime data) {
+    return data.toIso8601String();
   }
 }
 
@@ -138,7 +154,9 @@ class DurationConverter implements FirestoreConverter<Duration, int> {
   }
 
   @override
-  int toJson(Duration data) => data.inMicroseconds;
+  int toJson(Duration data) {
+    return data.inMicroseconds;
+  }
 }
 
 class NullableConverter<T, F> implements FirestoreConverter<T?, F?> {
