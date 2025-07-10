@@ -3,6 +3,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/test_schema.dart';
 
 void main() {
@@ -363,6 +364,85 @@ void main() {
         expect(updated.profile.interests, contains('youtube'));
         expect(updated.settings['new_feature'], equals('enabled'));
         expect(updated.metadata['badge_count'], equals(20));
+      });
+    });
+
+    group('🕐 Server Timestamp Support', () {
+      test('should use FirestoreODM.serverTimestamp in patch operations', () async {
+        final user = User(
+          id: 'server_timestamp_user',
+          name: 'Server Timestamp User',
+          email: 'timestamp@test.com',
+          age: 30,
+          profile: Profile(
+            bio: 'Testing server timestamps',
+            avatar: 'timestamp.jpg',
+            socialLinks: {},
+            interests: ['testing'],
+            followers: 100,
+          ),
+          rating: 4.0,
+          isActive: true,
+          isPremium: false,
+          createdAt: DateTime(2024, 1, 1),
+        );
+
+        await odm.users(user.id).update(user);
+
+        // Use server timestamp in patch
+        await odm.users(user.id).patch(($) => [
+              $.lastLogin(FirestoreODM.serverTimestamp),
+              $.updatedAt(FirestoreODM.serverTimestamp),
+              $.name('Updated with Server Timestamp'),
+            ]);
+
+        final updated = await odm.users(user.id).get();
+        expect(updated!.name, equals('Updated with Server Timestamp'));
+        expect(updated.lastLogin, isNotNull);
+        expect(updated.updatedAt, isNotNull);
+        
+        // Server timestamps should be recent
+        final now = DateTime.now();
+        expect(now.difference(updated.lastLogin!).abs().inMinutes, lessThan(1));
+        expect(now.difference(updated.updatedAt!).abs().inMinutes, lessThan(1));
+
+        print('✅ Server timestamps work in patch operations');
+      });
+
+      test('should use FirestoreODM.serverTimestamp in modify operations', () async {
+        final post = Post(
+          id: 'server_timestamp_post',
+          title: 'Server Timestamp Post',
+          content: 'Testing server timestamps in modify',
+          authorId: 'test_author',
+          tags: ['timestamp', 'test'],
+          metadata: {},
+          published: false,
+          createdAt: DateTime(2024, 1, 1),
+        );
+
+        await odm.posts(post.id).update(post);
+
+        // Use server timestamp in modify
+        await odm.posts(post.id).modify((post) => post.copyWith(
+              title: 'Updated with Server Timestamp',
+              published: true,
+              publishedAt: FirestoreODM.serverTimestamp,
+              updatedAt: FirestoreODM.serverTimestamp,
+            ));
+
+        final updated = await odm.posts(post.id).get();
+        expect(updated!.title, equals('Updated with Server Timestamp'));
+        expect(updated.published, isTrue);
+        expect(updated.publishedAt, isNotNull);
+        expect(updated.updatedAt, isNotNull);
+
+        // Server timestamps should be recent
+        final now = DateTime.now();
+        expect(now.difference(updated.publishedAt!).abs().inMinutes, lessThan(1));
+        expect(now.difference(updated.updatedAt!).abs().inMinutes, lessThan(1));
+
+        print('✅ Server timestamps work in modify operations');
       });
     });
   });

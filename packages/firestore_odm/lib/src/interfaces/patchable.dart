@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firestore_odm/src/filter_builder.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
 
 /// A typedef for building strongly-typed patch operations.
 ///

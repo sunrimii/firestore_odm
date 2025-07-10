@@ -12,6 +12,7 @@ import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/orderby.dart';
 import 'package:firestore_odm/src/schema.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/services/update_operations_service.dart';
 
 class Query<

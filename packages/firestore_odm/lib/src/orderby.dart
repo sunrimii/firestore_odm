@@ -10,6 +10,7 @@ import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/limitable.dart';
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/schema.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';

@@ -12,6 +12,7 @@ import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
 
 /// A wrapper around Firestore CollectionReference with type safety and caching
 class FirestoreCollection<

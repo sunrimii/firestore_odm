@@ -9,6 +9,7 @@ import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
 

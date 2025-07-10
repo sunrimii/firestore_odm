@@ -4,6 +4,8 @@ import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
 import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
+import 'package:firestore_odm/src/services/patch_operations.dart';
+import 'package:firestore_odm/src/services/update_helpers.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 /// Exception thrown when a Firestore document is not found.
@@ -24,34 +26,6 @@ class FirestoreDocumentNotFoundException implements Exception {
       'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
 }
 
-/// Recursively replace special timestamps with FieldValue.serverTimestamp()
-Map<String, dynamic> _replaceServerTimestamps(Map<String, dynamic> data) {
-  final result = <String, dynamic>{};
-
-  for (final entry in data.entries) {
-    final key = entry.key;
-    final value = entry.value;
-
-    if (value is DateTime && value == FirestoreODM.serverTimestamp) {
-      result[key] = firestore.FieldValue.serverTimestamp();
-    } else if (value is Map<String, dynamic>) {
-      result[key] = _replaceServerTimestamps(value);
-    } else if (value is List) {
-      result[key] = value.map((item) {
-        if (item is Map<String, dynamic>) {
-          return _replaceServerTimestamps(item);
-        } else if (item is DateTime && item == FirestoreODM.serverTimestamp) {
-          return firestore.FieldValue.serverTimestamp();
-        }
-        return item;
-      }).toList();
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
 
 /// Compute the difference between old and new data for efficient updates
 Map<String, dynamic> computeDiff(
@@ -318,7 +292,7 @@ class DocumentHandler {
     final updateData = computeDiff(oldDataMap, newDataMap);
 
     if (updateData.isNotEmpty) {
-      return _replaceServerTimestamps(updateData);
+      return replaceServerTimestamps(updateData);
     }
     return {};
   }
@@ -767,8 +741,7 @@ abstract class QueryHandler {
         atomic ? computeDiffWithAtomicOperations : computeDiff,
       );
       if (patch.isNotEmpty) {
-        final processedUpdateData = _replaceServerTimestamps(patch);
-        batch.update(docSnapshot.reference, processedUpdateData);
+        batch.update(docSnapshot.reference, patch);
       }
     }
     await batch.commit();
