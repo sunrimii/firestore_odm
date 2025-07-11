@@ -300,11 +300,12 @@ class FilterGenerator {
 
     if (jsonType.symbol == 'int' ||
         jsonType.symbol == 'double' ||
+        jsonType.symbol == 'String' ||
         jsonType == TypeReferences.timestamp) {
       return TypeDefinition(
         type: TypeReference(
           (b) => b
-            ..symbol = 'NumericFilterField'
+            ..symbol = 'ComparableFilterField'
             ..types.add(type.reference),
         ),
         namedArguments: {

@@ -393,7 +393,7 @@ mixin EqualableMixin<T, J> on FilterBuilderNode {
 }
 
 mixin ComparableMixin<T> on FilterBuilderNode {
-  num? Function(T) get _toJson;
+  Object? Function(T) get _toJson;
 
   /// Check if two objects are equal
   IsLessThanOperation isLessThan(T other) {
@@ -473,8 +473,8 @@ abstract class FilterField<T, R> extends FilterBuilderNode
     Iterable<T>? whereIn, Iterable<T>? whereNotIn});
 }
 
-class NumericFilterFieldImpl<T> extends NumericFilterField<T> {
-  const NumericFilterFieldImpl({super.path, required super.toJson}) : super._();
+class ComparableFilterFieldImpl<T> extends ComparableFilterField<T> {
+  const ComparableFilterFieldImpl({super.path, required super.toJson}) : super._();
 
   FilterOperation call({
     T? isEqualTo,
@@ -517,18 +517,18 @@ class NumericFilterFieldImpl<T> extends NumericFilterField<T> {
   }
 }
 
-abstract class NumericFilterField<T> extends FilterBuilderNode
-    with EqualableMixin<T, num?>, ComparableMixin<T> {
+abstract class ComparableFilterField<T> extends FilterBuilderNode
+    with EqualableMixin<T, Object?>, ComparableMixin<T> {
   /// Create a numeric field filter
-  factory NumericFilterField({
+  factory ComparableFilterField({
     FieldPath path,
-    required num? Function(T) toJson,
-  }) = NumericFilterFieldImpl;
+    required Object? Function(T) toJson,
+  }) = ComparableFilterFieldImpl;
 
-  const NumericFilterField._({super.path, required num? Function(T) toJson})
+  const ComparableFilterField._({super.path, required Object? Function(T) toJson})
     : _toJson = toJson;
 
-  final num? Function(T) _toJson;
+  final Object? Function(T) _toJson;
 
   FilterOperation call({
     T? isEqualTo,

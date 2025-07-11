@@ -137,7 +137,7 @@ void main() {
 
         // Query all published posts (non-null publishedAt)
         final allPublished = await odm.posts
-            .where(($) => $.publishedAt(isNull: false))
+            .where(($) => $.publishedAt(isNotEqualTo: null))
             .get();
 
         expect(allPublished.length, equals(2));
@@ -461,7 +461,7 @@ void main() {
 
         // Query users who have logged in
         final loggedInUsers = await odm.users
-            .where(($) => $.lastLogin(isNull: false))
+            .where(($) => $.lastLogin(isNotEqualTo: null))
             .get();
 
         expect(loggedInUsers.length, equals(1));
@@ -469,7 +469,7 @@ void main() {
 
         // Query users who have never logged in
         final neverLoggedUsers = await odm.users
-            .where(($) => $.lastLogin(isNull: true))
+            .where(($) => $.lastLogin(isEqualTo: null))
             .get();
 
         expect(neverLoggedUsers.length, equals(1));
