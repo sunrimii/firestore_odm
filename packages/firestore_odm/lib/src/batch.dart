@@ -16,7 +16,7 @@ import 'package:firestore_odm/src/utils.dart';
 /// Batch field for type-safe batch operations
 class BatchField<T> extends Node {
   BatchField({super.name, super.parent, this.type});
-  final FieldPathType? type;
+  final FieldPath? type;
 
   /// Insert operation
   void insert(T value) {
@@ -131,7 +131,7 @@ class BatchContext<S extends FirestoreSchema> {
 
 /// it is a convenience function to create a batch document
 BatchCollection<S, C, Path, P>
-getBatchCollection<S extends FirestoreSchema, C, Path extends Record, P extends PatchBuilder<C, Map<String, dynamic>>>({
+getBatchCollection<S extends FirestoreSchema, C, Path extends Record, P extends PatchBuilder<C, Map<String, dynamic>?>>({
   required BatchDocument<S, dynamic, Record, dynamic> parent,
   required String name,
   required Map<String, dynamic> Function(C) toJson,
@@ -148,11 +148,10 @@ getBatchCollection<S extends FirestoreSchema, C, Path extends Record, P extends 
 );
 
 /// Batch document for handling document-level batch operations
-class BatchDocument<S extends FirestoreSchema, T, Path extends Record, P
-extends PatchBuilder<T, Map<String, dynamic>>>
+class BatchDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>?>>
     implements Deletable, Patchable<T> {
   final BatchContext<S> _context;
-  final firestore.DocumentReference<Map<String, dynamic>> _ref;
+  final firestore.DocumentReference<Map<String, dynamic>?> _ref;
   final Map<String, dynamic> Function(T) _toJson;
   final T Function(Map<String, dynamic>) _fromJson;
   final P _patchBuilder;
@@ -190,7 +189,7 @@ extends PatchBuilder<T, Map<String, dynamic>>>
 }
 
 /// Batch collection for handling collection-level batch operations
-class BatchCollection<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>>>
+class BatchCollection<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>?>>
     implements
         Insertable<T>,
         Updatable<T>,

@@ -199,7 +199,7 @@ class TypeReferences {
 
 extension TypeReferenceX on TypeReference {
   TypeReference withNullability(bool isNullable) {
-    return rebuild((b) => b..isNullable = isNullable == true ? true : null);
+    return rebuild((b) => b..isNullable = isNullable);
   }
 
   TypeReference withTypeArguments(List<TypeReference> typeArguments) {

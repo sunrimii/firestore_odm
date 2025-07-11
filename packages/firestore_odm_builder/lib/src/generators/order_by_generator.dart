@@ -19,7 +19,7 @@ class OrderByGenerator {
 
     // Add type parameter for document ID fields
     if (field.isDocumentId) {
-      constructorArgs['type'] = refer('FieldPathType.documentId');
+      constructorArgs['type'] = refer('FieldPath.documentId');
     }
 
     return Method(

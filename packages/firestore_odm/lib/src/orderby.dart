@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:cloud_firestore/cloud_firestore.dart' show FieldPath;
+import 'package:cloud_firestore/cloud_firestore.dart' hide FieldPath, AggregateQuery;
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
@@ -11,7 +11,7 @@ import 'package:firestore_odm/src/interfaces/limitable.dart';
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
-import 'package:firestore_odm/src/types.dart';
+import 'package:firestore_odm/src/types.dart' show FieldPath;
 import 'package:firestore_odm/src/interfaces/paginatable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
@@ -39,7 +39,7 @@ class OrderByFieldNode extends Node {
 
 class OrderByField<T> extends OrderByFieldNode {
   OrderByField({super.name, super.parent, this.type, required super.context});
-  final FieldPathType? type;
+  final FieldPath? type;
 
   T call({bool descending = false}) {
     $context.resolver($parts, descending, type);
@@ -49,7 +49,7 @@ class OrderByField<T> extends OrderByFieldNode {
 
 /// Base class for orderBy field selectors
 abstract class OrderByContext {
-  void resolver(List<String> parts, bool descending, [FieldPathType? type]);
+  void resolver(List<String> parts, bool descending, [FieldPath? type]);
 }
 
 class OrderByBuilderContext extends OrderByContext {
@@ -58,10 +58,10 @@ class OrderByBuilderContext extends OrderByContext {
   final List<OrderByFieldInfo> fields = [];
 
   @override
-  void resolver(List<String> parts, bool descending, [FieldPathType? type]) {
+  void resolver(List<String> parts, bool descending, [FieldPath? type]) {
     /// Add the field to the list of orderBy fields
     /// Use FieldPath.documentId for document ID fields
-    if (type == FieldPathType.documentId) {
+    if (type == FieldPath.documentId) {
       fields.add(OrderByFieldInfo(FieldPath.documentId, descending));
     } else {
       fields.add(OrderByFieldInfo(parts.join('.'), descending));
@@ -75,7 +75,7 @@ class OrderByExtractorContext extends OrderByContext {
   final List<dynamic> extractedValues = [];
 
   @override
-  void resolver(List<String> parts, bool descending, [FieldPathType? type]) {
+  void resolver(List<String> parts, bool descending, [FieldPath? type]) {
     final value = resolveJsonWithParts(data, parts);
     extractedValues.add(value);
   }
@@ -140,7 +140,7 @@ class OrderedQuery<
   S extends FirestoreSchema,
   T,
   O extends Record,
-  P extends PatchBuilder<T, Map<String, dynamic>>,
+  P extends PatchBuilder<T, Map<String, dynamic>?>,
   F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
@@ -311,7 +311,7 @@ class OrderedQuery<
 
   @override
   OrderedQuery<S, T, O, P, F, OB, AB> where(
-    FirestoreFilter Function(F builder) filterBuilder,
+    FilterOperation Function(F builder) filterBuilder,
   ) {
     final filter = QueryFilterHandler.buildFilter(
       filterBuilder: filterBuilder,

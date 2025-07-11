@@ -26,7 +26,6 @@ class FirestoreDocumentNotFoundException implements Exception {
       'FirestoreDocumentNotFoundException: Document with ID "$documentId" not found';
 }
 
-
 /// Compute the difference between old and new data for efficient updates
 Map<String, dynamic> computeDiff(
   Map<String, dynamic> oldData,
@@ -249,6 +248,19 @@ class DocumentHandler {
       data,
       documentIdField: documentIdField,
     );
+
+    // print all dataMap field types recursively\
+    dataMap.forEach((key, value) {
+      if (value is Map) {
+        print('$key: Map<String, dynamic>');
+      } else if (value is List) {
+        print(
+          '$key: List<${value.isNotEmpty ? value.first.runtimeType : 'dynamic'}>',
+        );
+      } else {
+        print('$key: ${value.runtimeType}');
+      }
+    });
     await ref.set(dataMap);
   }
 
@@ -482,189 +494,15 @@ abstract class QueryFilterHandler {
   /// Applies a filter to the given Firestore query
   static firestore.Query<R> applyFilter<R>(
     firestore.Query<R> query,
-    FirestoreFilter filter,
+    FilterOperation filter,
   ) {
-    if (filter.type == FilterType.field) {
-      final field = filter.field!;
-      final operator = filter.operator!;
-      final value = filter.value;
-
-      switch (operator) {
-        case FilterOperator.isEqualTo:
-          return query.where(field, isEqualTo: value);
-        case FilterOperator.isNotEqualTo:
-          return query.where(field, isNotEqualTo: value);
-        case FilterOperator.isLessThan:
-          return query.where(field, isLessThan: value);
-        case FilterOperator.isLessThanOrEqualTo:
-          return query.where(field, isLessThanOrEqualTo: value);
-        case FilterOperator.isGreaterThan:
-          return query.where(field, isGreaterThan: value);
-        case FilterOperator.isGreaterThanOrEqualTo:
-          return query.where(field, isGreaterThanOrEqualTo: value);
-        case FilterOperator.arrayContains:
-          return query.where(field, arrayContains: value);
-        case FilterOperator.arrayContainsAny:
-          return query.where(field, arrayContainsAny: value);
-        case FilterOperator.whereIn:
-          return query.where(field, whereIn: value);
-        case FilterOperator.whereNotIn:
-          return query.where(field, whereNotIn: value);
-      }
-    } else if (filter.type == FilterType.and) {
-      var newQuery = query;
-      for (var subFilter in filter.filters!) {
-        newQuery = applyFilter(newQuery, subFilter);
-      }
-      return newQuery;
-    } else if (filter.type == FilterType.or) {
-      // Use Firestore's Filter.or() for proper OR logic
-      final filters = filter.filters!
-          .map((f) => _buildFirestoreFilter(f))
-          .toList();
-      if (filters.isEmpty)
-        throw ArgumentError('OR filter must have at least one condition');
-      if (filters.length == 1) return query.where(filters.first);
-      return query.where(_buildOrFilter(filters));
-    }
-    throw ArgumentError('Unsupported filter type: ${filter.type}');
+    return query.where(filter.toFilter());
   }
 
-  /// Build a Firestore Filter from our FirestoreFilter
-  static firestore.Filter _buildFirestoreFilter(FirestoreFilter filter) {
-    switch (filter.type) {
-      case FilterType.field:
-        return _buildFieldFilter(filter);
-      case FilterType.and:
-        final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-        if (filters.isEmpty)
-          throw ArgumentError('AND filter must have at least one condition');
-        if (filters.length == 1) return filters.first;
-        return _buildAndFilter(filters);
-      case FilterType.or:
-        final filters = filter.filters!.map(_buildFirestoreFilter).toList();
-        if (filters.isEmpty)
-          throw ArgumentError('OR filter must have at least one condition');
-        if (filters.length == 1) return filters.first;
-        return _buildOrFilter(filters);
-    }
-  }
 
-  /// Build a single field Filter
-  static firestore.Filter _buildFieldFilter(FirestoreFilter filter) {
-    switch (filter.operator!) {
-      case FilterOperator.isEqualTo:
-        return firestore.Filter(filter.field!, isEqualTo: filter.value);
-      case FilterOperator.isNotEqualTo:
-        return firestore.Filter(filter.field!, isNotEqualTo: filter.value);
-      case FilterOperator.isLessThan:
-        return firestore.Filter(filter.field!, isLessThan: filter.value);
-      case FilterOperator.isLessThanOrEqualTo:
-        return firestore.Filter(
-          filter.field!,
-          isLessThanOrEqualTo: filter.value,
-        );
-      case FilterOperator.isGreaterThan:
-        return firestore.Filter(filter.field!, isGreaterThan: filter.value);
-      case FilterOperator.isGreaterThanOrEqualTo:
-        return firestore.Filter(
-          filter.field!,
-          isGreaterThanOrEqualTo: filter.value,
-        );
-      case FilterOperator.arrayContains:
-        return firestore.Filter(filter.field!, arrayContains: filter.value);
-      case FilterOperator.arrayContainsAny:
-        return firestore.Filter(filter.field!, arrayContainsAny: filter.value);
-      case FilterOperator.whereIn:
-        return firestore.Filter(filter.field!, whereIn: filter.value);
-      case FilterOperator.whereNotIn:
-        return firestore.Filter(filter.field!, whereNotIn: filter.value);
-    }
-  }
-
-  /// Build Filter.or() with the correct API signature
-  static firestore.Filter _buildOrFilter(List<firestore.Filter> filters) {
-    if (filters.length < 2)
-      throw ArgumentError('OR filter needs at least 2 filters');
-
-    // Use the specific API signature for Filter.or()
-    return firestore.Filter.or(
-      filters[0],
-      filters[1],
-      filters.length > 2 ? filters[2] : null,
-      filters.length > 3 ? filters[3] : null,
-      filters.length > 4 ? filters[4] : null,
-      filters.length > 5 ? filters[5] : null,
-      filters.length > 6 ? filters[6] : null,
-      filters.length > 7 ? filters[7] : null,
-      filters.length > 8 ? filters[8] : null,
-      filters.length > 9 ? filters[9] : null,
-      filters.length > 10 ? filters[10] : null,
-      filters.length > 11 ? filters[11] : null,
-      filters.length > 12 ? filters[12] : null,
-      filters.length > 13 ? filters[13] : null,
-      filters.length > 14 ? filters[14] : null,
-      filters.length > 15 ? filters[15] : null,
-      filters.length > 16 ? filters[16] : null,
-      filters.length > 17 ? filters[17] : null,
-      filters.length > 18 ? filters[18] : null,
-      filters.length > 19 ? filters[19] : null,
-      filters.length > 20 ? filters[20] : null,
-      filters.length > 21 ? filters[21] : null,
-      filters.length > 22 ? filters[22] : null,
-      filters.length > 23 ? filters[23] : null,
-      filters.length > 24 ? filters[24] : null,
-      filters.length > 25 ? filters[25] : null,
-      filters.length > 26 ? filters[26] : null,
-      filters.length > 27 ? filters[27] : null,
-      filters.length > 28 ? filters[28] : null,
-      filters.length > 29 ? filters[29] : null,
-    );
-  }
-
-  /// Build Filter.and() with the correct API signature
-  static firestore.Filter _buildAndFilter(List<firestore.Filter> filters) {
-    if (filters.length < 2)
-      throw ArgumentError('AND filter needs at least 2 filters');
-
-    // Use the specific API signature for Filter.and()
-    return firestore.Filter.and(
-      filters[0],
-      filters[1],
-      filters.length > 2 ? filters[2] : null,
-      filters.length > 3 ? filters[3] : null,
-      filters.length > 4 ? filters[4] : null,
-      filters.length > 5 ? filters[5] : null,
-      filters.length > 6 ? filters[6] : null,
-      filters.length > 7 ? filters[7] : null,
-      filters.length > 8 ? filters[8] : null,
-      filters.length > 9 ? filters[9] : null,
-      filters.length > 10 ? filters[10] : null,
-      filters.length > 11 ? filters[11] : null,
-      filters.length > 12 ? filters[12] : null,
-      filters.length > 13 ? filters[13] : null,
-      filters.length > 14 ? filters[14] : null,
-      filters.length > 15 ? filters[15] : null,
-      filters.length > 16 ? filters[16] : null,
-      filters.length > 17 ? filters[17] : null,
-      filters.length > 18 ? filters[18] : null,
-      filters.length > 19 ? filters[19] : null,
-      filters.length > 20 ? filters[20] : null,
-      filters.length > 21 ? filters[21] : null,
-      filters.length > 22 ? filters[22] : null,
-      filters.length > 23 ? filters[23] : null,
-      filters.length > 24 ? filters[24] : null,
-      filters.length > 25 ? filters[25] : null,
-      filters.length > 26 ? filters[26] : null,
-      filters.length > 27 ? filters[27] : null,
-      filters.length > 28 ? filters[28] : null,
-      filters.length > 29 ? filters[29] : null,
-    );
-  }
-
-  static FirestoreFilter buildFilter<T, F extends FilterBuilderRoot>({
+  static FilterOperation buildFilter<T, F extends FilterBuilderRoot>({
     required F builderRoot,
-    required FirestoreFilter Function(F builder) filterBuilder,
+    required FilterOperation Function(F builder) filterBuilder,
   }) {
     return filterBuilder(builderRoot);
   }

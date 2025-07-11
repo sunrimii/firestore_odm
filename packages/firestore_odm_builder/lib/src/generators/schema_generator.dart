@@ -802,7 +802,6 @@ class SchemaGenerator {
               UpdateGenerator.getBuilderType(type: subcol.modelType),
               FilterGenerator.getBuilderType(
                 type: subcol.modelType,
-
                 isRoot: true,
               ),
               OrderByGenerator.getOrderByBuilderType(type: subcol.modelType),

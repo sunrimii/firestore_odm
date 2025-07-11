@@ -18,7 +18,7 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 class Query<
   S extends FirestoreSchema,
   T,
-  P extends PatchBuilder<T, Map<String, dynamic>>,
+  P extends PatchBuilder<T, Map<String, dynamic>?>,
   F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
@@ -90,7 +90,7 @@ class Query<
   }
 
   @override
-  Query<S, T, P, F, OB, AB> where(FirestoreFilter Function(F builder) filterFunc) {
+  Query<S, T, P, F, OB, AB> where(FilterOperation Function(F builder) filterFunc) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     // Handle different types of query objects

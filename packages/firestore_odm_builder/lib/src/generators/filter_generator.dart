@@ -1,21 +1,52 @@
+import 'dart:convert';
+
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
+import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
+import 'package:source_gen/source_gen.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
+
+class TypeDefinition {
+  final TypeReference type;
+  final Reference instance;
+  final List<Expression> positionalArguments;
+  final Map<String, Expression> namedArguments;
+
+  const TypeDefinition({
+    required this.type,
+    Reference? instance,
+    this.positionalArguments = const [],
+    this.namedArguments = const {},
+  }) : instance = instance ?? type;
+}
 
 /// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
   /// Generate field getter method based on field type
   static Method _generateFieldGetter({required FieldInfo field}) {
-    final typeRef = field.type is TypeParameterType
-        ? TypeReference((b) => b..symbol = '\$${field.type.element3!.name3}')
-        : getBuilderType(type: field.type);
-    final initializerTypeRef = field.type is TypeParameterType
-        ? refer('_builderFunc${field.type.element3!.name3!.camelCase()}')
-        : typeRef;
+    final typeDef = field.type is TypeParameterType
+        ? TypeDefinition(
+            type: TypeReference(
+              (b) => b..symbol = '\$${field.type.element3!.name3}',
+            ),
+            instance: refer(
+              '_builderFunc${field.type.element3!.name3!.camelCase()}',
+            ),
+            // namedArguments: {
+            //   'toJson': ConverterGenerator.getToJsonEnsured(
+            //     type: field.type,
+            //     customConverter: field.customConverter,
+            //   ),
+            // },
+          )
+        : getBuilderDef(
+            type: field.type,
+            customConverter: field.customConverter,
+          );
 
     final String fieldName = field.jsonName;
 
@@ -28,11 +59,15 @@ class FilterGenerator {
         )
         ..name = field.parameterName
         ..lambda = true
-        ..returns = typeRef
-        ..body = initializerTypeRef.newInstance([], {
-          'name': literalString(fieldName),
-          'parent': refer('this'),
-          if (field.isDocumentId) 'type': refer('FieldPathType.documentId'),
+        ..returns = typeDef.type
+        ..body = typeDef.instance.newInstance([], {
+          'path': field.isDocumentId
+              ? refer('FieldPath.documentId')
+              : refer('path')
+                    .asA(refer('PathFieldPath'))
+                    .property('append')
+                    .call([literalString(fieldName)]),
+          ...typeDef.namedArguments,
         }).code,
     );
   }
@@ -130,13 +165,7 @@ class FilterGenerator {
                   ),
                 Parameter(
                   (b) => b
-                    ..name = 'name'
-                    ..toSuper = true
-                    ..named = true,
-                ),
-                Parameter(
-                  (b) => b
-                    ..name = 'parent'
+                    ..name = 'path'
                     ..toSuper = true
                     ..named = true,
                 ),
@@ -201,8 +230,7 @@ class FilterGenerator {
               ),
             ),
         )
-        ..mixins.add(refer('FilterBuilderRootMixin'))
-        ..implements.add(refer('FilterBuilderRoot'))
+        ..mixins.add(refer('FilterBuilderRoot'))
         ..docs.add('/// Generated RootFilterBuilder for `$type`')
         ..constructors.add(
           Constructor(
@@ -252,63 +280,138 @@ class FilterGenerator {
 
   static TypeReference getBuilderType({
     required DartType type,
+    CustomConverter? customConverter,
     bool isRoot = false,
   }) {
-    if (TypeAnalyzer.isMapType(type)) {
-      return TypeReference(
-        (b) => b
-          ..symbol = 'MapFieldFilter'
-          ..types.add(type.typeArguments.first.reference)
-          ..types.add(type.typeArguments.last.reference),
-      );
-    }
-
-    if (TypeAnalyzer.isIterableType(type)) {
-      return TypeReference(
-        (b) => b
-          ..symbol = 'ArrayFieldFilter'
-          ..types.add(type.typeArguments.first.reference),
-      );
-    }
-
-    if (TypeAnalyzer.isBoolType(type)) {
-      return TypeReference((b) => b..symbol = 'BoolFieldFilter');
-    }
-
-    if (type is InterfaceType && TypeAnalyzer.isCustomClass(type)) {
-      final map = Map.fromIterables(
-        type.element3.typeParameters2,
-        type.typeArguments,
-      );
-      final builders = computeNeededBuilders(type: type.element3.thisType);
-      return TypeReference(
-        (b) => b
-          ..symbol = isRoot
-              ? '${type.element3.name3}FilterBuilderRoot'
-              : '${type.element3.name3}FilterBuilder'
-          ..types.addAll(
-            map.entries.expand(
-              (t) => [
-                t.value.reference,
-                if (builders.contains(t.key)) getBuilderType(type: t.value),
-              ],
-            ),
-          ),
-      );
-    }
-
-    return TypeReference(
-      (b) => b
-        ..symbol = 'FilterField'
-        ..types.add(type.reference),
-    );
+    return getBuilderDef(
+      type: type,
+      customConverter: customConverter,
+      isRoot: isRoot,
+    ).type;
   }
 
-  static Expression getFilterBuilderInstanceExpression({
+  static TypeDefinition getBuilderDef({
     required DartType type,
+    CustomConverter? customConverter,
     bool isRoot = false,
   }) {
-    return getBuilderType(type: type, isRoot: isRoot).constInstance([]);
+    final jsonType =
+        customConverter?.jsonType.reference ?? getJsonType(type: type);
+
+    if (jsonType.symbol == 'int' ||
+        jsonType.symbol == 'double' ||
+        jsonType == TypeReferences.timestamp) {
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b
+            ..symbol = 'NumericFilterField'
+            ..types.add(type.reference),
+        ),
+        namedArguments: {
+          'toJson': ConverterGenerator.getToJsonEnsured(
+            type: type,
+            customConverter: customConverter,
+          ),
+        },
+      );
+    }
+
+    if (jsonType.symbol == 'Map') {
+      if (type is InterfaceType && TypeAnalyzer.isCustomClass(type)) {
+        final map = Map.fromIterables(
+          type.element3.typeParameters2,
+          type.typeArguments,
+        );
+        final builders = computeNeededBuilders(type: type.element3.thisType);
+        return TypeDefinition(
+          type: TypeReference(
+            (b) => b
+              ..symbol = isRoot
+                  ? '${type.element3.name3}FilterBuilderRoot'
+                  : '${type.element3.name3}FilterBuilder'
+              ..types.addAll(
+                map.entries.expand(
+                  (t) => [
+                    t.value.reference,
+                    if (builders.contains(t.key))
+                      getBuilderDef(type: t.value).type,
+                  ],
+                ),
+              ),
+          ),
+          namedArguments: {
+            // 'toJson': ConverterGenerator.getToJsonEnsured(
+            //   type: type,
+            //   customConverter: customConverter,
+            // ),
+          },
+        );
+      }
+      final valueJsonType = jsonType.types.last;
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b
+            ..symbol = 'MapFilterField'
+            ..types.add(type.reference)
+            // original type is Map<K, V>
+            ..types.add(type.typeArguments.first.reference)
+            ..types.add(type.typeArguments.last.reference)
+            // json type is Map<String, V>
+            ..types.add(valueJsonType),
+        ),
+        namedArguments: {
+          'toJson': ConverterGenerator.getToJsonEnsured(
+            type: type,
+            customConverter: customConverter,
+          ),
+          'keyToJson': ConverterGenerator.getToJsonEnsured(
+            type: TypeAnalyzer.getMapKeyType(type),
+          ),
+          'valueToJson': ConverterGenerator.getToJsonEnsured(
+            type: TypeAnalyzer.getMapValueType(type),
+          ),
+        },
+      );
+    }
+
+    if (jsonType.symbol == 'List') {
+      final elementJsonType = jsonType.types.first;
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b
+            ..symbol = 'ArrayFilterField'
+            ..types.add(type.reference)
+            // original type is List<T>
+            ..types.add(type.typeArguments.first.reference)
+            // json type is List<T>
+            ..types.add(elementJsonType),
+        ),
+        namedArguments: {
+          'toJson': ConverterGenerator.getToJsonEnsured(
+            type: type,
+            customConverter: customConverter,
+          ),
+          'elementToJson': ConverterGenerator.getToJsonEnsured(
+            type: type.typeArguments.first,
+          ),
+        },
+      );
+    }
+
+    return TypeDefinition(
+      type: TypeReference(
+        (b) => b
+          ..symbol = 'FilterField'
+          ..types.add(type.reference)
+          ..types.add(jsonType),
+      ),
+      namedArguments: {
+        'toJson': ConverterGenerator.getToJsonEnsured(
+          type: type,
+          customConverter: customConverter,
+        ),
+      },
+    );
   }
 
   static TypeReference getRootFilterBuilderType(InterfaceType type) {
@@ -340,20 +443,14 @@ class FilterGenerator {
                   ..optionalParameters.addAll([
                     Parameter(
                       (b) => b
-                        ..name = 'name'
-                        ..defaultTo = literalString('').code
-                        ..named = true,
-                    ),
-                    Parameter(
-                      (b) => b
-                        ..name = 'parent'
+                        ..name = 'path'
+                        ..required = true
                         ..named = true,
                     ),
                   ])
                   ..body = getBuilderInstanceExpression(
                     type: entry.value,
-                    name: refer('name'),
-                    parent: refer('parent'),
+                    path: refer('path'),
                   ).code,
               ).closure,
             ),
@@ -363,15 +460,15 @@ class FilterGenerator {
 
   static Expression getBuilderInstanceExpression({
     required DartType type,
-    Expression? name,
-    Expression? parent,
+    Expression? path,
     bool isRoot = false,
   }) {
-    return getBuilderType(type: type, isRoot: isRoot).newInstance([], {
-      if (name != null) 'name': name,
-      if (parent != null) 'parent': parent,
+    final typeDef = getBuilderDef(type: type, isRoot: isRoot);
+    return typeDef.instance.newInstance([], {
+      if (path != null) 'path': path,
       if (type is InterfaceType)
         ...getConstructorBuildersParameters(type: type),
+      ...typeDef.namedArguments,
     });
   }
 }

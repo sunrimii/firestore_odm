@@ -12,12 +12,10 @@ class CustomConverter {
   final InterfaceType type;
   final DartType jsonType;
 
-  Expression get toJson =>
-      type.reference.constInstance([]).property('toJson');
+  Expression get toJson => type.reference.constInstance([]).property('toJson');
 
   Expression get fromJson =>
       type.reference.constInstance([]).property('fromJson');
-
 
   CustomConverter({required this.type, required this.jsonType});
 }
@@ -178,16 +176,17 @@ TypeReference getJsonType({required DartType type}) {
   }
 
   if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(type)) {
-    return TypeReferences.string;
+    return TypeReferences.string.withNullability(type.isNullable);
   }
 
-  
   if (TypeChecker.fromRuntime(Duration).isAssignableFromType(type)) {
-    return TypeReferences.int;
+    return TypeReferences.int.withNullability(type.isNullable);
   }
 
   if (TypeChecker.fromRuntime(Iterable).isAssignableFromType(type)) {
-    return TypeReferences.listOf(getJsonType(type: type.typeArguments.first));
+    return TypeReferences.listOf(
+      getJsonType(type: type.typeArguments.first),
+    ).withNullability(type.isNullable);
   }
 
   if (TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
@@ -195,11 +194,14 @@ TypeReference getJsonType({required DartType type}) {
     return TypeReferences.mapOf(
       TypeReferences.string,
       getJsonType(type: type.typeArguments.last),
-    );
+    ).withNullability(type.isNullable);
   }
 
   if (type is InterfaceType) {
-    return TypeReferences.mapOf(TypeReferences.string, TypeReferences.dynamic);
+    return TypeReferences.mapOf(
+      TypeReferences.string,
+      TypeReferences.dynamic,
+    ).withNullability(type.isNullable);
   }
 
   return TypeReferences.dynamic;

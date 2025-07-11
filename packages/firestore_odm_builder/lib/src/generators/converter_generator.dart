@@ -9,21 +9,6 @@ import '../utils/model_analyzer.dart';
 
 /// Generator for update builders and related classes using code_builder
 class ConverterGenerator {
-  static Expression callToJsonByField({
-    required FieldInfo field,
-    required Expression value,
-    Map<DartType, Expression> typeConverters = const {},
-  }) {
-    if (field.customConverter != null) {
-      // If a custom converter is provided, use it directly
-      return field.customConverter!.toJson.call([value]);
-    }
-    return callToJson(
-      type: field.type,
-      value: value,
-      typeConverters: typeConverters,
-    );
-  }
 
   static Expression _handleNullalbe(
     DartType type,
@@ -41,8 +26,14 @@ class ConverterGenerator {
   static Expression callToJson({
     required DartType type,
     required Expression value,
+    CustomConverter? customConverter,
     Map<DartType, Expression> typeConverters = const {},
   }) {
+    if (customConverter != null) {
+      // If a custom converter is provided, use it directly
+      return customConverter.toJson.call([value]);
+    }
+
     if (typeConverters.containsKey(type)) {
       // If a type converter is provided, use it directly
       return typeConverters[type]!.call([value]);
@@ -57,6 +48,14 @@ class ConverterGenerator {
         type,
         value,
         (value) => refer('const DateTimeConverter().toJson').call([value]),
+      );
+    }
+
+    if (TypeChecker.fromRuntime(Duration).isAssignableFromType(type)) {
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer('const DurationConverter().toJson').call([value]),
       );
     }
 
@@ -102,7 +101,11 @@ class ConverterGenerator {
             getToJsonEnsured(type: type, typeConverters: typeConverters),
         ];
         final actualType = toJson.returnType.reference;
-        final invokeExp = value.property('toJson').call(args);
+        final invokeExp = _handleNullalbe(
+          type,
+          value,
+          (value) => value.property('toJson').call(args),
+        );
         // If the type has a toJson method, use it directly
         return (actualType != expectedType
             ? invokeExp.asA(expectedType)
@@ -130,29 +133,20 @@ class ConverterGenerator {
     return value; // refer('(value) => value');
   }
 
-  static Expression callFromJsonByField({
-    required FieldInfo field,
-    required Expression value,
-    Map<DartType, Expression> typeConverters = const {},
-  }) {
-    if (field.customConverter != null) {
-      // If a custom converter is provided, use it directly
-      return field.customConverter!.fromJson.call([
-        value.asA(field.customConverter!.jsonType.reference),
-      ]);
-    }
-    return callFromJson(
-      type: field.type,
-      value: value,
-      typeConverters: typeConverters,
-    );
-  }
 
   static Expression callFromJson({
     required DartType type,
     required Expression value,
+    CustomConverter? customConverter,
     Map<DartType, Expression> typeConverters = const {},
   }) {
+    if (customConverter != null) {
+      // If a custom converter is provided, use it directly
+      return customConverter!.fromJson.call([
+        value.asA(customConverter!.jsonType.reference),
+      ]);
+    }
+    
     if (typeConverters.containsKey(type)) {
       // If a type converter is provided, use it directly
       return typeConverters[type]!.call([value]);
@@ -169,6 +163,16 @@ class ConverterGenerator {
         (value) => refer(
           'const DateTimeConverter().fromJson',
         ).call([value.asA(TypeReferences.string)]),
+      );
+    }
+
+    if (TypeChecker.fromRuntime(Duration).isAssignableFromType(type)) {
+      return _handleNullalbe(
+        type,
+        value,
+        (value) => refer(
+          'const DurationConverter().fromJson',
+        ).call([value.asA(TypeReferences.int)]),
       );
     }
 
@@ -253,6 +257,7 @@ class ConverterGenerator {
 
   static Expression getToJsonEnsured({
     required DartType type,
+    CustomConverter? customConverter,
     Map<DartType, Expression> typeConverters = const {},
   }) {
     return Method(
@@ -262,6 +267,7 @@ class ConverterGenerator {
         ..body = callToJson(
           type: type,
           value: refer('value'),
+          customConverter: customConverter,
           typeConverters: typeConverters,
         ).code,
     ).closure;
@@ -269,6 +275,7 @@ class ConverterGenerator {
 
   static Expression getFromJsonEnsured({
     required DartType type,
+    CustomConverter? customConverter,
     Map<DartType, Expression> typeConverters = const {},
   }) {
     return Method(
@@ -278,42 +285,13 @@ class ConverterGenerator {
         ..body = callFromJson(
           type: type,
           value: refer('value'),
+          customConverter: customConverter,
           typeConverters: typeConverters,
         ).code,
     ).closure;
   }
 
-  static Expression getToJsonEnsuredByField({
-    required FieldInfo field,
-    Map<DartType, Expression> typeConverters = const {},
-  }) {
-    return Method(
-      (b) => b
-        ..requiredParameters.add(Parameter((b) => b..name = 'value'))
-        ..returns = getJsonType(type: field.type)
-        ..body = callToJsonByField(
-          field: field,
-          value: refer('value'),
-          typeConverters: typeConverters,
-        ).code,
-    ).closure;
-  }
 
-  static Expression getFromJsonEnsuredByField({
-    required FieldInfo field,
-    Map<DartType, Expression> typeConverters = const {},
-  }) {
-    return Method(
-      (b) => b
-        ..requiredParameters.add(Parameter((b) => b..name = 'value'))
-        ..returns = field.type.reference
-        ..body = callFromJsonByField(
-          field: field,
-          value: refer('value'),
-          typeConverters: typeConverters,
-        ).code,
-    ).closure;
-  }
 
   static Method generateToJsonMethod({required InterfaceType type}) {
     final fields = getFields(type);
@@ -345,9 +323,10 @@ class ConverterGenerator {
         ])
         ..body = literalMap({
           for (final field in fields.values)
-            field.jsonName: callToJsonByField(
-              field: field,
+            field.jsonName: callToJson(
+              type: field.type,
               value: refer('data').property(field.parameterName),
+              customConverter: field.customConverter,
               typeConverters: {
                 for (final (i, typeParam) in type.typeArguments.indexed)
                   typeParam: refer(
@@ -391,9 +370,10 @@ class ConverterGenerator {
         ..body = type.reference
             .newInstance([], {
               for (final field in fields.values)
-                field.jsonName: callFromJsonByField(
-                  field: field,
+                field.jsonName: callFromJson(
+                  type: field.type,
                   value: refer('data').index(literalString(field.jsonName)),
+                  customConverter: field.customConverter,
                   typeConverters: {
                     for (final (i, typeParam) in type.typeArguments.indexed)
                       typeParam: refer(

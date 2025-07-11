@@ -37,7 +37,7 @@ void main() {
               TestSchema,
               Comment,
               dynamic,
-              CommentPatchBuilder,
+              CommentPatchBuilder<Comment>,
               CommentFilterBuilderRoot,
               CommentOrderByBuilder,
               CommentAggregateBuilderRoot
@@ -51,7 +51,7 @@ void main() {
               TestSchema,
               Comment,
               dynamic,
-              CommentPatchBuilder,
+              CommentPatchBuilder<Comment>,
               CommentFilterBuilderRoot,
               CommentOrderByBuilder,
               CommentAggregateBuilderRoot
@@ -143,16 +143,25 @@ void main() {
       // Check types are correct
       expect(
         userDoc,
-        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
+        isA<
+          FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder<User>>
+        >(),
       );
       expect(
         userPostDoc,
-        isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
+        isA<
+          FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder<Post>>
+        >(),
       );
       expect(
         userPostCommentDoc,
         isA<
-          FirestoreDocument<TestSchema, Comment, dynamic, CommentPatchBuilder>
+          FirestoreDocument<
+            TestSchema,
+            Comment,
+            dynamic,
+            CommentPatchBuilder<Comment>
+          >
         >(),
       );
 
@@ -164,7 +173,7 @@ void main() {
             TestSchema,
             Post,
             dynamic,
-            PostPatchBuilder,
+            PostPatchBuilder<Post>,
             PostFilterBuilderRoot,
             PostOrderByBuilder,
             PostAggregateBuilderRoot
@@ -178,7 +187,7 @@ void main() {
             TestSchema,
             Comment,
             dynamic,
-            CommentPatchBuilder,
+            CommentPatchBuilder<Comment>,
             CommentFilterBuilderRoot,
             CommentOrderByBuilder,
             CommentAggregateBuilderRoot

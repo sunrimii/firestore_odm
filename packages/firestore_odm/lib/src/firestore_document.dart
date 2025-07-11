@@ -16,7 +16,7 @@ import 'filter_builder.dart';
 
 /// A wrapper around Firestore DocumentReference with type safety and caching
 /// Uses Interface + Composition architecture with services handling operations
-class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>>>
+class FirestoreDocument<S extends FirestoreSchema, T, Path extends Record, P extends PatchBuilder<T, Map<String, dynamic>?>>
     implements
         Gettable<T?>,
         Streamable<T?>,

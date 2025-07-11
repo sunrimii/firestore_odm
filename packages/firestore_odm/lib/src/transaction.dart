@@ -49,7 +49,7 @@ class TransactionCollection<
   S extends FirestoreSchema,
   T,
   Path extends Record,
-  P extends PatchBuilder<T, Map<String, dynamic>>
+  P extends PatchBuilder<T, Map<String, dynamic>?>
 > {
   final firestore.CollectionReference<Map<String, dynamic>> query;
   final Map<String, dynamic> Function(T) _toJson;
@@ -86,7 +86,7 @@ class TransactionDocument<
   S extends FirestoreSchema,
   T,
   Path extends Record,
-  P extends PatchBuilder<T, Map<String, dynamic>>
+  P extends PatchBuilder<T, Map<String, dynamic>?>
 >
     implements Gettable<T?>, Modifiable<T>, Patchable<T>, Existable, Deletable {
   final firestore.DocumentReference<Map<String, dynamic>> ref;

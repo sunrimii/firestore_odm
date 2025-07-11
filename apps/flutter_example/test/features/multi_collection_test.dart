@@ -327,7 +327,7 @@ void main() {
               TestSchema,
               User,
               dynamic,
-              UserPatchBuilder,
+              UserPatchBuilder<User>,
               UserFilterBuilderRoot,
               UserOrderByBuilder,
               UserAggregateBuilderRoot
@@ -341,7 +341,7 @@ void main() {
               TestSchema,
               Post,
               dynamic,
-              PostPatchBuilder,
+              PostPatchBuilder<Post>,
               PostFilterBuilderRoot,
               PostOrderByBuilder,
               PostAggregateBuilderRoot
@@ -355,7 +355,7 @@ void main() {
               TestSchema,
               SharedPost,
               dynamic,
-              SharedPostPatchBuilder,
+              SharedPostPatchBuilder<SharedPost>,
               SharedPostFilterBuilderRoot,
               SharedPostOrderByBuilder,
               SharedPostAggregateBuilderRoot
@@ -371,7 +371,7 @@ void main() {
               TestSchema,
               Post,
               dynamic,
-              PostPatchBuilder,
+              PostPatchBuilder<Post>,
               PostFilterBuilderRoot,
               PostOrderByBuilder,
               PostAggregateBuilderRoot
@@ -385,7 +385,7 @@ void main() {
               TestSchema,
               SharedPost,
               dynamic,
-              SharedPostPatchBuilder,
+              SharedPostPatchBuilder<SharedPost>,
               SharedPostFilterBuilderRoot,
               SharedPostOrderByBuilder,
               SharedPostAggregateBuilderRoot

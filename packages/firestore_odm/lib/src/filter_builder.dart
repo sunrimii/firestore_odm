@@ -1,313 +1,355 @@
 import 'package:cloud_firestore/cloud_firestore.dart'
-    show FieldPath, FieldValue, Timestamp;
+    hide FieldPath, FieldValue, Timestamp;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/types.dart';
 
 typedef FilterBuilderFunc<AB extends FilterBuilderNode> =
-    AB Function({String name, FilterBuilderNode? parent});
+    AB Function({required FieldPath path});
 
-/// Filter types
-enum FilterType { field, and, or }
-
-/// Firestore operators
-enum FilterOperator {
-  isEqualTo,
-  isNotEqualTo,
-  isLessThan,
-  isLessThanOrEqualTo,
-  isGreaterThan,
-  isGreaterThanOrEqualTo,
-  arrayContains,
-  arrayContainsAny,
-  whereIn,
-  whereNotIn,
+sealed class FilterOperation {
+  Filter toFilter();
 }
 
-/// Universal filter class that can represent any filter type
-class FirestoreFilter {
-  final FilterType type;
-
-  // For field filters
-  final Object? field;
-  final FilterOperator? operator;
-  final dynamic value;
-
-  // For logical filters (AND/OR)
-  final List<FirestoreFilter>? filters;
-
-  const FirestoreFilter._({
-    required this.type,
-    this.field,
-    this.operator,
-    this.value,
-    this.filters,
-  });
-
-  /// Default constructor for generated classes
-  const FirestoreFilter() : this._(type: FilterType.field);
-
-  /// Create a field filter
-  const FirestoreFilter.field({
-    required Object field,
-    required FilterOperator operator,
-    required dynamic value,
-  }) : this._(
-         type: FilterType.field,
-         field: field,
-         operator: operator,
-         value: value,
-       );
-
-  /// Create an AND filter
-  const FirestoreFilter.and(List<FirestoreFilter> filters)
-    : this._(type: FilterType.and, filters: filters);
-
-  /// Create an OR filter
-  const FirestoreFilter.or(List<FirestoreFilter> filters)
-    : this._(type: FilterType.or, filters: filters);
-
-  /// Create a filter from another FirestoreFilter (copy constructor)
-  FirestoreFilter.fromFilter(FirestoreFilter other)
-    : this._(
-        type: other.type,
-        field: other.field,
-        operator: other.operator,
-        value: other.value,
-        filters: other.filters,
-      );
-
-  FirestoreFilter and(FirestoreFilter other) {
-    return FirestoreFilter.and([...?filters, other]);
+extension FilterOperationExtension on FilterOperation {
+  FilterOperation and(FilterOperation other) {
+    return AndOperation([this, other]);
   }
 
-  FirestoreFilter or(FirestoreFilter other) {
-    return FirestoreFilter.or([...?filters, other]);
+  FilterOperation or(FilterOperation other) {
+    return OrOperation([this, other]);
+  }
+
+  FilterOperation operator &(FilterOperation other) {
+    return and(other);
+  }
+
+  FilterOperation operator |(FilterOperation other) {
+    return or(other);
   }
 }
 
-/// Base filter builder class using Node-based architecture
-class FilterBuilderNode extends Node {
-  /// Create a FilterSelector with optional name and parent for nested objects
-  const FilterBuilderNode({super.name, super.parent});
+class AndOperation implements FilterOperation {
+  final List<FilterOperation> filters;
+
+  const AndOperation(this.filters);
+
+  @override
+  Filter toFilter() => Filter.and(
+    filters[0].toFilter(),
+    filters[1].toFilter(),
+    filters.length > 2 ? filters[2].toFilter() : null,
+    filters.length > 3 ? filters[3].toFilter() : null,
+    filters.length > 4 ? filters[4].toFilter() : null,
+    filters.length > 5 ? filters[5].toFilter() : null,
+    filters.length > 6 ? filters[6].toFilter() : null,
+    filters.length > 7 ? filters[7].toFilter() : null,
+    filters.length > 8 ? filters[8].toFilter() : null,
+    filters.length > 9 ? filters[9].toFilter() : null,
+    filters.length > 10 ? filters[10].toFilter() : null,
+    filters.length > 11 ? filters[11].toFilter() : null,
+    filters.length > 12 ? filters[12].toFilter() : null,
+    filters.length > 13 ? filters[13].toFilter() : null,
+    filters.length > 14 ? filters[14].toFilter() : null,
+    filters.length > 15 ? filters[15].toFilter() : null,
+    filters.length > 16 ? filters[16].toFilter() : null,
+    filters.length > 17 ? filters[17].toFilter() : null,
+    filters.length > 18 ? filters[18].toFilter() : null,
+    filters.length > 19 ? filters[19].toFilter() : null,
+    filters.length > 20 ? filters[20].toFilter() : null,
+    filters.length > 21 ? filters[21].toFilter() : null,
+    filters.length > 22 ? filters[22].toFilter() : null,
+    filters.length > 23 ? filters[23].toFilter() : null,
+    filters.length > 24 ? filters[24].toFilter() : null,
+    filters.length > 25 ? filters[25].toFilter() : null,
+    filters.length > 26 ? filters[26].toFilter() : null,
+    filters.length > 27 ? filters[27].toFilter() : null,
+    filters.length > 28 ? filters[28].toFilter() : null,
+    filters.length > 29 ? filters[29].toFilter() : null,
+  );
 }
 
-abstract class FilterBuilderRoot {
-  factory FilterBuilderRoot() = _FilterBuilderRootImpl;
+class OrOperation implements FilterOperation {
+  final List<FilterOperation> filters;
 
+  const OrOperation(this.filters);
+
+  @override
+  Filter toFilter() => Filter.or(
+    filters[0].toFilter(),
+    filters[1].toFilter(),
+    filters.length > 2 ? filters[2].toFilter() : null,
+    filters.length > 3 ? filters[3].toFilter() : null,
+    filters.length > 4 ? filters[4].toFilter() : null,
+    filters.length > 5 ? filters[5].toFilter() : null,
+    filters.length > 6 ? filters[6].toFilter() : null,
+    filters.length > 7 ? filters[7].toFilter() : null,
+    filters.length > 8 ? filters[8].toFilter() : null,
+    filters.length > 9 ? filters[9].toFilter() : null,
+    filters.length > 10 ? filters[10].toFilter() : null,
+    filters.length > 11 ? filters[11].toFilter() : null,
+    filters.length > 12 ? filters[12].toFilter() : null,
+    filters.length > 13 ? filters[13].toFilter() : null,
+    filters.length > 14 ? filters[14].toFilter() : null,
+    filters.length > 15 ? filters[15].toFilter() : null,
+    filters.length > 16 ? filters[16].toFilter() : null,
+    filters.length > 17 ? filters[17].toFilter() : null,
+    filters.length > 18 ? filters[18].toFilter() : null,
+    filters.length > 19 ? filters[19].toFilter() : null,
+    filters.length > 20 ? filters[20].toFilter() : null,
+    filters.length > 21 ? filters[21].toFilter() : null,
+    filters.length > 22 ? filters[22].toFilter() : null,
+    filters.length > 23 ? filters[23].toFilter() : null,
+    filters.length > 24 ? filters[24].toFilter() : null,
+    filters.length > 25 ? filters[25].toFilter() : null,
+    filters.length > 26 ? filters[26].toFilter() : null,
+    filters.length > 27 ? filters[27].toFilter() : null,
+    filters.length > 28 ? filters[28].toFilter() : null,
+    filters.length > 29 ? filters[29].toFilter() : null,
+  );
+}
+
+class IsEqualToOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsEqualToOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), isEqualTo: value);
+}
+
+class IsNotEqualToOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsNotEqualToOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), isNotEqualTo: value);
+}
+
+class IsLessThanOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsLessThanOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), isLessThan: value);
+}
+
+class IsLessThanOrEqualToOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsLessThanOrEqualToOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), isLessThanOrEqualTo: value);
+}
+
+class IsGreaterThanOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsGreaterThanOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), isGreaterThan: value);
+}
+
+class IsGreaterThanOrEqualToOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const IsGreaterThanOrEqualToOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() =>
+      Filter(field.toFirestore(), isGreaterThanOrEqualTo: value);
+}
+
+class ArrayContainsOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final T value;
+
+  const ArrayContainsOperation(this.field, this.value);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), arrayContains: value);
+}
+
+class ArrayContainsAnyOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final Iterable<T> values;
+
+  const ArrayContainsAnyOperation(this.field, this.values);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), arrayContainsAny: values);
+}
+
+class WhereInOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final List<T> values;
+
+  const WhereInOperation(this.field, this.values);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), whereIn: values);
+}
+
+class WhereNotInOperation<T> implements FilterOperation {
+  final FieldPath field;
+  final List<T> values;
+
+  const WhereNotInOperation(this.field, this.values);
+
+  @override
+  Filter toFilter() => Filter(field.toFirestore(), whereNotIn: values);
+}
+
+mixin class FilterBuilderRoot {
   /// Create OR filter with type safety (supports up to 30 filters)
-  FirestoreFilter or(
-    FirestoreFilter filter1,
-    FirestoreFilter filter2, [
-    FirestoreFilter? filter3,
-    FirestoreFilter? filter4,
-    FirestoreFilter? filter5,
-    FirestoreFilter? filter6,
-    FirestoreFilter? filter7,
-    FirestoreFilter? filter8,
-    FirestoreFilter? filter9,
-    FirestoreFilter? filter10,
-    FirestoreFilter? filter11,
-    FirestoreFilter? filter12,
-    FirestoreFilter? filter13,
-    FirestoreFilter? filter14,
-    FirestoreFilter? filter15,
-    FirestoreFilter? filter16,
-    FirestoreFilter? filter17,
-    FirestoreFilter? filter18,
-    FirestoreFilter? filter19,
-    FirestoreFilter? filter20,
-    FirestoreFilter? filter21,
-    FirestoreFilter? filter22,
-    FirestoreFilter? filter23,
-    FirestoreFilter? filter24,
-    FirestoreFilter? filter25,
-    FirestoreFilter? filter26,
-    FirestoreFilter? filter27,
-    FirestoreFilter? filter28,
-    FirestoreFilter? filter29,
-    FirestoreFilter? filter30,
-  ]);
+  OrOperation or(
+    FilterOperation filter1,
+    FilterOperation filter2, [
+    FilterOperation? filter3,
+    FilterOperation? filter4,
+    FilterOperation? filter5,
+    FilterOperation? filter6,
+    FilterOperation? filter7,
+    FilterOperation? filter8,
+    FilterOperation? filter9,
+    FilterOperation? filter10,
+    FilterOperation? filter11,
+    FilterOperation? filter12,
+    FilterOperation? filter13,
+    FilterOperation? filter14,
+    FilterOperation? filter15,
+    FilterOperation? filter16,
+    FilterOperation? filter17,
+    FilterOperation? filter18,
+    FilterOperation? filter19,
+    FilterOperation? filter20,
+    FilterOperation? filter21,
+    FilterOperation? filter22,
+    FilterOperation? filter23,
+    FilterOperation? filter24,
+    FilterOperation? filter25,
+    FilterOperation? filter26,
+    FilterOperation? filter27,
+    FilterOperation? filter28,
+    FilterOperation? filter29,
+    FilterOperation? filter30,
+  ]) {
+    return OrOperation([
+      filter1,
+      filter2,
+      if (filter3 != null) filter3,
+      if (filter4 != null) filter4,
+      if (filter5 != null) filter5,
+      if (filter6 != null) filter6,
+      if (filter7 != null) filter7,
+      if (filter8 != null) filter8,
+      if (filter9 != null) filter9,
+      if (filter10 != null) filter10,
+      if (filter11 != null) filter11,
+      if (filter12 != null) filter12,
+      if (filter13 != null) filter13,
+      if (filter14 != null) filter14,
+      if (filter15 != null) filter15,
+      if (filter16 != null) filter16,
+      if (filter17 != null) filter17,
+      if (filter18 != null) filter18,
+      if (filter19 != null) filter19,
+      if (filter20 != null) filter20,
+      if (filter21 != null) filter21,
+      if (filter22 != null) filter22,
+      if (filter23 != null) filter23,
+      if (filter24 != null) filter24,
+      if (filter25 != null) filter25,
+      if (filter26 != null) filter26,
+      if (filter27 != null) filter27,
+      if (filter28 != null) filter28,
+      if (filter29 != null) filter29,
+      if (filter30 != null) filter30,
+    ]);
+  }
 
   /// Create AND filter with type safety (supports up to 30 filters)
-  FirestoreFilter and(
-    FirestoreFilter filter1,
-    FirestoreFilter filter2, [
-    FirestoreFilter? filter3,
-    FirestoreFilter? filter4,
-    FirestoreFilter? filter5,
-    FirestoreFilter? filter6,
-    FirestoreFilter? filter7,
-    FirestoreFilter? filter8,
-    FirestoreFilter? filter9,
-    FirestoreFilter? filter10,
-    FirestoreFilter? filter11,
-    FirestoreFilter? filter12,
-    FirestoreFilter? filter13,
-    FirestoreFilter? filter14,
-    FirestoreFilter? filter15,
-    FirestoreFilter? filter16,
-    FirestoreFilter? filter17,
-    FirestoreFilter? filter18,
-    FirestoreFilter? filter19,
-    FirestoreFilter? filter20,
-    FirestoreFilter? filter21,
-    FirestoreFilter? filter22,
-    FirestoreFilter? filter23,
-    FirestoreFilter? filter24,
-    FirestoreFilter? filter25,
-    FirestoreFilter? filter26,
-    FirestoreFilter? filter27,
-    FirestoreFilter? filter28,
-    FirestoreFilter? filter29,
-    FirestoreFilter? filter30,
-  ]);
-}
-
-mixin FilterBuilderRootMixin on FilterBuilderNode implements FilterBuilderRoot {
-  /// Create OR filter with type safety (supports up to 30 filters)
-  FirestoreFilter or(
-    FirestoreFilter filter1,
-    FirestoreFilter filter2, [
-    FirestoreFilter? filter3,
-    FirestoreFilter? filter4,
-    FirestoreFilter? filter5,
-    FirestoreFilter? filter6,
-    FirestoreFilter? filter7,
-    FirestoreFilter? filter8,
-    FirestoreFilter? filter9,
-    FirestoreFilter? filter10,
-    FirestoreFilter? filter11,
-    FirestoreFilter? filter12,
-    FirestoreFilter? filter13,
-    FirestoreFilter? filter14,
-    FirestoreFilter? filter15,
-    FirestoreFilter? filter16,
-    FirestoreFilter? filter17,
-    FirestoreFilter? filter18,
-    FirestoreFilter? filter19,
-    FirestoreFilter? filter20,
-    FirestoreFilter? filter21,
-    FirestoreFilter? filter22,
-    FirestoreFilter? filter23,
-    FirestoreFilter? filter24,
-    FirestoreFilter? filter25,
-    FirestoreFilter? filter26,
-    FirestoreFilter? filter27,
-    FirestoreFilter? filter28,
-    FirestoreFilter? filter29,
-    FirestoreFilter? filter30,
+  AndOperation and(
+    FilterOperation filter1,
+    FilterOperation filter2, [
+    FilterOperation? filter3,
+    FilterOperation? filter4,
+    FilterOperation? filter5,
+    FilterOperation? filter6,
+    FilterOperation? filter7,
+    FilterOperation? filter8,
+    FilterOperation? filter9,
+    FilterOperation? filter10,
+    FilterOperation? filter11,
+    FilterOperation? filter12,
+    FilterOperation? filter13,
+    FilterOperation? filter14,
+    FilterOperation? filter15,
+    FilterOperation? filter16,
+    FilterOperation? filter17,
+    FilterOperation? filter18,
+    FilterOperation? filter19,
+    FilterOperation? filter20,
+    FilterOperation? filter21,
+    FilterOperation? filter22,
+    FilterOperation? filter23,
+    FilterOperation? filter24,
+    FilterOperation? filter25,
+    FilterOperation? filter26,
+    FilterOperation? filter27,
+    FilterOperation? filter28,
+    FilterOperation? filter29,
+    FilterOperation? filter30,
   ]) {
-    final allFilters = <FirestoreFilter>[filter1, filter2];
-    if (filter3 != null) allFilters.add(filter3);
-    if (filter4 != null) allFilters.add(filter4);
-    if (filter5 != null) allFilters.add(filter5);
-    if (filter6 != null) allFilters.add(filter6);
-    if (filter7 != null) allFilters.add(filter7);
-    if (filter8 != null) allFilters.add(filter8);
-    if (filter9 != null) allFilters.add(filter9);
-    if (filter10 != null) allFilters.add(filter10);
-    if (filter11 != null) allFilters.add(filter11);
-    if (filter12 != null) allFilters.add(filter12);
-    if (filter13 != null) allFilters.add(filter13);
-    if (filter14 != null) allFilters.add(filter14);
-    if (filter15 != null) allFilters.add(filter15);
-    if (filter16 != null) allFilters.add(filter16);
-    if (filter17 != null) allFilters.add(filter17);
-    if (filter18 != null) allFilters.add(filter18);
-    if (filter19 != null) allFilters.add(filter19);
-    if (filter20 != null) allFilters.add(filter20);
-    if (filter21 != null) allFilters.add(filter21);
-    if (filter22 != null) allFilters.add(filter22);
-    if (filter23 != null) allFilters.add(filter23);
-    if (filter24 != null) allFilters.add(filter24);
-    if (filter25 != null) allFilters.add(filter25);
-    if (filter26 != null) allFilters.add(filter26);
-    if (filter27 != null) allFilters.add(filter27);
-    if (filter28 != null) allFilters.add(filter28);
-    if (filter29 != null) allFilters.add(filter29);
-    if (filter30 != null) allFilters.add(filter30);
-    return FirestoreFilter.or(allFilters);
+    return AndOperation([
+      filter1,
+      filter2,
+      if (filter3 != null) filter3,
+      if (filter4 != null) filter4,
+      if (filter5 != null) filter5,
+      if (filter6 != null) filter6,
+      if (filter7 != null) filter7,
+      if (filter8 != null) filter8,
+      if (filter9 != null) filter9,
+      if (filter10 != null) filter10,
+      if (filter11 != null) filter11,
+      if (filter12 != null) filter12,
+      if (filter13 != null) filter13,
+      if (filter14 != null) filter14,
+      if (filter15 != null) filter15,
+      if (filter16 != null) filter16,
+      if (filter17 != null) filter17,
+      if (filter18 != null) filter18,
+      if (filter19 != null) filter19,
+      if (filter20 != null) filter20,
+      if (filter21 != null) filter21,
+      if (filter22 != null) filter22,
+      if (filter23 != null) filter23,
+      if (filter24 != null) filter24,
+      if (filter25 != null) filter25,
+      if (filter26 != null) filter26,
+      if (filter27 != null) filter27,
+      if (filter28 != null) filter28,
+      if (filter29 != null) filter29,
+      if (filter30 != null) filter30,
+    ]);
   }
-
-  /// Create AND filter with type safety (supports up to 30 filters)
-  FirestoreFilter and(
-    FirestoreFilter filter1,
-    FirestoreFilter filter2, [
-    FirestoreFilter? filter3,
-    FirestoreFilter? filter4,
-    FirestoreFilter? filter5,
-    FirestoreFilter? filter6,
-    FirestoreFilter? filter7,
-    FirestoreFilter? filter8,
-    FirestoreFilter? filter9,
-    FirestoreFilter? filter10,
-    FirestoreFilter? filter11,
-    FirestoreFilter? filter12,
-    FirestoreFilter? filter13,
-    FirestoreFilter? filter14,
-    FirestoreFilter? filter15,
-    FirestoreFilter? filter16,
-    FirestoreFilter? filter17,
-    FirestoreFilter? filter18,
-    FirestoreFilter? filter19,
-    FirestoreFilter? filter20,
-    FirestoreFilter? filter21,
-    FirestoreFilter? filter22,
-    FirestoreFilter? filter23,
-    FirestoreFilter? filter24,
-    FirestoreFilter? filter25,
-    FirestoreFilter? filter26,
-    FirestoreFilter? filter27,
-    FirestoreFilter? filter28,
-    FirestoreFilter? filter29,
-    FirestoreFilter? filter30,
-  ]) {
-    final allFilters = <FirestoreFilter>[filter1, filter2];
-    if (filter3 != null) allFilters.add(filter3);
-    if (filter4 != null) allFilters.add(filter4);
-    if (filter5 != null) allFilters.add(filter5);
-    if (filter6 != null) allFilters.add(filter6);
-    if (filter7 != null) allFilters.add(filter7);
-    if (filter8 != null) allFilters.add(filter8);
-    if (filter9 != null) allFilters.add(filter9);
-    if (filter10 != null) allFilters.add(filter10);
-    if (filter11 != null) allFilters.add(filter11);
-    if (filter12 != null) allFilters.add(filter12);
-    if (filter13 != null) allFilters.add(filter13);
-    if (filter14 != null) allFilters.add(filter14);
-    if (filter15 != null) allFilters.add(filter15);
-    if (filter16 != null) allFilters.add(filter16);
-    if (filter17 != null) allFilters.add(filter17);
-    if (filter18 != null) allFilters.add(filter18);
-    if (filter19 != null) allFilters.add(filter19);
-    if (filter20 != null) allFilters.add(filter20);
-    if (filter21 != null) allFilters.add(filter21);
-    if (filter22 != null) allFilters.add(filter22);
-    if (filter23 != null) allFilters.add(filter23);
-    if (filter24 != null) allFilters.add(filter24);
-    if (filter25 != null) allFilters.add(filter25);
-    if (filter26 != null) allFilters.add(filter26);
-    if (filter27 != null) allFilters.add(filter27);
-    if (filter28 != null) allFilters.add(filter28);
-    if (filter29 != null) allFilters.add(filter29);
-    if (filter30 != null) allFilters.add(filter30);
-    return FirestoreFilter.and(allFilters);
-  }
-}
-
-class _FilterBuilderRootImpl extends FilterBuilderNode
-    with FilterBuilderRootMixin {
-  const _FilterBuilderRootImpl();
 }
 
 
 typedef PatchBuilderFunc<T, PB extends PatchBuilder<T, dynamic>> =
-    PB Function({
-      String name,
-      PatchBuilder<dynamic, dynamic>? parent,
-    });
+    PB Function({String name, PatchBuilder<dynamic, dynamic>? parent});
 
 class PatchBuilder<T, R> extends Node {
   /// Converter function to transform the value before storing in Firestore
@@ -324,97 +366,92 @@ class PatchBuilder<T, R> extends Node {
   }
 }
 
-class FieldNameOrDocumentId {
-  final String? fieldName;
-  final FieldPathType documentId = FieldPathType.documentId;
-
-  const FieldNameOrDocumentId._({this.fieldName});
-
-  /// Create a FieldNameOrDocumentId with a field name
-  const FieldNameOrDocumentId.field(String fieldName)
-    : this._(fieldName: fieldName);
-
-  /// Create a FieldNameOrDocumentId for document ID
-  const FieldNameOrDocumentId.documentId() : this._();
-
-  bool get isDocumentId => fieldName == null;
-  bool get isFieldName => fieldName != null;
-
-  dynamic get value => fieldName ?? documentId.toFirestore();
-
-  @override
-  String toString() => fieldName ?? documentId.toFirestore().toString();
+class FilterBuilderNode extends Node2 {
+  /// Create a new FilterBuilderNode
+  const FilterBuilderNode({super.path});
 }
 
-class NoValue {
-  /// Represents a special value indicating no value is provided
-  const NoValue();
+mixin EqualableMixin<T, J> on FilterBuilderNode {
+  J Function(T) get _toJson;
 
-  @override
-  String toString() => 'NoValue';
-}
+  /// Check if two objects are equal
+  IsEqualToOperation isEqualTo(T other) {
+    return IsEqualToOperation(path, _toJson(other));
+  }
 
-/// Callable filter instances using Node-based architecture
-/// Base callable filter class
-abstract class CallableFilter extends FilterBuilderNode {
-  final FieldPathType? _type;
-  const CallableFilter({super.name, super.parent, FieldPathType? type})
-    : _type = type;
+  IsNotEqualToOperation isNotEqualTo(T other) {
+    return IsNotEqualToOperation(path, _toJson(other));
+  }
 
-  FirestoreFilter _process(FilterOperator operator, dynamic value) {
-    return FirestoreFilter.field(
-      field: _type?.toFirestore() ?? FieldPath($parts),
-      operator: operator,
-      value: value,
-    );
+  WhereInOperation whereIn(Iterable<T> values) {
+    return WhereInOperation(path, values.map(_toJson).toList());
+  }
+
+  WhereNotInOperation whereNotIn(Iterable<T> values) {
+    return WhereNotInOperation(path, values.map(_toJson).toList());
   }
 }
 
-class FilterFieldImpl<T> extends CallableFilter implements FilterField<T> {
-  FilterFieldImpl({super.name = '', super.parent, super.type});
+mixin ComparableMixin<T> on FilterBuilderNode {
+  num? Function(T) get _toJson;
 
-  FirestoreFilter call({
+  /// Check if two objects are equal
+  IsLessThanOperation isLessThan(T other) {
+    return IsLessThanOperation(path, _toJson(other));
+  }
+
+  IsGreaterThanOperation isGreaterThan(T other) {
+    return IsGreaterThanOperation(path, _toJson(other));
+  }
+
+  IsLessThanOrEqualToOperation isLessThanOrEqualTo(T other) {
+    return IsLessThanOrEqualToOperation(path, _toJson(other));
+  }
+
+  IsGreaterThanOrEqualToOperation isGreaterThanOrEqualTo(T other) {
+    return IsGreaterThanOrEqualToOperation(path, _toJson(other));
+  }
+}
+
+mixin ArrayFilterableMixin<T, E, JE> on FilterBuilderNode {
+  JE Function(E) get _elementToJson;
+
+  /// Check if the array contains a specific value
+  ArrayContainsOperation<JE> contains(E value) {
+    return ArrayContainsOperation(path, _elementToJson(value));
+  }
+
+  /// Check if the array contains any of the specified values
+  ArrayContainsAnyOperation<JE> containsAny(Iterable<E> values) {
+    return ArrayContainsAnyOperation(path, values.map(_elementToJson).toList());
+  }
+}
+
+class FilterFieldImpl<T, R> extends FilterField<T, R> {
+  FilterFieldImpl({super.path, required super.toJson}) : super._();
+
+  FilterOperation call({
     Object? isEqualTo,
     Object? isNotEqualTo,
-    Object? isLessThan,
-    Object? isLessThanOrEqualTo,
-    Object? isGreaterThan,
-    Object? isGreaterThanOrEqualTo,
-    Object? whereIn,
-    Object? whereNotIn,
-    Object? isNull,
+    Iterable<Object?>? whereIn,
+    Iterable<Object?>? whereNotIn,
   }) {
     if (isEqualTo != null) {
-      return _process(FilterOperator.isEqualTo, isEqualTo);
+      return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != null) {
-      return _process(FilterOperator.isNotEqualTo, isNotEqualTo);
-    }
-    if (isLessThan != null) {
-      return _process(FilterOperator.isLessThan, isLessThan);
-    }
-    if (isLessThanOrEqualTo != null) {
-      return _process(FilterOperator.isLessThanOrEqualTo, isLessThanOrEqualTo);
-    }
-    if (isGreaterThan != null) {
-      return _process(FilterOperator.isGreaterThan, isGreaterThan);
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return _process(
-        FilterOperator.isGreaterThanOrEqualTo,
-        isGreaterThanOrEqualTo,
-      );
+      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
     if (whereIn != null) {
-      return _process(FilterOperator.whereIn, whereIn);
+      return WhereInOperation(
+        path,
+        (whereIn as Iterable<T>).map(_toJson).toList(),
+      );
     }
     if (whereNotIn != null) {
-      return _process(FilterOperator.whereNotIn, whereNotIn);
-    }
-    if (isNull != null) {
-      return _process(
-        isNull as bool ? FilterOperator.isEqualTo : FilterOperator.isNotEqualTo,
-        null,
+      return WhereNotInOperation(
+        path,
+        (whereNotIn as Iterable<T>).map(_toJson).toList(),
       );
     }
     throw ArgumentError('At least one filter condition must be provided');
@@ -422,125 +459,223 @@ class FilterFieldImpl<T> extends CallableFilter implements FilterField<T> {
 }
 
 /// String field callable filter
-abstract class FilterField<T> implements CallableFilter {
-  factory FilterField({
-    String name,
-    FilterBuilderNode? parent,
-    FieldPathType? type,
-  }) = FilterFieldImpl;
+abstract class FilterField<T, R> extends FilterBuilderNode
+    with EqualableMixin<T, R> {
+  factory FilterField({FieldPath? path, required R Function(T) toJson}) =
+      FilterFieldImpl<T, R>;
 
-  FirestoreFilter call({
+  const FilterField._({super.path, required R Function(T) toJson})
+    : _toJson = toJson;
+
+  final R Function(T) _toJson;
+
+  FilterOperation call({T? isEqualTo, T? isNotEqualTo, 
+    Iterable<T>? whereIn, Iterable<T>? whereNotIn});
+}
+
+class NumericFilterFieldImpl<T> extends NumericFilterField<T> {
+  const NumericFilterFieldImpl({super.path, required super.toJson}) : super._();
+
+  FilterOperation call({
     T? isEqualTo,
     T? isNotEqualTo,
     T? isLessThan,
     T? isLessThanOrEqualTo,
     T? isGreaterThan,
     T? isGreaterThanOrEqualTo,
-    List<T>? whereIn,
-    List<T>? whereNotIn,
-    bool? isNull,
-  });
-}
-
-class BoolFieldFilterImpl extends CallableFilter implements BoolFieldFilter {
-  const BoolFieldFilterImpl({super.name, super.parent, super.type});
-
-  FirestoreFilter call({Object? isEqualTo, Object? isNotEqualTo}) {
+    Iterable<T>? whereIn,
+    Iterable<T>? whereNotIn,
+  }) {
     if (isEqualTo != null) {
-      return _process(FilterOperator.isEqualTo, isEqualTo);
+      return IsEqualToOperation(path, _toJson(isEqualTo));
     }
     if (isNotEqualTo != null) {
-      return _process(FilterOperator.isNotEqualTo, isNotEqualTo);
+      return IsNotEqualToOperation(path, _toJson(isNotEqualTo));
+    }
+    if (isLessThan != null) {
+      return IsLessThanOperation(path, _toJson(isLessThan));
+    }
+    if (isLessThanOrEqualTo != null) {
+      return IsLessThanOrEqualToOperation(path, _toJson(isLessThanOrEqualTo));
+    }
+    if (isGreaterThan != null) {
+      return IsGreaterThanOperation(path, _toJson(isGreaterThan));
+    }
+    if (isGreaterThanOrEqualTo != null) {
+      return IsGreaterThanOrEqualToOperation(
+        path,
+        _toJson(isGreaterThanOrEqualTo),
+      );
+    }
+    if (whereIn != null) {
+      return WhereInOperation(path, whereIn.map(_toJson).toList());
+    }
+    if (whereNotIn != null) {
+      return WhereNotInOperation(path, whereNotIn.map(_toJson).toList());
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 }
 
-/// String field callable filter
-abstract class BoolFieldFilter implements CallableFilter {
-  factory BoolFieldFilter({
-    String name,
-    FilterBuilderNode? parent,
-    FieldPathType? type,
-  }) = BoolFieldFilterImpl;
+abstract class NumericFilterField<T> extends FilterBuilderNode
+    with EqualableMixin<T, num?>, ComparableMixin<T> {
+  /// Create a numeric field filter
+  factory NumericFilterField({
+    FieldPath path,
+    required num? Function(T) toJson,
+  }) = NumericFilterFieldImpl;
 
-  FirestoreFilter call({bool? isEqualTo, bool? isNotEqualTo});
+  const NumericFilterField._({super.path, required num? Function(T) toJson})
+    : _toJson = toJson;
+
+  final num? Function(T) _toJson;
+
+  FilterOperation call({
+    T? isEqualTo,
+    T? isNotEqualTo,
+    T? isLessThan,
+    T? isLessThanOrEqualTo,
+    T? isGreaterThan,
+    T? isGreaterThanOrEqualTo,
+    Iterable<T>? whereIn,
+    Iterable<T>? whereNotIn,
+  });
 }
 
-class ArrayFieldFilterImpl<T> extends CallableFilter
-    implements ArrayFieldFilter<T> {
-  const ArrayFieldFilterImpl({super.name, super.parent, super.type});
+class ArrayFilterFieldImpl<T, E, JE> extends ArrayFilterField<T, E, JE> {
+  const ArrayFilterFieldImpl({
+    super.path,
+    required super.elementToJson,
+    required super.toJson,
+  }) : super._();
 
-  FirestoreFilter call({
+  FilterOperation call({
     Object? isEqualTo,
     Object? isNotEqualTo,
     Object? arrayContains,
     Object? arrayContainsAny,
+    Iterable<Object?>? whereIn,
+    Iterable<Object?>? whereNotIn,
   }) {
     if (isEqualTo != null) {
-      return _process(FilterOperator.isEqualTo, isEqualTo);
+      return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != null) {
-      return _process(FilterOperator.isNotEqualTo, isNotEqualTo);
+      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
     if (arrayContains != null) {
-      return _process(FilterOperator.arrayContains, arrayContains);
+      return ArrayContainsOperation(path, _elementToJson(arrayContains as E));
     }
     if (arrayContainsAny != null) {
-      return _process(FilterOperator.arrayContainsAny, arrayContainsAny);
+      return ArrayContainsAnyOperation(
+        path,
+        (arrayContainsAny as Iterable<E>).map(_elementToJson).toList(),
+      );
+    }
+    if (whereIn != null) {
+      return WhereInOperation(
+        path,
+        (whereIn as Iterable<T>).map(_toJson).toList(),
+      );
+    }
+    if (whereNotIn != null) {
+      return WhereNotInOperation(
+        path,
+        (whereNotIn as Iterable<T>).map(_toJson).toList(),
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
 }
 
 /// String field callable filter
-abstract class ArrayFieldFilter<T> implements CallableFilter {
-  factory ArrayFieldFilter({
-    String name,
-    FilterBuilderNode? parent,
-    FieldPathType? type,
-  }) = ArrayFieldFilterImpl;
+abstract class ArrayFilterField<T, E, JE> extends FilterBuilderNode
+    with EqualableMixin<T, List<JE>?>, ArrayFilterableMixin<T, E, JE> {
+  factory ArrayFilterField({
+    FieldPath path,
+    required JE Function(E) elementToJson,
+    required List<JE>? Function(T) toJson,
+  }) = ArrayFilterFieldImpl;
 
-  FirestoreFilter call({
-    List<T>? isEqualTo,
-    List<T>? isNotEqualTo,
-    T? arrayContains,
-    List<T>? arrayContainsAny,
+  const ArrayFilterField._({
+    super.path,
+    required JE Function(E) elementToJson,
+    required List<JE>? Function(T) toJson,
+  }) : _elementToJson = elementToJson,
+       _toJson = toJson;
+
+  final JE Function(E) _elementToJson;
+
+  final List<JE>? Function(T) _toJson;
+
+  FilterOperation call({
+    T? isEqualTo,
+    T? isNotEqualTo,
+    E? arrayContains,
+    Iterable<E>? arrayContainsAny,
+    Iterable<T>? whereIn,
+    Iterable<T>? whereNotIn,
   });
 }
 
-class MapFieldFilterImpl<K, V> extends CallableFilter
-    implements MapFieldFilter<K, V> {
-  const MapFieldFilterImpl({super.name, super.parent, super.type});
+class MapFilterFieldImpl<T, K, V, JV> extends MapFilterField<T, K, V, JV> {
+  const MapFilterFieldImpl({
+    super.path,
+    required super.toJson,
+    required super.keyToJson,
+    required super.valueToJson,
+  }) : super._();
 
-  FirestoreFilter call({Map<K, V>? isEqualTo, Map<K, V>? isNotEqualTo}) {
+  FilterOperation call({Object? isEqualTo, Object? isNotEqualTo}) {
     if (isEqualTo != null) {
-      return _process(FilterOperator.isEqualTo, isEqualTo);
+      return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != null) {
-      return _process(FilterOperator.isNotEqualTo, isNotEqualTo);
+      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
     throw ArgumentError('At least one filter condition must be provided');
-  }
-
-  FilterField<V> key(K mapKey) {
-    return FilterField<V>(name: mapKey.toString(), parent: this);
   }
 }
 
 /// Map field callable filter with key access support
-abstract class MapFieldFilter<K, V> extends CallableFilter {
-  factory MapFieldFilter({
-    String name,
-    FilterBuilderNode? parent,
-    FieldPathType? type,
-  }) = MapFieldFilterImpl<K, V>;
+abstract class MapFilterField<T, K, V, JV> extends FilterBuilderNode {
+  factory MapFilterField({
+    FieldPath path,
+    required Map<String, JV> Function(T) toJson,
+    required String Function(K) keyToJson,
+    required JV Function(V) valueToJson,
+  }) = MapFilterFieldImpl<T, K, V, JV>;
 
-  FirestoreFilter call({Map<K, V>? isEqualTo, Map<K, V>? isNotEqualTo});
+  const MapFilterField._({
+    super.path,
+    required Map<String, JV> Function(T) toJson,
+    required String Function(K) keyToJson,
+    required JV Function(V) valueToJson,
+  }) : _toJson = toJson,
+       _keyToJson = keyToJson,
+       _valueToJson = valueToJson;
+
+  final Map<String, JV> Function(T) _toJson;
+  final String Function(K) _keyToJson;
+  final JV Function(V) _valueToJson;
+
+  PathFieldPath get _getPathFieldPath {
+    if (path is PathFieldPath) {
+      return path as PathFieldPath;
+    }
+    throw StateError('Path must be a PathFieldPath for MapFieldFilter');
+  }
+
+  FilterOperation call({T? isEqualTo, T? isNotEqualTo});
 
   /// Access a specific key in the map for filtering
   /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
-  FilterField<V> key(K mapKey);
+  FilterField<V, JV> key(K mapKey) {
+    return FilterField(
+      path: _getPathFieldPath.append(_keyToJson(mapKey)),
+      toJson: _valueToJson,
+    );
+  }
 }
 
 /// Numeric field callable updater

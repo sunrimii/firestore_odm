@@ -273,15 +273,21 @@ void main() {
       // Verify different document types
       expect(
         users1,
-        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
+        isA<
+          FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder<User>>
+        >(),
       );
       expect(
         users2_1,
-        isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
+        isA<
+          FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder<User>>
+        >(),
       );
       expect(
         posts1,
-        isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
+        isA<
+          FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder<Post>>
+        >(),
       );
 
       // The core bug test: users2 cannot access posts

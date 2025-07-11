@@ -1,15 +1,28 @@
-import 'package:cloud_firestore_platform_interface/src/field_path_type.dart'
-    as fs;
+import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart' as firestore;
 
-enum FieldPathType {
-  documentId(fs.FieldPathType.documentId);
+sealed class FieldPath {
+  Object toFirestore();
 
-  const FieldPathType(this._firestoreType);
+  static const FieldPath documentId = DocumentIdFieldPath();
 
-  final fs.FieldPathType _firestoreType;
+  const factory FieldPath.components([List<String> components]) =
+      PathFieldPath;
+}
 
-  fs.FieldPathType toFirestore() => _firestoreType;
+class DocumentIdFieldPath implements FieldPath {
+  const DocumentIdFieldPath();
 
-  @override
-  String toString() => 'FieldPathType($_firestoreType)';
+  firestore.FieldPathType toFirestore() => firestore.FieldPathType.documentId;
+}
+
+class PathFieldPath implements FieldPath {
+  const PathFieldPath([this.components = const []]);
+
+  final List<String> components;
+
+  firestore.FieldPath toFirestore() => firestore.FieldPath(components);
+
+  PathFieldPath append(String component) {
+    return PathFieldPath([...components, component]);
+  } 
 }

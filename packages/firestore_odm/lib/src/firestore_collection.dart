@@ -19,7 +19,7 @@ class FirestoreCollection<
   S extends FirestoreSchema,
   T,
   Path extends Record,
-  P extends PatchBuilder<T, Map<String, dynamic>>,
+  P extends PatchBuilder<T, Map<String, dynamic>?>,
   F extends FilterBuilderRoot,
   OB extends OrderByFieldNode,
   AB extends AggregateBuilderRoot
@@ -150,7 +150,7 @@ class FirestoreCollection<
 
   @override
   Query<S, T, P, F, OB, AB> where(
-    FirestoreFilter Function(F selector) filterFunc,
+    FilterOperation Function(F selector) filterFunc,
   ) {
     final filter = filterFunc(_filterBuilder);
     final newQuery = QueryFilterHandler.applyFilter(query, filter);

@@ -117,9 +117,7 @@ class UpdateGenerator {
                   fieldType.reference,
                   TypeAnalyzer.getMapKeyType(fieldType).reference,
                   TypeAnalyzer.getMapValueType(fieldType).reference,
-                  getJsonType(
-                    type: TypeAnalyzer.getMapValueType(fieldType),
-                  ),
+                  getJsonType(type: TypeAnalyzer.getMapValueType(fieldType)),
                 ]),
             ),
             arguments: {
@@ -148,9 +146,7 @@ class UpdateGenerator {
                   fieldType.reference,
                   TypeAnalyzer.getMapKeyType(fieldType).reference,
                   TypeAnalyzer.getMapValueType(fieldType).reference,
-                  getJsonType(
-                    type: TypeAnalyzer.getMapValueType(fieldType),
-                  ),
+                  getJsonType(type: TypeAnalyzer.getMapValueType(fieldType)),
                 ]),
             ),
             arguments: {
@@ -193,6 +189,9 @@ class UpdateGenerator {
             type: TypeReference(
               (b) => b
                 ..symbol = '${fieldType.reference.symbol}PatchBuilder'
+                ..types.add(
+                  fieldType.reference,
+                ) // Use the actual type parameter
                 ..types.addAll(
                   fieldType.reference.types,
                 ), // Use the actual type parameter
@@ -282,6 +281,13 @@ class UpdateGenerator {
       (b) => b
         ..docs.add('/// Patch builder for `${type.name}` model')
         ..name = '${type.name}PatchBuilder'
+        ..types.add(
+          TypeReference(
+            (b) => b
+              ..symbol = '\$\$T'
+              ..bound = type.reference.withNullability(true),
+          ),
+        )
         ..types.addAll(
           type.element3.typeParameters2.expand(
             (t) => [
@@ -302,12 +308,12 @@ class UpdateGenerator {
         ..extend = TypeReference(
           (b) => b
             ..symbol = 'PatchBuilder'
-            ..types.add(type.reference)
+            ..types.add(TypeReference((b) => b..symbol = '\$\$T'))
             ..types.add(
               TypeReferences.mapOf(
                 TypeReferences.string,
                 TypeReferences.dynamic,
-              ),
+              ).withNullability(true),
             ),
         )
         ..constructors.add(
@@ -445,6 +451,7 @@ class UpdateGenerator {
     return TypeReference(
       (b) => b
         ..symbol = '${type.element3.name3}PatchBuilder'
+        ..types.add(type.reference)
         ..types.addAll(
           map.entries.expand(
             (t) => [
