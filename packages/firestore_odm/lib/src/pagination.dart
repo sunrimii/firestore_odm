@@ -19,7 +19,9 @@ abstract class QueryPaginationHandler {
     // Convert object to Map for extraction
     final objectMap = toJson(object);
 
-    final context = OrderByExtractorContext(data: objectMap);
+    final context = OrderByExtractorContext(
+      id: objectMap[documentIdFieldName],
+      data: objectMap);
 
     final builder = orderBuilderFunc(context);
 

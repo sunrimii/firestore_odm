@@ -26,8 +26,9 @@ class Node {
 }
 
 class Node2 {
-  const Node2({FieldPath? path}) :
-    path = path ?? const FieldPath.components([]);
+  const Node2({this.field = const FieldPath.components([])});
 
-  final FieldPath path;
+  PathFieldPath get path => field as PathFieldPath;
+
+  final FieldPath field;
 }

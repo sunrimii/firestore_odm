@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:cloud_firestore/cloud_firestore.dart' hide FieldPath, AggregateQuery;
 import 'package:firestore_odm/src/aggregate.dart';
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
@@ -20,76 +19,63 @@ import 'package:firestore_odm/src/services/update_operations_service.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 typedef OrderByBuilderFunc<OB extends OrderByFieldNode> =
-    OB Function({
-      required OrderByContext context,
-      String name,
-      OrderByFieldNode? parent,
-    });
+    OB Function({required OrderByContext context, required FieldPath field});
 
-class OrderByFieldNode extends Node {
+class OrderByFieldNode extends Node2 {
   final OrderByContext $context;
 
   /// Creates a new OrderByFieldNode with the given context
-  const OrderByFieldNode({
-    super.name,
-    super.parent,
-    required OrderByContext context,
-  }) : $context = context;
+  const OrderByFieldNode({super.field, required OrderByContext context})
+    : $context = context;
 }
 
 class OrderByField<T> extends OrderByFieldNode {
-  OrderByField({super.name, super.parent, this.type, required super.context});
-  final FieldPath? type;
+  OrderByField({super.field, required super.context});
 
   T call({bool descending = false}) {
-    $context.resolver($parts, descending, type);
+    $context.resolver(field, descending);
     return defaultValue<T>();
   }
 }
 
 /// Base class for orderBy field selectors
 abstract class OrderByContext {
-  void resolver(List<String> parts, bool descending, [FieldPath? type]);
+  void resolver(FieldPath field, bool descending);
 }
 
-class OrderByBuilderContext extends OrderByContext {
+class OrderByBuilderContext implements OrderByContext {
   OrderByBuilderContext();
 
   final List<OrderByFieldInfo> fields = [];
 
   @override
-  void resolver(List<String> parts, bool descending, [FieldPath? type]) {
-    /// Add the field to the list of orderBy fields
-    /// Use FieldPath.documentId for document ID fields
-    if (type == FieldPath.documentId) {
-      fields.add(OrderByFieldInfo(FieldPath.documentId, descending));
-    } else {
-      fields.add(OrderByFieldInfo(parts.join('.'), descending));
-    }
+  void resolver(FieldPath field, bool descending) {
+    fields.add(OrderByFieldInfo(field, descending));
   }
 }
 
-class OrderByExtractorContext extends OrderByContext {
-  OrderByExtractorContext({required this.data});
+class OrderByExtractorContext implements OrderByContext {
+  OrderByExtractorContext({required this.id, required this.data});
+  final String id;
   final Map<String, dynamic> data;
   final List<dynamic> extractedValues = [];
 
   @override
-  void resolver(List<String> parts, bool descending, [FieldPath? type]) {
-    final value = resolveJsonWithParts(data, parts);
+  void resolver(FieldPath field, bool descending) {
+    final value = resolveJsonWithParts(data, id, field);
     extractedValues.add(value);
   }
 }
 
 /// Information about an orderBy field for pagination
 class OrderByFieldInfo {
-  final dynamic fieldPath; // Can be String or FieldPath
+  final FieldPath field; // Can be String or FieldPath
   final bool descending;
 
-  const OrderByFieldInfo(this.fieldPath, this.descending);
+  const OrderByFieldInfo(this.field, this.descending);
 
   @override
-  String toString() => 'OrderByFieldInfo($fieldPath, desc: $descending)';
+  String toString() => 'OrderByFieldInfo($field, desc: $descending)';
 }
 
 /// Container for orderBy configuration used in pagination
@@ -125,10 +111,10 @@ abstract class QueryOrderbyHandler {
   >(firestore.Query<Map<String, dynamic>> query, OrderByConfiguration config) {
     // Build the actual Firestore query from the collected fields
     firestore.Query<Map<String, dynamic>> newQuery = query;
-    for (final field in config.fields) {
+    for (final info in config.fields) {
       newQuery = newQuery.orderBy(
-        field.fieldPath,
-        descending: field.descending,
+        info.field.toFirestore(),
+        descending: info.descending,
       );
     }
 
@@ -315,16 +301,14 @@ class OrderedQuery<
   ) {
     final filter = QueryFilterHandler.buildFilter(
       filterBuilder: filterBuilder,
-      builderRoot: _filterBuilder
+      builderRoot: _filterBuilder,
     );
     final newQuery = QueryFilterHandler.applyFilter(_query, filter);
     return _newQuery(newQuery);
   }
 
   @override
-  Future<void> patch(
-    List<UpdateOperation> Function(P patchBuilder) patches,
-  ) {
+  Future<void> patch(List<UpdateOperation> Function(P patchBuilder) patches) {
     final operations = patches(_patchBuilder);
     return QueryHandler.patch(_query, operations);
   }
@@ -370,7 +354,8 @@ class OrderedQuery<
   AggregateQuery<T, R, AB> aggregate<R extends Record>(
     R Function(AB selector) builder,
   ) {
-    final config = QueryAggregatableHandler.buildAggregate(builder, 
+    final config = QueryAggregatableHandler.buildAggregate(
+      builder,
       _aggregateBuilderFunc,
     );
     final newQuery = QueryAggregatableHandler.applyAggregate(

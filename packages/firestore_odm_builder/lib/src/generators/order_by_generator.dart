@@ -12,16 +12,13 @@ class OrderByGenerator {
   /// Generate OrderBy field selector method
   static Method _generateOrderByFieldSelectorMethod(FieldInfo field) {
     final constructorArgs = <String, Expression>{
-      'name': literalString(field.jsonName),
-      'parent': refer('this'),
+      'field': field.isDocumentId
+          ? refer('FieldPath.documentId')
+          : refer(
+              'path',
+            ).property('append').call([literalString(field.jsonName)]),
       'context': refer('\$context'),
     };
-
-    // Add type parameter for document ID fields
-    if (field.isDocumentId) {
-      constructorArgs['type'] = refer('FieldPath.documentId');
-    }
-
     return Method(
       (b) => b
         ..docs.add('/// Order by ${field.parameterName}')
@@ -57,8 +54,9 @@ class OrderByGenerator {
         ..lambda = true
         ..returns = nestedTypeRef
         ..body = initializerTypeRef.newInstance([], {
-          'name': literalString(field.jsonName),
-          'parent': refer('this'),
+          'field': refer(
+            'path',
+          ).property('append').call([literalString(field.jsonName)]),
           'context': refer('\$context'),
         }).code,
     );
@@ -155,21 +153,15 @@ class OrderByGenerator {
                     ),
                     Parameter(
                       (b) => b
-                        ..name = 'name'
-                        ..defaultTo = literalString('').code
-                        ..named = true,
-                    ),
-                    Parameter(
-                      (b) => b
-                        ..name = 'parent'
+                        ..name = 'field'
+                        ..required = true
                         ..named = true,
                     ),
                   ])
                   ..body = getOrderByBuilderInstanceExpression(
                     type: entry.value,
                     context: refer('context'),
-                    name: refer('name'),
-                    parent: refer('parent'),
+                    field: refer('field'),
                   ).code,
               ).closure,
             ),
@@ -252,13 +244,7 @@ class OrderByGenerator {
                   ),
                 Parameter(
                   (b) => b
-                    ..name = 'name'
-                    ..toSuper = true
-                    ..named = true,
-                ),
-                Parameter(
-                  (b) => b
-                    ..name = 'parent'
+                    ..name = 'field'
                     ..toSuper = true
                     ..named = true,
                 ),
@@ -332,8 +318,7 @@ class OrderByGenerator {
   static Expression getOrderByBuilderInstanceExpression({
     required DartType type,
     required Expression context,
-    Expression? name,
-    Expression? parent,
+    Expression? field,
   }) {
     if (type is! InterfaceType) {
       return TypeReference(
@@ -342,14 +327,12 @@ class OrderByGenerator {
           ..types.add(type.reference),
       ).newInstance([], {
         'context': context,
-        if (name != null) 'name': name,
-        if (parent != null) 'parent': parent,
+        if (field != null) 'field': field,
       });
     }
     return getOrderByBuilderType(type: type).newInstance([], {
       'context': context,
-      if (name != null) 'name': name,
-      if (parent != null) 'parent': parent,
+      if (field != null) 'field': field,
       ...getConstructorBuildersParameters(type: type),
     });
   }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/model_converter.dart';
+import 'package:firestore_odm/src/types.dart';
 
 T fromFirestoreData<T>(
   JsonDeserializer<T> fromJsonFunction,
@@ -192,57 +193,72 @@ T processDocumentSnapshot<T>(
   );
 }
 
-T resolveJsonWithParts<T>(Map<String, dynamic> json, List<String> parts) {
-  dynamic current = json;
-
-  for (final part in parts) {
-    if (current == null) {
-      throw ArgumentError(
-        'Cannot resolve path ${parts.join(".")} - null encountered at "$part"',
-      );
-    }
-
-    // Check if it's a numeric index (array access)
-    if (RegExp(r'^\d+$').hasMatch(part)) {
-      final index = int.parse(part);
-      if (current is List) {
-        if (index >= 0 && index < current.length) {
-          current = current[index];
-        } else {
-          throw RangeError(
-            'Index $index out of bounds for array of length ${current.length} at path ${parts.join(".")}',
-          );
-        }
-      } else {
-        throw ArgumentError(
-          'Expected List but found ${current.runtimeType} when accessing index "$part" in path ${parts.join(".")}',
-        );
+T resolveJsonWithParts<T>(
+  Map<String, dynamic> json,
+  String id,
+  FieldPath path,
+) {
+  switch (path) {
+    case DocumentIdFieldPath():
+      // Special case for document ID field
+      return id as T;
+    case PathFieldPath(:final components, :final path):
+      if (path is DocumentIdFieldPath) {
+        // Special case for document ID field
+        return id as T;
       }
-    } else {
-      // String key (object access)
-      if (current is Map<String, dynamic>) {
-        if (current.containsKey(part)) {
-          current = current[part];
-        } else {
+
+      dynamic current = json;
+
+      for (final part in components) {
+        if (current == null) {
           throw ArgumentError(
-            'Key "$part" not found in object at path ${parts.join(".")}',
+            'Cannot resolve path ${path} - null encountered at "$part"',
           );
         }
+
+        // Check if it's a numeric index (array access)
+        if (RegExp(r'^\d+$').hasMatch(part)) {
+          final index = int.parse(part);
+          if (current is List) {
+            if (index >= 0 && index < current.length) {
+              current = current[index];
+            } else {
+              throw RangeError(
+                'Index $index out of bounds for array of length ${current.length} at path ${path}',
+              );
+            }
+          } else {
+            throw ArgumentError(
+              'Expected List but found ${current.runtimeType} when accessing index "$part" in path ${path}',
+            );
+          }
+        } else {
+          // String key (object access)
+          if (current is Map<String, dynamic>) {
+            if (current.containsKey(part)) {
+              current = current[part];
+            } else {
+              throw ArgumentError(
+                'Key "$part" not found in object at path ${components.join(".")}',
+              );
+            }
+          } else {
+            throw ArgumentError(
+              'Expected Map but found ${current.runtimeType} when accessing key "$part" in path ${path}',
+            );
+          }
+        }
+      }
+
+      // Type checking and conversion
+      if (current is T) {
+        return current;
       } else {
         throw ArgumentError(
-          'Expected Map but found ${current.runtimeType} when accessing key "$part" in path ${parts.join(".")}',
+          'Expected type $T but found ${current.runtimeType} at path ${path}. Value: $current',
         );
       }
-    }
-  }
-
-  // Type checking and conversion
-  if (current is T) {
-    return current;
-  } else {
-    throw ArgumentError(
-      'Expected type $T but found ${current.runtimeType} at path ${parts.join(".")}. Value: $current',
-    );
   }
 }
 

@@ -61,12 +61,11 @@ class FilterGenerator {
         ..lambda = true
         ..returns = typeDef.type
         ..body = typeDef.instance.newInstance([], {
-          'path': field.isDocumentId
+          'field': field.isDocumentId
               ? refer('FieldPath.documentId')
-              : refer('path')
-                    .asA(refer('PathFieldPath'))
-                    .property('append')
-                    .call([literalString(fieldName)]),
+              : refer(
+                  'path',
+                ).property('append').call([literalString(fieldName)]),
           ...typeDef.namedArguments,
         }).code,
     );
@@ -165,7 +164,7 @@ class FilterGenerator {
                   ),
                 Parameter(
                   (b) => b
-                    ..name = 'path'
+                    ..name = 'field'
                     ..toSuper = true
                     ..named = true,
                 ),
@@ -444,14 +443,14 @@ class FilterGenerator {
                   ..optionalParameters.addAll([
                     Parameter(
                       (b) => b
-                        ..name = 'path'
+                        ..name = 'field'
                         ..required = true
                         ..named = true,
                     ),
                   ])
                   ..body = getBuilderInstanceExpression(
                     type: entry.value,
-                    path: refer('path'),
+                    field: refer('field'),
                   ).code,
               ).closure,
             ),
@@ -461,12 +460,12 @@ class FilterGenerator {
 
   static Expression getBuilderInstanceExpression({
     required DartType type,
-    Expression? path,
+    Expression? field,
     bool isRoot = false,
   }) {
     final typeDef = getBuilderDef(type: type, isRoot: isRoot);
     return typeDef.instance.newInstance([], {
-      if (path != null) 'path': path,
+      if (field != null) 'field': field,
       if (type is InterfaceType)
         ...getConstructorBuildersParameters(type: type),
       ...typeDef.namedArguments,

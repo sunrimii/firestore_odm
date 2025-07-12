@@ -6,7 +6,7 @@ import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/types.dart';
 
 typedef FilterBuilderFunc<AB extends FilterBuilderNode> =
-    AB Function({required FieldPath path});
+    AB Function({required FieldPath field});
 
 sealed class FilterOperation {
   Filter toFilter();
@@ -375,7 +375,7 @@ class PatchBuilder<T, R> extends Node {
 
 class FilterBuilderNode extends Node2 {
   /// Create a new FilterBuilderNode
-  const FilterBuilderNode({super.path});
+  const FilterBuilderNode({super.field});
 }
 
 mixin EqualableMixin<T, J> on FilterBuilderNode {
@@ -383,19 +383,19 @@ mixin EqualableMixin<T, J> on FilterBuilderNode {
 
   /// Check if two objects are equal
   IsEqualToOperation isEqualTo(T other) {
-    return IsEqualToOperation(path, _toJson(other));
+    return IsEqualToOperation(field, _toJson(other));
   }
 
   IsNotEqualToOperation isNotEqualTo(T other) {
-    return IsNotEqualToOperation(path, _toJson(other));
+    return IsNotEqualToOperation(field, _toJson(other));
   }
 
   WhereInOperation whereIn(Iterable<T> values) {
-    return WhereInOperation(path, values.map(_toJson).toList());
+    return WhereInOperation(field, values.map(_toJson).toList());
   }
 
   WhereNotInOperation whereNotIn(Iterable<T> values) {
-    return WhereNotInOperation(path, values.map(_toJson).toList());
+    return WhereNotInOperation(field, values.map(_toJson).toList());
   }
 }
 
@@ -404,19 +404,19 @@ mixin ComparableMixin<T> on FilterBuilderNode {
 
   /// Check if two objects are equal
   IsLessThanOperation isLessThan(T other) {
-    return IsLessThanOperation(path, _toJson(other));
+    return IsLessThanOperation(field, _toJson(other));
   }
 
   IsGreaterThanOperation isGreaterThan(T other) {
-    return IsGreaterThanOperation(path, _toJson(other));
+    return IsGreaterThanOperation(field, _toJson(other));
   }
 
   IsLessThanOrEqualToOperation isLessThanOrEqualTo(T other) {
-    return IsLessThanOrEqualToOperation(path, _toJson(other));
+    return IsLessThanOrEqualToOperation(field, _toJson(other));
   }
 
   IsGreaterThanOrEqualToOperation isGreaterThanOrEqualTo(T other) {
-    return IsGreaterThanOrEqualToOperation(path, _toJson(other));
+    return IsGreaterThanOrEqualToOperation(field, _toJson(other));
   }
 }
 
@@ -425,17 +425,17 @@ mixin ArrayFilterableMixin<T, E, JE> on FilterBuilderNode {
 
   /// Check if the array contains a specific value
   ArrayContainsOperation<JE> contains(E value) {
-    return ArrayContainsOperation(path, _elementToJson(value));
+    return ArrayContainsOperation(field, _elementToJson(value));
   }
 
   /// Check if the array contains any of the specified values
   ArrayContainsAnyOperation<JE> containsAny(Iterable<E> values) {
-    return ArrayContainsAnyOperation(path, values.map(_elementToJson).toList());
+    return ArrayContainsAnyOperation(field, values.map(_elementToJson).toList());
   }
 }
 
 class FilterFieldImpl<T, R> extends FilterField<T, R> {
-  FilterFieldImpl({super.path, required super.toJson}) : super._();
+  FilterFieldImpl({super.field, required super.toJson}) : super._();
 
   FilterOperation call({
     Object? isEqualTo = noValue,
@@ -444,20 +444,20 @@ class FilterFieldImpl<T, R> extends FilterField<T, R> {
     Object? whereNotIn = noValue,
   }) {
     if (isEqualTo != noValue) {
-      return IsEqualToOperation(path, _toJson(isEqualTo as T));
+      return IsEqualToOperation(field, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != noValue) {
-      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
+      return IsNotEqualToOperation(field, _toJson(isNotEqualTo as T));
     }
     if (whereIn != noValue) {
       return WhereInOperation(
-        path,
+        field,
         (whereIn as Iterable<T>).map(_toJson).toList(),
       );
     }
     if (whereNotIn != noValue) {
       return WhereNotInOperation(
-        path,
+        field,
         (whereNotIn as Iterable<T>).map(_toJson).toList(),
       );
     }
@@ -468,10 +468,10 @@ class FilterFieldImpl<T, R> extends FilterField<T, R> {
 /// String field callable filter
 abstract class FilterField<T, R> extends FilterBuilderNode
     with EqualableMixin<T, R> {
-  factory FilterField({FieldPath? path, required R Function(T) toJson}) =
+  factory FilterField({FieldPath field, required R Function(T) toJson}) =
       FilterFieldImpl<T, R>;
 
-  const FilterField._({super.path, required R Function(T) toJson})
+  const FilterField._({super.field, required R Function(T) toJson})
     : _toJson = toJson;
 
   final R Function(T) _toJson;
@@ -487,7 +487,7 @@ abstract class FilterField<T, R> extends FilterBuilderNode
 const noValue = Symbol('noValue');
 
 class ComparableFilterFieldImpl<T> extends ComparableFilterField<T> {
-  const ComparableFilterFieldImpl({super.path, required super.toJson})
+  const ComparableFilterFieldImpl({super.field, required super.toJson})
     : super._();
 
   FilterOperation call({
@@ -501,38 +501,38 @@ class ComparableFilterFieldImpl<T> extends ComparableFilterField<T> {
     Object? whereNotIn = noValue,
   }) {
     if (isEqualTo != noValue) {
-      return IsEqualToOperation(path, _toJson(isEqualTo as T));
+      return IsEqualToOperation(field, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != noValue) {
-      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
+      return IsNotEqualToOperation(field, _toJson(isNotEqualTo as T));
     }
     if (isLessThan != noValue) {
-      return IsLessThanOperation(path, _toJson(isLessThan as T));
+      return IsLessThanOperation(field, _toJson(isLessThan as T));
     }
     if (isLessThanOrEqualTo != noValue) {
       return IsLessThanOrEqualToOperation(
-        path,
+        field,
         _toJson(isLessThanOrEqualTo as T),
       );
     }
     if (isGreaterThan != noValue) {
-      return IsGreaterThanOperation(path, _toJson(isGreaterThan as T));
+      return IsGreaterThanOperation(field, _toJson(isGreaterThan as T));
     }
     if (isGreaterThanOrEqualTo != noValue) {
       return IsGreaterThanOrEqualToOperation(
-        path,
+        field,
         _toJson(isGreaterThanOrEqualTo as T),
       );
     }
     if (whereIn != noValue) {
       return WhereInOperation(
-        path,
+        field,
         (whereIn as Iterable<T>).map(_toJson).toList(),
       );
     }
     if (whereNotIn != noValue) {
       return WhereNotInOperation(
-        path,
+        field,
         (whereNotIn as Iterable<T>).map(_toJson).toList(),
       );
     }
@@ -544,12 +544,12 @@ abstract class ComparableFilterField<T> extends FilterBuilderNode
     with EqualableMixin<T, Object?>, ComparableMixin<T> {
   /// Create a numeric field filter
   factory ComparableFilterField({
-    FieldPath path,
+    FieldPath field,
     required Object? Function(T) toJson,
   }) = ComparableFilterFieldImpl;
 
   const ComparableFilterField._({
-    super.path,
+    super.field,
     required Object? Function(T) toJson,
   }) : _toJson = toJson;
 
@@ -569,7 +569,7 @@ abstract class ComparableFilterField<T> extends FilterBuilderNode
 
 class ArrayFilterFieldImpl<T, E, JE> extends ArrayFilterField<T, E, JE> {
   const ArrayFilterFieldImpl({
-    super.path,
+    super.field,
     required super.elementToJson,
     required super.toJson,
   }) : super._();
@@ -583,29 +583,29 @@ class ArrayFilterFieldImpl<T, E, JE> extends ArrayFilterField<T, E, JE> {
     Object? whereNotIn = noValue,
   }) {
     if (isEqualTo != noValue) {
-      return IsEqualToOperation(path, _toJson(isEqualTo as T));
+      return IsEqualToOperation(field, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != noValue) {
-      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
+      return IsNotEqualToOperation(field, _toJson(isNotEqualTo as T));
     }
     if (arrayContains != noValue) {
-      return ArrayContainsOperation(path, _elementToJson(arrayContains as E));
+      return ArrayContainsOperation(field, _elementToJson(arrayContains as E));
     }
     if (arrayContainsAny != noValue) {
       return ArrayContainsAnyOperation(
-        path,
+        field,
         (arrayContainsAny as Iterable<E>).map(_elementToJson).toList(),
       );
     }
     if (whereIn != noValue) {
       return WhereInOperation(
-        path,
+        field,
         (whereIn as Iterable<T>).map(_toJson).toList(),
       );
     }
     if (whereNotIn != noValue) {
       return WhereNotInOperation(
-        path,
+        field,
         (whereNotIn as Iterable<T>).map(_toJson).toList(),
       );
     }
@@ -617,13 +617,13 @@ class ArrayFilterFieldImpl<T, E, JE> extends ArrayFilterField<T, E, JE> {
 abstract class ArrayFilterField<T, E, JE> extends FilterBuilderNode
     with EqualableMixin<T, List<JE>?>, ArrayFilterableMixin<T, E, JE> {
   factory ArrayFilterField({
-    FieldPath path,
+    FieldPath field,
     required JE Function(E) elementToJson,
     required List<JE>? Function(T) toJson,
   }) = ArrayFilterFieldImpl;
 
   const ArrayFilterField._({
-    super.path,
+    super.field,
     required JE Function(E) elementToJson,
     required List<JE>? Function(T) toJson,
   }) : _elementToJson = elementToJson,
@@ -645,18 +645,21 @@ abstract class ArrayFilterField<T, E, JE> extends FilterBuilderNode
 
 class MapFilterFieldImpl<T, K, V, JV> extends MapFilterField<T, K, V, JV> {
   const MapFilterFieldImpl({
-    super.path,
+    super.field,
     required super.toJson,
     required super.keyToJson,
     required super.valueToJson,
   }) : super._();
 
-  FilterOperation call({Object? isEqualTo = noValue, Object? isNotEqualTo = noValue}) {
+  FilterOperation call({
+    Object? isEqualTo = noValue,
+    Object? isNotEqualTo = noValue,
+  }) {
     if (isEqualTo != null) {
-      return IsEqualToOperation(path, _toJson(isEqualTo as T));
+      return IsEqualToOperation(field, _toJson(isEqualTo as T));
     }
     if (isNotEqualTo != null) {
-      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
+      return IsNotEqualToOperation(field, _toJson(isNotEqualTo as T));
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -665,14 +668,14 @@ class MapFilterFieldImpl<T, K, V, JV> extends MapFilterField<T, K, V, JV> {
 /// Map field callable filter with key access support
 abstract class MapFilterField<T, K, V, JV> extends FilterBuilderNode {
   factory MapFilterField({
-    FieldPath path,
+    FieldPath field,
     required Map<String, JV> Function(T) toJson,
     required String Function(K) keyToJson,
     required JV Function(V) valueToJson,
   }) = MapFilterFieldImpl<T, K, V, JV>;
 
   const MapFilterField._({
-    super.path,
+    super.field,
     required Map<String, JV> Function(T) toJson,
     required String Function(K) keyToJson,
     required JV Function(V) valueToJson,
@@ -684,20 +687,13 @@ abstract class MapFilterField<T, K, V, JV> extends FilterBuilderNode {
   final String Function(K) _keyToJson;
   final JV Function(V) _valueToJson;
 
-  PathFieldPath get _getPathFieldPath {
-    if (path is PathFieldPath) {
-      return path as PathFieldPath;
-    }
-    throw StateError('Path must be a PathFieldPath for MapFieldFilter');
-  }
-
   FilterOperation call({T? isEqualTo, T? isNotEqualTo});
 
   /// Access a specific key in the map for filtering
   /// Usage: $.profile.socialLinks.key("github")(isEqualTo: "username")
   FilterField<V, JV> key(K mapKey) {
     return FilterField(
-      path: _getPathFieldPath.append(_keyToJson(mapKey)),
+      field: path.append(_keyToJson(mapKey)),
       toJson: _valueToJson,
     );
   }
