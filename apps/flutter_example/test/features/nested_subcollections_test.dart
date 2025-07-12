@@ -495,7 +495,7 @@ void main() {
               TestSchema,
               User,
               dynamic,
-              UserPatchBuilder,
+              UserPatchBuilder<User>,
               UserFilterBuilderRoot,
               UserOrderByBuilder,
               UserAggregateBuilderRoot
@@ -509,7 +509,7 @@ void main() {
               TestSchema,
               Post,
               dynamic,
-              PostPatchBuilder,
+              PostPatchBuilder<Post>,
               PostFilterBuilderRoot,
               PostOrderByBuilder,
               PostAggregateBuilderRoot
@@ -523,7 +523,7 @@ void main() {
               TestSchema,
               Comment,
               dynamic,
-              CommentPatchBuilder,
+              CommentPatchBuilder<Comment>,
               CommentFilterBuilderRoot,
               CommentOrderByBuilder,
               CommentAggregateBuilderRoot
@@ -539,7 +539,7 @@ void main() {
               TestSchema,
               Post,
               dynamic,
-              PostPatchBuilder,
+              PostPatchBuilder<Post>,
               PostFilterBuilderRoot,
               PostOrderByBuilder,
               PostAggregateBuilderRoot
@@ -553,7 +553,7 @@ void main() {
               TestSchema,
               Comment,
               dynamic,
-              CommentPatchBuilder,
+              CommentPatchBuilder<Comment>,
               CommentFilterBuilderRoot,
               CommentOrderByBuilder,
               CommentAggregateBuilderRoot
@@ -567,7 +567,7 @@ void main() {
               TestSchema,
               Comment,
               dynamic,
-              CommentPatchBuilder,
+              CommentPatchBuilder<Comment>,
               CommentFilterBuilderRoot,
               CommentOrderByBuilder,
               CommentAggregateBuilderRoot
@@ -578,15 +578,15 @@ void main() {
         // Verify document types
         expect(
           odm.users('test'),
-          isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder>>(),
+          isA<FirestoreDocument<TestSchema, User, dynamic, UserPatchBuilder<User>>>(),
         );
         expect(
           odm.posts('test'),
-          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder<Post>>>(),
         );
         expect(
           odm.users('test').posts('test'),
-          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder>>(),
+          isA<FirestoreDocument<TestSchema, Post, dynamic, PostPatchBuilder<Post>>>(),
         );
       });
 
@@ -611,7 +611,7 @@ void main() {
                 TestSchema,
                 Comment,
                 dynamic,
-                CommentPatchBuilder,
+                CommentPatchBuilder<Comment>,
                 CommentFilterBuilderRoot,
                 CommentOrderByBuilder,
                 CommentAggregateBuilderRoot
