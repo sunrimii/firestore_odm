@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/interfaces/gettable.dart';
 import 'package:firestore_odm/src/interfaces/streamable.dart';
+import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 typedef AggregateBuilderFunc<AB extends AggregateFieldNode> =
     AB Function({
       required AggregateContext context,
-      String name,
-      AggregateFieldNode? parent,
+      required FieldPath field,
     });
 
 abstract class AggregateContext {
@@ -50,19 +50,17 @@ class AggregateResultContext extends AggregateContext {
 }
 
 /// Selector that provides strongly-typed field access for aggregations
-abstract class AggregateFieldNode extends Node {
+abstract class AggregateFieldNode extends Node2 {
   final AggregateContext $context;
   const AggregateFieldNode({
-    super.name = '',
-    super.parent,
+    super.field,
     required AggregateContext context,
   }) : $context = context;
 }
 
 abstract class AggregateBuilderRoot extends AggregateFieldNode {
   const AggregateBuilderRoot({
-    super.name = '',
-    super.parent,
+    super.field,
     required super.context,
   });
 
@@ -83,19 +81,18 @@ class AggregateField<T extends num?> extends AggregateFieldNode {
   /// [name] - The name of the field in the document
   /// [context] - The aggregate context used to resolve operations
   const AggregateField({
-    required super.name,
-    super.parent,
+    required super.field,
     required super.context,
   });
 
   /// Get sum of this field
   T sum() {
-    return $context.resolve<T>(SumOperation('sum:${$path}', $path));
+    return $context.resolve<T>(SumOperation('sum:${path}', path));
   }
 
   /// Get average of this field
   double average() {
-    return $context.resolve<double>(AverageOperation('avg:${$path}', $path));
+    return $context.resolve<double>(AverageOperation('avg:${path}', path));
   }
 }
 
@@ -149,8 +146,8 @@ abstract class QueryAggregatableHandler {
         .map(
           (op) => switch (op) {
             CountOperation() => firestore.count(),
-            SumOperation(:final fieldPath) => firestore.sum(fieldPath),
-            AverageOperation(:final fieldPath) => firestore.average(fieldPath),
+            SumOperation(:final field) => firestore.sum(field.path),
+            AverageOperation(:final field) => firestore.average(field.path),
             _ => throw ArgumentError(
               'Unsupported aggregate operation: ${op.runtimeType}',
             ),
@@ -224,9 +221,9 @@ abstract class QueryAggregatableHandler {
       for (final op in configuration.operations)
         op.key: switch (op) {
           CountOperation() => snapshot.count ?? 0,
-          SumOperation(:final fieldPath) => snapshot.getSum(fieldPath) ?? 0,
-          AverageOperation(:final fieldPath) =>
-            snapshot.getAverage(fieldPath) ?? 0.0,
+          SumOperation(:final field) => snapshot.getSum(field.path) ?? 0,
+          AverageOperation(:final field) =>
+            snapshot.getAverage(field.path) ?? 0.0,
         },
     };
 
@@ -296,15 +293,15 @@ abstract class QueryAggregatableHandler {
     final sumOps = operations.whereType<SumOperation>().toList();
     final avgOps = operations.whereType<AverageOperation>().toList();
 
-    if (sumOps.isNotEmpty || avgOps.isNotEmpty) {
+    if (sumOps.isNotEmpty || avgOps.isNotEmpty ) {
       // Calculate sums
       for (final op in sumOps) {
-        results[op.key] = _calculateSum(snapshot, op.fieldPath, toJson);
+        results[op.key] = _calculateSum(snapshot, op.field, toJson);
       }
 
       // Calculate averages
       for (final op in avgOps) {
-        results[op.key] = _calculateAverage(snapshot, op.fieldPath, toJson);
+        results[op.key] = _calculateAverage(snapshot, op.field, toJson);
       }
     }
 
@@ -314,13 +311,13 @@ abstract class QueryAggregatableHandler {
   /// Calculate sum for a field path
   static num _calculateSum<T>(
     List<T> documents,
-    String fieldPath,
+    PathFieldPath field,
     Map<String, dynamic> Function(T) toJson,
   ) {
     num total = 0;
     for (final doc in documents) {
       final json = toJson(doc);
-      final value = _getNestedValue(json, fieldPath);
+      final value = _getNestedValue(json, field);
       if (value is num) {
         total += value;
       }
@@ -331,14 +328,14 @@ abstract class QueryAggregatableHandler {
   /// Calculate average for a field path
   static double _calculateAverage<T>(
     List<T> documents,
-    String fieldPath,
+    PathFieldPath field,
     Map<String, dynamic> Function(T) toJson,
   ) {
     num total = 0;
     int count = 0;
     for (final doc in documents) {
       final json = toJson(doc);
-      final value = _getNestedValue(json, fieldPath);
+      final value = _getNestedValue(json, field);
       if (value is num) {
         total += value;
         count++;
@@ -348,10 +345,9 @@ abstract class QueryAggregatableHandler {
   }
 
   /// Get nested value from JSON using dot notation
-  static dynamic _getNestedValue(Map<String, dynamic> json, String fieldPath) {
-    final parts = fieldPath.split('.');
+  static dynamic _getNestedValue(Map<String, dynamic> json, PathFieldPath field) {
     dynamic current = json;
-    for (final part in parts) {
+    for (final part in field.components) {
       if (current is Map<String, dynamic> && current.containsKey(part)) {
         current = current[part];
       } else {
@@ -387,25 +383,25 @@ class CountOperation extends AggregateOperation {
 /// Sum operation that calculates the sum of numeric values in a field.
 class SumOperation extends AggregateOperation {
   /// The field path to sum values from
-  final String fieldPath;
+  final PathFieldPath field;
 
   /// Creates a sum operation.
   ///
   /// [key] - Unique identifier for this operation
   /// [fieldPath] - The field path to sum values from
-  const SumOperation(String key, this.fieldPath) : super(key);
+  const SumOperation(String key, this.field) : super(key);
 }
 
 /// Average operation that calculates the average of numeric values in a field.
 class AverageOperation extends AggregateOperation {
   /// The field path to calculate average from
-  final String fieldPath;
+  final PathFieldPath field;
 
   /// Creates an average operation.
   ///
   /// [key] - Unique identifier for this operation
   /// [fieldPath] - The field path to calculate average from
-  const AverageOperation(String key, this.fieldPath) : super(key);
+  const AverageOperation(String key, this.field) : super(key);
 }
 
 /// A query that performs aggregate operations on a Firestore collection.

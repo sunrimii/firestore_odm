@@ -23,8 +23,9 @@ class AggregateGenerator {
             ..types.add(field.type.reference),
         )
         ..body = refer('AggregateField').newInstance([], {
-          'name': literalString(field.jsonName),
-          'parent': refer('this'),
+          'field': refer('path').property('append').call([
+            literalString(field.jsonName),
+          ]),
           'context': refer('\$context'),
         }).code,
     );
@@ -50,8 +51,9 @@ class AggregateGenerator {
         ..lambda = true
         ..returns = nestedTypeRef
         ..body = initializerTypeRef.newInstance([], {
-          'name': literalString(field.jsonName),
-          'parent': refer('this'),
+          'field':  refer('path').property('append').call([
+            literalString(field.jsonName),
+          ]),
           'context': refer('\$context'),
         }).code,
     );
@@ -199,12 +201,7 @@ class AggregateGenerator {
                   ),
                 Parameter(
                   (b) => b
-                    ..name = 'name'
-                    ..toSuper = true,
-                ),
-                Parameter(
-                  (b) => b
-                    ..name = 'parent'
+                    ..name = 'field'
                     ..toSuper = true,
                 ),
               ]),
@@ -281,12 +278,7 @@ class AggregateGenerator {
                   ),
                 Parameter(
                   (b) => b
-                    ..name = 'name'
-                    ..toSuper = true,
-                ),
-                Parameter(
-                  (b) => b
-                    ..name = 'parent'
+                    ..name = 'field'
                     ..toSuper = true,
                 ),
               ])
@@ -379,21 +371,15 @@ class AggregateGenerator {
                     ),
                     Parameter(
                       (b) => b
-                        ..name = 'name'
-                        ..defaultTo = literalString('').code
-                        ..named = true,
-                    ),
-                    Parameter(
-                      (b) => b
-                        ..name = 'parent'
+                        ..name = 'field'
+                        ..required = true
                         ..named = true,
                     ),
                   ])
                   ..body = getBuilderInstanceExpression(
                     type: entry.value,
                     context: refer('context'),
-                    name: refer('name'),
-                    parent: refer('parent'),
+                    field: refer('field'),
                   ).code,
               ).closure,
             ),
@@ -404,8 +390,7 @@ class AggregateGenerator {
   static Expression getBuilderInstanceExpression({
     required DartType type,
     required Expression context,
-    Expression? name,
-    Expression? parent,
+    Expression? field,
     bool isRoot = false,
   }) {
     if (!isUserType(type) &&
@@ -416,8 +401,7 @@ class AggregateGenerator {
     }
     return getBuilderType(type: type, isRoot: isRoot).newInstance([], {
       'context': context,
-      if (name != null) 'name': name,
-      if (parent != null) 'parent': parent,
+      if (field != null) 'field': field,
       if (type is InterfaceType)
         ...getConstructorBuildersParameters(type: type),
     });
