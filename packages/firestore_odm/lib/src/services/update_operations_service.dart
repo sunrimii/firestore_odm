@@ -249,18 +249,6 @@ class DocumentHandler {
       documentIdField: documentIdField,
     );
 
-    // print all dataMap field types recursively\
-    dataMap.forEach((key, value) {
-      if (value is Map) {
-        print('$key: Map<String, dynamic>');
-      } else if (value is List) {
-        print(
-          '$key: List<${value.isNotEmpty ? value.first.runtimeType : 'dynamic'}>',
-        );
-      } else {
-        print('$key: ${value.runtimeType}');
-      }
-    });
     await ref.set(dataMap);
   }
 
