@@ -21,7 +21,7 @@ import 'package:firestore_odm/src/utils.dart';
 typedef OrderByBuilderFunc<OB extends OrderByFieldNode> =
     OB Function({required OrderByContext context, required FieldPath field});
 
-class OrderByFieldNode extends Node2 {
+class OrderByFieldNode extends Node {
   final OrderByContext $context;
 
   /// Creates a new OrderByFieldNode with the given context

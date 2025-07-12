@@ -358,7 +358,7 @@ mixin class FilterBuilderRoot {
 typedef PatchBuilderFunc<T, PB extends PatchBuilder<T, dynamic>> =
     PB Function({required FieldPath field});
 
-class PatchBuilder<T, R> extends Node2 {
+class PatchBuilder<T, R> extends Node {
   /// Converter function to transform the value before storing in Firestore
   final R Function(T) _toJson;
 
@@ -373,7 +373,7 @@ class PatchBuilder<T, R> extends Node2 {
   }
 }
 
-class FilterBuilderNode extends Node2 {
+class FilterBuilderNode extends Node {
   /// Create a new FilterBuilderNode
   const FilterBuilderNode({super.field});
 }

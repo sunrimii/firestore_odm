@@ -50,7 +50,7 @@ class AggregateResultContext extends AggregateContext {
 }
 
 /// Selector that provides strongly-typed field access for aggregations
-abstract class AggregateFieldNode extends Node2 {
+abstract class AggregateFieldNode extends Node {
   final AggregateContext $context;
   const AggregateFieldNode({
     super.field,
