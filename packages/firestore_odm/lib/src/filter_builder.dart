@@ -655,10 +655,10 @@ class MapFilterFieldImpl<T, K, V, JV> extends MapFilterField<T, K, V, JV> {
     Object? isEqualTo = noValue,
     Object? isNotEqualTo = noValue,
   }) {
-    if (isEqualTo != null) {
+    if (isEqualTo != noValue) {
       return IsEqualToOperation(field, _toJson(isEqualTo as T));
     }
-    if (isNotEqualTo != null) {
+    if (isNotEqualTo != noValue) {
       return IsNotEqualToOperation(field, _toJson(isNotEqualTo as T));
     }
     throw ArgumentError('At least one filter condition must be provided');
