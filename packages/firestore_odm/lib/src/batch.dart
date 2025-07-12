@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:firestore_odm/src/field_selecter.dart';
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
 import 'package:firestore_odm/src/interfaces/deletable.dart';
@@ -7,72 +6,11 @@ import 'package:firestore_odm/src/interfaces/insertable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/interfaces/updatable.dart';
 import 'package:firestore_odm/src/interfaces/upsertable.dart';
-import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/services/update_helpers.dart';
-import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
 
-/// Batch field for type-safe batch operations
-class BatchField<T> extends Node {
-  BatchField({super.name, super.parent, this.type});
-  final FieldPath? type;
-
-  /// Insert operation
-  void insert(T value) {
-    switch ($root) {
-      case RootBatchFieldSelector selector:
-        selector._operations.add(
-          BatchInsertOperation(
-            fieldPath: type?.toFirestore() ?? $path,
-            value: value,
-          ),
-        );
-      default:
-        throw StateError('Invalid root type for BatchField: ${$root}');
-    }
-  }
-
-  /// Update operation
-  void update(T value) {
-    switch ($root) {
-      case RootBatchFieldSelector selector:
-        selector._operations.add(
-          BatchUpdateOperation(
-            fieldPath: type?.toFirestore() ?? $path,
-            value: value,
-          ),
-        );
-      default:
-        throw StateError('Invalid root type for BatchField: ${$root}');
-    }
-  }
-
-  /// Delete operation
-  void delete() {
-    switch ($root) {
-      case RootBatchFieldSelector selector:
-        selector._operations.add(
-          BatchDeleteOperation(fieldPath: type?.toFirestore() ?? $path),
-        );
-      default:
-        throw StateError('Invalid root type for BatchField: ${$root}');
-    }
-  }
-}
-
-/// Base class for batch field selectors
-class BatchFieldSelector<T> extends Node {
-  BatchFieldSelector({super.name, super.parent});
-}
-
-/// Root batch field selector that manages batch operations
-class RootBatchFieldSelector<T> extends BatchFieldSelector<T> {
-  RootBatchFieldSelector();
-
-  final List<BatchOperation> _operations = [];
-}
 
 /// Base class for batch operations
 abstract class BatchOperation {
@@ -100,19 +38,6 @@ class BatchDeleteOperation extends BatchOperation {
   const BatchDeleteOperation({required super.fieldPath});
 }
 
-/// Builder function type for batch operations
-typedef BatchBuilderFunction<T> = void Function(BatchFieldSelector<T> selector);
-
-/// Configuration for batch operations
-class BatchConfiguration<T> {
-  final List<BatchOperation> operations;
-  final BatchBuilderFunction<T> builder;
-
-  const BatchConfiguration(this.operations, this.builder);
-
-  @override
-  String toString() => 'BatchConfiguration(${operations.length} operations)';
-}
 
 /// Context for managing batch operations
 class BatchContext<S extends FirestoreSchema> {
