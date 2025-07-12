@@ -15,7 +15,8 @@ T fromFirestoreData<T>(
     documentIdField: documentIdField,
     documentId: documentId,
   );
-  return fromJsonFunction(processedData);
+  final result = fromJsonFunction(processedData);
+  return result;
 }
 
 Map<String, dynamic> processFirestoreData(

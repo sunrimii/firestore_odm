@@ -260,7 +260,8 @@ class DocumentHandler {
     if (updateMap.isEmpty) {
       return; // No updates to apply
     }
-    await ref.update(updateMap);
+    final processedMap = processKeysTo(updateMap);
+    await ref.update(processedMap);
   }
 
   static Map<String, dynamic> processPatch<T>(
@@ -586,7 +587,7 @@ abstract class QueryHandler {
     final batch = query.firestore.batch();
     final snapshot = await query.get();
     for (final docSnapshot in snapshot.docs) {
-      batch.update(docSnapshot.reference, updateMap);
+      batch.update(docSnapshot.reference, processKeysTo(updateMap));
     }
     await batch.commit();
   }

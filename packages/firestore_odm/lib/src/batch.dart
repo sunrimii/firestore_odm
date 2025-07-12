@@ -10,6 +10,7 @@ import 'package:firestore_odm/src/interfaces/upsertable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/schema.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
+import 'package:firestore_odm/src/services/update_helpers.dart';
 import 'package:firestore_odm/src/types.dart';
 import 'package:firestore_odm/src/utils.dart';
 
@@ -184,7 +185,7 @@ class BatchDocument<S extends FirestoreSchema, T, Path extends Record, P extends
       return; // No updates to apply
     }
 
-    _context._batch.update(_ref, updateMap);
+    _context._batch.update(_ref, processKeysTo(updateMap));
   }
 }
 

@@ -1,32 +1,39 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter/painting.dart';
 
 /// Recursively replace special timestamps with FieldValue.serverTimestamp()
-Map<String, dynamic> replaceServerTimestamps(Map<String, dynamic> data) {
-  final result = <String, dynamic>{};
+Map<K, dynamic> replaceServerTimestamps<K>(Map<K, dynamic> data) {
+  return data.map(
+    (key, value) => MapEntry(key, switch (value) {
+      String() when value == FirestoreODM.serverTimestamp.toIso8601String() =>
+        firestore.FieldValue.serverTimestamp(),
+      Map<String, dynamic> map => replaceServerTimestamps(map),
+      Map<FieldPath, dynamic> map => replaceServerTimestamps(map),
+      List list => list.map((item) {
+        return switch (item) {
+          String()
+              when item == FirestoreODM.serverTimestamp.toIso8601String() =>
+            firestore.FieldValue.serverTimestamp(),
+          Map<String, dynamic> map => replaceServerTimestamps(map),
+          Map<FieldPath, dynamic> map => replaceServerTimestamps(map),
+          _ => item,
+        };
+      }).toList(),
+      _ => value,
+    }),
+  );
+}
 
-  for (final entry in data.entries) {
-    final key = entry.key;
-    final value = entry.value;
-
-    if (value is String && value == FirestoreODM.serverTimestamp.toIso8601String()) {
-      result[key] = firestore.FieldValue.serverTimestamp();
-    } else if (value is Map<String, dynamic>) {
-      result[key] = replaceServerTimestamps(value);
-    } else if (value is List) {
-      result[key] = value.map((item) {
-        if (item is Map<String, dynamic>) {
-          return replaceServerTimestamps(item);
-        } else if (item is String && item == FirestoreODM.serverTimestamp.toIso8601String()) {
-          return firestore.FieldValue.serverTimestamp();
-        }
-        return item;
-      }).toList();
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
+Map<String, dynamic> processKeysTo(Map<PathFieldPath, dynamic> data) {
+  return data.map((key, value) {
+    return MapEntry(key.toFirestore(), switch (value) {
+      Map<PathFieldPath, dynamic> map => processKeysTo(map),
+      List list => list.map((item) => switch (item) {
+          Map<PathFieldPath, dynamic> map => processKeysTo(map),
+          _ => item,
+        }).toList(),
+      _ => value,
+    });
+  });
 }

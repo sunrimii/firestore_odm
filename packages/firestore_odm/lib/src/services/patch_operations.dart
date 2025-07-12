@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/src/services/update_helpers.dart';
 import 'package:firestore_odm/src/types.dart';
@@ -107,22 +106,25 @@ class MapSetOperation<K, V> extends UpdateOperation {
 }
 
 /// Convert operations to Firestore update map
-Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
-  final Map<String, dynamic> updateMap = {};
-  final Map<String, List<dynamic>> arrayAdds = {};
-  final Map<String, List<dynamic>> arrayRemoves = {};
-  final Map<String, num> increments = {};
+Map<PathFieldPath, dynamic> operationsToMap(List<UpdateOperation> operations) {
+  final Map<PathFieldPath, dynamic> updateMap = {};
+  final Map<PathFieldPath, List<dynamic>> arrayAdds = {};
+  final Map<PathFieldPath, List<dynamic>> arrayRemoves = {};
+  final Map<PathFieldPath, num> increments = {};
 
   // Track which fields have set operations to handle precedence
-  final Set<String> fieldsWithSetOperations = {};
+  final Set<PathFieldPath> fieldsWithSetOperations = {};
 
   // First pass: identify fields with set operations
   for (final operation in operations) {
+    if (operation is SetOperation) {
+      print('Processing operation: value: ${operation.value}, type: ${operation.value.runtimeType}');
+    }
     if (operation is SetOperation ||
         operation is DeleteOperation ||
         operation is ServerTimestampOperation ||
         operation is ObjectMergeOperation) {
-      fieldsWithSetOperations.add(operation.field.path);
+      fieldsWithSetOperations.add(operation.field);
     }
   }
 
@@ -130,39 +132,39 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
   for (final operation in operations) {
     switch (operation) {
       case SetOperation setOp:
-        updateMap[setOp.field.path] = setOp.value;
+        updateMap[setOp.field] = setOp.value;
         break;
       case IncrementOperation incOp:
         // Increment operations are not affected by set operations
-        increments[incOp.field.path] = (increments[incOp.field.path] ?? 0) + incOp.value;
+        increments[incOp.field] = (increments[incOp.field] ?? 0) + incOp.value;
         break;
       case ArrayAddAllOperation arrayAddAllOp:
         // Skip array operations if field has set operation
-        if (!fieldsWithSetOperations.contains(arrayAddAllOp.field.path)) {
+        if (!fieldsWithSetOperations.contains(arrayAddAllOp.field)) {
           arrayAdds
-              .putIfAbsent(arrayAddAllOp.field.path, () => [])
+              .putIfAbsent(arrayAddAllOp.field, () => [])
               .addAll(arrayAddAllOp.values);
         }
         break;
       case ArrayRemoveAllOperation arrayRemoveAllOp:
         // Skip array operations if field has set operation
-        if (!fieldsWithSetOperations.contains(arrayRemoveAllOp.field.path)) {
+        if (!fieldsWithSetOperations.contains(arrayRemoveAllOp.field)) {
           arrayRemoves
-              .putIfAbsent(arrayRemoveAllOp.field.path, () => [])
+              .putIfAbsent(arrayRemoveAllOp.field, () => [])
               .addAll(arrayRemoveAllOp.values);
         }
         break;
       case DeleteOperation deleteOp:
-        updateMap[deleteOp.field.path] = FieldValue.delete();
+        updateMap[deleteOp.field] = FieldValue.delete();
         break;
       case ServerTimestampOperation serverTimestampOp:
-        updateMap[serverTimestampOp.field.path] = FieldValue.serverTimestamp();
+        updateMap[serverTimestampOp.field] = FieldValue.serverTimestamp();
         break;
       case ObjectMergeOperation operation:
         // For object merge, flatten the nested fields
         final data = operation.data;
         for (final entry in data.entries) {
-          final fieldPath = operation.field.append(entry.key).path;
+          final fieldPath = operation.field.append(entry.key);
           updateMap[fieldPath] = entry.value;
         }
         break;
@@ -170,7 +172,7 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
         // For map putAll, set multiple nested fields
         final data = mapPutAllOp.entries;
         for (final entry in data.entries) {
-          final keyPath = '${mapPutAllOp.field}.${entry.key}';
+          final keyPath = mapPutAllOp.field.append(entry.key);
           updateMap[keyPath] = entry.value;
         }
         break;
@@ -178,29 +180,28 @@ Map<String, dynamic> operationsToMap(List<UpdateOperation> operations) {
         // For map removeAll, delete multiple nested fields
         final keys = mapRemoveAllOp.keys;
         for (final key in keys) {
-          final keyPath = operation.field.append(key).path;
+          final keyPath = operation.field.append(key);
           updateMap[keyPath] = FieldValue.delete();
         }
         break;
       case MapClearOperation mapClearOp:
         // For map clear, delete the entire map field
-        updateMap[mapClearOp.field.path] = FieldValue.delete();
+        updateMap[mapClearOp.field] = FieldValue.delete();
         // Note: Firestore does not support clearing a map field directly,
         // so we delete the field instead.
 
         // This is a workaround to clear the map field and preserve the structure
-        updateMap[mapClearOp.field.append('_tmp').path] = FieldValue.delete();
+        updateMap[mapClearOp.field.append('_tmp')] = FieldValue.delete();
         break;
 
       case MapSetOperation mapSetOp:
         // for map set, delete the existing map field
-        updateMap[mapSetOp.field.path] = FieldValue.delete();
+        updateMap[mapSetOp.field] = FieldValue.delete();
 
         // For map set, set multiple nested fields
         final data = mapSetOp.entries;
         for (final entry in data.entries) {
-          final keyPath = mapSetOp.field.append(entry.key).path;
-          updateMap[keyPath] = entry.value;
+          updateMap[mapSetOp.field.append(entry.key)] = entry.value;
         }
         break;
     }

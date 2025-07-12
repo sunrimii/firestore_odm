@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/interfaces/modifiable.dart';
 import 'package:firestore_odm/src/interfaces/patchable.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
+import 'package:firestore_odm/src/services/update_helpers.dart';
 import 'package:firestore_odm/src/utils.dart';
 
 class TransactionContext<Schema extends FirestoreSchema> {
@@ -190,7 +191,7 @@ class TransactionDocument<
     if (updateMap.isNotEmpty) {
       // Defer the write operation
       context._addDeferredWrite(
-        () => context.transaction.update(ref, updateMap),
+        () => context.transaction.update(ref, processKeysTo(updateMap)),
       );
     }
   }
