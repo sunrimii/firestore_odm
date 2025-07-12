@@ -356,20 +356,20 @@ mixin class FilterBuilderRoot {
 }
 
 typedef PatchBuilderFunc<T, PB extends PatchBuilder<T, dynamic>> =
-    PB Function({String name, PatchBuilder<dynamic, dynamic>? parent});
+    PB Function({required FieldPath field});
 
-class PatchBuilder<T, R> extends Node {
+class PatchBuilder<T, R> extends Node2 {
   /// Converter function to transform the value before storing in Firestore
   final R Function(T) _toJson;
 
   /// Create a DefaultUpdateBuilder with optional name, parent and converter
-  const PatchBuilder({super.name, super.parent, required R Function(T) toJson})
+  const PatchBuilder({super.field, required R Function(T) toJson})
     : _toJson = toJson;
 
   UpdateOperation call(T value) {
     // Apply converter if provided, otherwise use the value directly
     final convertedValue = _toJson(value);
-    return SetOperation($parts, convertedValue);
+    return SetOperation(path, convertedValue);
   }
 }
 
@@ -701,13 +701,13 @@ abstract class MapFilterField<T, K, V, JV> extends FilterBuilderNode {
 
 /// Numeric field callable updater
 class NumericFieldUpdate<T extends num?> extends PatchBuilder<T, T> {
-  NumericFieldUpdate({required super.name, super.parent})
+  NumericFieldUpdate({required super.field})
     : super(toJson: (value) => value);
 
   /// Increment field value
   UpdateOperation increment(T value) {
     return IncrementOperation(
-      $parts,
+      path,
       value as num, // Ensure value is a num
     );
   }
@@ -717,8 +717,7 @@ class NumericFieldUpdate<T extends num?> extends PatchBuilder<T, T> {
 class ListFieldUpdate<T extends Iterable<E>?, E, R>
     extends PatchBuilder<T, List<R>?> {
   ListFieldUpdate({
-    required super.name,
-    super.parent,
+    required super.field,
     required R Function(E) elementToJson,
   }) : _elementToJson = elementToJson,
        super(toJson: (value) => value?.map(elementToJson).toList());
@@ -727,29 +726,29 @@ class ListFieldUpdate<T extends Iterable<E>?, E, R>
 
   /// Add element to array
   UpdateOperation add(E value) {
-    return ArrayAddAllOperation($parts, [_elementToJson(value)]);
+    return ArrayAddAllOperation(path, [_elementToJson(value)]);
   }
 
   /// Add multiple elements to array
   UpdateOperation addAll(Iterable<E> values) {
-    return ArrayAddAllOperation($parts, values.map(_elementToJson).toList());
+    return ArrayAddAllOperation(path, values.map(_elementToJson).toList());
   }
 
   /// Remove element from array
   UpdateOperation remove(E value) {
-    return ArrayRemoveAllOperation($parts, [_elementToJson(value)]);
+    return ArrayRemoveAllOperation(path, [_elementToJson(value)]);
   }
 
   /// Remove multiple elements from array
   UpdateOperation removeAll(Iterable<E> values) {
-    return ArrayRemoveAllOperation($parts, values.map(_elementToJson).toList());
+    return ArrayRemoveAllOperation(path, values.map(_elementToJson).toList());
   }
 }
 
 /// DateTime field callable updater
 class DateTimeFieldUpdate<T extends DateTime?>
     extends PatchBuilder<T, String?> {
-  DateTimeFieldUpdate({required super.name, super.parent})
+  DateTimeFieldUpdate({required super.field})
     : super(
         toJson: (value) {
           if (value == null) return null;
@@ -759,13 +758,13 @@ class DateTimeFieldUpdate<T extends DateTime?>
 
   /// Set field to server timestamp
   UpdateOperation serverTimestamp() {
-    return ServerTimestampOperation($parts);
+    return ServerTimestampOperation(path);
   }
 }
 
 /// Duration field callable updater
 class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T, int?> {
-  DurationFieldUpdate({required super.name, super.parent})
+  DurationFieldUpdate({required super.field})
     : super(
         toJson: (value) {
           if (value == null) return null;
@@ -776,14 +775,13 @@ class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T, int?> {
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
     final int milliseconds = const DurationConverter().toJson(value)!;
-    return IncrementOperation($parts, milliseconds);
+    return IncrementOperation(path, milliseconds);
   }
 }
 
 class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
   MapFieldUpdate({
-    required super.name,
-    super.parent,
+    required super.field,
     required super.toJson,
     required String Function(K) keyToJson,
     required R Function(V) valueToJson,
@@ -795,23 +793,21 @@ class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
 
   @override
   UpdateOperation call(T value) {
-    return MapSetOperation($parts, _toJson(value));
+    return MapSetOperation(path, _toJson(value));
   }
 
   /// Set a single key-value pair (like map[key] = value)
   /// Usage: $.settings['theme'] = 'dark' → $.settings.set('theme', 'dark')
   UpdateOperation set(K key, V value) {
     final convertedKey = _keyToJson(key);
-    final keyPath = [...$parts, convertedKey.toString()];
-    return SetOperation<R>(keyPath, _valueToJson(value));
+    return SetOperation<R>(path.append(convertedKey), _valueToJson(value));
   }
 
   /// Remove a single key (like map.remove(key))
   /// Usage: $.settings.remove('oldSetting')
   UpdateOperation remove(K key) {
     final convertedKey = _keyToJson(key);
-    final keyPath = [...$parts, convertedKey.toString()];
-    return DeleteOperation(keyPath);
+    return DeleteOperation(path.append(convertedKey));
   }
 
   /// Add multiple key-value pairs (like map.addAll(other))
@@ -820,7 +816,7 @@ class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
     final entriesMap = entries.map(
       (key, value) => MapEntry(_keyToJson(key).toString(), _valueToJson(value)),
     );
-    return MapPutAllOperation($parts, entriesMap);
+    return MapPutAllOperation(path, entriesMap);
   }
 
   /// Add multiple entries from MapEntry iterable (more flexible)
@@ -834,20 +830,20 @@ class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
         ),
       ),
     );
-    return MapPutAllOperation($parts, entriesMap);
+    return MapPutAllOperation(path, entriesMap);
   }
 
   /// Remove multiple keys at once
   /// Usage: $.settings.removeWhere(['oldSetting1', 'oldSetting2'])
   UpdateOperation removeWhere(Iterable<K> keys) {
     final keysList = keys.map((key) => _keyToJson(key)).toList();
-    return MapRemoveAllOperation($parts, keysList);
+    return MapRemoveAllOperation(path, keysList);
   }
 
   /// Clear all entries (like map.clear())
   /// Usage: $.settings.clear()
   UpdateOperation clear() {
-    return MapClearOperation($parts);
+    return MapClearOperation(path);
   }
 
   // ===== Convenience Methods =====
@@ -859,7 +855,7 @@ class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
       keys.map((key) => _keyToJson(key).toString()),
       Iterable.generate(keys.length, (_) => _valueToJson(value)),
     );
-    return MapPutAllOperation($parts, entriesMap);
+    return MapPutAllOperation(path, entriesMap);
   }
 }
 
@@ -867,8 +863,7 @@ class MapFieldUpdate<T, K, V, R> extends PatchBuilder<T, Map<String, R>> {
 class DartMapFieldUpdate<T extends Map<K, V>, K, V, R>
     extends MapFieldUpdate<T, K, V, R> {
   DartMapFieldUpdate({
-    required super.name,
-    super.parent,
+    required super.field,
     required super.keyToJson,
     required super.valueToJson,
   }) : super(toJson: (value) => mapToJson(value, keyToJson, valueToJson));

@@ -48,8 +48,9 @@ class UpdateGenerator {
                 ..types.add(field.customConverter!.jsonType.reference),
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'toJson': field.customConverter!.toJson,
             },
           )
@@ -62,8 +63,9 @@ class UpdateGenerator {
               '_builderFunc${field.type.element3!.name3!.camelCase()}',
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
             },
           )
         : TypeAnalyzer.isDateTimeType(fieldType)
@@ -76,8 +78,9 @@ class UpdateGenerator {
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
             },
           )
         : TypeAnalyzer.isDurationType(fieldType)
@@ -90,8 +93,9 @@ class UpdateGenerator {
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
             },
           )
         : TypeAnalyzer.isNumericType(fieldType)
@@ -104,8 +108,9 @@ class UpdateGenerator {
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
             },
           )
         : TypeChecker.fromRuntime(IMap).isAssignableFromType(fieldType)
@@ -121,8 +126,9 @@ class UpdateGenerator {
                 ]),
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'toJson': ConverterGenerator.getToJsonEnsured(
                 type: fieldType,
                 typeConverters: typeConverters,
@@ -150,8 +156,9 @@ class UpdateGenerator {
                 ]),
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'keyToJson': ConverterGenerator.getToJsonEnsured(
                 type: TypeAnalyzer.getMapKeyType(fieldType),
                 typeConverters: typeConverters,
@@ -176,8 +183,9 @@ class UpdateGenerator {
                 ]), // Use the actual type parameter
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'elementToJson': ConverterGenerator.getToJsonEnsured(
                 type: TypeAnalyzer.getIterableElementType(fieldType),
                 typeConverters: typeConverters,
@@ -197,8 +205,9 @@ class UpdateGenerator {
                 ), // Use the actual type parameter
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'toJson': ConverterGenerator.getToJsonEnsured(
                 type: fieldType,
                 typeConverters: typeConverters,
@@ -213,8 +222,9 @@ class UpdateGenerator {
                 ..types.add(getJsonType(type: fieldType)),
             ),
             arguments: {
-              'name': literalString(jsonFieldName),
-              'parent': refer('this'),
+              'field': refer('path').property('append').call(
+                [literalString(jsonFieldName)],
+              ),
               'toJson': ConverterGenerator.getToJsonEnsured(type: fieldType),
             },
           );
@@ -357,13 +367,7 @@ class UpdateGenerator {
                 ),
                 Parameter(
                   (b) => b
-                    ..name = 'name'
-                    ..toSuper = true
-                    ..named = true,
-                ),
-                Parameter(
-                  (b) => b
-                    ..name = 'parent'
+                    ..name = 'field'
                     ..toSuper = true
                     ..named = true,
                 ),
@@ -482,20 +486,14 @@ class UpdateGenerator {
             ..optionalParameters.addAll([
               Parameter(
                 (b) => b
-                  ..name = 'name'
-                  ..defaultTo = literalString('').code
-                  ..named = true,
-              ),
-              Parameter(
-                (b) => b
-                  ..name = 'parent'
+                  ..name = 'field'
+                  ..required = true
                   ..named = true,
               ),
             ])
             ..body = getBuilderInstanceExpression(
               type: map[typeParam]!,
-              name: refer('name'),
-              parent: refer('parent'),
+              field: refer('field'),
               typeConverters: typeConverters,
             ).code,
         ).closure,
@@ -510,8 +508,7 @@ class UpdateGenerator {
 
   static Expression getBuilderInstanceExpression({
     required DartType type,
-    Expression? name,
-    Expression? parent,
+    Expression? field,
     Map<DartType, Expression> typeConverters = const {},
   }) {
     if (!isUserType(type) &&
@@ -521,8 +518,7 @@ class UpdateGenerator {
       ).call([literalString('Unsupported type for aggregation')]);
     }
     return getBuilderType(type: type).newInstance([], {
-      if (name != null) 'name': name,
-      if (parent != null) 'parent': parent,
+      if (field != null) 'field': field,
       if (type is InterfaceType)
         ...getConstructorBuildersParameters(
           type: type,
