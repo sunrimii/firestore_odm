@@ -117,7 +117,11 @@ class IsEqualToOperation<T> implements FilterOperation {
   const IsEqualToOperation(this.field, this.value);
 
   @override
-  Filter toFilter() => Filter(field.toFirestore(), isEqualTo: value);
+  Filter toFilter() => Filter(
+    field.toFirestore(),
+    isEqualTo: value != null ? value : null,
+    isNull: value == null ? true : null,
+  );
 }
 
 class IsNotEqualToOperation<T> implements FilterOperation {
@@ -127,7 +131,11 @@ class IsNotEqualToOperation<T> implements FilterOperation {
   const IsNotEqualToOperation(this.field, this.value);
 
   @override
-  Filter toFilter() => Filter(field.toFirestore(), isNotEqualTo: value);
+  Filter toFilter() => Filter(
+    field.toFirestore(),
+    isNotEqualTo: value != null ? value : null,
+    isNull: value == null ? false : null,
+  );
 }
 
 class IsLessThanOperation<T> implements FilterOperation {
@@ -347,7 +355,6 @@ mixin class FilterBuilderRoot {
   }
 }
 
-
 typedef PatchBuilderFunc<T, PB extends PatchBuilder<T, dynamic>> =
     PB Function({String name, PatchBuilder<dynamic, dynamic>? parent});
 
@@ -431,24 +438,24 @@ class FilterFieldImpl<T, R> extends FilterField<T, R> {
   FilterFieldImpl({super.path, required super.toJson}) : super._();
 
   FilterOperation call({
-    Object? isEqualTo,
-    Object? isNotEqualTo,
-    Iterable<Object?>? whereIn,
-    Iterable<Object?>? whereNotIn,
+    Object? isEqualTo = noValue,
+    Object? isNotEqualTo = noValue,
+    Object? whereIn = noValue,
+    Object? whereNotIn = noValue,
   }) {
-    if (isEqualTo != null) {
+    if (isEqualTo != noValue) {
       return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
-    if (isNotEqualTo != null) {
+    if (isNotEqualTo != noValue) {
       return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
-    if (whereIn != null) {
+    if (whereIn != noValue) {
       return WhereInOperation(
         path,
         (whereIn as Iterable<T>).map(_toJson).toList(),
       );
     }
-    if (whereNotIn != null) {
+    if (whereNotIn != noValue) {
       return WhereNotInOperation(
         path,
         (whereNotIn as Iterable<T>).map(_toJson).toList(),
@@ -469,49 +476,65 @@ abstract class FilterField<T, R> extends FilterBuilderNode
 
   final R Function(T) _toJson;
 
-  FilterOperation call({T? isEqualTo, T? isNotEqualTo, 
-    Iterable<T>? whereIn, Iterable<T>? whereNotIn});
-}
-
-class ComparableFilterFieldImpl<T> extends ComparableFilterField<T> {
-  const ComparableFilterFieldImpl({super.path, required super.toJson}) : super._();
-
   FilterOperation call({
     T? isEqualTo,
     T? isNotEqualTo,
-    T? isLessThan,
-    T? isLessThanOrEqualTo,
-    T? isGreaterThan,
-    T? isGreaterThanOrEqualTo,
     Iterable<T>? whereIn,
     Iterable<T>? whereNotIn,
+  });
+}
+
+const noValue = Symbol('noValue');
+
+class ComparableFilterFieldImpl<T> extends ComparableFilterField<T> {
+  const ComparableFilterFieldImpl({super.path, required super.toJson})
+    : super._();
+
+  FilterOperation call({
+    Object? isEqualTo = noValue,
+    Object? isNotEqualTo = noValue,
+    Object? isLessThan = noValue,
+    Object? isLessThanOrEqualTo = noValue,
+    Object? isGreaterThan = noValue,
+    Object? isGreaterThanOrEqualTo = noValue,
+    Object? whereIn = noValue,
+    Object? whereNotIn = noValue,
   }) {
-    if (isEqualTo != null) {
-      return IsEqualToOperation(path, _toJson(isEqualTo));
+    if (isEqualTo != noValue) {
+      return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
-    if (isNotEqualTo != null) {
-      return IsNotEqualToOperation(path, _toJson(isNotEqualTo));
+    if (isNotEqualTo != noValue) {
+      return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
-    if (isLessThan != null) {
-      return IsLessThanOperation(path, _toJson(isLessThan));
+    if (isLessThan != noValue) {
+      return IsLessThanOperation(path, _toJson(isLessThan as T));
     }
-    if (isLessThanOrEqualTo != null) {
-      return IsLessThanOrEqualToOperation(path, _toJson(isLessThanOrEqualTo));
-    }
-    if (isGreaterThan != null) {
-      return IsGreaterThanOperation(path, _toJson(isGreaterThan));
-    }
-    if (isGreaterThanOrEqualTo != null) {
-      return IsGreaterThanOrEqualToOperation(
+    if (isLessThanOrEqualTo != noValue) {
+      return IsLessThanOrEqualToOperation(
         path,
-        _toJson(isGreaterThanOrEqualTo),
+        _toJson(isLessThanOrEqualTo as T),
       );
     }
-    if (whereIn != null) {
-      return WhereInOperation(path, whereIn.map(_toJson).toList());
+    if (isGreaterThan != noValue) {
+      return IsGreaterThanOperation(path, _toJson(isGreaterThan as T));
     }
-    if (whereNotIn != null) {
-      return WhereNotInOperation(path, whereNotIn.map(_toJson).toList());
+    if (isGreaterThanOrEqualTo != noValue) {
+      return IsGreaterThanOrEqualToOperation(
+        path,
+        _toJson(isGreaterThanOrEqualTo as T),
+      );
+    }
+    if (whereIn != noValue) {
+      return WhereInOperation(
+        path,
+        (whereIn as Iterable<T>).map(_toJson).toList(),
+      );
+    }
+    if (whereNotIn != noValue) {
+      return WhereNotInOperation(
+        path,
+        (whereNotIn as Iterable<T>).map(_toJson).toList(),
+      );
     }
     throw ArgumentError('At least one filter condition must be provided');
   }
@@ -525,8 +548,10 @@ abstract class ComparableFilterField<T> extends FilterBuilderNode
     required Object? Function(T) toJson,
   }) = ComparableFilterFieldImpl;
 
-  const ComparableFilterField._({super.path, required Object? Function(T) toJson})
-    : _toJson = toJson;
+  const ComparableFilterField._({
+    super.path,
+    required Object? Function(T) toJson,
+  }) : _toJson = toJson;
 
   final Object? Function(T) _toJson;
 
@@ -550,35 +575,35 @@ class ArrayFilterFieldImpl<T, E, JE> extends ArrayFilterField<T, E, JE> {
   }) : super._();
 
   FilterOperation call({
-    Object? isEqualTo,
-    Object? isNotEqualTo,
-    Object? arrayContains,
-    Object? arrayContainsAny,
-    Iterable<Object?>? whereIn,
-    Iterable<Object?>? whereNotIn,
+    Object? isEqualTo = noValue,
+    Object? isNotEqualTo = noValue,
+    Object? arrayContains = noValue,
+    Object? arrayContainsAny = noValue,
+    Object? whereIn = noValue,
+    Object? whereNotIn = noValue,
   }) {
-    if (isEqualTo != null) {
+    if (isEqualTo != noValue) {
       return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
-    if (isNotEqualTo != null) {
+    if (isNotEqualTo != noValue) {
       return IsNotEqualToOperation(path, _toJson(isNotEqualTo as T));
     }
-    if (arrayContains != null) {
+    if (arrayContains != noValue) {
       return ArrayContainsOperation(path, _elementToJson(arrayContains as E));
     }
-    if (arrayContainsAny != null) {
+    if (arrayContainsAny != noValue) {
       return ArrayContainsAnyOperation(
         path,
         (arrayContainsAny as Iterable<E>).map(_elementToJson).toList(),
       );
     }
-    if (whereIn != null) {
+    if (whereIn != noValue) {
       return WhereInOperation(
         path,
         (whereIn as Iterable<T>).map(_toJson).toList(),
       );
     }
-    if (whereNotIn != null) {
+    if (whereNotIn != noValue) {
       return WhereNotInOperation(
         path,
         (whereNotIn as Iterable<T>).map(_toJson).toList(),
@@ -626,7 +651,7 @@ class MapFilterFieldImpl<T, K, V, JV> extends MapFilterField<T, K, V, JV> {
     required super.valueToJson,
   }) : super._();
 
-  FilterOperation call({Object? isEqualTo, Object? isNotEqualTo}) {
+  FilterOperation call({Object? isEqualTo = noValue, Object? isNotEqualTo = noValue}) {
     if (isEqualTo != null) {
       return IsEqualToOperation(path, _toJson(isEqualTo as T));
     }
