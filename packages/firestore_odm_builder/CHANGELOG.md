@@ -1,3 +1,30 @@
+## 4.0.0-dev
+
+ - **REFACTOR**: remove unused ODM parts and update build configurations for Firestore ODM. ([a8927b4f](https://github.com/sylphxltd/firestore_odm/commit/a8927b4ffed7beeac6b32600f556790e13175bd4))
+ - **REFACTOR**: simplify type checking methods and improve field accessor generation in aggregate and filter generators. ([7604674f](https://github.com/sylphxltd/firestore_odm/commit/7604674f69a72b9e3c45cd14ef796027d3340745))
+ - **REFACTOR**: streamline field getter generation and improve filter selector class structure. ([a320ccc8](https://github.com/sylphxltd/firestore_odm/commit/a320ccc8d59b88340cb70b30fcba7ed8c420d176))
+ - **REFACTOR**: consolidate type handling by introducing TypeDefinition class and streamline order by field generation. ([a1489fd7](https://github.com/sylphxltd/firestore_odm/commit/a1489fd7c14fd97a2505e005b3406526459699b5))
+ - **REFACTOR**: update PatchBuilder and related classes to use FieldPath for improved consistency and clarity. ([5a86cc59](https://github.com/sylphxltd/firestore_odm/commit/5a86cc59a8ac5686cedd8f2834e518519041df12))
+ - **REFACTOR**: update aggregate field handling to use field paths instead of names for improved clarity and consistency. ([358036f4](https://github.com/sylphxltd/firestore_odm/commit/358036f4e3167f7c3b27d708c25f46b0c0d06f75))
+ - **REFACTOR**: update field handling in Node2 and related classes for improved consistency and clarity. ([9d1642d5](https://github.com/sylphxltd/firestore_odm/commit/9d1642d528dbf4723bfce85c232de624e85b32da))
+ - **REFACTOR**: update filter field implementations for improved type handling. ([23d48d7a](https://github.com/sylphxltd/firestore_odm/commit/23d48d7a4aa1898f4819c3591fc74ab7a58a18e5))
+ - **REFACTOR**: rework filter builders and related. ([a69ccc56](https://github.com/sylphxltd/firestore_odm/commit/a69ccc561be220e6cb96dbcd6f5a8c4310dc7e6d))
+ - **REFACTOR**: update converters and generator methods for improved type handling and custom converter support. ([1d543858](https://github.com/sylphxltd/firestore_odm/commit/1d543858b58e0cd3acb56ff91673469de6e2f22b))
+ - **REFACTOR**: SchemaGenerator and related classes to remove ModelAnalyzer and ConverterFactory dependencies. ([5358ecc8](https://github.com/sylphxltd/firestore_odm/commit/5358ecc822b0254fce577e6af57ceb9d5558c3bd))
+ - **REFACTOR**: rework patch builders and converters. ([96438867](https://github.com/sylphxltd/firestore_odm/commit/96438867183f11197a891cf9048b4ad567a303b8))
+ - **REFACTOR**: Firestore ODM to enhance filter and order by functionality. ([6b1fb6c0](https://github.com/sylphxltd/firestore_odm/commit/6b1fb6c0882a3196ce3158b9a1bb13c8a4b739b0))
+ - **FIX**: update list type handling in getJsonType method for improved type conversion. ([0ea81e89](https://github.com/sylphxltd/firestore_odm/commit/0ea81e89b14ffcaa218666e5a608624a0930e444))
+ - **FIX**: enhance orderBy field handling with type parameter for document ID fields. ([91e4d0b7](https://github.com/sylphxltd/firestore_odm/commit/91e4d0b725a7c382a8a29a7e6b48ab38efcada19))
+ - **FIX**: update source type handling in JsonMethodConverter for improved type safety. ([d50b9e07](https://github.com/sylphxltd/firestore_odm/commit/d50b9e07f1a8d932ead5974f7de136ac3e64b9e3))
+ - **FIX**: enhance type handling in isHandledType and isPrimitive methods. ([879593f6](https://github.com/sylphxltd/firestore_odm/commit/879593f68383385577b1b284ed7a9483a491341e))
+ - **FIX**: add patch builder parameter to getBatchCollection and schema generator. ([4d9ea480](https://github.com/sylphxltd/firestore_odm/commit/4d9ea4809b9493548c942195c465696ebf18c357))
+ - **FEAT**: add convenience function for creating batch collections with patch builder support. ([28b9fa14](https://github.com/sylphxltd/firestore_odm/commit/28b9fa14bd3b6ebde0d926e50edbe226786fa779))
+ - **FEAT**: enhance batch operations with patch builder support in BatchDocument and BatchCollection. ([a6b14d5c](https://github.com/sylphxltd/firestore_odm/commit/a6b14d5c3d94d49ff77338ef5b77b958baadc9f7))
+ - **FEAT**: add patch builder support to TransactionCollection and TransactionDocument. ([cd293155](https://github.com/sylphxltd/firestore_odm/commit/cd29315569646d37925ed05cebc3eff684f7b70f))
+ - **FEAT**: supporting nested class without manual importing, aggregate done. ([8fb29612](https://github.com/sylphxltd/firestore_odm/commit/8fb29612442c59fdd0e6c92709544ffe87847c30))
+ - **FEAT**: spporting nested class without manual import, orderbybuilder done. ([9d1bea02](https://github.com/sylphxltd/firestore_odm/commit/9d1bea024fe6956c8f82a25307224f252583c361))
+ - **FEAT**: supporting nested class withot manual import, filter and patcher done. ([37bf6d4b](https://github.com/sylphxltd/firestore_odm/commit/37bf6d4bb3b32454fef7be8c7d9f918e55701cc9))
+
 ## 3.1.1
 
  - **FEAT**: refactor model analysis and converter factory for improved instance management. ([d078ba72](https://github.com/sylphxltd/firestore_odm/commit/d078ba726052b08bebc9bf478a7a7a18fce789d3))
