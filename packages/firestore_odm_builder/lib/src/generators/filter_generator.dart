@@ -153,7 +153,6 @@ class FilterGenerator {
         ..constructors.add(
           Constructor(
             (b) => b
-              ..constant = true
               ..docs.add('/// Creates a root filter selector for `$className`')
               ..optionalParameters.addAll([
                 for (final typeParam in computeNeededBuilders(

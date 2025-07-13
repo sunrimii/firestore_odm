@@ -3,123 +3,65 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
+import 'package:firestore_odm_builder/src/utils/type_definition.dart';
 import 'package:source_gen/source_gen.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
 /// Generator for aggregate field selectors using code_builder
 class AggregateGenerator {
+
+  static TypeDefinition getTypeDefinition(FieldInfo field) {
+    final args = {
+      'field': field.isDocumentId
+          ? refer('FieldPath.documentId')
+          : refer('path').property('append').call([literalString(field.jsonName)]),
+      'context': refer('\$context'),
+    };
+    if (field.type is TypeParameterType) {
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b..symbol = '\$${field.type.element3!.name3}',
+        ),
+        instance: refer('_builderFunc${field.type.element3!.name3!.camelCase()}'),
+        namedArguments: args,
+      );
+    }
+
+    if (isUserType(field.type)) {
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b
+            ..symbol = '${field.type.element3!.name3}AggregateFieldSelector'
+            ..types.addAll(field.type.typeArguments.map((e) => e.reference)),
+        ),
+        namedArguments: args,
+      );
+    }
+
+    return TypeDefinition(
+      type: TypeReference(
+        (b) => b
+          ..symbol = 'AggregateField'
+          ..types.add(field.type.reference),
+      ),
+      namedArguments: args,
+    );
+  }
   /// Generate numeric field accessor method for aggregation
-  static Method _generateNumericFieldAccessor(FieldInfo field) {
-    return Method(
+  static Field _generateNumericFieldAccessor(FieldInfo field) {
+    final typeDef = getTypeDefinition(field);
+    return Field(
       (b) => b
         ..docs.add('/// ${field.parameterName} field for aggregation')
-        ..type = MethodType.getter
         ..name = field.parameterName
-        ..lambda = true
-        ..returns = TypeReference(
-          (b) => b
-            ..symbol = 'AggregateField'
-            ..types.add(field.type.reference),
-        )
-        ..body = refer('AggregateField').newInstance([], {
-          'field': refer('path').property('append').call([
-            literalString(field.jsonName),
-          ]),
-          'context': refer('\$context'),
-        }).code,
+        ..modifier = FieldModifier.final$
+        ..late = true
+        ..type = typeDef.type
+        ..assignment = typeDef.instance.newInstance([], typeDef.namedArguments).code,
     );
   }
 
-  /// Generate nested custom type accessor for aggregate field selector
-  static Method _generateNestedCustomTypeAccessor(FieldInfo field) {
-    final nestedTypeRef = field.type is TypeParameterType
-        ? TypeReference((b) => b..symbol = '\$${field.type.element3!.name3}')
-        : TypeReference(
-            (b) => b
-              ..symbol = '${field.type.element3!.name3}AggregateFieldSelector'
-              ..types.addAll(field.type.typeArguments.map((e) => e.reference)),
-          );
-    final initializerTypeRef = field.type is TypeParameterType
-        ? refer('_builderFunc${field.type.element3!.name3!.camelCase()}')
-        : nestedTypeRef;
-    return Method(
-      (b) => b
-        ..docs.add('/// Access nested ${field.parameterName} aggregate fields')
-        ..type = MethodType.getter
-        ..name = field.parameterName
-        ..lambda = true
-        ..returns = nestedTypeRef
-        ..body = initializerTypeRef.newInstance([], {
-          'field':  refer('path').property('append').call([
-            literalString(field.jsonName),
-          ]),
-          'context': refer('\$context'),
-        }).code,
-    );
-  }
-
-  /// Generate aggregate field selector extension using ModelAnalysis
-  static Extension? generateAggregateFieldSelectorFromAnalysis(
-    String schemaName,
-    InterfaceType type,
-  ) {
-    final fields = getFields(type);
-    if (fields.isEmpty) {
-      return null;
-    }
-    final className = type.element.name;
-
-    final typeParameters = type.typeParameters.references;
-    final typeParameterNames = type.typeParameters
-        .map((ref) => ref.name)
-        .toList();
-    final classNameWithTypeParams = type.isGeneric
-        ? '$className<${typeParameterNames.join(', ')}>'
-        : className;
-
-    // Create the target type (AggregateFieldSelector<ClassName<T>>)
-    final targetType = TypeReference(
-      (b) => b
-        ..symbol = 'AggregateFieldSelector'
-        ..types.add(
-          TypeReference(
-            (b) => b
-              ..symbol = className
-              ..types.addAll(typeParameters),
-          ),
-        ),
-    );
-
-    // Generate methods for all aggregatable fields
-    final methods = <Method>[];
-    for (final field in fields.values) {
-      // Skip document ID field
-      if (field.isDocumentId) continue;
-
-      final fieldType = field.type;
-
-      if (TypeAnalyzer.isNumericType(fieldType)) {
-        // Numeric field for aggregation
-        methods.add(_generateNumericFieldAccessor(field));
-      } else if (TypeAnalyzer.isCustomClass(fieldType)) {
-        // Nested custom class field
-        methods.add(_generateNestedCustomTypeAccessor(field));
-      }
-    }
-
-    // Create extension
-    return Extension(
-      (b) => b
-        ..name = '${schemaName}${className}AggregateFieldSelectorExtension'
-        ..types.addAll(typeParameters)
-        ..on = targetType
-        ..docs.add(
-          '/// Generated AggregateFieldSelector for $classNameWithTypeParams',
-        )
-        ..methods.addAll(methods),
-    );
-  }
 
   static List<Spec> generateClasses(InterfaceType type) {
     final specs = <Spec>[];
@@ -218,19 +160,14 @@ class AggregateGenerator {
     final builders = computeNeededBuilders(type: type);
 
     // Generate methods for all aggregatable fields
-    final methods = <Method>[];
+    final fields = <Field>[];
     for (final field in getFields(type).values) {
-      // Skip document ID field
       if (field.isDocumentId) continue;
 
       final fieldType = field.type;
 
-      if (TypeAnalyzer.isNumericType(fieldType)) {
-        // Numeric field for aggregation
-        methods.add(_generateNumericFieldAccessor(field));
-      } else if (TypeAnalyzer.isCustomClass(fieldType)) {
-        // Nested custom class field
-        methods.add(_generateNestedCustomTypeAccessor(field));
+      if (TypeAnalyzer.isNumericType(fieldType) || isUserType(fieldType)) {
+        fields.add(_generateNumericFieldAccessor(field));
       }
     }
 
@@ -305,7 +242,7 @@ class AggregateGenerator {
                 ),
             ),
         ])
-        ..methods.addAll(methods),
+        ..fields.addAll(fields),
     );
   }
 

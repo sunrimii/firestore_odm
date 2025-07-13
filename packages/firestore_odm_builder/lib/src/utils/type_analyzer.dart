@@ -124,10 +124,8 @@ class TypeAnalyzer {
         nonNullableType.typeArguments.isNotEmpty) {
       return nonNullableType.typeArguments.first;
     }
-    
-    throw ArgumentError(
-      'Type $iterableType is not a valid iterable type',
-    );
+
+    throw ArgumentError('Type $iterableType is not a valid iterable type');
   }
 
   /// Check if a type is a custom class (not primitive or built-in)
@@ -218,24 +216,19 @@ class TypeAnalyzer {
         nonNullableType.getDisplayString() == 'Timestamp';
   }
 
-  /// Check if a type is numeric (int, double, or num)
-  static bool isNumericType(DartType type) {
-    final nonNullableType = _getNonNullableType(type);
+  static bool isAssignableFromType<T>(
+    DartType type,
+  ) => TypeChecker.fromRuntime(T).isAssignableFromType(type);
 
-    return _intChecker.isExactlyType(nonNullableType) ||
-        _doubleChecker.isExactlyType(nonNullableType) ||
-        _numChecker.isExactlyType(nonNullableType);
-  }
+  /// Check if a type is numeric (int, double, or num)
+  static bool isNumericType(DartType type) =>
+      _numChecker.isAssignableFromType(type);
 
   /// Check if a type is String
-  static bool isStringType(DartType type) {
-    return _stringChecker.isExactlyType(_getNonNullableType(type));
-  }
+  static bool isStringType(DartType type) => _stringChecker.isAssignableFromType(type);
 
   /// Check if a type is bool
-  static bool isBoolType(DartType type) {
-    return _boolChecker.isExactlyType(_getNonNullableType(type));
-  }
+  static bool isBoolType(DartType type) => _boolChecker.isAssignableFromType(type);
 
   /// Check if a type is int
   static bool isIntType(DartType type) {
