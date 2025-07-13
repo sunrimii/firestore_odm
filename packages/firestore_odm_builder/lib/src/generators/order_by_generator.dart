@@ -4,14 +4,14 @@ import 'package:code_builder/code_builder.dart';
 import 'package:collection/collection.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
+import 'package:firestore_odm_builder/src/utils/type_definition.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
 /// Generator for order by builders using code_builder
 class OrderByGenerator {
-  /// Generate OrderBy field selector method
-  static Method _generateOrderByFieldSelectorMethod(FieldInfo field) {
-    final constructorArgs = <String, Expression>{
+  static TypeDefinition getTypeDefinition(FieldInfo field) {
+    final args = {
       'field': field.isDocumentId
           ? refer('FieldPath.documentId')
           : refer(
@@ -19,95 +19,53 @@ class OrderByGenerator {
             ).property('append').call([literalString(field.jsonName)]),
       'context': refer('\$context'),
     };
-    return Method(
-      (b) => b
-        ..docs.add('/// Order by ${field.parameterName}')
-        ..type = MethodType.getter
-        ..name = field.parameterName
-        ..lambda = true
-        ..returns = TypeReference(
+    if (field.type is TypeParameterType) {
+      return TypeDefinition(
+        type: TypeReference(
+          (b) => b..symbol = '\$${field.type.element3!.name3}',
+        ),
+        instance: refer(
+          '_orderByBuilderFunc${field.type.element3!.name3!.camelCase()}',
+        ),
+        namedArguments: args,
+      );
+    }
+
+    if (isUserType(field.type)) {
+      // If the field is a user-defined type, we need to create a nested OrderByBuilder
+      return TypeDefinition(
+        type: TypeReference(
           (b) => b
-            ..symbol = 'OrderByField'
-            ..types.add(field.type.reference),
-        )
-        ..body = refer('OrderByField').newInstance([], constructorArgs).code,
+            ..symbol = '${field.type.element3!.name3}OrderByBuilder'
+            ..types.addAll(field.type.typeArguments.map((e) => e.reference)),
+        ),
+        namedArguments: args,
+      );
+    }
+
+    return TypeDefinition(
+      type: TypeReference(
+        (b) => b
+          ..symbol = 'OrderByField'
+          ..types.add(field.type.reference),
+      ),
+      namedArguments: args,
     );
   }
 
   /// Generate OrderBy field selector nested getter
-  static Method _generateOrderByFieldSelectorNestedGetter(FieldInfo field) {
-    final nestedTypeRef = field.type is TypeParameterType
-        ? TypeReference((b) => b..symbol = '\$${field.type.element3!.name3}')
-        : TypeReference(
-            (b) => b
-              ..symbol = '${field.type.element3!.name3}OrderByBuilder'
-              ..types.addAll(field.type.typeArguments.map((e) => e.reference)),
-          );
-    final initializerTypeRef = field.type is TypeParameterType
-        ? refer('_orderByBuilderFunc${field.type.element3!.name3!.camelCase()}')
-        : nestedTypeRef;
-    return Method(
+  static Field _generateOrderByField(FieldInfo field) {
+    final typeDef = getTypeDefinition(field);
+    return Field(
       (b) => b
         ..docs.add('/// Access nested ${field.parameterName} for ordering')
-        ..type = MethodType.getter
         ..name = field.parameterName
-        ..lambda = true
-        ..returns = nestedTypeRef
-        ..body = initializerTypeRef.newInstance([], {
-          'field': refer(
-            'path',
-          ).property('append').call([literalString(field.jsonName)]),
-          'context': refer('\$context'),
-        }).code,
-    );
-  }
-
-  /// Generate order by selector class using ModelAnalysis
-  static Extension generateOrderBySelectorClassFromAnalysis(
-    String schemaName,
-    InterfaceType type,
-  ) {
-    final className = type.element.name;
-
-    final typeParameters = type.typeParameters;
-
-    // Create the target type (OrderByFieldSelector<ClassName<T>>)
-    final targetType = TypeReference(
-      (b) => b
-        ..symbol = 'OrderByFieldSelector'
-        ..types.add(
-          TypeReference(
-            (b) => b
-              ..symbol = className
-              ..types.addAll(typeParameters.references),
-          ),
-        )
-        ..url =
-            'package:firestore_odm/src/generators/order_by_field_selector.dart',
-    );
-
-    // Generate methods for all fields
-    final fields = getFields(type);
-    final methods = <Method>[];
-    for (final field in fields.values) {
-      final fieldType = field.type;
-      if (TypeAnalyzer.isCustomClass(fieldType)) {
-        // Nested custom class field
-        methods.add(_generateOrderByFieldSelectorNestedGetter(field));
-      } else {
-        // Regular field
-        methods.add(_generateOrderByFieldSelectorMethod(field));
-      }
-    }
-
-    // Create extension
-    return Extension(
-      (b) => b
-        ..name = '${schemaName}${className}OrderByFieldSelectorExtension'
-        ..types.addAll(typeParameters.references)
-        ..on = targetType
-        ..docs.add('/// Generated OrderByFieldSelector for `$type`')
-        ..methods.addAll(methods),
+        ..modifier = FieldModifier.final$
+        ..late = true
+        ..type = typeDef.type
+        ..assignment = typeDef.instance
+            .newInstance([], typeDef.namedArguments)
+            .code,
     );
   }
 
@@ -183,17 +141,10 @@ class OrderByGenerator {
 
   static Class generateOrderByClass(InterfaceType type) {
     final fields = getFields(type);
-    final methods = <Method>[];
+    final methods = <Field>[];
     final builders = computeNeededBuilders(type: type);
     for (final field in fields.values) {
-      final fieldType = field.type;
-      if (TypeAnalyzer.isCustomClass(fieldType)) {
-        // Nested custom class field
-        methods.add(_generateOrderByFieldSelectorNestedGetter(field));
-      } else {
-        // Regular field
-        methods.add(_generateOrderByFieldSelectorMethod(field));
-      }
+      methods.add(_generateOrderByField(field));
     }
 
     final className = type.element.name;
@@ -273,8 +224,8 @@ class OrderByGenerator {
                     ..types.add(refer('\$${typeParam.name3}')),
                 ),
             ),
-        ])
-        ..methods.addAll(methods),
+          ...methods,
+        ]),
     );
   }
 

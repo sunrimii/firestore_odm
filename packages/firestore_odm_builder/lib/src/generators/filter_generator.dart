@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
@@ -6,23 +5,10 @@ import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/generators/converter_generator.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
-import 'package:source_gen/source_gen.dart';
+import 'package:firestore_odm_builder/src/utils/type_definition.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
-class TypeDefinition {
-  final TypeReference type;
-  final Reference instance;
-  final List<Expression> positionalArguments;
-  final Map<String, Expression> namedArguments;
-
-  const TypeDefinition({
-    required this.type,
-    Reference? instance,
-    this.positionalArguments = const [],
-    this.namedArguments = const {},
-  }) : instance = instance ?? type;
-}
 
 /// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
