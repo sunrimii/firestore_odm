@@ -1,3 +1,35 @@
+## 4.0.0-dev
+
+ - **REFACTOR**: rename Node2 to Node for improved consistency across classes. ([a0b82da5](https://github.com/sylphxltd/firestore_odm/commit/a0b82da5cabc3a1c9191719549d49f657a95abfc))
+ - **REFACTOR**: remove unused Node class for improved clarity and maintainability. ([8c61c42f](https://github.com/sylphxltd/firestore_odm/commit/8c61c42f0c2014b5078fe8e44f5c038878ed2749))
+ - **REFACTOR**: remove unused BatchField and BatchConfiguration classes for improved clarity and maintainability. ([bc68c0b5](https://github.com/sylphxltd/firestore_odm/commit/bc68c0b56292c354ec3a2d4863d0f5ed28fb3656))
+ - **REFACTOR**: enhance update operations to use PathFieldPath for improved consistency and clarity. ([b14de4aa](https://github.com/sylphxltd/firestore_odm/commit/b14de4aa210419ecbe70dbd73bc1be13594fc85a))
+ - **REFACTOR**: update PatchBuilder and related classes to use FieldPath for improved consistency and clarity. ([5a86cc59](https://github.com/sylphxltd/firestore_odm/commit/5a86cc59a8ac5686cedd8f2834e518519041df12))
+ - **REFACTOR**: update aggregate field handling to use field paths instead of names for improved clarity and consistency. ([358036f4](https://github.com/sylphxltd/firestore_odm/commit/358036f4e3167f7c3b27d708c25f46b0c0d06f75))
+ - **REFACTOR**: update field handling in Node2 and related classes for improved consistency and clarity. ([9d1642d5](https://github.com/sylphxltd/firestore_odm/commit/9d1642d528dbf4723bfce85c232de624e85b32da))
+ - **REFACTOR**: remove debug print statements from DocumentHandler. ([067eb207](https://github.com/sylphxltd/firestore_odm/commit/067eb20750282220a588695c41fe24daabc6575d))
+ - **REFACTOR**: enhance filter operations to handle null values and improve default parameter handling. ([0be388bf](https://github.com/sylphxltd/firestore_odm/commit/0be388bf30bd6a1497d0210e3f267c478518f92f))
+ - **REFACTOR**: update filter field implementations for improved type handling. ([23d48d7a](https://github.com/sylphxltd/firestore_odm/commit/23d48d7a4aa1898f4819c3591fc74ab7a58a18e5))
+ - **REFACTOR**: rework filter builders and related. ([a69ccc56](https://github.com/sylphxltd/firestore_odm/commit/a69ccc561be220e6cb96dbcd6f5a8c4310dc7e6d))
+ - **REFACTOR**: update converters and generator methods for improved type handling and custom converter support. ([1d543858](https://github.com/sylphxltd/firestore_odm/commit/1d543858b58e0cd3acb56ff91673469de6e2f22b))
+ - **REFACTOR**: rework patch builders and converters. ([96438867](https://github.com/sylphxltd/firestore_odm/commit/96438867183f11197a891cf9048b4ad567a303b8))
+ - **REFACTOR**: Firestore ODM to enhance filter and order by functionality. ([6b1fb6c0](https://github.com/sylphxltd/firestore_odm/commit/6b1fb6c0882a3196ce3158b9a1bb13c8a4b739b0))
+ - **REFACTOR**: replace synchronous interfaces with asynchronous counterparts for batch operations. ([dab07f41](https://github.com/sylphxltd/firestore_odm/commit/dab07f41e4b6ada557258d684ae4b124a5ea348d))
+ - **FIX**: update filter condition checks to use noValue for improved clarity. ([5cd2767a](https://github.com/sylphxltd/firestore_odm/commit/5cd2767a4168732e8f43d111599343e33fe1ae40))
+ - **FIX**: process serverTimestamp. ([b2c91206](https://github.com/sylphxltd/firestore_odm/commit/b2c9120665de2015a5403518ea3e1be69fde69af))
+ - **FIX**: enhance orderBy field handling with type parameter for document ID fields. ([91e4d0b7](https://github.com/sylphxltd/firestore_odm/commit/91e4d0b725a7c382a8a29a7e6b48ab38efcada19))
+ - **FIX**: enhance type safety in aggregate context resolution methods. ([98a17613](https://github.com/sylphxltd/firestore_odm/commit/98a176139d2dc8ebcf9caa1fb01f0c9453a5c045))
+ - **FIX**: translate comments to English for better readability and maintainability. ([73a2f9f2](https://github.com/sylphxltd/firestore_odm/commit/73a2f9f248a9e48974c6759b01d6fbf5a1925f43))
+ - **FIX**: add patch builder parameter to getBatchCollection and schema generator. ([4d9ea480](https://github.com/sylphxltd/firestore_odm/commit/4d9ea4809b9493548c942195c465696ebf18c357))
+ - **FEAT**: enhance type safety and validation for Firestore collections and subcollections. ([5afc1718](https://github.com/sylphxltd/firestore_odm/commit/5afc171883549e2205f9257563f0bb4fac2c4404))
+ - **FEAT**: add convenience function for creating batch collections with patch builder support. ([28b9fa14](https://github.com/sylphxltd/firestore_odm/commit/28b9fa14bd3b6ebde0d926e50edbe226786fa779))
+ - **FEAT**: enhance batch operations with patch builder support in BatchDocument and BatchCollection. ([a6b14d5c](https://github.com/sylphxltd/firestore_odm/commit/a6b14d5c3d94d49ff77338ef5b77b958baadc9f7))
+ - **FEAT**: add patch builder support to TransactionCollection and TransactionDocument. ([cd293155](https://github.com/sylphxltd/firestore_odm/commit/cd29315569646d37925ed05cebc3eff684f7b70f))
+ - **FEAT**: supporting nested class without manual importing, aggregate done. ([8fb29612](https://github.com/sylphxltd/firestore_odm/commit/8fb29612442c59fdd0e6c92709544ffe87847c30))
+ - **FEAT**: enhance aggregation capabilities with new context classes and improved query interfaces. ([f58a6d44](https://github.com/sylphxltd/firestore_odm/commit/f58a6d4479a2dbfb18d9776db55ec61bc6ba2564))
+ - **FEAT**: spporting nested class without manual import, orderbybuilder done. ([9d1bea02](https://github.com/sylphxltd/firestore_odm/commit/9d1bea024fe6956c8f82a25307224f252583c361))
+ - **FEAT**: supporting nested class withot manual import, filter and patcher done. ([37bf6d4b](https://github.com/sylphxltd/firestore_odm/commit/37bf6d4bb3b32454fef7be8c7d9f918e55701cc9))
+
 ## 3.0.2
 
 ## 3.0.1
