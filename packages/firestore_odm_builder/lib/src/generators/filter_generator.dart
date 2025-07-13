@@ -1,4 +1,3 @@
-
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:code_builder/code_builder.dart';
@@ -9,44 +8,25 @@ import 'package:firestore_odm_builder/src/utils/type_definition.dart';
 import '../utils/type_analyzer.dart';
 import '../utils/model_analyzer.dart';
 
-
 /// Generator for filter builders and filter classes using code_builder
 class FilterGenerator {
   /// Generate field getter method based on field type
-  static Method _generateFieldGetter({required FieldInfo field}) {
-    final typeDef = field.type is TypeParameterType
-        ? TypeDefinition(
-            type: TypeReference(
-              (b) => b..symbol = '\$${field.type.element3!.name3}',
-            ),
-            instance: refer(
-              '_builderFunc${field.type.element3!.name3!.camelCase()}',
-            ),
-            // namedArguments: {
-            //   'toJson': ConverterGenerator.getToJsonEnsured(
-            //     type: field.type,
-            //     customConverter: field.customConverter,
-            //   ),
-            // },
-          )
-        : getBuilderDef(
-            type: field.type,
-            customConverter: field.customConverter,
-          );
+  static Field _generateFieldGetter({required FieldInfo field}) {
+    final typeDef = getBuilderDef(
+      type: field.type,
+      customConverter: field.customConverter,
+    );
 
     final String fieldName = field.jsonName;
 
-    return Method(
+    return Field(
       (b) => b
         ..docs.add('/// Filter by ${field.parameterName}')
-        ..type = MethodType.getter
-        ..annotations.add(
-          refer('pragma').call([literalString('vm:prefer-inline')]),
-        )
         ..name = field.parameterName
-        ..lambda = true
-        ..returns = typeDef.type
-        ..body = typeDef.instance.newInstance([], {
+        ..modifier = FieldModifier.final$
+        ..late = true
+        ..type = typeDef.type
+        ..assignment = typeDef.instance.newInstance([], {
           'field': field.isDocumentId
               ? refer('FieldPath.documentId')
               : refer(
@@ -57,59 +37,13 @@ class FilterGenerator {
     );
   }
 
-  /// Generate filter selector extension using ModelAnalysis
-  static Extension generateFilterSelectorClassFromAnalysis(
-    String schemaName,
-    InterfaceType type,
-  ) {
-    final className = type.element.name;
-
-    final typeParameters = type.typeParameters;
-
-    // Create the target type (FilterSelector<ClassName<T>>)
-    final targetType = TypeReference(
-      (b) => b
-        ..symbol = 'FilterSelector'
-        ..types.add(
-          TypeReference(
-            (b) => b
-              ..symbol = className
-              ..types.addAll(typeParameters.references),
-          ),
-        ),
-    );
-
-    // Generate methods for all fields
-    final fields = getFields(type);
-    final methods = <Method>[];
-    for (final field in fields.values) {
-      // Regular field
-      methods.add(_generateFieldGetter(field: field));
-    }
-
-    // Create extension
-    return Extension(
-      (b) => b
-        ..name = '${schemaName}${className}FilterSelectorExtension'
-        ..types.addAll(typeParameters.references)
-        ..on = targetType
-        ..docs.add('/// Generated FilterSelector for `$type`')
-        ..methods.addAll(methods),
-    );
-  }
-
   static Class generateFilterSelectorClass(InterfaceType type) {
     final className = type.element.name;
 
     final builders = computeNeededBuilders(type: type);
 
     // Generate methods for all fields
-    final fields = getFields(type);
-    final methods = <Method>[];
-    for (final field in fields.values) {
-      // Regular field
-      methods.add(_generateFieldGetter(field: field));
-    }
+    final fields = getFields(type).values.map((field) => _generateFieldGetter(field: field)).toList();
 
     // Create extension
     return Class(
@@ -133,7 +67,6 @@ class FilterGenerator {
         ..constructors.add(
           Constructor(
             (b) => b
-              ..constant = true
               ..docs.add('/// Creates a filter selector for `$className`')
               ..optionalParameters.addAll([
                 for (final typeParam in builders)
@@ -178,7 +111,7 @@ class FilterGenerator {
                 ),
             ),
         ])
-        ..methods.addAll(methods),
+        ..fields.addAll(fields),
     );
   }
 
@@ -280,6 +213,19 @@ class FilterGenerator {
     CustomConverter? customConverter,
     bool isRoot = false,
   }) {
+    if (type is TypeParameterType) {
+      return TypeDefinition(
+        type: TypeReference((b) => b..symbol = '\$${type.element3!.name3}'),
+        instance: refer('_builderFunc${type.element3.name3!.camelCase()}'),
+        // namedArguments: {
+        //   'toJson': ConverterGenerator.getToJsonEnsured(
+        //     type: field.type,
+        //     customConverter: field.customConverter,
+        //   ),
+        // },
+      );
+    }
+
     final jsonType =
         customConverter?.jsonType.reference ?? getJsonType(type: type);
 
