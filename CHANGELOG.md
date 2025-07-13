@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_annotation` - `v4.0.0-dev`](#firestore_odm_annotation---v400-dev)
+
+---
+
+#### `firestore_odm_annotation` - `v4.0.0-dev`
+
+ - **FEAT**: supporting nested class withot manual import, filter and patcher done. ([37bf6d4b](https://github.com/sylphxltd/firestore_odm/commit/37bf6d4bb3b32454fef7be8c7d9f918e55701cc9))
+
+
+## 2025-07-13
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v4.0.0-dev`](#firestore_odm---v400-dev)
 
 ---

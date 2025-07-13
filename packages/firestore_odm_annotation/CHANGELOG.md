@@ -1,3 +1,7 @@
+## 4.0.0-dev
+
+ - **FEAT**: supporting nested class withot manual import, filter and patcher done. ([37bf6d4b](https://github.com/sylphxltd/firestore_odm/commit/37bf6d4bb3b32454fef7be8c7d9f918e55701cc9))
+
 ## 3.0.2
 
  - Bump "firestore_odm_annotation" to `3.0.2`.

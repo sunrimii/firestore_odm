@@ -23,7 +23,7 @@ dependencies:
   analyzer: ^7.4.5
   fast_immutable_collections: ^11.0.4
   json_annotation: ^4.9.0
-  firestore_odm_annotation: ^3.0.2
+  firestore_odm_annotation: ^4.0.0-dev
   code_builder: ^4.10.1
   signals: ^6.0.2
   collection: ^1.19.1
