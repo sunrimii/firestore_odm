@@ -4,7 +4,6 @@ import 'profile.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
-part 'user.odm.dart';
 
 /// Represents a user in the Firestore database.
 @freezed

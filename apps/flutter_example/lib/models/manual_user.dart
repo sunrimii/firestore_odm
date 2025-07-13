@@ -1,6 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
 
-part 'manual_user.odm.dart';
+part 'manual_user.g.dart';
 
 @firestoreOdm
 class ManualUser {

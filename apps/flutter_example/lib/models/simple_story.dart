@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'simple_story.freezed.dart';
 part 'simple_story.g.dart';
-part 'simple_story.odm.dart';
 
 /// Test model without explicit @DocumentIdField() annotation
 /// Should automatically use 'id' field as document ID

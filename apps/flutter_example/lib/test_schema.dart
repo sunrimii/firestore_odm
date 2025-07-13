@@ -1,23 +1,20 @@
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter_example/models/comment.dart';
+import 'package:flutter_example/models/dart_immutable_user.dart';
+import 'package:flutter_example/models/immutable_user.dart';
+import 'package:flutter_example/models/json_key_user.dart';
 import 'package:flutter_example/models/list_length_model.dart';
+import 'package:flutter_example/models/manual_user.dart';
 import 'package:flutter_example/models/manual_user2.dart';
 import 'package:flutter_example/models/manual_user3.dart';
-import 'models/user.dart';
-import 'models/post.dart';
-import 'models/comment.dart';
-import 'models/simple_story.dart';
-import 'models/shared_post.dart';
-import 'models/profile.dart';
-import 'models/story.dart';
-import 'models/immutable_user.dart';
-import 'models/json_key_user.dart';
-import 'models/dart_immutable_user.dart';
-import 'models/manual_user.dart';
-import 'models/task.dart';
-import 'models/simple_generic.dart';
+import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/shared_post.dart';
+import 'package:flutter_example/models/simple_generic.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/task.dart';
+import 'package:flutter_example/models/user.dart';
 
-part 'test_schema.odm.dart';
+part 'test_schema.g.dart';
 
 /// Test schema that includes all collections used in existing tests.
 @Schema()

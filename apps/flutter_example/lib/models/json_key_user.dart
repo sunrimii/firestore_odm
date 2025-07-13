@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'json_key_user.freezed.dart';
 part 'json_key_user.g.dart';
-part 'json_key_user.odm.dart';
 
 @freezed
 @firestoreOdm

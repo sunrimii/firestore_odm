@@ -4,7 +4,6 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 part 'immutable_user.freezed.dart';
 part 'immutable_user.g.dart';
-part 'immutable_user.odm.dart';
 
 @freezed
 @firestoreOdm

@@ -2,7 +2,6 @@ import 'package:firestore_odm/firestore_odm.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'dart_immutable_user.g.dart';
-part 'dart_immutable_user.odm.dart';
 
 @JsonSerializable()
 @firestoreOdm

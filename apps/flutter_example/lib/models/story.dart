@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'story.freezed.dart';
 part 'story.g.dart';
-part 'story.odm.dart';
 
 @freezed
 @firestoreOdm

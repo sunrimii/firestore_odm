@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'post.freezed.dart';
 part 'post.g.dart';
-part 'post.odm.dart';
 
 /// Represents a blog post in the Firestore database.
 @freezed

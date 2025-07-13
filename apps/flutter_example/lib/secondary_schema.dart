@@ -3,7 +3,7 @@ import 'package:flutter_example/models/comment.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/user.dart';
 
-part 'secondary_schema.odm.dart';
+part 'secondary_schema.g.dart';
 
 /// Secondary test schema to reproduce bug with multiple schemas
 @Schema()

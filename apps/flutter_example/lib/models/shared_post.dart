@@ -4,7 +4,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'shared_post.freezed.dart';
 part 'shared_post.g.dart';
-part 'shared_post.odm.dart';
 
 /// A Post model that can be used in multiple collections
 /// - Standalone collection: @Collection('posts') -> odm.posts

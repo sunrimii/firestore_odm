@@ -4,7 +4,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'profile.freezed.dart';
 part 'profile.g.dart';
-part 'profile.odm.dart';
 
 @freezed
 @firestoreOdm

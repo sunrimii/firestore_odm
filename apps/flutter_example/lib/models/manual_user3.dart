@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
-part 'manual_user3.odm.dart';
+part 'manual_user3.g.dart';
 
 @firestoreOdm
 class ManualUser3<T> with EquatableMixin {
