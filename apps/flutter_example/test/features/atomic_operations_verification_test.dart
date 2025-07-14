@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('⚛️ Atomic Operations Verification Tests', () {
@@ -30,11 +30,10 @@ void main() {
             followers: 1000,
             lastActive: DateTime.now(),
           ),
-          rating: 3.0,
+          rating: 3,
           scores: [80, 90],
           tags: ['original'],
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -126,11 +125,10 @@ void main() {
             followers: 500,
             lastActive: DateTime.now(),
           ),
-          rating: 4.0,
+          rating: 4,
           tags: ['concurrent'],
           scores: [70, 80, 90],
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -143,7 +141,7 @@ void main() {
         final futures = <Future>[];
 
         // Concurrent top-level increments (true atomic operations)
-        for (int i = 0; i < 5; i++) {
+        for (var i = 0; i < 5; i++) {
           futures.add(
             odm
                 .users(user.id)
@@ -156,7 +154,7 @@ void main() {
         }
 
         // Concurrent nested increments (may not be atomic)
-        for (int i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++) {
           futures.add(
             odm
                 .users(user.id)
@@ -228,10 +226,9 @@ void main() {
               followers: 1000,
               lastActive: DateTime.now(),
             ),
-            rating: 3.0,
+            rating: 3,
             tags: ['base'],
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -335,10 +332,9 @@ void main() {
             followers: 100,
             lastActive: DateTime.now(),
           ),
-          rating: 2.0,
+          rating: 2,
           tags: ['limits'],
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 

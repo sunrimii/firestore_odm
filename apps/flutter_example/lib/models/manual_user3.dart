@@ -5,18 +5,18 @@ import 'package:firestore_odm/firestore_odm.dart';
 part 'manual_user3.g.dart';
 
 @firestoreOdm
-class ManualUser3<T> with EquatableMixin {
-  @DocumentIdField()
-  final String id;
-
-  final String name;
-  final T customField; // Generic field for additional flexibility
+class ManualUser3<T> with EquatableMixin { // Generic field for additional flexibility
 
   const ManualUser3({
     required this.id,
     required this.name,
     required this.customField,
   });
+  @DocumentIdField()
+  final String id;
+
+  final String name;
+  final T customField;
 
   ManualUser3<T> copyWith({
     String? id,
@@ -35,15 +35,7 @@ class ManualUser3<T> with EquatableMixin {
 }
 
 @firestoreOdm
-class ManualUser3Profile<T> with EquatableMixin {
-  final String email;
-  final int age;
-  final bool isPremium;
-  final double rating;
-  final List<String> tags;
-  final Map<String, String> preferences;
-  final List<T> customList; // Generic list for additional flexibility
-  final IList<T> customIList; // Generic list for additional flexibility
+class ManualUser3Profile<T> with EquatableMixin { // Generic list for additional flexibility
 
   const ManualUser3Profile({
     required this.email,
@@ -55,6 +47,14 @@ class ManualUser3Profile<T> with EquatableMixin {
     this.customList = const [],
     this.customIList = const IListConst([]),
   });
+  final String email;
+  final int age;
+  final bool isPremium;
+  final double rating;
+  final List<String> tags;
+  final Map<String, String> preferences;
+  final List<T> customList; // Generic list for additional flexibility
+  final IList<T> customIList;
 
   ManualUser3Profile<T> copyWith({
     String? email,
@@ -84,13 +84,13 @@ class ManualUser3Profile<T> with EquatableMixin {
 
 @firestoreOdm
 class Book with EquatableMixin {
-  final String title;
-  final String author;
 
   const Book({
     required this.title,
     required this.author,
   });
+  final String title;
+  final String author;
 
   @override
   List<Object?> get props => [title, author];

@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🗑️ New Bulk Delete Operations', () {
@@ -24,16 +24,14 @@ void main() {
             name: 'Query User 1',
             email: 'query1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query user 1',
               avatar: 'query1.jpg',
               socialLinks: {},
               interests: ['testing'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false, // Will be deleted
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -41,7 +39,7 @@ void main() {
             name: 'Query User 2',
             email: 'query2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query user 2',
               avatar: 'query2.jpg',
               socialLinks: {},
@@ -49,8 +47,6 @@ void main() {
               followers: 150,
             ),
             rating: 3.5,
-            isActive: false, // Will be deleted
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -58,16 +54,15 @@ void main() {
             name: 'Keep User 1',
             email: 'keep1@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Keep user 1',
               avatar: 'keep1.jpg',
               socialLinks: {},
               interests: ['keeping'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true, // Will be kept
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -101,16 +96,15 @@ void main() {
             name: 'Complex User 1',
             email: 'complex1@example.com',
             age: 20, // Young and low rating - will be deleted
-            profile: Profile(
+            profile: const Profile(
               bio: 'Complex user 1',
               avatar: 'complex1.jpg',
               socialLinks: {},
               interests: ['complex'],
               followers: 50,
             ),
-            rating: 2.0, // Low rating
+            rating: 2, // Low rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -118,7 +112,7 @@ void main() {
             name: 'Complex User 2',
             email: 'complex2@example.com',
             age: 22, // Young and low rating - will be deleted
-            profile: Profile(
+            profile: const Profile(
               bio: 'Complex user 2',
               avatar: 'complex2.jpg',
               socialLinks: {},
@@ -127,7 +121,6 @@ void main() {
             ),
             rating: 1.5, // Low rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -135,7 +128,7 @@ void main() {
             name: 'Complex Keep',
             email: 'keep@example.com',
             age: 25, // Older with good rating - will be kept
-            profile: Profile(
+            profile: const Profile(
               bio: 'Keep this user',
               avatar: 'keep.jpg',
               socialLinks: {},
@@ -157,7 +150,7 @@ void main() {
         // ✅ NEW: Delete users using complex AND condition
         await odm.users
             .where(
-              ($) => $.and($.age(isLessThan: 25), $.rating(isLessThan: 3.0)),
+              ($) => $.and($.age(isLessThan: 25), $.rating(isLessThan: 3)),
             )
             .delete();
 
@@ -179,16 +172,15 @@ void main() {
             name: 'Low Rated User',
             email: 'low@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Low rated user',
               avatar: 'low.jpg',
               socialLinks: {},
               interests: ['low'],
               followers: 50,
             ),
-            rating: 1.0, // Lowest rating
+            rating: 1, // Lowest rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -196,16 +188,15 @@ void main() {
             name: 'Medium Rated User',
             email: 'medium@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Medium rated user',
               avatar: 'medium.jpg',
               socialLinks: {},
               interests: ['medium'],
               followers: 100,
             ),
-            rating: 3.0, // Medium rating
+            rating: 3, // Medium rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -213,14 +204,14 @@ void main() {
             name: 'High Rated User',
             email: 'high@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'High rated user',
               avatar: 'high.jpg',
               socialLinks: {},
               interests: ['high'],
               followers: 200,
             ),
-            rating: 5.0, // Highest rating
+            rating: 5, // Highest rating
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -259,7 +250,7 @@ void main() {
               name: 'Young Active',
               email: 'young@example.com',
               age: 20,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Young active user',
                 avatar: 'young.jpg',
                 socialLinks: {},
@@ -268,7 +259,6 @@ void main() {
               ),
               rating: 3.5,
               isActive: true, // Active
-              isPremium: false,
               createdAt: DateTime.now(),
             ),
             User(
@@ -276,16 +266,14 @@ void main() {
               name: 'Young Inactive',
               email: 'inactive@example.com',
               age: 22,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Young inactive user',
                 avatar: 'inactive.jpg',
                 socialLinks: {},
                 interests: ['inactive'],
                 followers: 40,
               ),
-              rating: 2.0,
-              isActive: false, // Inactive - will be deleted
-              isPremium: false,
+              rating: 2,
               createdAt: DateTime.now(),
             ),
             User(
@@ -293,7 +281,7 @@ void main() {
               name: 'Old Active',
               email: 'old@example.com',
               age: 40,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Old active user',
                 avatar: 'old.jpg',
                 socialLinks: {},
@@ -344,16 +332,15 @@ void main() {
             name: 'Collection User 1',
             email: 'col1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Collection user 1',
               avatar: 'col1.jpg',
               socialLinks: {},
               interests: ['collection'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -361,15 +348,14 @@ void main() {
             name: 'Collection User 2',
             email: 'col2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Collection user 2',
               avatar: 'col2.jpg',
               socialLinks: {},
               interests: ['collection'],
               followers: 150,
             ),
-            rating: 4.0,
-            isActive: false,
+            rating: 4,
             isPremium: true,
             createdAt: DateTime.now(),
           ),
@@ -378,14 +364,14 @@ void main() {
             name: 'Collection User 3',
             email: 'col3@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Collection user 3',
               avatar: 'col3.jpg',
               socialLinks: {},
               interests: ['collection'],
               followers: 200,
             ),
-            rating: 5.0,
+            rating: 5,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -422,14 +408,14 @@ void main() {
           name: 'No Match User',
           email: 'nomatch@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'This user will not match',
             avatar: 'nomatch.jpg',
             socialLinks: {},
             interests: ['no-match'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
           isPremium: true,
           createdAt: DateTime.now(),

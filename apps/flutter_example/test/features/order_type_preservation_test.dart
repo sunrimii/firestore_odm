@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Order Type Preservation Tests', () {
@@ -53,7 +53,6 @@ void main() {
           rating: 4.2,
           tags: ['regular'],
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         ),
       ];
@@ -86,7 +85,7 @@ void main() {
       print('✅ Order type preserved after where() - pagination still works');
 
       // Test: Can use cursor-based pagination with preserved order type
-      final cursorValues = (4.8, 25); // (rating, age) matching the order type
+      const cursorValues = (4.8, 25); // (rating, age) matching the order type
       final cursorResults = await filteredOrderedQuery
           .startAfter(cursorValues)
           .get();

@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Operation Order Behavior Tests', () {
@@ -17,7 +17,7 @@ void main() {
 
     test('should test set() followed by array operations', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'set_then_array_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -37,7 +37,7 @@ void main() {
       await odm.users.insert(user);
 
       print('🧪 Test: set() followed by array operations');
-      print('   Code: \$.tags([\'completely\', \'new\']), \$.tags.add(\'from_add\'), \$.tags.addAll([\'from_addAll\'])');
+      print(r"   Code: $.tags(['completely', 'new']), $.tags.add('from_add'), $.tags.addAll(['from_addAll'])");
       
       await odm.users('set_then_array_user').patch(($) => [
         $.tags(['completely', 'new']),    // Set operation first
@@ -58,7 +58,7 @@ void main() {
 
     test('should test set() with add() and remove() on same field', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'set_add_remove_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -78,7 +78,7 @@ void main() {
       await odm.users.insert(user);
 
       print('🧪 Test: set() with add() and remove() on same field');
-      print('   Code: \$.tags([\'completely\', \'new\']), \$.tags.add(\'from_add\'), \$.tags.remove(\'new\')');
+      print(r"   Code: $.tags(['completely', 'new']), $.tags.add('from_add'), $.tags.remove('new')");
       
       try {
         await odm.users('set_add_remove_user').patch(($) => [
@@ -105,7 +105,7 @@ void main() {
 
     test('should test set() with remove() of non-existent value', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'set_remove_nonexist_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -125,7 +125,7 @@ void main() {
       await odm.users.insert(user);
 
       print('🧪 Test: set() with add() and remove() of non-existent value');
-      print('   Code: \$.tags([\'completely\', \'new\']), \$.tags.add(\'from_add\'), \$.tags.remove(\'non-exists\')');
+      print(r"   Code: $.tags(['completely', 'new']), $.tags.add('from_add'), $.tags.remove('non-exists')");
       
       try {
         await odm.users('set_remove_nonexist_user').patch(($) => [
@@ -152,7 +152,7 @@ void main() {
 
     test('should test multiple set() operations on same field', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'multiple_set_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -172,7 +172,7 @@ void main() {
       await odm.users.insert(user);
 
       print('🧪 Test: Multiple set() operations on same field');
-      print('   Code: \$.tags([\'completely\']), \$.tags([\'completely\', \'new\'])');
+      print(r"   Code: $.tags(['completely']), $.tags(['completely', 'new'])");
       
       await odm.users('multiple_set_user').patch(($) => [
         $.tags(['completely']),           // First set operation
@@ -191,7 +191,7 @@ void main() {
 
     test('should demonstrate the complete operation precedence', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'precedence_test_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -248,7 +248,7 @@ void main() {
 
     test('should show processing order within operation types', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'processing_order_user',
         name: 'Test User',
         email: 'test@example.com',

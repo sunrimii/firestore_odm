@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/task.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🕐 Duration Field Tests', () {
@@ -46,8 +46,6 @@ void main() {
           title: 'Task with Null Duration',
           description: 'Testing null duration handling',
           estimatedDuration: const Duration(minutes: 45),
-          actualDuration: null, // This should be null
-          isCompleted: false,
           priority: 2,
           createdAt: DateTime.now(),
         );
@@ -92,10 +90,10 @@ void main() {
 
         for (final testCase in testCases) {
           final task = Task(
-            id: testCase['id'] as String,
+            id: testCase['id']! as String,
             title: 'Duration Test',
-            description: testCase['description'] as String,
-            estimatedDuration: testCase['duration'] as Duration,
+            description: testCase['description']! as String,
+            estimatedDuration: testCase['duration']! as Duration,
             createdAt: DateTime.now(),
           );
 
@@ -115,8 +113,6 @@ void main() {
           title: 'Update Duration Test',
           description: 'Testing duration updates',
           estimatedDuration: const Duration(hours: 1),
-          actualDuration: null,
-          isCompleted: false,
           priority: 1,
           createdAt: DateTime.now(),
         );
@@ -169,8 +165,6 @@ void main() {
           title: 'Original Title',
           description: 'Original description',
           estimatedDuration: const Duration(hours: 4),
-          actualDuration: null,
-          isCompleted: false,
           priority: 2,
           createdAt: DateTime.now(),
         );
@@ -205,7 +199,6 @@ void main() {
           description: 'Testing duration patches with chain syntax',
           estimatedDuration: const Duration(minutes: 30),
           actualDuration: const Duration(minutes: 25),
-          isCompleted: false,
           priority: 1,
           createdAt: DateTime.now(),
         );
@@ -235,7 +228,6 @@ void main() {
           description: 'Testing individual duration field patches',
           estimatedDuration: const Duration(minutes: 30),
           actualDuration: const Duration(minutes: 25),
-          isCompleted: false,
           priority: 1,
           createdAt: DateTime.now(),
         );
@@ -308,7 +300,6 @@ void main() {
             title: 'Medium Task',
             description: 'Medium length task',
             estimatedDuration: const Duration(hours: 2),
-            isCompleted: false,
             priority: 2,
             createdAt: DateTime.now(),
           ),
@@ -317,7 +308,6 @@ void main() {
             title: 'Long Task',
             description: 'Long duration task',
             estimatedDuration: const Duration(hours: 8),
-            isCompleted: false,
             priority: 3,
             createdAt: DateTime.now(),
           ),
@@ -367,8 +357,6 @@ void main() {
           title: 'Incomplete Task',
           description: 'Task that is not completed',
           estimatedDuration: const Duration(hours: 2),
-          actualDuration: null,
-          isCompleted: false,
           priority: 2,
           createdAt: DateTime.now(),
         );
@@ -467,7 +455,6 @@ void main() {
             seconds: 30,
             milliseconds: 789,
           ),
-          isCompleted: false,
           priority: 1,
           createdAt: DateTime.now(),
         );

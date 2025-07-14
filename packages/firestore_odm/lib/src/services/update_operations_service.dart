@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/src/filter_builder.dart';
 import 'package:firestore_odm/src/firestore_odm.dart';
-import 'package:firestore_odm/src/interfaces/filterable.dart';
 import 'package:firestore_odm/src/model_converter.dart';
 import 'package:firestore_odm/src/services/patch_operations.dart';
 import 'package:firestore_odm/src/services/update_helpers.dart';

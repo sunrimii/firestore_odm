@@ -4,6 +4,47 @@ part 'manual_user.g.dart';
 
 @firestoreOdm
 class ManualUser {
+
+  const ManualUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.age,
+    this.isPremium = false,
+    this.rating = 0.0,
+    this.tags = const [],
+    this.preferences = const {},
+    this.createdAt,
+    this.updatedAt,
+    this.isActive = true,
+    this.debugInfo,
+  });
+
+  // Manual fromJson implementation
+  factory ManualUser.fromJson(Map<String, dynamic> json) {
+    return ManualUser(
+      id: json['id'] as String,
+      name: json['full_name'] as String, // Custom field name
+      email: json['contact_email'] as String, // Custom field name
+      age: json['user_age'] as int, // Custom field name
+      isPremium: json['premium_member'] as bool? ?? false, // Custom field name
+      rating:
+          (json['user_rating'] as num?)?.toDouble() ?? 0.0, // Custom field name
+      tags: (json['user_tags'] as List<dynamic>?)?.cast<String>() ?? [],
+      preferences:
+          (json['user_preferences'] as Map<String, dynamic>?)
+              ?.cast<String, String>() ??
+          {},
+      createdAt: json['created_timestamp'] != null
+          ? DateTime.parse(json['created_timestamp'] as String)
+          : null,
+      updatedAt: json['updated_timestamp'] != null
+          ? DateTime.parse(json['updated_timestamp'] as String)
+          : null,
+      isActive: json['active_status'] as bool? ?? true, // Custom field name
+      // debugInfo is intentionally not included in fromJson
+    );
+  }
   @DocumentIdField()
   final String id;
 
@@ -20,21 +61,6 @@ class ManualUser {
 
   // This field will be ignored in JSON serialization
   final String? debugInfo;
-
-  const ManualUser({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.age,
-    this.isPremium = false,
-    this.rating = 0.0,
-    this.tags = const [],
-    this.preferences = const {},
-    this.createdAt,
-    this.updatedAt,
-    this.isActive = true,
-    this.debugInfo,
-  });
 
   // Copy with method for immutability
   ManualUser copyWith({
@@ -64,32 +90,6 @@ class ManualUser {
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,
       debugInfo: debugInfo ?? this.debugInfo,
-    );
-  }
-
-  // Manual fromJson implementation
-  factory ManualUser.fromJson(Map<String, dynamic> json) {
-    return ManualUser(
-      id: json['id'] as String,
-      name: json['full_name'] as String, // Custom field name
-      email: json['contact_email'] as String, // Custom field name
-      age: json['user_age'] as int, // Custom field name
-      isPremium: json['premium_member'] as bool? ?? false, // Custom field name
-      rating:
-          (json['user_rating'] as num?)?.toDouble() ?? 0.0, // Custom field name
-      tags: (json['user_tags'] as List<dynamic>?)?.cast<String>() ?? [],
-      preferences:
-          (json['user_preferences'] as Map<String, dynamic>?)
-              ?.cast<String, String>() ??
-          {},
-      createdAt: json['created_timestamp'] != null
-          ? DateTime.parse(json['created_timestamp'] as String)
-          : null,
-      updatedAt: json['updated_timestamp'] != null
-          ? DateTime.parse(json['updated_timestamp'] as String)
-          : null,
-      isActive: json['active_status'] as bool? ?? true, // Custom field name
-      // debugInfo is intentionally not included in fromJson
     );
   }
 

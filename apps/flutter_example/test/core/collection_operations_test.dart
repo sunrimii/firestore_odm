@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔥 Collection Insert & Update Operations', () {
@@ -22,7 +22,7 @@ void main() {
           name: 'Insert Test User',
           email: 'insert@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Insert test bio',
             avatar: 'insert.jpg',
             socialLinks: {},
@@ -31,7 +31,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -51,7 +50,7 @@ void main() {
           name: 'Explicit ID User',
           email: 'explicit@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Explicit ID test',
             avatar: 'explicit.jpg',
             socialLinks: {},
@@ -79,16 +78,15 @@ void main() {
           name: 'Duplicate User',
           email: 'duplicate@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'First user',
             avatar: 'first.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -116,7 +114,7 @@ void main() {
             name: 'User 1',
             email: 'user1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 1 bio',
               avatar: 'user1.jpg',
               socialLinks: {},
@@ -125,7 +123,6 @@ void main() {
             ),
             rating: 3.8,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -134,7 +131,7 @@ void main() {
             name: 'User 2',
             email: 'user2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 2 bio',
               avatar: 'user2.jpg',
               socialLinks: {},
@@ -170,7 +167,7 @@ void main() {
           name: 'Auto ID User',
           email: 'autoid@example.com',
           age: 22,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Auto ID bio',
             avatar: 'autoid.jpg',
             socialLinks: {},
@@ -179,7 +176,6 @@ void main() {
           ),
           rating: 2.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -213,16 +209,15 @@ void main() {
           name: 'Original Name',
           email: 'original@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio',
             avatar: 'original.jpg',
             socialLinks: {},
             interests: ['reading'],
             followers: 50,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -234,7 +229,7 @@ void main() {
           name: 'Updated Name',
           email: 'updated@example.com',
           age: 26,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Updated bio',
             avatar: 'updated.jpg',
             socialLinks: {'twitter': '@updated'},
@@ -267,16 +262,13 @@ void main() {
           name: 'Nonexistent User',
           email: 'nonexistent@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'This user does not exist',
             avatar: 'nonexistent.jpg',
             socialLinks: {},
             interests: ['testing'],
-            followers: 0,
           ),
-          rating: 1.0,
-          isActive: false,
-          isPremium: false,
+          rating: 1,
           createdAt: DateTime.now(),
         );
 
@@ -300,7 +292,7 @@ void main() {
           name: 'Upsert New User',
           email: 'upsertnew@example.com',
           age: 27,
-          profile: Profile(
+          profile: const Profile(
             bio: 'New via upsert',
             avatar: 'upsertnew.jpg',
             socialLinks: {},
@@ -309,7 +301,6 @@ void main() {
           ),
           rating: 3.7,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -328,7 +319,7 @@ void main() {
           name: 'Original Upsert User',
           email: 'original.upsert@example.com',
           age: 24,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original upsert bio',
             avatar: 'original.upsert.jpg',
             socialLinks: {},
@@ -337,7 +328,6 @@ void main() {
           ),
           rating: 3.2,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -349,7 +339,7 @@ void main() {
           name: 'Updated Upsert User',
           email: 'updated.upsert@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Updated upsert bio',
             avatar: 'updated.upsert.jpg',
             socialLinks: {'linkedin': '/in/updated'},
@@ -381,7 +371,7 @@ void main() {
           name: 'Integration User',
           email: 'integration@example.com',
           age: 29,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Integration test user',
             avatar: 'integration.jpg',
             socialLinks: {},
@@ -390,7 +380,6 @@ void main() {
           ),
           rating: 3.9,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 

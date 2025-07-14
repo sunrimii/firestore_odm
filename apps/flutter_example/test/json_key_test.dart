@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/json_key_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔑 JsonKey Annotation Tests', () {
@@ -123,13 +123,12 @@ void main() {
       'should ignore fields with @JsonKey(includeFromJson: false, includeToJson: false)',
       () async {
         // Create user with secretField (which should be ignored)
-        final user = JsonKeyUser(
+        const user = JsonKeyUser(
           id: 'json_key_user_2',
           name: 'Alice Secret',
           email: 'alice@secret.com',
           age: 28,
           secretField: 'This should not be saved',
-          isPremium: false,
           rating: 3.8,
           tags: ['secret', 'test'],
         );
@@ -210,7 +209,7 @@ void main() {
     test('should handle JsonKey annotations in queries', () async {
       // Create multiple users with different premium status
       final users = [
-        JsonKeyUser(
+        const JsonKeyUser(
           id: 'premium_user_1',
           name: 'Premium User 1',
           email: 'premium1@test.com',
@@ -219,7 +218,7 @@ void main() {
           rating: 4.8,
           tags: ['premium'],
         ),
-        JsonKeyUser(
+        const JsonKeyUser(
           id: 'premium_user_2',
           name: 'Premium User 2',
           email: 'premium2@test.com',
@@ -228,12 +227,11 @@ void main() {
           rating: 4.9,
           tags: ['premium'],
         ),
-        JsonKeyUser(
+        const JsonKeyUser(
           id: 'regular_user_1',
           name: 'Regular User 1',
           email: 'regular1@test.com',
           age: 28,
-          isPremium: false,
           rating: 3.5,
           tags: ['regular'],
         ),

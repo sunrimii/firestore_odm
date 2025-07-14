@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🆔 Custom Document ID Field Tests', () {
@@ -25,16 +25,15 @@ void main() {
           name: 'Custom ID User',
           email: 'custom@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User with custom ID',
             avatar: 'custom.jpg',
             socialLinks: {},
             interests: ['custom-id', 'testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -106,16 +105,15 @@ void main() {
             name: 'Zulu User',
             email: 'zulu@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Last alphabetically',
               avatar: 'zulu.jpg',
               socialLinks: {},
               interests: ['ordering'],
               followers: 300,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -123,14 +121,14 @@ void main() {
             name: 'Alpha User',
             email: 'alpha@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'First alphabetically',
               avatar: 'alpha.jpg',
               socialLinks: {},
               interests: ['ordering'],
               followers: 100,
             ),
-            rating: 5.0,
+            rating: 5,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -140,16 +138,15 @@ void main() {
             name: 'Beta User',
             email: 'beta@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Second alphabetically',
               avatar: 'beta.jpg',
               socialLinks: {},
               interests: ['ordering'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -197,7 +194,7 @@ void main() {
           name: 'Filter Test User',
           email: 'filter@example.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing filters',
             avatar: 'filter.jpg',
             socialLinks: {},
@@ -245,14 +242,14 @@ void main() {
           name: 'User With Posts',
           email: 'userwithposts@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User who has posts',
             avatar: 'user.jpg',
             socialLinks: {},
             interests: ['blogging'],
             followers: 500,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
           isPremium: true,
           createdAt: DateTime.now(),
@@ -314,16 +311,15 @@ void main() {
           name: 'Pagination Test User',
           email: 'pagination@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing subcollection pagination',
             avatar: 'pagination.jpg',
             socialLinks: {},
             interests: ['pagination'],
             followers: 200,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -412,7 +408,7 @@ void main() {
           name: 'Filter Test User',
           email: 'filteruser@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing subcollection filtering',
             avatar: 'filter.jpg',
             socialLinks: {},
@@ -450,7 +446,6 @@ void main() {
             metadata: {'priority': 'low'},
             likes: 5,
             views: 50,
-            published: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -497,16 +492,15 @@ void main() {
           name: 'Transaction User 1',
           email: 'trans1@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'First transaction user',
             avatar: 'trans1.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -515,14 +509,14 @@ void main() {
           name: 'Transaction User 2',
           email: 'trans2@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Second transaction user',
             avatar: 'trans2.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 200,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
           isPremium: true,
           createdAt: DateTime.now(),
@@ -536,13 +530,13 @@ void main() {
           // Modify users with custom IDs
           await tx
               .users(userId1)
-              .modify((user) => user.copyWith(rating: 4.0, isPremium: true));
+              .modify((user) => user.copyWith(rating: 4, isPremium: true));
 
           await tx
               .users(userId2)
               .modify(
                 (user) => user.copyWith(
-                  rating: 5.0,
+                  rating: 5,
                   profile: user.profile.copyWith(followers: 300),
                 ),
               );
@@ -556,8 +550,6 @@ void main() {
           authorId: userId1,
           tags: ['transaction'],
           metadata: {},
-          likes: 0,
-          views: 0,
           published: true,
           createdAt: DateTime.now(),
         );
@@ -589,16 +581,15 @@ void main() {
             name: 'Zebra User',
             email: 'zebra@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'High rating, last ID',
               avatar: 'zebra.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 100,
             ),
-            rating: 5.0, // Same rating
+            rating: 5, // Same rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -606,14 +597,14 @@ void main() {
             name: 'Alpha User',
             email: 'alpha@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'High rating, first ID',
               avatar: 'alpha.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 200,
             ),
-            rating: 5.0, // Same rating
+            rating: 5, // Same rating
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -623,16 +614,15 @@ void main() {
             name: 'Beta User',
             email: 'beta@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Low rating',
               avatar: 'beta.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 50,
             ),
-            rating: 3.0, // Different rating
+            rating: 3, // Different rating
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -681,7 +671,7 @@ void main() {
         ];
 
         // Create users with special ID formats
-        for (int i = 0; i < specialIds.length; i++) {
+        for (var i = 0; i < specialIds.length; i++) {
           final user = User(
             id: specialIds[i],
             name: 'User ${i + 1}',
@@ -718,7 +708,7 @@ void main() {
 
         // Verify they're sorted correctly (lexicographic order)
         final sortedIds = List<String>.from(specialIds)..sort();
-        for (int i = 0; i < orderedUsers.length; i++) {
+        for (var i = 0; i < orderedUsers.length; i++) {
           expect(orderedUsers[i].id, equals(sortedIds[i]));
         }
       });
@@ -734,16 +724,15 @@ void main() {
           name: 'Consistency User',
           email: 'consistency@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing ID consistency',
             avatar: 'consistency.jpg',
             socialLinks: {},
             interests: ['consistency'],
             followers: 150,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 

@@ -266,7 +266,7 @@ class TypeAnalyzer {
   /// Get the element type name of any iterable (backward compatibility)
   static String getIterableElementTypeName(DartType iterableType) {
     final elementType = getIterableElementType(iterableType);
-    return elementType?.getDisplayString() ?? 'dynamic';
+    return elementType.getDisplayString() ?? 'dynamic';
   }
 
   /// Check if a type is nullable
@@ -277,7 +277,7 @@ class TypeAnalyzer {
   /// Check if an iterable contains primitive elements
   static bool isIterableOfPrimitives(DartType type) {
     final elementType = getIterableElementType(type);
-    return elementType != null && isPrimitiveType(elementType);
+    return isPrimitiveType(elementType);
   }
 
   /// Check if a Map has string keys and primitive values

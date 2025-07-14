@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('❌ Advanced Error Handling', () {
@@ -29,16 +29,15 @@ void main() {
           name: 'Null Test User',
           email: 'null@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing null values',
             avatar: 'null.jpg',
             socialLinks: {},
             interests: ['null_testing'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -61,16 +60,12 @@ void main() {
           name: 'Extreme User',
           email: 'extreme@example.com',
           age: 0, // Extreme age
-          profile: Profile(
+          profile: const Profile(
             bio: '', // Empty bio
             avatar: '',
             socialLinks: {},
             interests: [],
-            followers: 0,
           ),
-          rating: 0.0, // Minimum rating
-          isActive: false,
-          isPremium: false,
           tags: [],
           scores: [],
           settings: {},
@@ -106,7 +101,7 @@ void main() {
           email: 'large@example.com',
           age: 50,
           profile: largeProfile,
-          rating: 5.0,
+          rating: 5,
           isActive: true,
           isPremium: true,
           tags: List.generate(100, (i) => 'tag_$i'),
@@ -135,7 +130,7 @@ void main() {
           name: 'Concurrent User',
           email: 'concurrent@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Concurrent test',
             avatar: 'concurrent.jpg',
             socialLinks: {},
@@ -144,7 +139,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -194,7 +188,7 @@ void main() {
         expect(negativeAge, isEmpty);
 
         final impossibleRating = await odm.users
-            .where(($) => $.rating(isGreaterThan: 10.0))
+            .where(($) => $.rating(isGreaterThan: 10))
             .get();
         expect(impossibleRating, isEmpty);
       });
@@ -205,16 +199,15 @@ void main() {
           name: 'Transaction User',
           email: 'transaction@example.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Transaction test',
             avatar: 'transaction.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 200,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -249,16 +242,15 @@ void main() {
           name: 'Rapid User',
           email: 'rapid@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Rapid test',
             avatar: 'rapid.jpg',
             socialLinks: {},
             interests: ['rapid'],
             followers: 50,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -267,7 +259,7 @@ void main() {
         final stopwatch = Stopwatch()..start();
 
         // Perform rapid operations
-        for (int i = 0; i < 50; i++) {
+        for (var i = 0; i < 50; i++) {
           await odm
               .users('rapid_user')
               .modify(
@@ -307,7 +299,6 @@ void main() {
             ),
             rating: 1.0 + (index % 5),
             isActive: index % 2 == 0,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );
@@ -341,7 +332,7 @@ void main() {
             name: 'Integrity User',
             email: 'integrity@example.com',
             age: 32,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Data integrity test',
               avatar: 'integrity.jpg',
               socialLinks: {
@@ -402,7 +393,7 @@ void main() {
           name: 'Special User äöü 中文 🚀',
           email: 'special+test@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Special chars: äöü中文🚀"\'<>&',
             avatar: 'special äöü.jpg',
             socialLinks: {
@@ -413,7 +404,6 @@ void main() {
           ),
           rating: 4.2,
           isActive: true,
-          isPremium: false,
           tags: ['special', 'äöü', '中文'],
           createdAt: DateTime.now(),
         );

@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/simple_story.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🏢 Multiple ODM Instance Tests', () {
@@ -32,16 +32,15 @@ void main() {
             name: 'Main User',
             email: 'main@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Main user bio',
               avatar: 'main.jpg',
               socialLinks: {},
               interests: ['main'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -50,14 +49,14 @@ void main() {
             name: 'Analytics User',
             email: 'analytics@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Analytics user bio',
               avatar: 'analytics.jpg',
               socialLinks: {},
               interests: ['analytics'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -95,23 +94,22 @@ void main() {
       test(
         'should handle same user ID across different ODM instances',
         () async {
-          final sameId = 'shared_user_id';
+          const sameId = 'shared_user_id';
 
           final mainUserData = User(
             id: sameId,
             name: 'Main Version',
             email: 'main@shared.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Main version of shared user',
               avatar: 'main_shared.jpg',
               socialLinks: {},
               interests: ['main'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -120,14 +118,14 @@ void main() {
             name: 'Analytics Version',
             email: 'analytics@shared.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Analytics version of shared user',
               avatar: 'analytics_shared.jpg',
               socialLinks: {},
               interests: ['analytics'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -156,23 +154,22 @@ void main() {
 
     group('🔄 Independent Operations', () {
       test('should perform independent updates across ODM instances', () async {
-        final userId = 'update_test_user';
+        const userId = 'update_test_user';
 
         final initialUser = User(
           id: userId,
           name: 'Update Test User',
           email: 'update@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Initial bio',
             avatar: 'initial.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [500],
           createdAt: DateTime.now(),
         );
@@ -187,7 +184,7 @@ void main() {
             .patch(
               ($) => [
                 $.name('Main Updated User'),
-                $.rating.increment(1.0),
+                $.rating.increment(1),
                 $.isPremium(true),
               ],
             );
@@ -228,16 +225,15 @@ void main() {
             name: 'Query User 1',
             email: 'query1@test.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query test 1',
               avatar: 'query1.jpg',
               socialLinks: {},
               interests: ['testing'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -245,15 +241,14 @@ void main() {
             name: 'Query User 2',
             email: 'query2@test.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query test 2',
               avatar: 'query2.jpg',
               socialLinks: {},
               interests: ['testing'],
               followers: 200,
             ),
-            rating: 4.0,
-            isActive: false,
+            rating: 4,
             isPremium: true,
             createdAt: DateTime.now(),
           ),
@@ -292,16 +287,15 @@ void main() {
           name: 'Multi Collection User',
           email: 'multi@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Multi collection test',
             avatar: 'multi.jpg',
             socialLinks: {},
             interests: ['multi'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -358,16 +352,15 @@ void main() {
           name: 'Subcollection User',
           email: 'subcol@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Subcollection test',
             avatar: 'subcol.jpg',
             socialLinks: {},
             interests: ['subcol'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -411,23 +404,22 @@ void main() {
       test(
         'should handle independent transactions across ODM instances',
         () async {
-          final userId = 'tx_independence_user';
+          const userId = 'tx_independence_user';
 
           final initialUser = User(
             id: userId,
             name: 'TX Independence User',
             email: 'txindep@test.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Transaction independence test',
               avatar: 'txindep.jpg',
               socialLinks: {},
               interests: ['tx'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             scores: [1000],
             createdAt: DateTime.now(),
           );
@@ -443,7 +435,7 @@ void main() {
               tx
                   .users(userId)
                   .patch(
-                    ($) => [$.name('Main TX User'), $.rating.increment(1.0)],
+                    ($) => [$.name('Main TX User'), $.rating.increment(1)],
                   );
             }),
             analyticsODM.runTransaction((tx) async {
@@ -482,7 +474,7 @@ void main() {
           name: 'Real World User',
           email: 'realworld@test.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Real world test user',
             avatar: 'realworld.jpg',
             socialLinks: {'github': 'realworld'},

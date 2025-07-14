@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔍 Debug Transaction Tests', () {
@@ -24,16 +24,15 @@ void main() {
           name: 'Debug User 1',
           email: 'debug1@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Debug User 1',
             avatar: 'debug1.jpg',
             socialLinks: {},
             interests: ['debug'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -42,16 +41,15 @@ void main() {
           name: 'Debug User 2',
           email: 'debug2@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Debug User 2',
             avatar: 'debug2.jpg',
             socialLinks: {},
             interests: ['debug'],
             followers: 200,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 

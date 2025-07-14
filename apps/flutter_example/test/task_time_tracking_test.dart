@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/task.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('⏱️ Task Time Tracking Tests', () {
@@ -85,7 +85,7 @@ void main() {
         
         // Verify the actual duration is less than the total elapsed time
         final totalElapsed = retrieved.completedAt!.difference(retrieved.startedAt!);
-        expect(retrieved.actualDuration!, lessThan(totalElapsed));
+        expect(retrieved.actualDuration, lessThan(totalElapsed));
       });
 
       test('should calculate work-in-progress duration for ongoing tasks', () async {
@@ -98,12 +98,9 @@ void main() {
           title: 'Work in Progress Task',
           description: 'Currently being worked on',
           estimatedDuration: const Duration(hours: 2),
-          actualDuration: null, // Not completed yet
-          isCompleted: false,
           priority: 1,
           createdAt: createdTime,
           startedAt: startTime,
-          completedAt: null, // Still in progress
           updatedAt: currentTime,
         );
 
@@ -150,15 +147,15 @@ void main() {
         ];
 
         for (final testCase in testCases) {
-          final startTime = DateTime.now().subtract(testCase['actual'] as Duration);
+          final startTime = DateTime.now().subtract(testCase['actual']! as Duration);
           final endTime = DateTime.now();
 
           final task = Task(
-            id: testCase['id'] as String,
-            title: testCase['title'] as String,
-            description: testCase['description'] as String,
-            estimatedDuration: testCase['estimated'] as Duration,
-            actualDuration: testCase['actual'] as Duration,
+            id: testCase['id']! as String,
+            title: testCase['title']! as String,
+            description: testCase['description']! as String,
+            estimatedDuration: testCase['estimated']! as Duration,
+            actualDuration: testCase['actual']! as Duration,
             isCompleted: true,
             priority: 1,
             createdAt: startTime.subtract(const Duration(hours: 1)),
@@ -196,7 +193,7 @@ void main() {
       });
 
       test('should calculate estimation accuracy metrics', () async {
-        final baseDuration = const Duration(hours: 2);
+        const baseDuration = Duration(hours: 2);
         final accuracyTestTasks = [
           {
             'id': 'perfect_estimate',
@@ -217,11 +214,11 @@ void main() {
 
         for (final taskData in accuracyTestTasks) {
           final task = Task(
-            id: taskData['id'] as String,
+            id: taskData['id']! as String,
             title: 'Estimation Test',
             description: 'Testing estimation accuracy',
-            estimatedDuration: taskData['estimated'] as Duration,
-            actualDuration: taskData['actual'] as Duration,
+            estimatedDuration: taskData['estimated']! as Duration,
+            actualDuration: taskData['actual']! as Duration,
             isCompleted: true,
             priority: 1,
             createdAt: DateTime.now(),
@@ -245,13 +242,10 @@ void main() {
           switch (task.id) {
             case 'perfect_estimate':
               expect(accuracy, equals(100.0));
-              break;
             case 'close_estimate':
               expect(accuracy, greaterThan(90.0)); // ~91.7%
-              break;
             case 'poor_estimate':
               expect(accuracy, lessThan(50.0)); // Actually 0% (100% over)
-              break;
           }
         }
       });
@@ -266,17 +260,13 @@ void main() {
         final completeTime = DateTime.now().subtract(const Duration(hours: 2));
 
         // Initial task creation
-        var task = Task(
+        final task = Task(
           id: 'lifecycle_task',
           title: 'Lifecycle Tracking Task',
           description: 'Tracking complete task lifecycle',
           estimatedDuration: const Duration(hours: 8),
-          actualDuration: null,
-          isCompleted: false,
           priority: 2,
           createdAt: createdTime,
-          startedAt: null,
-          completedAt: null,
           updatedAt: createdTime,
         );
 
@@ -325,19 +315,17 @@ void main() {
         // Verify total elapsed time vs working time
         final totalElapsed = finalTask.completedAt!.difference(finalTask.startedAt!);
         expect(totalElapsed.inHours, equals(30)); // ~1.25 days
-        expect(finalTask.actualDuration!, lessThan(totalElapsed));
+        expect(finalTask.actualDuration, lessThan(totalElapsed));
       });
 
       test('should handle task reopening and completion cycles', () async {
         final initialTime = DateTime.now().subtract(const Duration(days: 3));
         
-        var task = Task(
+        final task = Task(
           id: 'reopen_task',
           title: 'Reopenable Task',
           description: 'Task that can be reopened',
           estimatedDuration: const Duration(hours: 4),
-          actualDuration: null,
-          isCompleted: false,
           priority: 1,
           createdAt: initialTime,
         );
@@ -388,9 +376,9 @@ void main() {
               updatedAt: secondComplete,
             ));
 
-        final final_task = await odm.tasks(task.id).get();
-        expect(final_task!.isCompleted, isTrue);
-        expect(final_task.actualDuration!.inHours, equals(5)); // 3 + 2 hours
+        final finalTask = await odm.tasks(task.id).get();
+        expect(finalTask!.isCompleted, isTrue);
+        expect(finalTask.actualDuration!.inHours, equals(5)); // 3 + 2 hours
       });
     });
 
@@ -451,7 +439,7 @@ void main() {
 
         expect(retrieved, isNotNull);
         expect(retrieved!.actualDuration!.inMilliseconds, equals(500));
-        expect(retrieved.actualDuration!, lessThan(retrieved.estimatedDuration));
+        expect(retrieved.actualDuration, lessThan(retrieved.estimatedDuration));
       });
 
       test('should handle very long duration tasks', () async {
@@ -477,7 +465,7 @@ void main() {
 
         expect(retrieved, isNotNull);
         expect(retrieved!.actualDuration!.inDays, equals(365));
-        expect(retrieved.actualDuration!, greaterThan(retrieved.estimatedDuration));
+        expect(retrieved.actualDuration, greaterThan(retrieved.estimatedDuration));
         
         // Verify the duration is approximately a year
         expect(retrieved.actualDuration!.inDays, greaterThanOrEqualTo(364));
@@ -493,7 +481,6 @@ void main() {
           title: 'Null Duration Task',
           description: 'Task with timestamps but null actual duration',
           estimatedDuration: const Duration(hours: 2),
-          actualDuration: null, // Null despite being completed
           isCompleted: true,
           priority: 1,
           createdAt: startTime.subtract(const Duration(hours: 1)),
@@ -518,7 +505,7 @@ void main() {
 
     group('📈 Time Tracking Analytics', () {
       test('should analyze task completion patterns over time', () async {
-        final baseTime = DateTime(2024, 1, 1);
+        final baseTime = DateTime(2024);
         
         // Create tasks completed over different time periods
         final tasks = List.generate(10, (index) {

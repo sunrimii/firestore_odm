@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/shared_post.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🏢 Multi-Collection Features', () {
@@ -82,16 +82,15 @@ void main() {
           name: 'Subcollection User',
           email: 'subcollection@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing subcollections',
             avatar: 'subcollection.jpg',
             socialLinks: {},
             interests: ['subcollections'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -131,7 +130,7 @@ void main() {
           name: 'Sharing User',
           email: 'sharing@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Loves sharing',
             avatar: 'sharing.jpg',
             socialLinks: {},
@@ -181,7 +180,7 @@ void main() {
           name: 'Cross User',
           email: 'cross@example.com',
           age: 32,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Cross collection test',
             avatar: 'cross.jpg',
             socialLinks: {},
@@ -263,8 +262,6 @@ void main() {
               followers: 100 + index * 50,
             ),
             rating: 3.0 + index * 0.5,
-            isActive: false, // Start inactive
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );
@@ -280,7 +277,6 @@ void main() {
             tags: ['bulk'],
             metadata: {},
             likes: index * 2,
-            published: false, // Start unpublished
             createdAt: DateTime.now(),
           ),
         );

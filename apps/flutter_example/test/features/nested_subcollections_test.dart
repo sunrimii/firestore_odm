@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/comment.dart';
+import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🪆 Nested Subcollections Tests', () {
@@ -216,16 +216,15 @@ void main() {
           name: 'Nested User',
           email: 'nested@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User for nested testing',
             avatar: 'nested.jpg',
             socialLinks: {},
             interests: ['nested_testing'],
             followers: 50,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -307,7 +306,7 @@ void main() {
           name: 'Query User',
           email: 'query@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Query testing user',
             avatar: 'query.jpg',
             socialLinks: {},
@@ -422,7 +421,7 @@ void main() {
           name: 'Cross User',
           email: 'cross@example.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Cross-level testing',
             avatar: 'cross.jpg',
             socialLinks: {},
@@ -640,7 +639,7 @@ void main() {
             name: 'Batch User',
             email: 'batch@example.com',
             age: 40,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Batch testing user',
               avatar: 'batch.jpg',
               socialLinks: {},
@@ -683,7 +682,6 @@ void main() {
                     authorId: 'batch_commenter_1',
                     authorName: 'Batch Commenter 1',
                     postId: 'batch_post',
-                    likes: 0,
                     createdAt: DateTime.now(),
                   ),
                 );
@@ -699,7 +697,6 @@ void main() {
                     authorId: 'batch_commenter_2',
                     authorName: 'Batch Commenter 2',
                     postId: 'batch_post',
-                    likes: 0,
                     createdAt: DateTime.now(),
                   ),
                 );

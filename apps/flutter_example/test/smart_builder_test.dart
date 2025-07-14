@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🧠 Smart Builder Value Extraction Tests', () {
@@ -28,7 +28,6 @@ void main() {
           scores: [85, 90],
           rating: 4.5,
           isActive: true,
-          isPremium: false,
           lastLogin: DateTime.now(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -158,7 +157,6 @@ void main() {
         scores: [88],
         rating: 4.2,
         isActive: true,
-        isPremium: false,
         lastLogin: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -230,7 +228,7 @@ void main() {
         age: 40,
         tags: ['mixed'],
         scores: [100],
-        rating: 5.0,
+        rating: 5,
         isActive: true,
         isPremium: true,
         lastLogin: DateTime.now(),

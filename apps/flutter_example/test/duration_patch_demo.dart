@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/task.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🎯 Duration Patch Demo', () {
@@ -21,8 +21,6 @@ void main() {
         title: 'Duration Patch Demo',
         description: 'Demonstrating Duration field patch support',
         estimatedDuration: const Duration(minutes: 30),
-        actualDuration: null,
-        isCompleted: false,
         priority: 1,
         createdAt: DateTime.now(),
       );

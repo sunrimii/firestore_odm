@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('📅 DateTime Query Tests', () {
@@ -18,14 +18,14 @@ void main() {
 
     group('🔍 DateTime Range Queries', () {
       test('should query users by creation date range', () async {
-        final baseDate = DateTime(2024, 1, 1);
+        final baseDate = DateTime(2024);
         final users = [
           User(
             id: 'user_old',
             name: 'Old User',
             email: 'old@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Old user bio',
               avatar: 'avatar1.jpg',
               socialLinks: {},
@@ -38,7 +38,7 @@ void main() {
             name: 'New User',
             email: 'new@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'New user bio',
               avatar: 'avatar2.jpg',
               socialLinks: {},
@@ -51,7 +51,7 @@ void main() {
             name: 'Recent User',
             email: 'recent@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Recent user bio',
               avatar: 'avatar3.jpg',
               socialLinks: {},
@@ -95,8 +95,6 @@ void main() {
             authorId: 'author1',
             tags: ['draft'],
             metadata: {},
-            published: false,
-            publishedAt: null, // Not published
             createdAt: now.subtract(const Duration(days: 5)),
           ),
           Post(
@@ -148,14 +146,14 @@ void main() {
 
     group('📊 DateTime Ordering and Sorting', () {
       test('should order users by last login descending', () async {
-        final baseTime = DateTime(2024, 6, 1, 12, 0, 0);
+        final baseTime = DateTime(2024, 6, 1, 12);
         final users = [
           User(
             id: 'user_a',
             name: 'User A',
             email: 'a@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User A bio',
               avatar: 'a.jpg',
               socialLinks: {},
@@ -169,7 +167,7 @@ void main() {
             name: 'User B',
             email: 'b@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User B bio',
               avatar: 'b.jpg',
               socialLinks: {},
@@ -183,7 +181,7 @@ void main() {
             name: 'User C',
             email: 'c@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User C bio',
               avatar: 'c.jpg',
               socialLinks: {},
@@ -210,7 +208,7 @@ void main() {
       });
 
       test('should order posts by creation date ascending', () async {
-        final baseTime = DateTime(2024, 1, 1);
+        final baseTime = DateTime(2024);
         final posts = [
           Post(
             id: 'post_newest',
@@ -305,7 +303,6 @@ void main() {
               interests: [],
               lastActive: DateTime.now().subtract(const Duration(hours: 3)),
             ),
-            isActive: false,
             lastLogin: DateTime.now().subtract(const Duration(hours: 2)),
             createdAt: DateTime.now().subtract(const Duration(days: 15)),
           ),
@@ -326,8 +323,8 @@ void main() {
       });
 
       test('should query posts by author and date range', () async {
-        final startDate = DateTime(2024, 1, 1);
-        final endDate = DateTime(2024, 2, 1);
+        final startDate = DateTime(2024);
+        final endDate = DateTime(2024, 2);
         
         final posts = [
           Post(
@@ -346,7 +343,7 @@ void main() {
             authorId: 'author1',
             tags: ['test'],
             metadata: {},
-            createdAt: DateTime(2024, 3, 1),
+            createdAt: DateTime(2024, 3),
           ),
           Post(
             id: 'author2_in_range',
@@ -377,7 +374,7 @@ void main() {
 
     group('📈 DateTime Pagination', () {
       test('should paginate users by creation date', () async {
-        final baseDate = DateTime(2024, 1, 1);
+        final baseDate = DateTime(2024);
         final users = List.generate(5, (index) => User(
           id: 'user_$index',
           name: 'User $index',
@@ -430,7 +427,7 @@ void main() {
             name: 'User With Login',
             email: 'with.login@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Has login',
               avatar: 'with.jpg',
               socialLinks: {},
@@ -444,13 +441,12 @@ void main() {
             name: 'User Never Logged',
             email: 'never.logged@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Never logged in',
               avatar: 'never.jpg',
               socialLinks: {},
               interests: [],
             ),
-            lastLogin: null,
             createdAt: DateTime.now(),
           ),
         ];

@@ -1,11 +1,11 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Default ID Fallback Tests', () {
@@ -86,16 +86,15 @@ void main() {
             name: 'Comparison User',
             email: 'comparison@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Testing annotation differences',
               avatar: 'comparison.jpg',
               socialLinks: {},
               interests: ['comparison'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -144,7 +143,7 @@ void main() {
               content: 'Third story by title',
               authorId: 'author_alpha',
               tags: ['test'],
-              createdAt: now.subtract(Duration(days: 1)),
+              createdAt: now.subtract(const Duration(days: 1)),
             ),
             SimpleStory(
               id: 'story_a',
@@ -152,7 +151,7 @@ void main() {
               content: 'First story by title',
               authorId: 'author_beta',
               tags: ['test'],
-              createdAt: now.subtract(Duration(days: 3)),
+              createdAt: now.subtract(const Duration(days: 3)),
             ),
             SimpleStory(
               id: 'story_b',
@@ -160,7 +159,7 @@ void main() {
               content: 'Second story by title',
               authorId: 'author_gamma',
               tags: ['test'],
-              createdAt: now.subtract(Duration(days: 2)),
+              createdAt: now.subtract(const Duration(days: 2)),
             ),
           ];
 
@@ -231,7 +230,7 @@ void main() {
             content: 'This story is a draft',
             authorId: authorId,
             tags: ['draft'],
-            createdAt: now.subtract(Duration(hours: 1)),
+            createdAt: now.subtract(const Duration(hours: 1)),
           ),
           SimpleStory(
             id: 'old_story',
@@ -239,7 +238,7 @@ void main() {
             content: 'This story was created long ago',
             authorId: authorId,
             tags: ['old', 'published'],
-            createdAt: now.subtract(Duration(days: 30)),
+            createdAt: now.subtract(const Duration(days: 30)),
           ),
         ];
 
@@ -300,7 +299,7 @@ void main() {
           name: 'Mixed Test User',
           email: 'mixed@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing mixed scenarios',
             avatar: 'mixed.jpg',
             socialLinks: {},
@@ -388,7 +387,7 @@ void main() {
           name: 'Subcollection Mixed User',
           email: 'subcol@example.com',
           age: 32,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing subcollections with mixed annotations',
             avatar: 'subcol.jpg',
             socialLinks: {},
@@ -397,7 +396,6 @@ void main() {
           ),
           rating: 4.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -456,7 +454,7 @@ void main() {
             name: 'Detection Test',
             email: 'detection@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Testing ID detection',
               avatar: 'detection.jpg',
               socialLinks: {},
@@ -465,7 +463,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 

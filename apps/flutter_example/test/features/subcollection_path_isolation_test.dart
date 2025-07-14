@@ -1,9 +1,9 @@
-import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Subcollection Path Isolation Bug Test', () {
@@ -25,7 +25,7 @@ void main() {
       final users2Doc = odm.users2('test_user');
 
       // CRITICAL TEST 1: users should have posts subcollection
-      bool usersHasPosts = false;
+      var usersHasPosts = false;
       try {
         final usersPosts = usersDoc.posts;
         usersHasPosts = true;
@@ -42,7 +42,7 @@ void main() {
       );
 
       // CRITICAL TEST 2: users2 should NOT have posts subcollection
-      bool users2HasPosts = false;
+      var users2HasPosts = false;
       dynamic users2Posts;
       try {
         // This should fail because Users2Document doesn't have posts extension
@@ -70,7 +70,7 @@ void main() {
       // Test 1: Direct posts collection should have comments
       final directPost = odm.posts('post1');
 
-      bool directPostHasComments = false;
+      var directPostHasComments = false;
       try {
         final directPostComments = directPost.comments;
         directPostHasComments = true;
@@ -88,7 +88,7 @@ void main() {
       // Test 2: User's posts should also have comments (nested path)
       final userPost = odm.users('user1').posts('post1');
 
-      bool userPostHasComments = false;
+      var userPostHasComments = false;
       try {
         final userPostComments = userPost.comments;
         userPostHasComments = true;
@@ -119,7 +119,7 @@ void main() {
       // Test that extensions are applied correctly based on document type
 
       // 1. UsersDocument should have posts extension
-      bool usersHasPostsExtension = false;
+      var usersHasPostsExtension = false;
       try {
         final _ = usersDoc.posts;
         usersHasPostsExtension = true;
@@ -128,7 +128,7 @@ void main() {
       }
 
       // 2. PostsDocument should have comments extension
-      bool postsHasCommentsExtension = false;
+      var postsHasCommentsExtension = false;
       try {
         final _ = postsDoc.comments;
         postsHasCommentsExtension = true;
@@ -137,7 +137,7 @@ void main() {
       }
 
       // 3. Users2Document should NOT have posts extension
-      bool users2HasPostsExtension = false;
+      var users2HasPostsExtension = false;
       try {
         final _ = (users2Doc as dynamic).posts;
         users2HasPostsExtension = true;
@@ -220,8 +220,8 @@ void main() {
         totalTests++;
         try {
           // The critical test: users can access posts, users2 cannot
-          bool userCanAccessPosts = false;
-          bool user2CanAccessPosts = false;
+          var userCanAccessPosts = false;
+          var user2CanAccessPosts = false;
 
           try {
             final _ = user.posts;
@@ -291,7 +291,7 @@ void main() {
       );
 
       // The core bug test: users2 cannot access posts
-      bool users2FailedCorrectly = false;
+      var users2FailedCorrectly = false;
       try {
         final _ = (users2_1 as dynamic).posts;
       } catch (e) {
@@ -307,7 +307,7 @@ void main() {
       );
 
       // Verify users CAN access posts
-      bool usersHasPosts = false;
+      var usersHasPosts = false;
       try {
         final userPosts = users1.posts;
         usersHasPosts = (userPosts != null);

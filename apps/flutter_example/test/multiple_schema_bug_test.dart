@@ -1,12 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/comment.dart';
 import 'package:flutter_example/models/profile.dart';
-import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/secondary_schema.dart';
+import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🐛 Multiple Schema Bug Reproduction Tests', () {
@@ -37,16 +36,15 @@ void main() {
             name: 'Conflict User',
             email: 'conflict@test.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Testing conflicts',
               avatar: 'conflict.jpg',
               socialLinks: {},
               interests: ['testing'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -120,7 +118,7 @@ void main() {
           scores: [100, 200, 300],
           settings: {'theme': 'dark', 'lang': 'en'},
           metadata: {'type': 'test', 'version': 1},
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing converter conflicts',
             avatar: 'converter.jpg',
             socialLinks: {'github': 'convertertest'},
@@ -172,7 +170,7 @@ void main() {
             name: 'Subcol Conflict User',
             email: 'subcolconflict@test.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Testing subcollection conflicts',
               avatar: 'subcolconflict.jpg',
               socialLinks: {},
@@ -181,7 +179,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -241,14 +238,14 @@ void main() {
           name: 'TX Conflict User',
           email: 'txconflict@test.com',
           age: 32,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing transaction conflicts',
             avatar: 'txconflict.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 180,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
           isPremium: true,
           scores: [1000],
@@ -341,7 +338,7 @@ void main() {
                 .where(
                   ($) => $
                       .isActive(isEqualTo: true)
-                      .and($.rating(isGreaterThan: 3.0)),
+                      .and($.rating(isGreaterThan: 3)),
                 )
                 .orderBy(($) => ($.age(),))
                 .get(),

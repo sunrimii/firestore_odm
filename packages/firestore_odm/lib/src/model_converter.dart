@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firestore_odm/src/firestore_odm.dart';
 
 typedef JsonDeserializer<T> = T Function(Map<String, dynamic>);
 typedef JsonSerializer<T> = Map<String, dynamic> Function(T);

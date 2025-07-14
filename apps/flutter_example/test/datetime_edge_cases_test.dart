@@ -18,15 +18,15 @@ void main() {
 
     group('🌍 Timezone and UTC Handling', () {
       test('should handle UTC vs local DateTime consistently', () async {
-        final utcTime = DateTime.utc(2024, 6, 15, 12, 0, 0);
-        final localTime = DateTime(2024, 6, 15, 12, 0, 0);
+        final utcTime = DateTime.utc(2024, 6, 15, 12);
+        final localTime = DateTime(2024, 6, 15, 12);
 
         final userUtc = User(
           id: 'user_utc',
           name: 'UTC User',
           email: 'utc@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'UTC user',
             avatar: 'utc.jpg',
             socialLinks: {},
@@ -41,7 +41,7 @@ void main() {
           name: 'Local User',
           email: 'local@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Local user',
             avatar: 'local.jpg',
             socialLinks: {},
@@ -70,7 +70,7 @@ void main() {
       });
 
       test('should handle timezone conversions correctly', () async {
-        final utcTime = DateTime.utc(2024, 1, 1, 12, 0, 0);
+        final utcTime = DateTime.utc(2024, 1, 1, 12);
         final localEquivalent = utcTime.toLocal();
 
         final user = User(
@@ -78,7 +78,7 @@ void main() {
           name: 'Timezone User',
           email: 'timezone@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Timezone test',
             avatar: 'tz.jpg',
             socialLinks: {},
@@ -114,7 +114,7 @@ void main() {
           name: 'Precise User',
           email: 'precise@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Precision test',
             avatar: 'precise.jpg',
             socialLinks: {},
@@ -145,7 +145,7 @@ void main() {
           name: 'Microsecond User',
           email: 'micro@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Microsecond test',
             avatar: 'micro.jpg',
             socialLinks: {},
@@ -169,15 +169,15 @@ void main() {
 
       test('should handle date boundaries correctly', () async {
         final dateEdgeCases = [
-          DateTime(2000, 1, 1), // Y2K
+          DateTime(2000), // Y2K
           DateTime(2024, 2, 29), // Leap year day
           DateTime(2023, 2, 28), // Non-leap year Feb 28
           DateTime(2024, 12, 31, 23, 59, 59, 999), // Year end
-          DateTime(1970, 1, 1), // Unix epoch
+          DateTime(1970), // Unix epoch
           DateTime(2038, 1, 19, 3, 14, 7), // Year 2038 problem
         ];
 
-        for (int i = 0; i < dateEdgeCases.length; i++) {
+        for (var i = 0; i < dateEdgeCases.length; i++) {
           final date = dateEdgeCases[i];
           final user = User(
             id: 'edge_case_$i',
@@ -204,14 +204,14 @@ void main() {
 
     group('🎭 DateTime Extreme Values', () {
       test('should handle very old dates', () async {
-        final ancientDate = DateTime(1900, 1, 1);
+        final ancientDate = DateTime(1900);
 
         final user = User(
           id: 'ancient_user',
           name: 'Ancient User',
           email: 'ancient@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Very old',
             avatar: 'ancient.jpg',
             socialLinks: {},
@@ -235,7 +235,7 @@ void main() {
           name: 'Future User',
           email: 'future@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'From the future',
             avatar: 'future.jpg',
             socialLinks: {},
@@ -263,7 +263,7 @@ void main() {
             name: 'Now User 1',
             email: 'now1@example.com',
             age: 25,
-            profile: Profile(bio: 'Now 1', avatar: 'now1.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'Now 1', avatar: 'now1.jpg', socialLinks: {}, interests: []),
             createdAt: now1,
           ),
           User(
@@ -271,7 +271,7 @@ void main() {
             name: 'Now User 2',
             email: 'now2@example.com',
             age: 25,
-            profile: Profile(bio: 'Now 2', avatar: 'now2.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'Now 2', avatar: 'now2.jpg', socialLinks: {}, interests: []),
             createdAt: now2,
           ),
           User(
@@ -279,7 +279,7 @@ void main() {
             name: 'Now UTC User',
             email: 'nowutc@example.com',
             age: 25,
-            profile: Profile(bio: 'Now UTC', avatar: 'nowutc.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'Now UTC', avatar: 'nowutc.jpg', socialLinks: {}, interests: []),
             createdAt: nowUtc,
           ),
         ];
@@ -298,7 +298,7 @@ void main() {
           odm.users('now_utc').get(),
         ]);
 
-        for (int i = 0; i < retrievedUsers.length - 1; i++) {
+        for (var i = 0; i < retrievedUsers.length - 1; i++) {
           final diff = retrievedUsers[i]!.createdAt!
               .difference(retrievedUsers[i + 1]!.createdAt!)
               .abs();
@@ -313,11 +313,11 @@ void main() {
           DateTime.fromMillisecondsSinceEpoch(0), // Unix epoch
           DateTime.fromMillisecondsSinceEpoch(1), // First millisecond
           DateTime.fromMillisecondsSinceEpoch(-1), // Before epoch (if supported)
-          DateTime(2024, 1, 1, 0, 0, 0, 0), // Exact midnight
+          DateTime(2024, 1, 1), // Exact midnight
           DateTime(2024, 1, 1, 23, 59, 59, 999), // Last millisecond of day
         ];
 
-        for (int i = 0; i < edgeDates.length; i++) {
+        for (var i = 0; i < edgeDates.length; i++) {
           final date = edgeDates[i];
           final post = Post(
             id: 'edge_post_$i',
@@ -348,13 +348,13 @@ void main() {
 
       test('should handle DateTime with zero components', () async {
         final zeroComponentDates = [
-          DateTime(2024, 1, 1, 0, 0, 0, 0), // All time components zero
-          DateTime(2024, 1, 1, 12, 0, 0, 0), // Minutes, seconds, ms zero
-          DateTime(2024, 1, 1, 12, 30, 0, 0), // Seconds, ms zero
-          DateTime(2024, 1, 1, 12, 30, 45, 0), // Only ms zero
+          DateTime(2024, 1, 1), // All time components zero
+          DateTime(2024, 1, 1, 12), // Minutes, seconds, ms zero
+          DateTime(2024, 1, 1, 12, 30), // Seconds, ms zero
+          DateTime(2024, 1, 1, 12, 30, 45), // Only ms zero
         ];
 
-        for (int i = 0; i < zeroComponentDates.length; i++) {
+        for (var i = 0; i < zeroComponentDates.length; i++) {
           final date = zeroComponentDates[i];
           final user = User(
             id: 'zero_component_$i',
@@ -390,15 +390,13 @@ void main() {
           name: 'Null Transition User',
           email: 'null.transition@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing null transitions',
             avatar: 'null.jpg',
             socialLinks: {},
             interests: [],
           ),
           createdAt: DateTime.now(),
-          lastLogin: null, // Start with null
-          updatedAt: null,
         );
 
         // Initial state: lastLogin is null
@@ -436,16 +434,13 @@ void main() {
           name: 'Multi Null User',
           email: 'multi.null@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'All dates null except required',
             avatar: 'multinull.jpg',
             socialLinks: {},
             interests: [],
-            lastActive: null,
           ),
           createdAt: DateTime.now(), // Required field
-          lastLogin: null,
-          updatedAt: null,
         );
 
         await odm.users(user.id).update(user);
@@ -471,7 +466,7 @@ void main() {
             name: 'Base Time',
             email: 'base@example.com',
             age: 25,
-            profile: Profile(bio: 'Base', avatar: 'base.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'Base', avatar: 'base.jpg', socialLinks: {}, interests: []),
             createdAt: baseTime,
           ),
           User(
@@ -479,7 +474,7 @@ void main() {
             name: 'Time With Ms',
             email: 'ms@example.com',
             age: 25,
-            profile: Profile(bio: 'With Ms', avatar: 'ms.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'With Ms', avatar: 'ms.jpg', socialLinks: {}, interests: []),
             createdAt: timeWithMs,
           ),
           User(
@@ -487,7 +482,7 @@ void main() {
             name: 'Time With Micros',
             email: 'micros@example.com',
             age: 25,
-            profile: Profile(bio: 'With Micros', avatar: 'micros.jpg', socialLinks: {}, interests: []),
+            profile: const Profile(bio: 'With Micros', avatar: 'micros.jpg', socialLinks: {}, interests: []),
             createdAt: timeWithMicros,
           ),
         ];
@@ -516,18 +511,18 @@ void main() {
       });
 
       test('should handle DateTime arithmetic edge cases', () async {
-        final baseTime = DateTime(2024, 1, 1, 12, 0, 0);
+        final baseTime = DateTime(2024, 1, 1, 12);
 
         // Test duration arithmetic that crosses boundaries
         final endOfYear = DateTime(2023, 12, 31, 23, 59, 59);
-        final startOfYear = DateTime(2024, 1, 1, 0, 0, 0);
+        final startOfYear = DateTime(2024, 1);
         final yearBoundaryDiff = startOfYear.difference(endOfYear);
 
         expect(yearBoundaryDiff.inSeconds, equals(1));
 
         // Test leap year handling
         final beforeLeap = DateTime(2024, 2, 28, 23, 59, 59);
-        final afterLeap = DateTime(2024, 3, 1, 0, 0, 0);
+        final afterLeap = DateTime(2024, 3);
         final leapDiff = afterLeap.difference(beforeLeap);
 
         expect(leapDiff.inDays, equals(1));
@@ -538,7 +533,7 @@ void main() {
           name: 'Arithmetic User',
           email: 'arithmetic@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing arithmetic',
             avatar: 'arithmetic.jpg',
             socialLinks: {},

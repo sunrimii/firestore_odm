@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Iterable Support Tests', () {
@@ -17,15 +17,13 @@ void main() {
 
     test('should support Set with addAll and removeAll', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'iterable_set_user',
         name: 'Iterable Set User',
         email: 'iterable.set@example.com',
         age: 30,
         tags: ['initial', 'existing'],
         scores: [10, 20, 30],
-        settings: {},
-        metadata: {},
         profile: Profile(
           bio: 'Test bio',
           avatar: 'avatar.jpg',
@@ -78,15 +76,13 @@ void main() {
 
     test('should support custom Iterable with addAll and removeAll', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'iterable_custom_user',
         name: 'Iterable Custom User',
         email: 'iterable.custom@example.com',
         age: 25,
         tags: ['start'],
         scores: [100],
-        settings: {},
-        metadata: {},
         profile: Profile(
           bio: 'Test bio',
           avatar: 'avatar.jpg',
@@ -146,15 +142,13 @@ void main() {
 
     test('should support mixed Iterable types in same operation', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'iterable_mixed_user',
         name: 'Iterable Mixed User',
         email: 'iterable.mixed@example.com',
         age: 35,
         tags: ['base'],
         scores: [1],
-        settings: {},
-        metadata: {},
         profile: Profile(
           bio: 'Test bio',
           avatar: 'avatar.jpg',
@@ -163,7 +157,7 @@ void main() {
           followers: 75,
         ),
         isActive: true,
-        rating: 4.0,
+        rating: 4,
       );
 
       await odm.users.insert(user);
@@ -177,7 +171,7 @@ void main() {
         $.profile.interests.addAll(['music', 'sports'].where((i) => i.length > 4)), // Custom Iterable
       ]);
 
-      var result = await odm.users('iterable_mixed_user').get();
+      final result = await odm.users('iterable_mixed_user').get();
       print('📊 After mixed Iterable types:');
       print('   Tags: ${result!.tags}');
       print('   Scores: ${result.scores}');

@@ -214,7 +214,7 @@ class FilterGenerator {
   }) {
     if (type is TypeParameterType) {
       return TypeDefinition(
-        type: TypeReference((b) => b..symbol = '\$${type.element3!.name3}'),
+        type: TypeReference((b) => b..symbol = '\$${type.element3.name3}'),
         instance: refer('_builderFunc${type.element3.name3!.camelCase()}'),
         // namedArguments: {
         //   'toJson': ConverterGenerator.getToJsonEnsured(

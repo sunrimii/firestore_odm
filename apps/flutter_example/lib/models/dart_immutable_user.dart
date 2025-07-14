@@ -6,6 +6,23 @@ part 'dart_immutable_user.g.dart';
 @JsonSerializable()
 @firestoreOdm
 class DartImmutableUser {
+
+  const DartImmutableUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.age,
+    this.isPremium = false,
+    this.rating = 0.0,
+    this.skills = const [],
+    this.metadata = const {},
+    this.createdAt,
+    this.internalNotes,
+    this.isActive = true,
+  });
+
+  factory DartImmutableUser.fromJson(Map<String, dynamic> json) =>
+      _$DartImmutableUserFromJson(json);
   @DocumentIdField()
   final String id;
 
@@ -35,20 +52,6 @@ class DartImmutableUser {
 
   final bool isActive;
 
-  const DartImmutableUser({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.age,
-    this.isPremium = false,
-    this.rating = 0.0,
-    this.skills = const [],
-    this.metadata = const {},
-    this.createdAt,
-    this.internalNotes,
-    this.isActive = true,
-  });
-
   // Copy with method for immutability
   DartImmutableUser copyWith({
     String? id,
@@ -77,9 +80,6 @@ class DartImmutableUser {
       isActive: isActive ?? this.isActive,
     );
   }
-
-  factory DartImmutableUser.fromJson(Map<String, dynamic> json) =>
-      _$DartImmutableUserFromJson(json);
 
   Map<String, dynamic> toJson() => _$DartImmutableUserToJson(this);
 

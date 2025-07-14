@@ -12,12 +12,11 @@ abstract class Task with _$Task {
     required String title,
     required String description,
     required Duration estimatedDuration,
-    Duration? actualDuration,
+    required DateTime createdAt, Duration? actualDuration,
     @Default(false) bool isCompleted,
     @Default(0) int priority,
     DateTime? startedAt,
     DateTime? completedAt,
-    required DateTime createdAt,
     DateTime? updatedAt,
   }) = _Task;
 

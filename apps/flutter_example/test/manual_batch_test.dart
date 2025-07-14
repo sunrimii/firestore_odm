@@ -1,11 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-
-import 'package:flutter_example/test_schema.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Manual Batch Operations Test', () {
@@ -14,7 +13,7 @@ void main() {
 
     setUp(() {
       firestore = FakeFirebaseFirestore();
-      odm = FirestoreODM(TestSchema(), firestore: firestore);
+      odm = FirestoreODM(const TestSchema(), firestore: firestore);
     });
 
     test('should support manual batch creation and commit', () async {
@@ -27,7 +26,7 @@ void main() {
         name: 'Manual User 1',
         email: 'manual1@example.com',
         age: 25,
-        profile: Profile(
+        profile: const Profile(
           bio: 'Manual batch test user 1',
           avatar: 'avatar1.jpg',
           socialLinks: {'twitter': '@manual1'},
@@ -36,7 +35,6 @@ void main() {
         ),
         rating: 4.5,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -45,7 +43,7 @@ void main() {
         name: 'Manual User 2',
         email: 'manual2@example.com',
         age: 30,
-        profile: Profile(
+        profile: const Profile(
           bio: 'Manual batch test user 2',
           avatar: 'avatar2.jpg',
           socialLinks: {'github': '@manual2'},
@@ -113,7 +111,7 @@ void main() {
         name: 'Manual Subcol User',
         email: 'subcol@example.com',
         age: 28,
-        profile: Profile(
+        profile: const Profile(
           bio: 'Manual subcollection test',
           avatar: 'subcol.jpg',
           socialLinks: {},
@@ -122,7 +120,6 @@ void main() {
         ),
         rating: 4.2,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -192,7 +189,7 @@ void main() {
         name: 'Manual Patch User',
         email: 'patch@example.com',
         age: 32,
-        profile: Profile(
+        profile: const Profile(
           bio: 'Original bio',
           avatar: 'patch.jpg',
           socialLinks: {'twitter': '@original'},
@@ -201,7 +198,6 @@ void main() {
         ),
         rating: 3.8,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -242,16 +238,15 @@ void main() {
         name: 'Manual Approach',
         email: 'manual@approach.com',
         age: 25,
-        profile: Profile(
+        profile: const Profile(
           bio: 'Manual approach test',
           avatar: 'manual.jpg',
           socialLinks: {},
           interests: ['manual'],
           followers: 50,
         ),
-        rating: 4.0,
+        rating: 4,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
       manualBatch.users.insert(user1);
@@ -263,7 +258,7 @@ void main() {
         name: 'RunBatch Approach',
         email: 'runbatch@approach.com',
         age: 27,
-        profile: Profile(
+        profile: const Profile(
           bio: 'RunBatch approach test',
           avatar: 'runbatch.jpg',
           socialLinks: {},

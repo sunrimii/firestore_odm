@@ -1,9 +1,9 @@
-import 'package:test/test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Batch Extensions Test', () {
@@ -28,16 +28,14 @@ void main() {
           name: 'Test User',
           email: 'test@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Test bio',
             avatar: 'test.jpg',
             socialLinks: {},
             interests: ['testing'],
-            followers: 0,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
         

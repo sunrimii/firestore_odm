@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/manual_user3.dart';
@@ -18,7 +17,7 @@ void main() {
 
     group('📝 Basic CRUD Operations', () {
       test('should create, read, update, delete in Book collection', () async {
-        final user = ManualUser3<ManualUser3Profile<Book>>(
+        const user = ManualUser3<ManualUser3Profile<Book>>(
           id: 'book_user_001',
           name: 'Book Lover',
           customField: ManualUser3Profile<Book>(
@@ -54,7 +53,7 @@ void main() {
             tags: [...user.customField.tags, 'updated'],
             customList: [
               ...user.customField.customList,
-              Book(title: 'Foundation', author: 'Isaac Asimov'),
+              const Book(title: 'Foundation', author: 'Isaac Asimov'),
             ],
           ),
         ));
@@ -74,13 +73,12 @@ void main() {
       });
 
       test('should create, read, update, delete in String collection', () async {
-        final user = ManualUser3<ManualUser3Profile<String>>(
+        const user = ManualUser3<ManualUser3Profile<String>>(
           id: 'string_user_001',
           name: 'String Collector',
           customField: ManualUser3Profile<String>(
             email: 'strings@test.com',
             age: 25,
-            isPremium: false,
             rating: 3.5,
             tags: ['collector', 'strings'],
             preferences: {'type': 'mixed', 'format': 'array'},
@@ -124,7 +122,7 @@ void main() {
       setUp(() async {
         // Setup test data for queries
         final bookUsers = [
-          ManualUser3<ManualUser3Profile<Book>>(
+          const ManualUser3<ManualUser3Profile<Book>>(
             id: 'book_query_001',
             name: 'Alice Book Fan',
             customField: ManualUser3Profile<Book>(
@@ -140,13 +138,12 @@ void main() {
               ],
             ),
           ),
-          ManualUser3<ManualUser3Profile<Book>>(
+          const ManualUser3<ManualUser3Profile<Book>>(
             id: 'book_query_002',
             name: 'Bob Book Reader',
             customField: ManualUser3Profile<Book>(
               email: 'bob@books.com',
               age: 35,
-              isPremium: false,
               rating: 3.8,
               tags: ['casual', 'non-fiction'],
               preferences: {'genre': 'history'},
@@ -156,7 +153,7 @@ void main() {
         ];
 
         final stringUsers = [
-          ManualUser3<ManualUser3Profile<String>>(
+          const ManualUser3<ManualUser3Profile<String>>(
             id: 'string_query_001',
             name: 'Charlie String Master',
             customField: ManualUser3Profile<String>(
@@ -248,14 +245,14 @@ void main() {
       test('should stream changes in Book collection via queries', () async {
         // Add initial user
         await odm.manualUsers3('stream_book_001').update(
-          ManualUser3<ManualUser3Profile<Book>>(
+          const ManualUser3<ManualUser3Profile<Book>>(
             id: 'stream_book_001',
             name: 'Stream Book User',
             customField: ManualUser3Profile<Book>(
               email: 'stream@books.com',
               age: 25,
               isPremium: true,
-              rating: 4.0,
+              rating: 4,
               tags: ['streaming'],
               preferences: {'realtime': 'true'},
               customList: [Book(title: 'Real-time Book', author: 'Stream Author')],
@@ -291,16 +288,14 @@ void main() {
       test('should stream individual documents', () async {
         // Create initial document
         await odm.manualUsers3Strings('stream_string_doc').update(
-          ManualUser3<ManualUser3Profile<String>>(
+          const ManualUser3<ManualUser3Profile<String>>(
             id: 'stream_string_doc',
             name: 'Stream String Doc',
             customField: ManualUser3Profile<String>(
               email: 'stream@strings.com',
               age: 30,
-              isPremium: false,
-              rating: 3.0,
+              rating: 3,
               tags: ['stream'],
-              preferences: {},
               customList: ['initial'],
             ),
           ),
@@ -310,11 +305,9 @@ void main() {
         late StreamSubscription subscription;
 
         // Stream single document
-        subscription = odm.manualUsers3Strings('stream_string_doc').stream.listen((user) {
-          streamResults.add(user);
-        });
+        subscription = odm.manualUsers3Strings('stream_string_doc').stream.listen(streamResults.add);
 
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
 
         // Update document
         await odm.manualUsers3Strings('stream_string_doc').modify((user) => user.copyWith(
@@ -323,7 +316,7 @@ void main() {
           ),
         ));
 
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
 
         await subscription.cancel();
 
@@ -339,14 +332,13 @@ void main() {
       test('should perform atomic transactions across both collections', () async {
         // Setup initial data
         await odm.manualUsers3('trans_book_001').update(
-          ManualUser3<ManualUser3Profile<Book>>(
+          const ManualUser3<ManualUser3Profile<Book>>(
             id: 'trans_book_001',
             name: 'Transaction Book User',
             customField: ManualUser3Profile<Book>(
               email: 'trans@books.com',
               age: 25,
-              isPremium: false,
-              rating: 3.0,
+              rating: 3,
               tags: ['transaction'],
               preferences: {'credits': '100'},
               customList: [Book(title: 'Before Transaction', author: 'Before Author')],
@@ -355,13 +347,12 @@ void main() {
         );
 
         await odm.manualUsers3Strings('trans_string_001').update(
-          ManualUser3<ManualUser3Profile<String>>(
+          const ManualUser3<ManualUser3Profile<String>>(
             id: 'trans_string_001',
             name: 'Transaction String User',
             customField: ManualUser3Profile<String>(
               email: 'trans@strings.com',
               age: 30,
-              isPremium: false,
               rating: 3.5,
               tags: ['transaction'],
               preferences: {'tokens': '50'},
@@ -413,7 +404,7 @@ void main() {
         final batch = odm.batch();
 
         // Batch create users in both collections
-        final bookUser = ManualUser3<ManualUser3Profile<Book>>(
+        const bookUser = ManualUser3<ManualUser3Profile<Book>>(
           id: 'batch_book_001',
           name: 'Batch Book User',
           customField: ManualUser3Profile<Book>(
@@ -427,13 +418,12 @@ void main() {
           ),
         );
 
-        final stringUser = ManualUser3<ManualUser3Profile<String>>(
+        const stringUser = ManualUser3<ManualUser3Profile<String>>(
           id: 'batch_string_001',
           name: 'Batch String User',
           customField: ManualUser3Profile<String>(
             email: 'batch@strings.com',
             age: 32,
-            isPremium: false,
             rating: 3.8,
             tags: ['batch', 'strings'],
             preferences: {'type': 'bulk'},
@@ -467,14 +457,13 @@ void main() {
       test('should use atomic operations with modify', () async {
         // Create initial users
         await odm.manualUsers3('atomic_book_001').update(
-          ManualUser3<ManualUser3Profile<Book>>(
+          const ManualUser3<ManualUser3Profile<Book>>(
             id: 'atomic_book_001',
             name: 'Atomic Book User',
             customField: ManualUser3Profile<Book>(
               email: 'atomic@books.com',
               age: 25,
-              isPremium: false,
-              rating: 3.0,
+              rating: 3,
               tags: ['atomic'],
               preferences: {'score': '100'},
               customList: [Book(title: 'Original Book', author: 'Original Author')],
@@ -594,7 +583,7 @@ void main() {
 
     group('🏗️ Collection Operations', () {
       test('should use insert for new documents', () async {
-        final newUser = ManualUser3<ManualUser3Profile<Book>>(
+        const newUser = ManualUser3<ManualUser3Profile<Book>>(
           id: 'insert_book_001',
           name: 'Inserted Book User',
           customField: ManualUser3Profile<Book>(
@@ -622,7 +611,7 @@ void main() {
 
       test('should work with multiple collections simultaneously', () async {
         // Test simultaneous operations on both collections
-        final bookUser = ManualUser3<ManualUser3Profile<Book>>(
+        const bookUser = ManualUser3<ManualUser3Profile<Book>>(
           id: 'multi_book_001',
           name: 'Multi Book User',
           customField: ManualUser3Profile<Book>(
@@ -636,13 +625,12 @@ void main() {
           ),
         );
 
-        final stringUser = ManualUser3<ManualUser3Profile<String>>(
+        const stringUser = ManualUser3<ManualUser3Profile<String>>(
           id: 'multi_string_001',
           name: 'Multi String User',
           customField: ManualUser3Profile<String>(
             email: 'multi@strings.com',
             age: 31,
-            isPremium: false,
             rating: 3.7,
             tags: ['multi', 'string'],
             preferences: {'collection': 'string'},

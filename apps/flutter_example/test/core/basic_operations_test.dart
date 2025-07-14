@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔥 Core Basic Operations', () {
@@ -36,16 +36,15 @@ void main() {
           name: 'Test User',
           email: 'test@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Test bio',
             avatar: 'test.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -64,16 +63,14 @@ void main() {
           name: 'Original Name',
           email: 'original@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio',
             avatar: 'original.jpg',
             socialLinks: {},
             interests: ['original'],
             followers: 50,
           ),
-          rating: 3.0,
-          isActive: false,
-          isPremium: false,
+          rating: 3,
           createdAt: DateTime.now(),
         );
 
@@ -96,16 +93,14 @@ void main() {
           name: 'Delete Me',
           email: 'delete@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'To be deleted',
             avatar: 'delete.jpg',
             socialLinks: {},
             interests: [],
-            followers: 0,
           ),
-          rating: 2.0,
+          rating: 2,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -125,16 +120,15 @@ void main() {
             name: 'Active User',
             email: 'active@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Active user',
               avatar: 'active.jpg',
               socialLinks: {},
               interests: ['activity'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -142,16 +136,14 @@ void main() {
             name: 'Inactive User',
             email: 'inactive@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Inactive user',
               avatar: 'inactive.jpg',
               socialLinks: {},
               interests: ['rest'],
               followers: 50,
             ),
-            rating: 2.0,
-            isActive: false,
-            isPremium: false,
+            rating: 2,
             createdAt: DateTime.now(),
           ),
         ];

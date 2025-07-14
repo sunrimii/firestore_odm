@@ -1,12 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/shared_post.dart';
+import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🏗️ Architecture Validation', () {
@@ -153,16 +153,15 @@ void main() {
             name: 'Converter Test',
             email: 'converter@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Converter test',
               avatar: 'converter.jpg',
               socialLinks: {},
               interests: ['efficiency'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -234,7 +233,7 @@ void main() {
           // Perform operations that should be fast due to pre-analysis
           final operations = <Future>[];
 
-          for (int i = 0; i < 20; i++) {
+          for (var i = 0; i < 20; i++) {
             operations.addAll([
               odm
                   .users('perf_user_$i')
@@ -253,7 +252,6 @@ void main() {
                       ),
                       rating: 1.0 + i * 0.1,
                       isActive: true,
-                      isPremium: false,
                       createdAt: DateTime.now(),
                     ),
                   ),
@@ -428,16 +426,15 @@ void main() {
           name: 'Separation Test',
           email: 'separation@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Separation test',
             avatar: 'separation.jpg',
             socialLinks: {},
             interests: ['architecture'],
             followers: 50,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -472,7 +469,7 @@ void main() {
             name: 'Scalability Test',
             email: 'scalability@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Scalability test',
               avatar: 'scalability.jpg',
               socialLinks: {},
@@ -551,7 +548,7 @@ void main() {
         // Perform operations across all model types
         final operations = <Future>[];
 
-        for (int i = 0; i < 10; i++) {
+        for (var i = 0; i < 10; i++) {
           operations.addAll([
             odm
                 .users('perf_test_user_$i')
@@ -570,7 +567,6 @@ void main() {
                     ),
                     rating: 1.0 + i * 0.1,
                     isActive: true,
-                    isPremium: false,
                     createdAt: DateTime.now(),
                   ),
                 ),

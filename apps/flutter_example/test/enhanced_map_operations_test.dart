@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/immutable_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🚀 Enhanced Map Operations Tests', () {
@@ -71,7 +71,7 @@ void main() {
           'oldSetting2': 'value2',
         }.toIMap(),
         categories: {'tester'}.toISet(),
-        rating: 4.0,
+        rating: 4,
         isActive: true,
         createdAt: DateTime.now(),
       );
@@ -136,9 +136,9 @@ void main() {
       await odm.immutableUsers(user.id).patch((update) => [
         // Update multiple entries using MapEntry
         update.settings.addEntries([
-          MapEntry('theme', 'dark'),
-          MapEntry('language', 'zh'),
-          MapEntry('newFeature', 'enabled'),
+          const MapEntry('theme', 'dark'),
+          const MapEntry('language', 'zh'),
+          const MapEntry('newFeature', 'enabled'),
         ]),
         // Merge operation for nested updates
         update.settings.addAll({

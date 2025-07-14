@@ -1,9 +1,9 @@
-import 'package:test/test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('🗺️ Map Access and Operations Tests', () {
@@ -57,7 +57,6 @@ void main() {
           rating: 4.2,
           tags: ['designer'],
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         ),
       ];
@@ -127,10 +126,9 @@ void main() {
         ),
         settings: {'theme': 'auto', 'notifications': 'enabled'},
         metadata: {'type': 'test', 'version': 1},
-        rating: 3.0,
+        rating: 3,
         tags: ['mapper'],
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -197,10 +195,9 @@ void main() {
         ),
         settings: {'theme': 'light'},
         metadata: {'version': 1},
-        rating: 2.0,
+        rating: 2,
         tags: ['updater'],
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -377,47 +374,47 @@ void main() {
       print('');
       print('🔍 Map Filtering API:');
       print(
-        '  - \$.mapField.key("keyName")(isEqualTo: value)     // Filter by specific key',
+        r'  - $.mapField.key("keyName")(isEqualTo: value)     // Filter by specific key',
       );
       print(
-        '  - \$.mapField.key("keyName")(isNotEqualTo: value)  // Exclude specific key value',
+        r'  - $.mapField.key("keyName")(isNotEqualTo: value)  // Exclude specific key value',
       );
       print(
-        '  - \$.mapField.key("keyName")(isNull: true/false)   // Check key existence',
+        r'  - $.mapField.key("keyName")(isNull: true/false)   // Check key existence',
       );
       print(
-        '  - \$.mapField(isEqualTo: {...})                   // Filter entire map',
+        r'  - $.mapField(isEqualTo: {...})                   // Filter entire map',
       );
       print(
-        '  - \$.mapField(isNotEqualTo: {...})                // Exclude specific map',
+        r'  - $.mapField(isNotEqualTo: {...})                // Exclude specific map',
       );
       print(
-        '  - \$.mapField(isNull: true/false)                 // Check map existence',
+        r'  - $.mapField(isNull: true/false)                 // Check map existence',
       );
 
       print('');
       print('✏️ Map Update API:');
       print(
-        '  - \$.mapField({...})                              // Set entire map',
+        r'  - $.mapField({...})                              // Set entire map',
       );
       print(
-        '  - \$.mapField.setKey("key", value)                // Set specific key',
+        r'  - $.mapField.setKey("key", value)                // Set specific key',
       );
       print(
-        '  - \$.mapField.removeKey("key")                    // Remove specific key',
+        r'  - $.mapField.removeKey("key")                    // Remove specific key',
       );
 
       print('');
       print('🎯 Example Usage Patterns:');
       print('  // Nested map key filtering');
       print(
-        '  .where((\$) => \$.profile.socialLinks.key("github")(isEqualTo: "username"))',
+        r'  .where(($) => $.profile.socialLinks.key("github")(isEqualTo: "username"))',
       );
       print('  ');
       print('  // Map key updates');
-      print('  .patch((\$) => [');
-      print('    \$.settings.setKey("theme", "dark"),');
-      print('    \$.profile.socialLinks.removeKey("old_platform"),');
+      print(r'  .patch(($) => [');
+      print(r'    $.settings.setKey("theme", "dark"),');
+      print(r'    $.profile.socialLinks.removeKey("old_platform"),');
       print('  ])');
 
       print('');

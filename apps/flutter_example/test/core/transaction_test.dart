@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Transaction Operations', () {
@@ -22,16 +22,15 @@ void main() {
           name: 'Transaction User 1',
           email: 'transaction1@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Transaction test user',
             avatar: 'transaction.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [80, 85],
           createdAt: DateTime.now(),
         );
@@ -47,7 +46,7 @@ void main() {
               .users('transaction_user_1')
               .patch(
                 ($) => [
-                  $.rating.increment(1.0),
+                  $.rating.increment(1),
                   $.profile.followers.increment(50),
                   $.isPremium(true),
                 ],
@@ -67,16 +66,15 @@ void main() {
           name: 'TX Modify User 1',
           email: 'txmod1@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'TX modify test',
             avatar: 'txmod1.jpg',
             socialLinks: {},
             interests: ['tx_modify'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [80],
           createdAt: DateTime.now(),
         );
@@ -86,7 +84,7 @@ void main() {
           name: 'TX Modify User 2',
           email: 'txmod2@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'TX modify test 2',
             avatar: 'txmod2.jpg',
             socialLinks: {},
@@ -95,7 +93,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           scores: [90],
           createdAt: DateTime.now(),
         );
@@ -151,16 +148,15 @@ void main() {
             name: 'TX Inc Mod User',
             email: 'txincmod@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'TX incremental modify test',
               avatar: 'txincmod.jpg',
               socialLinks: {},
               interests: ['tx_inc_mod'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             tags: ['original'],
             scores: [80, 85],
             createdAt: DateTime.now(),
@@ -209,16 +205,15 @@ void main() {
           name: 'Sender User',
           email: 'sender@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Points sender',
             avatar: 'sender.jpg',
             socialLinks: {},
             interests: ['points'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [1000], // Initial points
           createdAt: DateTime.now(),
         );
@@ -228,7 +223,7 @@ void main() {
           name: 'Receiver User',
           email: 'receiver@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Points receiver',
             avatar: 'receiver.jpg',
             socialLinks: {},
@@ -237,7 +232,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           scores: [500], // Initial points
           createdAt: DateTime.now(),
         );
@@ -290,16 +284,15 @@ void main() {
           name: 'Conditional User',
           email: 'conditional@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Conditional test',
             avatar: 'conditional.jpg',
             socialLinks: {},
             interests: ['conditional'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [500],
           createdAt: DateTime.now(),
         );
@@ -343,16 +336,15 @@ void main() {
           name: 'Rollback User',
           email: 'rollback@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Rollback test',
             avatar: 'rollback.jpg',
             socialLinks: {},
             interests: ['rollback'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           scores: [500],
           createdAt: DateTime.now(),
         );
@@ -389,16 +381,15 @@ void main() {
             name: 'Concurrent User',
             email: 'concurrent@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Concurrent test',
               avatar: 'concurrent.jpg',
               socialLinks: {},
               interests: ['concurrent'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             scores: [500],
             createdAt: DateTime.now(),
           );
@@ -438,16 +429,15 @@ void main() {
           name: 'TX Timestamp User',
           email: 'txtimestamp@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'TX timestamp test',
             avatar: 'txtimestamp.jpg',
             socialLinks: {},
             interests: ['tx_timestamp'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -483,16 +473,15 @@ void main() {
             name: 'TX Mod Timestamp User',
             email: 'txmodtimestamp@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'TX mod timestamp test',
               avatar: 'txmodtimestamp.jpg',
               socialLinks: {},
               interests: ['tx_mod_timestamp'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             tags: ['original'],
             createdAt: DateTime.now(),
           );

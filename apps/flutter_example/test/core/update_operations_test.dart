@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
-import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/post.dart';
+import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Core Update Operations', () {
@@ -23,16 +23,14 @@ void main() {
           name: 'Original Name',
           email: 'original@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio',
             avatar: 'original.jpg',
             socialLinks: {'github': 'original'},
             interests: ['original'],
             followers: 100,
           ),
-          rating: 3.0,
-          isActive: false,
-          isPremium: false,
+          rating: 3,
           tags: ['original'],
           scores: [80, 85],
           settings: {'theme': 'light'},
@@ -72,16 +70,15 @@ void main() {
           name: 'Timestamp User',
           email: 'timestamp@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Timestamp test',
             avatar: 'timestamp.jpg',
             socialLinks: {},
             interests: ['timestamps'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -111,7 +108,7 @@ void main() {
           name: 'Modify User',
           email: 'modify@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio',
             avatar: 'modify.jpg',
             socialLinks: {},
@@ -119,8 +116,6 @@ void main() {
             followers: 200,
           ),
           rating: 3.5,
-          isActive: false,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -158,16 +153,15 @@ void main() {
           name: 'Incremental User',
           email: 'incremental@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Incremental test',
             avatar: 'incremental.jpg',
             socialLinks: {},
             interests: ['incremental'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           tags: ['original'],
           scores: [90, 85],
           createdAt: DateTime.now(),
@@ -210,16 +204,15 @@ void main() {
           name: 'Array Removal User',
           email: 'removal@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Array removal test',
             avatar: 'removal.jpg',
             socialLinks: {},
             interests: ['keep', 'remove', 'also_keep'],
             followers: 150,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           tags: ['tag1', 'tag2', 'tag3'],
           scores: [95, 88, 92],
           createdAt: DateTime.now(),
@@ -261,7 +254,7 @@ void main() {
           name: 'Nested Update User',
           email: 'nested@example.com',
           age: 32,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original nested bio',
             avatar: 'nested.jpg',
             socialLinks: {
@@ -308,7 +301,7 @@ void main() {
           name: 'Complex Nested User',
           email: 'complex@example.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Complex nested test',
             avatar: 'complex.jpg',
             socialLinks: {
@@ -374,17 +367,16 @@ void main() {
           name: 'Server Timestamp User',
           email: 'timestamp@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing server timestamps',
             avatar: 'timestamp.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
@@ -417,8 +409,7 @@ void main() {
           authorId: 'test_author',
           tags: ['timestamp', 'test'],
           metadata: {},
-          published: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.posts(post.id).update(post);

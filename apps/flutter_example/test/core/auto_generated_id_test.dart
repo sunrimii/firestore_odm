@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🆔 Auto-Generated Document ID Tests', () {
@@ -28,16 +28,15 @@ void main() {
           name: 'Auto Generated User',
           email: 'auto@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User with auto-generated ID',
             avatar: 'auto.jpg',
             socialLinks: {},
             interests: ['auto-id'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -65,7 +64,7 @@ void main() {
           name: 'Auto Upsert User',
           email: 'autoupsert@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User with auto-generated ID via upsert',
             avatar: 'autoupsert.jpg',
             socialLinks: {},
@@ -74,7 +73,6 @@ void main() {
           ),
           rating: 4.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -98,7 +96,7 @@ void main() {
           name: 'Upsert User',
           email: 'upsert@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Upserted user',
             avatar: 'upsert.jpg',
             socialLinks: {},
@@ -107,7 +105,6 @@ void main() {
           ),
           rating: 4.2,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         ));
 
@@ -117,7 +114,7 @@ void main() {
           name: 'Updated Upsert User',
           email: 'upsert@example.com',
           age: 29,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Updated upserted user',
             avatar: 'upsert.jpg',
             socialLinks: {},
@@ -147,7 +144,7 @@ void main() {
           name: 'Auto Update User',
           email: 'autoupdate@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'User with auto-generated ID via update',
             avatar: 'autoupdate.jpg',
             socialLinks: {},
@@ -180,16 +177,15 @@ void main() {
           name: 'Original User',
           email: 'original@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original user',
             avatar: 'original.jpg',
             socialLinks: {},
             interests: ['original'],
             followers: 50,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         ));
 
@@ -199,14 +195,14 @@ void main() {
           name: 'Updated User',
           email: 'updated@example.com',
           age: 26,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Updated user',
             avatar: 'updated.jpg',
             socialLinks: {},
             interests: ['updated'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
           isPremium: true,
           createdAt: DateTime.now(),
@@ -231,16 +227,15 @@ void main() {
             name: 'Batch Auto User 1',
             email: 'batchauto1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Batch user with auto ID',
               avatar: 'batchauto1.jpg',
               socialLinks: {},
               interests: ['batch', 'auto'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ));
 
@@ -250,7 +245,7 @@ void main() {
             name: 'Batch Auto User 2',
             email: 'batchauto2@example.com',
             age: 27,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Batch user with auto-generated ID',
               avatar: 'batchauto2.jpg',
               socialLinks: {},
@@ -269,7 +264,7 @@ void main() {
             name: 'Custom Batch User',
             email: 'custombatch@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Batch user with custom ID',
               avatar: 'custombatch.jpg',
               socialLinks: {},
@@ -278,7 +273,6 @@ void main() {
             ),
             rating: 4.2,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ));
         });
@@ -319,16 +313,15 @@ void main() {
             name: 'Custom User 1',
             email: 'custom1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Custom ID user',
               avatar: 'custom1.jpg',
               socialLinks: {},
               interests: ['custom'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -336,7 +329,7 @@ void main() {
             name: 'Auto User 1',
             email: 'auto1@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Auto-generated ID user',
               avatar: 'auto1.jpg',
               socialLinks: {},
@@ -353,7 +346,7 @@ void main() {
             name: 'Auto User 2',
             email: 'auto2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Another auto-generated ID user',
               avatar: 'auto2.jpg',
               socialLinks: {},
@@ -362,7 +355,6 @@ void main() {
             ),
             rating: 4.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];

@@ -1,6 +1,6 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 part 'immutable_user.freezed.dart';
 part 'immutable_user.g.dart';
@@ -8,7 +8,6 @@ part 'immutable_user.g.dart';
 @freezed
 @firestoreOdm
 abstract class ImmutableUser with _$ImmutableUser {
-  const ImmutableUser._();
 
   const factory ImmutableUser({
     @DocumentIdField() required String id,
@@ -23,6 +22,7 @@ abstract class ImmutableUser with _$ImmutableUser {
     @Default(false) bool isActive,
     DateTime? createdAt,
   }) = _ImmutableUser;
+  const ImmutableUser._();
 
   factory ImmutableUser.fromJson(Map<String, dynamic> json) =>
       _$ImmutableUserFromJson(json);

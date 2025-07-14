@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔥 Aggregate Operations Tests', () {
@@ -24,9 +24,8 @@ void main() {
         age: 25,
         rating: 4.5,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 1',
           avatar: 'avatar1.jpg',
           socialLinks: {},
@@ -44,7 +43,7 @@ void main() {
         isActive: true,
         isPremium: true,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 2',
           avatar: 'avatar2.jpg',
           socialLinks: {},
@@ -59,10 +58,8 @@ void main() {
         email: 'charlie@example.com',
         age: 28,
         rating: 4.2,
-        isActive: false,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 3',
           avatar: 'avatar3.jpg',
           socialLinks: {},
@@ -91,11 +88,10 @@ void main() {
         name: 'Alice',
         email: 'alice@example.com',
         age: 25,
-        rating: 4.0,
+        rating: 4,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 1',
           avatar: 'avatar1.jpg',
           socialLinks: {},
@@ -109,11 +105,11 @@ void main() {
         name: 'Bob',
         email: 'bob@example.com',
         age: 30,
-        rating: 5.0,
+        rating: 5,
         isActive: true,
         isPremium: true,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 2',
           avatar: 'avatar2.jpg',
           socialLinks: {},
@@ -127,11 +123,9 @@ void main() {
         name: 'Charlie',
         email: 'charlie@example.com',
         age: 35,
-        rating: 3.0,
-        isActive: false,
-        isPremium: false,
+        rating: 3,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 3',
           avatar: 'avatar3.jpg',
           socialLinks: {},
@@ -169,9 +163,8 @@ void main() {
         age: 25,
         rating: 4.5,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 1',
           avatar: 'avatar1.jpg',
           socialLinks: {},
@@ -189,7 +182,7 @@ void main() {
         isActive: true,
         isPremium: true,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 2',
           avatar: 'avatar2.jpg',
           socialLinks: {},
@@ -204,10 +197,8 @@ void main() {
         email: 'charlie@example.com',
         age: 28,
         rating: 4.2,
-        isActive: false,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Bio 3',
           avatar: 'avatar3.jpg',
           socialLinks: {},
@@ -284,11 +275,10 @@ void main() {
         name: 'Stream User',
         email: 'stream@example.com',
         age: 25,
-        rating: 4.0,
+        rating: 4,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
-        profile: Profile(
+        profile: const Profile(
           bio: 'Stream test',
           avatar: 'stream.jpg',
           socialLinks: {},

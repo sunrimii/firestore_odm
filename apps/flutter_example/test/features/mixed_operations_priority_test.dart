@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔀 Mixed Operations Priority Tests', () {
@@ -17,7 +17,7 @@ void main() {
 
     test('should demonstrate operation priority: set vs array operations', () async {
       // Create a test user with initial data
-      final user = User(
+      const user = User(
         id: 'priority_test_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -73,7 +73,7 @@ void main() {
 
     test('should demonstrate array operations accumulation', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'accumulation_test_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -120,7 +120,7 @@ void main() {
 
     test('should demonstrate add/remove operations on different fields', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'different_fields_test_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -172,7 +172,7 @@ void main() {
 
     test('should demonstrate operation processing order', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'order_test_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -221,7 +221,7 @@ void main() {
 
     test('should show what happens with conflicting operations', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'conflict_test_user',
         name: 'Test User',
         email: 'test@example.com',

@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Bulk Operations Features', () {
@@ -23,16 +23,14 @@ void main() {
             name: 'Bulk User 1',
             email: 'bulk1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'First bulk user',
               avatar: 'bulk1.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -40,7 +38,7 @@ void main() {
             name: 'Bulk User 2',
             email: 'bulk2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Second bulk user',
               avatar: 'bulk2.jpg',
               socialLinks: {},
@@ -48,8 +46,6 @@ void main() {
               followers: 150,
             ),
             rating: 3.5,
-            isActive: false,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -57,16 +53,15 @@ void main() {
             name: 'Bulk User 3',
             email: 'bulk3@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Third bulk user',
               avatar: 'bulk3.jpg',
               socialLinks: {},
               interests: ['marketing'],
               followers: 120,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true, // This one is already active
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -126,7 +121,7 @@ void main() {
             .where(
               ($) => $.and(
                 $.isPremium(isEqualTo: false),
-                $.rating(isLessThan: 4.0),
+                $.rating(isLessThan: 4),
               ),
             )
             .modify(
@@ -163,16 +158,15 @@ void main() {
               name: 'Atomic User 1',
               email: 'atomic1@example.com',
               age: 25,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'First atomic user',
                 avatar: 'atomic1.jpg',
                 socialLinks: {},
                 interests: ['coding'],
                 followers: 100,
               ),
-              rating: 3.0,
+              rating: 3,
               isActive: true,
-              isPremium: false,
               tags: ['developer'],
               scores: [85, 90],
               createdAt: DateTime.now(),
@@ -182,16 +176,15 @@ void main() {
               name: 'Atomic User 2',
               email: 'atomic2@example.com',
               age: 28,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Second atomic user',
                 avatar: 'atomic2.jpg',
                 socialLinks: {},
                 interests: ['design'],
                 followers: 150,
               ),
-              rating: 4.0,
+              rating: 4,
               isActive: true,
-              isPremium: false,
               tags: ['designer'],
               scores: [88, 92],
               createdAt: DateTime.now(),
@@ -264,7 +257,6 @@ void main() {
             ),
             rating: 3.0 + index * 0.2,
             isActive: true,
-            isPremium: false,
             tags: ['mixed'],
             scores: [80 + index * 5],
             createdAt: DateTime.now(),
@@ -348,8 +340,6 @@ void main() {
                 followers: 20 + index * 10,
               ),
               rating: 2.0 + index * 0.3,
-              isActive: false,
-              isPremium: false,
               createdAt: DateTime.now(),
             ),
           ),
@@ -473,7 +463,6 @@ void main() {
             ),
             rating: 1.0 + (index % 5),
             isActive: index % 2 == 0,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );

@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔧 Incremental Modify Nested Fields Tests', () {
@@ -30,9 +30,8 @@ void main() {
             followers: 1000,
             lastActive: DateTime.now(),
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -78,9 +77,8 @@ void main() {
             followers: 500,
             lastActive: DateTime.now(),
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -193,7 +191,6 @@ void main() {
             ),
             rating: 3.8,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 
@@ -360,7 +357,6 @@ void main() {
             ),
             rating: 3.0 + (i * 0.5), // 3.0, 3.5, 4.0
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );
@@ -400,7 +396,7 @@ void main() {
         final updatedUsers = await odm.users.get();
         expect(updatedUsers, hasLength(3));
 
-        for (int i = 0; i < updatedUsers.length; i++) {
+        for (var i = 0; i < updatedUsers.length; i++) {
           final user = updatedUsers[i];
 
           // Top-level bulk results
@@ -438,7 +434,6 @@ void main() {
             ),
             rating: 4.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -456,7 +451,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -472,9 +466,8 @@ void main() {
               followers: 500, // Lowest
               lastActive: DateTime.now(),
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -550,12 +543,9 @@ void main() {
             avatar: 'null.jpg',
             socialLinks: {}, // Empty map
             interests: [], // Empty array
-            followers: 0, // Zero value
             lastActive: DateTime.now(),
           ),
-          rating: 0.0,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -610,9 +600,8 @@ void main() {
             followers: 300,
             lastActive: DateTime.now(),
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           lastLogin: DateTime.now(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),

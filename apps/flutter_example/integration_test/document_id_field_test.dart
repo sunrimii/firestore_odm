@@ -1,9 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
+
 import 'test_helper.dart';
 
 void main() {
@@ -28,7 +29,7 @@ void main() {
           name: 'Annotated User',
           email: 'annotated@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing @DocumentIdField annotation',
             avatar: 'annotated.jpg',
             socialLinks: {},
@@ -61,16 +62,15 @@ void main() {
             name: 'Target User',
             email: 'target@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Target for queries',
               avatar: 'target.jpg',
               socialLinks: {},
               interests: ['querying'],
               followers: 100,
             ),
-            rating: 5.0,
+            rating: 5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -78,14 +78,14 @@ void main() {
             name: 'Other User',
             email: 'other@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Another user',
               avatar: 'other.jpg',
               socialLinks: {},
               interests: ['being-other'],
               followers: 50,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -110,7 +110,7 @@ void main() {
         // Test ID field in compound queries
         final compoundQuery = odm.users
             .where((filter) => filter.id(isEqualTo: targetId))
-            .where((filter) => filter.rating(isGreaterThan: 4.0));
+            .where((filter) => filter.rating(isGreaterThan: 4));
 
         final compoundResults = await compoundQuery.get();
         expect(compoundResults.length, equals(1));
@@ -121,7 +121,7 @@ void main() {
         const ids = ['zulu_id', 'alpha_id', 'beta_id', 'charlie_id'];
 
         // Create users with specific IDs for ordering test
-        for (int i = 0; i < ids.length; i++) {
+        for (var i = 0; i < ids.length; i++) {
           final user = User(
             id: ids[i],
             name: 'User ${ids[i]}',
@@ -144,7 +144,7 @@ void main() {
         }
 
         // Wait for documents to be indexed
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 500));
 
         // Order by the document ID field
         final orderedQuery = odm.users.orderBy(($) => ($.id(),));
@@ -174,7 +174,7 @@ void main() {
         const baseIds = ['page_a', 'page_b', 'page_c', 'page_d', 'page_e'];
 
         // Create users for pagination test
-        for (int i = 0; i < baseIds.length; i++) {
+        for (var i = 0; i < baseIds.length; i++) {
           final user = User(
             id: baseIds[i],
             name: 'Page User $i',
@@ -240,7 +240,7 @@ void main() {
           name: 'Subcollection Test User',
           email: 'subcol@example.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing subcollection document IDs',
             avatar: 'subcol.jpg',
             socialLinks: {},
@@ -256,7 +256,7 @@ void main() {
         await odm.users(userId).update(user);
 
         // Create posts in subcollection with custom IDs
-        for (int i = 0; i < postIds.length; i++) {
+        for (var i = 0; i < postIds.length; i++) {
           final post = Post(
             id: postIds[i], // @DocumentIdField annotation applies here too
             title: 'Subcollection Post ${i + 1}',
@@ -319,7 +319,7 @@ void main() {
           name: 'Complex Subcollection User',
           email: 'complex@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing complex subcollection scenarios',
             avatar: 'complex.jpg',
             socialLinks: {},
@@ -328,7 +328,6 @@ void main() {
           ),
           rating: 4.8,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -355,9 +354,7 @@ void main() {
             authorId: userId,
             tags: ['draft', 'wip'],
             metadata: {'category': 'draft'},
-            likes: 0,
             views: 5,
-            published: false,
             createdAt: DateTime.now(),
           ),
           Post(
@@ -429,7 +426,7 @@ void main() {
         const userCount = 50;
 
         // Create a large number of users with systematic IDs
-        for (int i = 0; i < userCount; i++) {
+        for (var i = 0; i < userCount; i++) {
           final paddedId = 'user_${i.toString().padLeft(3, '0')}';
           final user = User(
             id: paddedId,
@@ -455,7 +452,7 @@ void main() {
         // Test efficient pagination through large dataset
         const pageSize = 10;
         String? lastId;
-        int totalRetrieved = 0;
+        var totalRetrieved = 0;
 
         while (totalRetrieved < userCount) {
           var query = odm.users.orderBy(($) => ($.id(),)).limit(pageSize);
@@ -473,7 +470,7 @@ void main() {
           lastId = page.last.id;
 
           // Verify page ordering
-          for (int i = 1; i < page.length; i++) {
+          for (var i = 1; i < page.length; i++) {
             expect(page[i].id.compareTo(page[i - 1].id), greaterThan(0));
           }
         }
@@ -492,7 +489,7 @@ void main() {
         ];
 
         // Create users with unicode IDs
-        for (int i = 0; i < unicodeIds.length; i++) {
+        for (var i = 0; i < unicodeIds.length; i++) {
           final user = User(
             id: unicodeIds[i],
             name: 'Unicode User $i',
@@ -550,12 +547,12 @@ void main() {
           'a', // Single character
           'A' * 100, // Very long ID
           '123456789', // All numbers
-          '!@#\$%^&*()', // Special characters
+          r'!@#$%^&*()', // Special characters
           'mixed_Case_123_!@#', // Mixed everything
         ];
 
         // Test each edge case ID
-        for (int i = 0; i < edgeCaseIds.length; i++) {
+        for (var i = 0; i < edgeCaseIds.length; i++) {
           final id = edgeCaseIds[i];
 
           try {
@@ -571,9 +568,8 @@ void main() {
                 interests: ['edge-cases'],
                 followers: 10,
               ),
-              rating: 3.0,
+              rating: 3,
               isActive: true,
-              isPremium: false,
               createdAt: DateTime.now(),
             );
 

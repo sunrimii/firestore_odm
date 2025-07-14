@@ -1,20 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Test models for type analysis
 class IterableTestModel {
-  final String id;
-  final List<String> standardList;
-  final Set<int> standardSet;
-  final Iterable<double> genericIterable;
-  final List<User> customObjectList;
-  final Set<Profile> customObjectSet;
-  final Map<String, int> stringToIntMap;
-  final Map<String, List<String>> nestedMap;
 
   const IterableTestModel({
     required this.id,
@@ -26,16 +18,18 @@ class IterableTestModel {
     required this.stringToIntMap,
     required this.nestedMap,
   });
+  final String id;
+  final List<String> standardList;
+  final Set<int> standardSet;
+  final Iterable<double> genericIterable;
+  final List<User> customObjectList;
+  final Set<Profile> customObjectSet;
+  final Map<String, int> stringToIntMap;
+  final Map<String, List<String>> nestedMap;
 }
 
 /// Test model with immutable collections (if available)
 class ImmutableTestModel {
-  final String id;
-  final List<String> regularList;
-  // Note: In real usage, these would be BuiltList, IList, KtList, etc.
-  // For testing purposes, we use regular types but the principle applies
-  final Iterable<String> immutableIterable;
-  final Set<int> immutableSet;
 
   const ImmutableTestModel({
     required this.id,
@@ -43,6 +37,12 @@ class ImmutableTestModel {
     required this.immutableIterable,
     required this.immutableSet,
   });
+  final String id;
+  final List<String> regularList;
+  // Note: In real usage, these would be BuiltList, IList, KtList, etc.
+  // For testing purposes, we use regular types but the principle applies
+  final Iterable<String> immutableIterable;
+  final Set<int> immutableSet;
 }
 
 void main() {
@@ -64,7 +64,7 @@ void main() {
         age: 30,
         tags: ['list', 'test'], // List<String>
         scores: [95, 87, 92], // List<int>
-        profile: Profile(
+        profile: const Profile(
           bio: 'Testing iterables',
           avatar: 'test.jpg',
           interests: ['testing', 'iterables'], // List<String>
@@ -73,7 +73,6 @@ void main() {
         ),
         rating: 4.5,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -114,7 +113,7 @@ void main() {
           age: 25,
           tags: ['a', 'b', 'c'], // Length: 3
           scores: [90, 85], // Length: 2
-          profile: Profile(
+          profile: const Profile(
             bio: 'User Alice',
             avatar: 'alice.jpg',
             interests: ['reading'],
@@ -123,7 +122,6 @@ void main() {
           ),
           rating: 4.2,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         ),
         User(
@@ -133,7 +131,7 @@ void main() {
           age: 30,
           tags: ['x', 'y'], // Length: 2
           scores: [95, 88, 92], // Length: 3
-          profile: Profile(
+          profile: const Profile(
             bio: 'User Bob',
             avatar: 'bob.jpg',
             interests: ['coding', 'music'],
@@ -203,7 +201,7 @@ void main() {
         age: 35,
         tags: ['nested', 'test'],
         scores: [100],
-        profile: Profile(
+        profile: const Profile(
           bio: 'Nested iterable test',
           avatar: 'nested.jpg',
           interests: [
@@ -258,7 +256,7 @@ void main() {
         age: 40,
         tags: ['initial'], // Will be updated
         scores: [80], // Will be updated
-        profile: Profile(
+        profile: const Profile(
           bio: 'Update test',
           avatar: 'update.jpg',
           interests: ['reading'], // Will be updated
@@ -267,7 +265,6 @@ void main() {
         ),
         rating: 3.5,
         isActive: true,
-        isPremium: false,
         createdAt: DateTime.now(),
       );
 
@@ -316,7 +313,7 @@ void main() {
           age: 30,
           tags: ['initial', 'tag'],
           scores: [85, 90],
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio content',
             avatar: 'original.jpg',
             interests: ['reading', 'coding'],
@@ -326,9 +323,8 @@ void main() {
               'twitter': 'https://twitter.com/original',
             },
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           settings: {'theme': 'light', 'notifications': 'enabled'},
           metadata: {'version': 1, 'level': 'beginner'},
           createdAt: DateTime.now(),
@@ -450,7 +446,7 @@ void main() {
         age: 45,
         tags: ['complex', 'nested', 'iterables'], // List<String>
         scores: [98, 97, 96, 95], // List<int>
-        profile: Profile(
+        profile: const Profile(
           bio: 'Complex iterable combinations',
           avatar: 'complex.jpg',
           interests: ['ai', 'ml', 'data', 'algorithms'], // Nested List<String>
@@ -522,10 +518,10 @@ void main() {
 
       // Demonstrate pattern matching works with complex types
       expect(() {
-        dynamic testTuple = (30, 'Bob', 4.8);
+        const dynamic testTuple = (30, 'Bob', 4.8);
 
         final result = switch (testTuple) {
-          (var age, var name, var rating)
+          (final age, final name, final rating)
               when age is int && name is String && rating is double =>
             'User: $name, Age: $age, Rating: $rating',
           _ => 'Unknown pattern',
@@ -591,7 +587,7 @@ void main() {
       // Test with large collections to ensure performance
       final largeList = List.generate(10000, (i) => 'item_$i');
       final largeSet = <int>{};
-      for (int i = 0; i < 5000; i++) {
+      for (var i = 0; i < 5000; i++) {
         largeSet.add(i);
       }
 

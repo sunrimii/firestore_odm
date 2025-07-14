@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔧 Array Bulk Operations', () {
@@ -17,7 +17,7 @@ void main() {
 
     test('should add multiple elements to array using addAll', () async {
       // Create a test user with initial tags
-      final user = User(
+      const user = User(
         id: 'addall_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -55,7 +55,7 @@ void main() {
 
     test('should remove multiple elements from array using removeAll', () async {
       // Create a test user with multiple tags and scores
-      final user = User(
+      const user = User(
         id: 'removeall_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -93,7 +93,7 @@ void main() {
 
     test('should handle mixed addAll and removeAll operations on different fields', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'mixed_operations_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -139,7 +139,7 @@ void main() {
 
     test('should handle sequential addAll and removeAll on same field', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'sequential_operations_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -179,12 +179,11 @@ void main() {
 
     test('should work with empty arrays', () async {
       // Create a test user with empty arrays
-      final user = User(
+      const user = User(
         id: 'empty_arrays_user',
         name: 'Test User',
         email: 'test@example.com',
         age: 25,
-        scores: [],
         tags: [],
         isActive: true,
         profile: Profile(
@@ -217,7 +216,7 @@ void main() {
 
     test('should handle addAll and removeAll with empty lists', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'empty_lists_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -253,7 +252,7 @@ void main() {
 
     test('should work in transactions', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'transaction_bulk_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -293,7 +292,7 @@ void main() {
 
     test('should work in batch operations', () async {
       // Create test users
-      final user1 = User(
+      const user1 = User(
         id: 'batch_bulk_user1',
         name: 'User 1',
         email: 'user1@example.com',
@@ -310,7 +309,7 @@ void main() {
         ),
       );
 
-      final user2 = User(
+      const user2 = User(
         id: 'batch_bulk_user2',
         name: 'User 2',
         email: 'user2@example.com',
@@ -361,7 +360,7 @@ void main() {
     test('should work with query bulk operations', () async {
       // Create multiple test users
       final users = [
-        User(
+        const User(
           id: 'query_bulk_user1',
           name: 'User 1',
           email: 'user1@example.com',
@@ -377,7 +376,7 @@ void main() {
             followers: 50,
           ),
         ),
-        User(
+        const User(
           id: 'query_bulk_user2',
           name: 'User 2',
           email: 'user2@example.com',

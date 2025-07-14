@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter/painting.dart';
 
 /// Recursively replace special timestamps with FieldValue.serverTimestamp()
 Map<K, dynamic> replaceServerTimestamps<K>(Map<K, dynamic> data) {

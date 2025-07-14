@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('📡 Real-time Operations Features', () {
@@ -22,28 +22,25 @@ void main() {
           name: 'Stream User',
           email: 'stream@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Stream test user',
             avatar: 'stream.jpg',
             socialLinks: {},
             interests: ['streaming'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
         await odm.users('stream_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('stream_user').stream.listen((user) {
-          stream.add(user);
-        });
+        final subscription = odm.users('stream_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Make stream
         await odm
@@ -61,7 +58,7 @@ void main() {
             );
 
         // Wait for stream to propagate
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
 
         await subscription.cancel();
 
@@ -76,13 +73,9 @@ void main() {
 
       test('should handle null document in stream', () async {
         final stream = <User?>[];
-        final subscription = odm.users('non_existent_user').stream.listen((
-          user,
-        ) {
-          stream.add(user);
-        });
+        final subscription = odm.users('non_existent_user').stream.listen(stream.add);
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         await subscription.cancel();
 
@@ -97,7 +90,7 @@ void main() {
           name: 'Delete Stream User',
           email: 'delete_stream@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Will be deleted',
             avatar: 'delete.jpg',
             socialLinks: {},
@@ -106,27 +99,22 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
         await odm.users('delete_stream_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('delete_stream_user').stream.listen((
-          user,
-        ) {
-          stream.add(user);
-        });
+        final subscription = odm.users('delete_stream_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Delete the document
         await odm.users('delete_stream_user').delete();
 
         // Wait for deletion to propagate
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
 
         await subscription.cancel();
 
@@ -148,16 +136,14 @@ void main() {
             name: 'Collection User 1',
             email: 'collection1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Collection test 1',
               avatar: 'collection1.jpg',
               socialLinks: {},
               interests: ['collection_streaming'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -165,16 +151,14 @@ void main() {
             name: 'Collection User 2',
             email: 'collection2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Collection test 2',
               avatar: 'collection2.jpg',
               socialLinks: {},
               interests: ['collection_streaming'],
               followers: 150,
             ),
-            rating: 4.0,
-            isActive: false,
-            isPremium: false,
+            rating: 4,
             createdAt: DateTime.now(),
           ),
         ];
@@ -207,7 +191,7 @@ void main() {
                 name: 'Collection User 3',
                 email: 'collection3@example.com',
                 age: 28,
-                profile: Profile(
+                profile: const Profile(
                   bio: 'Collection test 3',
                   avatar: 'collection3.jpg',
                   socialLinks: {},
@@ -216,7 +200,6 @@ void main() {
                 ),
                 rating: 3.5,
                 isActive: true,
-                isPremium: false,
                 createdAt: DateTime.now(),
               ),
             );
@@ -253,7 +236,7 @@ void main() {
           name: 'Realtime User',
           email: 'realtime@example.com',
           age: 32,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Real-time testing',
             avatar: 'realtime.jpg',
             socialLinks: {},
@@ -262,19 +245,16 @@ void main() {
           ),
           rating: 4.2,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
         await odm.users('realtime_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('realtime_user').stream.listen((user) {
-          stream.add(user);
-        });
+        final subscription = odm.users('realtime_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
 
         // Perform multiple rapid updates
         await odm
@@ -297,7 +277,7 @@ void main() {
             );
 
         // Wait for all stream to propagate
-        await Future.delayed(Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 300));
 
         await subscription.cancel();
 
@@ -317,7 +297,7 @@ void main() {
           name: 'Concurrent User',
           email: 'concurrent@example.com',
           age: 29,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Concurrent testing',
             avatar: 'concurrent.jpg',
             socialLinks: {},
@@ -326,19 +306,16 @@ void main() {
           ),
           rating: 3.8,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
         await odm.users('concurrent_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('concurrent_user').stream.listen((user) {
-          stream.add(user);
-        });
+        final subscription = odm.users('concurrent_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
 
         // Perform concurrent updates
         final updateFutures = [
@@ -367,7 +344,7 @@ void main() {
         await Future.wait(updateFutures);
 
         // Wait for all stream to propagate
-        await Future.delayed(Duration(milliseconds: 400));
+        await Future.delayed(const Duration(milliseconds: 400));
 
         await subscription.cancel();
 
@@ -389,7 +366,7 @@ void main() {
           name: 'Multi Subscriber User',
           email: 'multisub@example.com',
           age: 26,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Multiple subscribers test',
             avatar: 'multisub.jpg',
             socialLinks: {},
@@ -398,7 +375,6 @@ void main() {
           ),
           rating: 3.6,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -408,20 +384,14 @@ void main() {
         final stream2 = <User?>[];
         final stream3 = <User?>[];
 
-        final subscription1 = odm.users('multi_sub_user').stream.listen((user) {
-          stream1.add(user);
-        });
+        final subscription1 = odm.users('multi_sub_user').stream.listen(stream1.add);
 
-        final subscription2 = odm.users('multi_sub_user').stream.listen((user) {
-          stream2.add(user);
-        });
+        final subscription2 = odm.users('multi_sub_user').stream.listen(stream2.add);
 
-        final subscription3 = odm.users('multi_sub_user').stream.listen((user) {
-          stream3.add(user);
-        });
+        final subscription3 = odm.users('multi_sub_user').stream.listen(stream3.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Make a change
         await odm
@@ -431,7 +401,7 @@ void main() {
             );
 
         // Wait for stream to propagate
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
 
         await subscription1.cancel();
         await subscription2.cancel();
@@ -453,7 +423,7 @@ void main() {
           name: 'Cancel Subscription User',
           email: 'cancelsub@example.com',
           age: 27,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Subscription cancellation test',
             avatar: 'cancelsub.jpg',
             socialLinks: {},
@@ -462,19 +432,16 @@ void main() {
           ),
           rating: 3.7,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
         await odm.users('cancel_sub_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('cancel_sub_user').stream.listen((user) {
-          stream.add(user);
-        });
+        final subscription = odm.users('cancel_sub_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Cancel subscription early
         await subscription.cancel();
@@ -485,7 +452,7 @@ void main() {
             .modify((user) => user.copyWith(name: 'Should Not Be Received'));
 
         // Wait to ensure no new stream are received
-        await Future.delayed(Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 200));
 
         // Should have received initial state, and possibly not the update after cancellation
         expect(stream.length, greaterThanOrEqualTo(0));
@@ -502,7 +469,7 @@ void main() {
           name: 'High Frequency User',
           email: 'highfreq@example.com',
           age: 31,
-          profile: Profile(
+          profile: const Profile(
             bio: 'High frequency updates test',
             avatar: 'highfreq.jpg',
             socialLinks: {},
@@ -518,17 +485,15 @@ void main() {
         await odm.users('high_freq_user').update(user);
 
         final stream = <User?>[];
-        final subscription = odm.users('high_freq_user').stream.listen((user) {
-          stream.add(user);
-        });
+        final subscription = odm.users('high_freq_user').stream.listen(stream.add);
 
         // Wait for initial state
-        await Future.delayed(Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 50));
 
         final stopwatch = Stopwatch()..start();
 
         // Perform many rapid updates
-        for (int i = 0; i < 10; i++) {
+        for (var i = 0; i < 10; i++) {
           await odm
               .users('high_freq_user')
               .modify(
@@ -543,7 +508,7 @@ void main() {
         stopwatch.stop();
 
         // Wait for all stream to propagate
-        await Future.delayed(Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 300));
 
         await subscription.cancel();
 

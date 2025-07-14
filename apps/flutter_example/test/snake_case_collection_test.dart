@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/test_schema.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🐍 Snake case collection name tests', () {
@@ -85,7 +85,7 @@ void main() {
         expect(() => userDoc.userPosts, returnsNormally);
         expect(() => userDoc.userPosts('test_post_id').postComments, returnsNormally);
         
-        return null;
+        return;
       });
     });
 

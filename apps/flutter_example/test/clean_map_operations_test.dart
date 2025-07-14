@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/immutable_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🎯 Clean Map Operations Tests', () {
@@ -70,7 +70,7 @@ void main() {
           'oldSetting2': 'value2',
         }.toIMap(),
         categories: {'tester'}.toISet(),
-        rating: 4.0,
+        rating: 4,
         isActive: true,
         createdAt: DateTime.now(),
       );
@@ -146,8 +146,8 @@ void main() {
         }),
         // Add multiple entries using MapEntry iterable (more flexible)
         $.settings.addEntries([
-          MapEntry('flexible1', 'value1'),
-          MapEntry('flexible2', 'value2'),
+          const MapEntry('flexible1', 'value1'),
+          const MapEntry('flexible2', 'value2'),
         ]),
       ]);
 
@@ -263,7 +263,7 @@ void main() {
       await odm.immutableUsers(user.id).update(user);
 
       // Verify initial state has multiple entries
-      var beforeClear = await odm.immutableUsers(user.id).get();
+      final beforeClear = await odm.immutableUsers(user.id).get();
       expect(beforeClear!.settings.length, equals(5));
       expect(beforeClear.settings['theme'], equals('dark'));
 
@@ -382,7 +382,7 @@ void main() {
       final keysToRemove = <String>[];
       final keysForSetAll = <String>[];
 
-      for (int i = 0; i < 50; i++) {
+      for (var i = 0; i < 50; i++) {
         largeMap['key$i'] = 'value$i';
         moreEntries.add(MapEntry('entry$i', 'entryValue$i'));
         if (i < 25) keysToRemove.add('key$i');
@@ -461,8 +461,8 @@ void main() {
         
         // 4. Add more entries
         update.settings.addEntries([
-          MapEntry('step5', 'fifth'),
-          MapEntry('step1', 'final'), // Final overwrite
+          const MapEntry('step5', 'fifth'),
+          const MapEntry('step1', 'final'), // Final overwrite
         ]),
         
         // 5. Remove some keys
@@ -509,7 +509,7 @@ void main() {
 
       // Test addAll vs addEntries with same data
       final mapData = {'key1': 'value1', 'key2': 'value2'};
-      final entryData = [MapEntry('key3', 'value3'), MapEntry('key4', 'value4')];
+      final entryData = [const MapEntry('key3', 'value3'), const MapEntry('key4', 'value4')];
 
       await odm.immutableUsers(user.id).patch((update) => [
         // Using addAll with Map
@@ -656,8 +656,8 @@ void main() {
         
         // ✅ 3. addEntries(Iterable<MapEntry<K, V>> entries) - Add from MapEntry iterable
         update.settings.addEntries([
-          MapEntry('entryKey1', 'entryValue1'),
-          MapEntry('entryKey2', 'entryValue2'),
+          const MapEntry('entryKey1', 'entryValue1'),
+          const MapEntry('entryKey2', 'entryValue2'),
         ]),
         
         // ✅ 4. setAll(Iterable<K> keys, V value) - Set multiple keys to same value
@@ -679,7 +679,7 @@ void main() {
       ]);
 
       // Verify state before clear
-      var beforeClear = await odm.immutableUsers(user.id).get();
+      final beforeClear = await odm.immutableUsers(user.id).get();
       expect(beforeClear!.settings.isNotEmpty, isTrue);
 
       // ✅ 7. clear() - Clear all entries
@@ -687,14 +687,14 @@ void main() {
         update.settings.clear(),
       ]);
 
-      var afterClear = await odm.immutableUsers(user.id).get();
+      final afterClear = await odm.immutableUsers(user.id).get();
       expect(afterClear!.settings.isEmpty, isTrue);
 
       // Restore state and verify final operations worked
       await odm.immutableUsers(user.id).patch((update) => [
         update.settings.set('singleKey', 'singleValue'),
         update.settings.addAll({'mapKey1': 'mapValue1', 'mapKey2': 'mapValue2'}),
-        update.settings.addEntries([MapEntry('entryKey1', 'entryValue1')]),
+        update.settings.addEntries([const MapEntry('entryKey1', 'entryValue1')]),
         update.settings.setAll(['setAllKey1', 'setAllKey2'], 'uniformValue'),
       ]);
 
@@ -753,7 +753,7 @@ void main() {
         // Keys with other special characters
         update.settings.set('key@symbol', 'email-like'),
         update.settings.set('key#hash', 'hash-like'),
-        update.settings.set('key\$dollar', 'dollar-like'),
+        update.settings.set(r'key$dollar', 'dollar-like'),
         update.settings.set('key%percent', 'percent-like'),
         update.settings.set('key^caret', 'caret-like'),
         update.settings.set('key&ampersand', 'ampersand-like'),
@@ -762,7 +762,7 @@ void main() {
         update.settings.set('key[bracket]', 'brackets'),
         update.settings.set('key{brace}', 'braces'),
         update.settings.set('key|pipe', 'pipe-like'),
-        update.settings.set('key\\backslash', 'backslash'),
+        update.settings.set(r'key\backslash', 'backslash'),
         update.settings.set('key/slash', 'slash'),
         update.settings.set('key?question', 'question'),
         update.settings.set('key<greater>', 'angle brackets'),
@@ -794,7 +794,7 @@ void main() {
       // Verify special character keys
       expect(result.settings['key@symbol'], equals('email-like'));
       expect(result.settings['key#hash'], equals('hash-like'));
-      expect(result.settings['key\$dollar'], equals('dollar-like'));
+      expect(result.settings[r'key$dollar'], equals('dollar-like'));
       expect(result.settings['key%percent'], equals('percent-like'));
       expect(result.settings['key^caret'], equals('caret-like'));
       expect(result.settings['key&ampersand'], equals('ampersand-like'));
@@ -803,7 +803,7 @@ void main() {
       expect(result.settings['key[bracket]'], equals('brackets'));
       expect(result.settings['key{brace}'], equals('braces'));
       expect(result.settings['key|pipe'], equals('pipe-like'));
-      expect(result.settings['key\\backslash'], equals('backslash'));
+      expect(result.settings[r'key\backslash'], equals('backslash'));
       expect(result.settings['key/slash'], equals('slash'));
       expect(result.settings['key?question'], equals('question'));
       expect(result.settings['key<greater>'], equals('angle brackets'));
@@ -1246,7 +1246,7 @@ void main() {
       final complexKeysToRemove = <String>[];
       final complexKeysForSetAll = <String>[];
 
-      for (int i = 0; i < 100; i++) {
+      for (var i = 0; i < 100; i++) {
         // Create complex keys with various patterns
         final dotKey = 'config.section$i.item.value';
         final domainKey = 'service$i.api.domain.com';

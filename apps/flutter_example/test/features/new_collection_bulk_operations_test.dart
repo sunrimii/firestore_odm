@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🏗️ New Collection Bulk Operations', () {
@@ -24,16 +24,15 @@ void main() {
             name: 'Collection User 1',
             email: 'col1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 1',
               avatar: 'col1.jpg',
               socialLinks: {},
               interests: ['bulk'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false, // Will be updated
             createdAt: DateTime.now(),
           ),
           User(
@@ -41,16 +40,14 @@ void main() {
             name: 'Collection User 2',
             email: 'col2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 2',
               avatar: 'col2.jpg',
               socialLinks: {},
               interests: ['bulk'],
               followers: 200,
             ),
-            rating: 4.0,
-            isActive: false,
-            isPremium: false, // Will be updated
+            rating: 4,
             createdAt: DateTime.now(),
           ),
           User(
@@ -58,14 +55,14 @@ void main() {
             name: 'Collection User 3',
             email: 'col3@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 3',
               avatar: 'col3.jpg',
               socialLinks: {},
               interests: ['bulk'],
               followers: 300,
             ),
-            rating: 5.0,
+            rating: 5,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -126,16 +123,15 @@ void main() {
               name: 'Inc Collection 1',
               email: 'inc1@example.com',
               age: 25,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Inc bio 1',
                 avatar: 'inc1.jpg',
                 socialLinks: {},
                 interests: ['increment'],
                 followers: 100,
               ),
-              rating: 3.0,
+              rating: 3,
               isActive: true,
-              isPremium: false,
               createdAt: DateTime.now(),
             ),
             User(
@@ -143,16 +139,14 @@ void main() {
               name: 'Inc Collection 2',
               email: 'inc2@example.com',
               age: 30,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Inc bio 2',
                 avatar: 'inc2.jpg',
                 socialLinks: {},
                 interests: ['increment'],
                 followers: 150,
               ),
-              rating: 4.0,
-              isActive: false,
-              isPremium: false,
+              rating: 4,
               createdAt: DateTime.now(),
             ),
             User(
@@ -160,7 +154,7 @@ void main() {
               name: 'Inc Collection 3',
               email: 'inc3@example.com',
               age: 40,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Inc bio 3',
                 avatar: 'inc3.jpg',
                 socialLinks: {},
@@ -233,16 +227,15 @@ void main() {
               age: 25,
               tags: ['tag1', 'tag2'], // Will add to this array
               scores: [80, 90], // Will add to this array
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Complex bio 1',
                 avatar: 'complex1.jpg',
                 socialLinks: {'twitter': '@complex1'},
                 interests: ['complex'],
                 followers: 500,
               ),
-              rating: 3.0,
+              rating: 3,
               isActive: true,
-              isPremium: false,
               createdAt: DateTime.now(),
             ),
             User(
@@ -252,15 +245,14 @@ void main() {
               age: 30,
               tags: ['tag3', 'tag4'], // Will add to this array
               scores: [85, 95], // Will add to this array
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Complex bio 2',
                 avatar: 'complex2.jpg',
                 socialLinks: {'linkedin': 'complex2'},
                 interests: ['complex'],
                 followers: 750,
               ),
-              rating: 4.0,
-              isActive: false,
+              rating: 4,
               isPremium: true,
               createdAt: DateTime.now(),
             ),
@@ -318,16 +310,15 @@ void main() {
           name: 'Timestamp User',
           email: 'timestamp@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Timestamp user',
             avatar: 'timestamp.jpg',
             socialLinks: {},
             interests: ['timestamps'],
             followers: 100,
           ),
-          rating: 3.0,
+          rating: 3,
           isActive: true,
-          isPremium: false,
           lastLogin: DateTime.now(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -382,16 +373,15 @@ void main() {
             name: 'Mixed User 1',
             email: 'mixed1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Mixed bio 1',
               avatar: 'mixed1.jpg',
               socialLinks: {},
               interests: ['mixed'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -399,16 +389,14 @@ void main() {
             name: 'Mixed User 2',
             email: 'mixed2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Mixed bio 2',
               avatar: 'mixed2.jpg',
               socialLinks: {},
               interests: ['mixed'],
               followers: 200,
             ),
-            rating: 4.0,
-            isActive: false,
-            isPremium: false,
+            rating: 4,
             createdAt: DateTime.now(),
           ),
         ];
@@ -467,7 +455,6 @@ void main() {
             ),
             rating: 3.0 + (i * 0.5),
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );

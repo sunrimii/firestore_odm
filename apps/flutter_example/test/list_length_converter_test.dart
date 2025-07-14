@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/list_length_model.dart';
 import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 List Length Converter Tests', () {
@@ -67,7 +67,6 @@ void main() {
         numbers: [50].toIList(),
         tags: ['tag1'].toIList(),
         priority: 1,
-        isActive: false,
       );
 
       await odm.listLengthModels(model.id).update(model);
@@ -102,7 +101,7 @@ void main() {
     });
 
     test('should handle nestedProfiles operations without converter', () async {
-      final profile1 = Profile(
+      const profile1 = Profile(
         bio: 'Flutter Developer',
         avatar: 'avatar1.jpg',
         socialLinks: {'twitter': '@flutter_dev'},
@@ -110,7 +109,7 @@ void main() {
         followers: 100,
       );
 
-      final profile2 = Profile(
+      const profile2 = Profile(
         bio: 'Backend Engineer',
         avatar: 'avatar2.jpg',
         socialLinks: {'github': 'backend_guru'},
@@ -248,7 +247,7 @@ void main() {
     });
 
     test('should handle complex mixed operations with all field types', () async {
-      final profile = Profile(
+      const profile = Profile(
         bio: 'Mixed Operations Test',
         avatar: 'mixed.jpg',
         socialLinks: {'test': 'mixed'},
@@ -265,14 +264,13 @@ void main() {
         numbers: [100, 200].toIList(),
         tags: ['start'].toIList(),
         priority: 10,
-        isActive: false,
         createdAt: DateTime.now(),
       );
 
       await odm.listLengthModels(model.id).update(model);
 
       // Complex patch with all field types
-      final newProfile = Profile(
+      const newProfile = Profile(
         bio: 'Updated Profile',
         avatar: 'updated.jpg',
         socialLinks: {'updated': 'profile'},
@@ -399,7 +397,7 @@ void main() {
     });
 
     test('should handle null and optional fields correctly', () async {
-      final model = ListLengthModel(
+      const model = ListLengthModel(
         id: 'null_test',
         name: 'Null Test',
         description: 'Testing null handling',
@@ -633,7 +631,7 @@ void main() {
     });
 
     test('should patch individual Profile fields without replacing whole object', () async {
-      final originalProfile = Profile(
+      const originalProfile = Profile(
         bio: 'Original Bio',
         avatar: 'original.jpg',
         socialLinks: {'twitter': '@original', 'github': 'original_user'},
@@ -682,7 +680,7 @@ void main() {
     });
 
     test('should modify Profile arrays and maps incrementally', () async {
-      final profile = Profile(
+      const profile = Profile(
         bio: 'Tech Enthusiast',
         avatar: 'tech.jpg',
         socialLinks: {'twitter': '@tech_person'},
@@ -741,7 +739,7 @@ void main() {
     });
 
     test('should handle multiple profiles with different map operations', () async {
-      final devProfile = Profile(
+      const devProfile = Profile(
         bio: 'Software Developer',
         avatar: 'dev.jpg',
         socialLinks: {'github': 'dev_coder'},
@@ -749,7 +747,7 @@ void main() {
         followers: 300,
       );
 
-      final designProfile = Profile(
+      const designProfile = Profile(
         bio: 'UI/UX Designer',
         avatar: 'designer.jpg',
         socialLinks: {'dribbble': 'cool_designer'},

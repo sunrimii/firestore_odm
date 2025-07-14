@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/list_length_model.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 ODM JsonConverter Tests', () {
@@ -66,7 +66,6 @@ void main() {
         numbers: [50].toIList(),
         tags: ['tag1'].toIList(),
         priority: 1,
-        isActive: false,
       );
 
       await odm.listLengthModels(model.id).update(model);
@@ -102,7 +101,7 @@ void main() {
 
     test('should demonstrate back and forth conversion in ODM', () async {
       // Create initial model
-      var model = ListLengthModel(
+      final model = ListLengthModel(
         id: 'back_forth_test',
         name: 'Back and Forth Test',
         description: 'Testing bidirectional conversion in ODM',
@@ -127,7 +126,7 @@ void main() {
       expect(rawData['numbers'], equals(60)); // Sum stored
       
       // Retrieve from Firestore (int -> List conversion)
-      var retrieved = await odm.listLengthModels(model.id).get();
+      final retrieved = await odm.listLengthModels(model.id).get();
       expect(retrieved, isNotNull);
       
       // Verify reconstruction
@@ -168,8 +167,6 @@ void main() {
         items: <String>[].toIList(),
         numbers: <int>[].toIList(),
         tags: ['empty'].toIList(),
-        priority: 0,
-        isActive: false,
       );
 
       await odm.listLengthModels(emptyModel.id).update(emptyModel);

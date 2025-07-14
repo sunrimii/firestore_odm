@@ -1,7 +1,7 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/profile.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 part 'list_length_model.freezed.dart';
 part 'list_length_model.g.dart';
@@ -46,7 +46,6 @@ class ListSumConverter implements JsonConverter<IList<int>, int> {
 @freezed
 @firestoreOdm
 abstract class ListLengthModel with _$ListLengthModel {
-  const ListLengthModel._();
 
   const factory ListLengthModel({
     @DocumentIdField() required String id,
@@ -71,6 +70,7 @@ abstract class ListLengthModel with _$ListLengthModel {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _ListLengthModel;
+  const ListLengthModel._();
 
   factory ListLengthModel.fromJson(Map<String, dynamic> json) =>
       _$ListLengthModelFromJson(json);

@@ -16,12 +16,11 @@ abstract class Post with _$Post {
     required String authorId,
     required List<String> tags,
     required Map<String, dynamic> metadata,
-    @Default(0) int likes,
+    required DateTime createdAt, @Default(0) int likes,
     @Default(0) int views,
     @Default(false) bool published,
     DateTime? publishedAt,
     DateTime? updatedAt,
-    required DateTime createdAt,
   }) = _Post;
 
   /// Creates a Post instance from a JSON map.

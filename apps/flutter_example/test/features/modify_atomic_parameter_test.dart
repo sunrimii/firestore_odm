@@ -1,9 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔧 Modify with Atomic Parameter', () {
@@ -17,7 +17,7 @@ void main() {
 
     test('should use atomic operations by default (atomic: true)', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'atomic_default_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -56,7 +56,7 @@ void main() {
 
     test('should use atomic operations when atomic: true', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'atomic_true_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -95,7 +95,7 @@ void main() {
 
     test('should not use atomic operations when atomic: false', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'atomic_false_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -133,7 +133,7 @@ void main() {
     test('should work with bulk operations on queries', () async {
       // Create multiple test users
       final users = [
-        User(
+        const User(
           id: 'bulk_user_1',
           name: 'User 1',
           email: 'user1@example.com',
@@ -143,7 +143,7 @@ void main() {
           isActive: true,
           profile: Profile(bio: 'Bio 1', avatar: 'avatar1.jpg', socialLinks: {'twitter': '@user1'}, interests: ['tech'], followers: 50),
         ),
-        User(
+        const User(
           id: 'bulk_user_2',
           name: 'User 2',
           email: 'user2@example.com',
@@ -182,7 +182,7 @@ void main() {
 
     test('should maintain backward compatibility with modify', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'backward_compat_user',
         name: 'Test User',
         email: 'test@example.com',
@@ -217,7 +217,7 @@ void main() {
 
     test('should work in transactions with atomic parameter', () async {
       // Create a test user
-      final user = User(
+      const user = User(
         id: 'tx_atomic_user',
         name: 'Test User',
         email: 'test@example.com',

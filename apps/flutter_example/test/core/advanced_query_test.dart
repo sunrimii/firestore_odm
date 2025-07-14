@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔍 Advanced Query Operations', () {
@@ -23,16 +23,15 @@ void main() {
             name: 'Alice',
             email: 'alice@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Alice bio',
               avatar: 'alice.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -40,7 +39,7 @@ void main() {
             name: 'Bob',
             email: 'bob@example.com',
             age: 25, // Same age as Alice
-            profile: Profile(
+            profile: const Profile(
               bio: 'Bob bio',
               avatar: 'bob.jpg',
               socialLinks: {},
@@ -49,7 +48,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -57,7 +55,7 @@ void main() {
             name: 'Charlie',
             email: 'charlie@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Charlie bio',
               avatar: 'charlie.jpg',
               socialLinks: {},
@@ -66,7 +64,6 @@ void main() {
             ),
             rating: 4.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -101,16 +98,15 @@ void main() {
             name: 'User 1',
             email: 'user1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 1 bio',
               avatar: 'user1.jpg',
               socialLinks: {},
               interests: ['nested'],
               followers: 50,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -118,16 +114,15 @@ void main() {
             name: 'User 2',
             email: 'user2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 2 bio',
               avatar: 'user2.jpg',
               socialLinks: {},
               interests: ['nested'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -135,7 +130,7 @@ void main() {
             name: 'User 3',
             email: 'user3@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 3 bio',
               avatar: 'user3.jpg',
               socialLinks: {},
@@ -144,7 +139,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -174,16 +168,15 @@ void main() {
             name: 'First User',
             email: 'first@example.com',
             age: 20,
-            profile: Profile(
+            profile: const Profile(
               bio: 'First user',
               avatar: 'first.jpg',
               socialLinks: {},
               interests: ['limiting'],
               followers: 10,
             ),
-            rating: 1.0,
+            rating: 1,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -191,16 +184,15 @@ void main() {
             name: 'Second User',
             email: 'second@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Second user',
               avatar: 'second.jpg',
               socialLinks: {},
               interests: ['limiting'],
               followers: 20,
             ),
-            rating: 2.0,
+            rating: 2,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -208,16 +200,15 @@ void main() {
             name: 'Third User',
             email: 'third@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Third user',
               avatar: 'third.jpg',
               socialLinks: {},
               interests: ['limiting'],
               followers: 30,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -225,16 +216,15 @@ void main() {
             name: 'Fourth User',
             email: 'fourth@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Fourth user',
               avatar: 'fourth.jpg',
               socialLinks: {},
               interests: ['limiting'],
               followers: 40,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -272,16 +262,14 @@ void main() {
             name: 'Query User 1',
             email: 'query1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query user 1',
               avatar: 'query1.jpg',
               socialLinks: {},
               interests: ['query_updates'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -289,7 +277,7 @@ void main() {
             name: 'Query User 2',
             email: 'query2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Query user 2',
               avatar: 'query2.jpg',
               socialLinks: {},
@@ -297,8 +285,6 @@ void main() {
               followers: 150,
             ),
             rating: 3.5,
-            isActive: false,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -331,16 +317,14 @@ void main() {
             name: 'Modify User 1',
             email: 'modify1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Modify user 1',
               avatar: 'modify1.jpg',
               socialLinks: {},
               interests: ['query_modify'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -348,7 +332,7 @@ void main() {
             name: 'Modify User 2',
             email: 'modify2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Modify user 2',
               avatar: 'modify2.jpg',
               socialLinks: {},
@@ -356,8 +340,6 @@ void main() {
               followers: 150,
             ),
             rating: 3.5,
-            isActive: false,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -399,16 +381,15 @@ void main() {
               name: 'Inc Modify User 1',
               email: 'incmod1@example.com',
               age: 25,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Inc modify user 1',
                 avatar: 'incmod1.jpg',
                 socialLinks: {},
                 interests: ['query_incremental'],
                 followers: 100,
               ),
-              rating: 3.0,
+              rating: 3,
               isActive: true,
-              isPremium: false,
               tags: ['original'],
               scores: [80, 85],
               createdAt: DateTime.now(),
@@ -418,7 +399,7 @@ void main() {
               name: 'Inc Modify User 2',
               email: 'incmod2@example.com',
               age: 30,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Inc modify user 2',
                 avatar: 'incmod2.jpg',
                 socialLinks: {},
@@ -427,7 +408,6 @@ void main() {
               ),
               rating: 3.5,
               isActive: true,
-              isPremium: false,
               tags: ['original'],
               scores: [90, 95],
               createdAt: DateTime.now(),

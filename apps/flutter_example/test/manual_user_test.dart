@@ -1,8 +1,8 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/manual_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ManualUser ODM Tests', () {
@@ -18,7 +18,7 @@ void main() {
       'should create and save ManualUser with manual serialization',
       () async {
         // Create a ManualUser instance
-        final user = ManualUser(
+        const user = ManualUser(
           id: 'manual123',
           name: 'John Manual',
           email: 'john@manual.com',
@@ -45,12 +45,11 @@ void main() {
     );
 
     test('should respect custom field names in manual toJson', () async {
-      final user = ManualUser(
+      const user = ManualUser(
         id: 'manual456',
         name: 'Jane Manual',
         email: 'jane@manual.com',
         age: 25,
-        isPremium: false,
         rating: 92.3,
         tags: ['flutter', 'dart'],
         debugInfo: 'Debug information',
@@ -139,23 +138,22 @@ void main() {
     test('should support querying on custom field names', () async {
       // Create test users
       final users = [
-        ManualUser(
+        const ManualUser(
           id: 'verified1',
           name: 'Verified User 1',
           email: 'verified1@manual.com',
           age: 30,
           isPremium: true,
-          rating: 95.0,
+          rating: 95,
           tags: ['premium'],
           debugInfo: 'Debug 1',
         ),
-        ManualUser(
+        const ManualUser(
           id: 'unverified1',
           name: 'Unverified User 1',
           email: 'unverified1@manual.com',
           age: 25,
-          isPremium: false,
-          rating: 70.0,
+          rating: 70,
           tags: ['basic'],
           debugInfo: 'Debug 2',
         ),
@@ -195,13 +193,12 @@ void main() {
     });
 
     test('should work with copyWith method', () async {
-      final originalUser = ManualUser(
+      const originalUser = ManualUser(
         id: 'copy_manual',
         name: 'Original Manual',
         email: 'original@manual.com',
         age: 30,
-        isPremium: false,
-        rating: 75.0,
+        rating: 75,
         tags: ['original'],
         debugInfo: 'Original debug',
       );
@@ -212,7 +209,7 @@ void main() {
       final updatedUser = originalUser.copyWith(
         name: 'Updated Manual',
         isPremium: true,
-        rating: 90.0,
+        rating: 90,
       );
 
       await odm.manualUsers(updatedUser.id).update(updatedUser);
@@ -229,7 +226,7 @@ void main() {
     });
 
     test('should handle round-trip serialization correctly', () async {
-      final originalUser = ManualUser(
+      const originalUser = ManualUser(
         id: 'roundtrip_test',
         name: 'Round Trip User',
         email: 'roundtrip@manual.com',

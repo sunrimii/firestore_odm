@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
 import 'package:flutter_example/models/simple_story.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🆔 Document ID Field Tests', () {
@@ -23,16 +23,15 @@ void main() {
           name: 'Explicit ID User',
           email: 'explicit@example.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Explicit ID test',
             avatar: 'explicit.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -49,7 +48,7 @@ void main() {
           name: 'Upsert User',
           email: 'upsert@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Upsert test',
             avatar: 'upsert.jpg',
             socialLinks: {},
@@ -58,7 +57,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -124,16 +122,15 @@ void main() {
             name: 'Filter User 1',
             email: 'filter1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Filter test 1',
               avatar: 'filter1.jpg',
               socialLinks: {},
               interests: ['filtering'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -141,7 +138,7 @@ void main() {
             name: 'Filter User 2',
             email: 'filter2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Filter test 2',
               avatar: 'filter2.jpg',
               socialLinks: {},
@@ -181,16 +178,15 @@ void main() {
             name: 'C User',
             email: 'c@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'C user',
               avatar: 'c.jpg',
               socialLinks: {},
               interests: ['order'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -198,16 +194,15 @@ void main() {
             name: 'A User',
             email: 'a@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'A user',
               avatar: 'a.jpg',
               socialLinks: {},
               interests: ['order'],
               followers: 150,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -215,7 +210,7 @@ void main() {
             name: 'B User',
             email: 'b@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'B user',
               avatar: 'b.jpg',
               socialLinks: {},
@@ -224,7 +219,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -262,16 +256,15 @@ void main() {
             name: 'Valid User',
             email: 'valid@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Valid user',
               avatar: 'valid.jpg',
               socialLinks: {},
               interests: ['validation'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           );
 

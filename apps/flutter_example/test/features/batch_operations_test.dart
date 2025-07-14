@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔄 Batch Operations Features', () {
@@ -23,16 +23,15 @@ void main() {
             name: 'Batch User 1',
             email: 'batch1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'First batch user',
               avatar: 'batch1.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -40,7 +39,7 @@ void main() {
             name: 'Batch User 2',
             email: 'batch2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Second batch user',
               avatar: 'batch2.jpg',
               socialLinks: {},
@@ -49,7 +48,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -78,16 +76,14 @@ void main() {
             name: 'Update User 1',
             email: 'update1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 1',
               avatar: 'update1.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
           User(
@@ -95,7 +91,7 @@ void main() {
             name: 'Update User 2',
             email: 'update2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 2',
               avatar: 'update2.jpg',
               socialLinks: {},
@@ -103,8 +99,6 @@ void main() {
               followers: 150,
             ),
             rating: 3.5,
-            isActive: false,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -139,16 +133,15 @@ void main() {
             name: 'Upsert User 1',
             email: 'upsert1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Upsert bio 1',
               avatar: 'upsert1.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -156,7 +149,7 @@ void main() {
             name: 'Upsert User 2',
             email: 'upsert2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Upsert bio 2',
               avatar: 'upsert2.jpg',
               socialLinks: {},
@@ -165,7 +158,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -209,16 +201,15 @@ void main() {
             name: 'Delete User 1',
             email: 'delete1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Delete bio 1',
               avatar: 'delete1.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -226,7 +217,7 @@ void main() {
             name: 'Delete User 2',
             email: 'delete2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Delete bio 2',
               avatar: 'delete2.jpg',
               socialLinks: {},
@@ -235,7 +226,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -272,16 +262,14 @@ void main() {
           name: 'Patch User',
           email: 'patch@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original patch bio',
             avatar: 'patch.jpg',
             socialLinks: {},
             interests: ['coding'],
             followers: 100,
           ),
-          rating: 3.0,
-          isActive: false,
-          isPremium: false,
+          rating: 3,
           createdAt: DateTime.now(),
         );
 
@@ -292,7 +280,7 @@ void main() {
           batch.users('batch_patch_user').patch(($) => [
             $.isActive(true),
             $.isPremium(true),
-            $.rating.increment(1.0),
+            $.rating.increment(1),
             $.profile.followers.increment(50),
           ]);
         });
@@ -315,16 +303,14 @@ void main() {
           name: 'Existing User',
           email: 'existing@example.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Existing user',
             avatar: 'existing.jpg',
             socialLinks: {},
             interests: ['coding'],
             followers: 100,
           ),
-          rating: 3.0,
-          isActive: false,
-          isPremium: false,
+          rating: 3,
           createdAt: DateTime.now(),
         );
 
@@ -335,7 +321,7 @@ void main() {
           name: 'New User',
           email: 'new@example.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'New user',
             avatar: 'new.jpg',
             socialLinks: {},
@@ -344,7 +330,6 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
           createdAt: DateTime.now(),
         );
 
@@ -368,14 +353,14 @@ void main() {
             name: 'Upsert User',
             email: 'upsert@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Upsert user',
               avatar: 'upsert.jpg',
               socialLinks: {},
               interests: ['mixed'],
               followers: 120,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -410,22 +395,21 @@ void main() {
         expect(() async {
           await odm.runBatch((batch) {
             // Try to add more than 500 operations
-            for (int i = 0; i < 501; i++) {
+            for (var i = 0; i < 501; i++) {
               batch.users.insert(User(
                 id: 'limit_test_$i',
                 name: 'Limit Test $i',
                 email: 'limit$i@example.com',
                 age: 25,
-                profile: Profile(
+                profile: const Profile(
                   bio: 'Limit test',
                   avatar: 'limit.jpg',
                   socialLinks: {},
                   interests: ['limit'],
                   followers: 100,
                 ),
-                rating: 3.0,
+                rating: 3,
                 isActive: true,
-                isPremium: false,
                 createdAt: DateTime.now(),
               ));
             }

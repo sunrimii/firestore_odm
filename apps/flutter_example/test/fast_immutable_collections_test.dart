@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/immutable_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🚀 Fast Immutable Collections Tests', () {
@@ -92,7 +92,7 @@ void main() {
           'notifications': 'disabled',
         }.toIMap(),
         categories: {'admin', 'config-master'}.toISet(),
-        rating: 5.0,
+        rating: 5,
         isActive: true,
         createdAt: DateTime.now(),
       );

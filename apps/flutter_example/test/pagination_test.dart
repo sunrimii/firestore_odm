@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Strongly-Typed Pagination System Tests', () {
@@ -94,8 +94,8 @@ void main() {
 
     test('DateTime field orderBy with strongly-typed DateTime pagination', () {
       // Order by createdAt field (DateTime) - pagination should accept DateTime cursor values
-      final timestamp1 = DateTime(2023, 1, 1);
-      final timestamp2 = DateTime(2024, 1, 1);
+      final timestamp1 = DateTime(2023);
+      final timestamp2 = DateTime(2024);
 
       final query = odm.users
           .orderBy(($) => ($.createdAt(),)) // NEW: Tuple syntax (DateTime,)
@@ -128,7 +128,7 @@ void main() {
         age: 30,
         tags: ['developer'],
         scores: [95, 88],
-        profile: Profile(
+        profile: const Profile(
           bio: 'Developer',
           followers: 1500,
           avatar: 'https://example.com/avatar.jpg',
@@ -137,7 +137,6 @@ void main() {
         ),
         rating: 4.3,
         isActive: true,
-        isPremium: false,
         lastLogin: DateTime.now(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -205,14 +204,14 @@ void main() {
           ) // NEW: Tuple syntax (DateTime,)
           .limit(20)
           .startAfter((
-            DateTime(2023, 12, 1),
+            DateTime(2023, 12),
           )); // ✓ (DateTime,) tuple matches orderBy type
 
       expect(recentPosts, isNotNull);
 
       // Get older posts
       final olderPosts = recentPosts.startAfter((
-        DateTime(2023, 6, 1),
+        DateTime(2023, 6),
       )); // ✓ Continue with another (DateTime,) tuple
 
       expect(olderPosts, isNotNull);

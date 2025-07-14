@@ -1,7 +1,5 @@
-import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart' hide FunctionType;
 import 'package:code_builder/code_builder.dart';
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
 import 'package:source_gen/source_gen.dart';
@@ -142,8 +140,8 @@ class ConverterGenerator {
   }) {
     if (customConverter != null) {
       // If a custom converter is provided, use it directly
-      return customConverter!.fromJson.call([
-        value.asA(customConverter!.jsonType.reference),
+      return customConverter.fromJson.call([
+        value.asA(customConverter.jsonType.reference),
       ]);
     }
     

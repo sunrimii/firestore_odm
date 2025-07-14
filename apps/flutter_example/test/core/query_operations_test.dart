@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔍 Core Query Operations', () {
@@ -23,16 +23,15 @@ void main() {
             name: 'Active User',
             email: 'active@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Active user bio',
               avatar: 'active.jpg',
               socialLinks: {},
               interests: ['coding'],
               followers: 100,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -40,16 +39,14 @@ void main() {
             name: 'Inactive User',
             email: 'inactive@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Inactive user bio',
               avatar: 'inactive.jpg',
               socialLinks: {},
               interests: ['reading'],
               followers: 50,
             ),
-            rating: 3.0,
-            isActive: false,
-            isPremium: false,
+            rating: 3,
             createdAt: DateTime.now(),
           ),
         ];
@@ -73,7 +70,7 @@ void main() {
             name: 'Premium User',
             email: 'premium@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Premium user',
               avatar: 'premium.jpg',
               socialLinks: {},
@@ -90,7 +87,7 @@ void main() {
             name: 'Regular User',
             email: 'regular@example.com',
             age: 26,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Regular user',
               avatar: 'regular.jpg',
               socialLinks: {},
@@ -99,7 +96,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -156,7 +152,7 @@ void main() {
 
         // Test rating greater than or equal
         final highRatedUsers = await odm.users
-            .where(($) => $.rating(isGreaterThanOrEqualTo: 3.0))
+            .where(($) => $.rating(isGreaterThanOrEqualTo: 3))
             .get();
         expect(highRatedUsers.length, equals(3)); // ratings 3.0, 3.5, 4.0
       });
@@ -170,7 +166,7 @@ void main() {
             name: 'Coder User',
             email: 'coder@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Software developer',
               avatar: 'coder.jpg',
               socialLinks: {},
@@ -179,7 +175,6 @@ void main() {
             ),
             rating: 4.2,
             isActive: true,
-            isPremium: false,
             tags: ['developer', 'flutter'],
             createdAt: DateTime.now(),
           ),
@@ -188,16 +183,15 @@ void main() {
             name: 'Designer User',
             email: 'designer@example.com',
             age: 26,
-            profile: Profile(
+            profile: const Profile(
               bio: 'UI/UX Designer',
               avatar: 'designer.jpg',
               socialLinks: {},
               interests: ['design', 'ui', 'ux'],
               followers: 120,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             tags: ['designer', 'creative'],
             createdAt: DateTime.now(),
           ),
@@ -229,7 +223,7 @@ void main() {
             name: 'Multi Interest User',
             email: 'multi@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Multiple interests',
               avatar: 'multi.jpg',
               socialLinks: {},
@@ -247,7 +241,7 @@ void main() {
             name: 'Single Interest User',
             email: 'single@example.com',
             age: 24,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Focused person',
               avatar: 'single.jpg',
               socialLinks: {},
@@ -256,7 +250,6 @@ void main() {
             ),
             rating: 3.8,
             isActive: true,
-            isPremium: false,
             tags: ['focused'],
             createdAt: DateTime.now(),
           ),
@@ -296,7 +289,7 @@ void main() {
             name: 'Popular User',
             email: 'popular@example.com',
             age: 29,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Very popular user',
               avatar: 'popular.jpg',
               socialLinks: {},
@@ -313,7 +306,7 @@ void main() {
             name: 'Starting User',
             email: 'starting@example.com',
             age: 22,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Just starting out',
               avatar: 'starting.jpg',
               socialLinks: {},
@@ -322,7 +315,6 @@ void main() {
             ),
             rating: 3.2,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -398,7 +390,7 @@ void main() {
             name: 'High Rating User',
             email: 'highrating@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'High rating user',
               avatar: 'highrating.jpg',
               socialLinks: {},
@@ -406,8 +398,6 @@ void main() {
               followers: 100,
             ),
             rating: 4.8,
-            isActive: false,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -415,7 +405,7 @@ void main() {
             name: 'Premium User',
             email: 'premium@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Premium subscriber',
               avatar: 'premium.jpg',
               socialLinks: {},
@@ -432,16 +422,15 @@ void main() {
             name: 'Regular User',
             email: 'regular@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Regular user',
               avatar: 'regular.jpg',
               socialLinks: {},
               interests: ['regular'],
               followers: 80,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -520,16 +509,15 @@ void main() {
             name: 'Z User',
             email: 'z@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Z user',
               avatar: 'z.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 100,
             ),
-            rating: 2.0,
+            rating: 2,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -537,16 +525,15 @@ void main() {
             name: 'A User',
             email: 'a@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'A user',
               avatar: 'a.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -554,16 +541,15 @@ void main() {
             name: 'M User',
             email: 'm@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'M user',
               avatar: 'm.jpg',
               socialLinks: {},
               interests: ['sorting'],
               followers: 150,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -610,7 +596,6 @@ void main() {
             ),
             rating: 1.0 + index * 0.3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );

@@ -1,8 +1,8 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/dart_immutable_user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('DartImmutableUser ODM Tests', () {
@@ -18,7 +18,7 @@ void main() {
       'should create and save DartImmutableUser with json_serializable',
       () async {
         // Create a DartImmutableUser instance
-        final user = DartImmutableUser(
+        const user = DartImmutableUser(
           id: 'user123',
           name: 'John Doe',
           email: 'john@example.com',
@@ -45,12 +45,11 @@ void main() {
     );
 
     test('should respect @JsonKey annotations for field mapping', () async {
-      final user = DartImmutableUser(
+      const user = DartImmutableUser(
         id: 'user456',
         name: 'Jane Smith',
         email: 'jane@example.com',
         age: 25,
-        isPremium: false,
         rating: 3.8,
         skills: ['React', 'JavaScript'],
         internalNotes: 'Internal note',
@@ -141,7 +140,7 @@ void main() {
     test('should support querying on renamed fields', () async {
       // Create test users
       final users = [
-        DartImmutableUser(
+        const DartImmutableUser(
           id: 'premium1',
           name: 'Premium User 1',
           email: 'premium1@example.com',
@@ -151,13 +150,12 @@ void main() {
           skills: ['Flutter'],
           internalNotes: 'Note 1',
         ),
-        DartImmutableUser(
+        const DartImmutableUser(
           id: 'regular1',
           name: 'Regular User 1',
           email: 'regular1@example.com',
           age: 25,
-          isPremium: false,
-          rating: 3.0,
+          rating: 3,
           skills: ['HTML'],
           internalNotes: 'Note 2',
         ),
@@ -188,13 +186,12 @@ void main() {
     });
 
     test('should work with copyWith method', () async {
-      final originalUser = DartImmutableUser(
+      const originalUser = DartImmutableUser(
         id: 'copy_test',
         name: 'Original Name',
         email: 'original@example.com',
         age: 30,
-        isPremium: false,
-        rating: 3.0,
+        rating: 3,
         skills: ['Dart'],
         internalNotes: 'Original note',
       );

@@ -1,6 +1,6 @@
 import 'package:firestore_odm/firestore_odm.dart';
+import 'package:flutter_example/models/profile.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'profile.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';
@@ -15,11 +15,10 @@ abstract class User with _$User {
     required String name,
     required String email,
     required int age,
-    @Default([]) List<String> tags,
+    required Profile profile, // Nested object, @Default([]) List<String> tags,
     @Default([]) List<int> scores,
     @Default({}) Map<String, String> settings,
     @Default({}) Map<String, dynamic> metadata,
-    required Profile profile, // Nested object
     @Default(0.0) double rating,
     @Default(false) bool isActive,
     @Default(false) bool isPremium,

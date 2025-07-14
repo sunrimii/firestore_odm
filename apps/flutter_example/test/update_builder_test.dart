@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/manual_user3.dart';
@@ -17,14 +16,13 @@ void main() {
 
     test('should use ManualUser3UpdateBuilder for complex generic types', () async {
       // Create initial user
-      final user = ManualUser3<ManualUser3Profile<Book>>(
+      const user = ManualUser3<ManualUser3Profile<Book>>(
         id: 'update_test_001',
         name: 'Original Name',
         customField: ManualUser3Profile<Book>(
           email: 'original@test.com',
           age: 25,
-          isPremium: false,
-          rating: 3.0,
+          rating: 3,
           tags: ['original'],
           preferences: {'status': 'active'},
           customList: [
@@ -44,7 +42,7 @@ void main() {
         
         return [
           updateBuilder.name('Updated Name'),
-          updateBuilder.customField(ManualUser3Profile<Book>(
+          updateBuilder.customField(const ManualUser3Profile<Book>(
             email: 'updated@test.com',
             age: 30,
             isPremium: true,
@@ -71,13 +69,12 @@ void main() {
 
     test('should properly handle type parameters in UpdateBuilder', () async {
       // Test with String collection
-      final stringUser = ManualUser3<ManualUser3Profile<String>>(
+      const stringUser = ManualUser3<ManualUser3Profile<String>>(
         id: 'string_update_001',
         name: 'String User',
         customField: ManualUser3Profile<String>(
           email: 'string@test.com',
           age: 20,
-          isPremium: false,
           rating: 2.5,
           tags: ['string'],
           preferences: {'type': 'string'},
@@ -91,11 +88,11 @@ void main() {
       await odm.manualUsers3Strings('string_update_001').patch((updateBuilder) {
         return [
           updateBuilder.name('Updated String User'),
-          updateBuilder.customField(ManualUser3Profile<String>(
+          updateBuilder.customField(const ManualUser3Profile<String>(
             email: 'updated.string@test.com',
             age: 25,
             isPremium: true,
-            rating: 4.0,
+            rating: 4,
             tags: ['string', 'updated'],
             preferences: {'type': 'updated_string'},
             customList: ['updated1', 'updated2', 'updated3'],

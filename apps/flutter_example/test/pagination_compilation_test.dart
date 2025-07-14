@@ -26,13 +26,13 @@ void main() {
     });
 
     test('demonstrates switch expression pattern matching works', () {
-      dynamic testTuple = (25, 'Alice', 4.5);
+      const dynamic testTuple = (25, 'Alice', 4.5);
 
       final result = switch (testTuple) {
-        (var a,) => [a],
-        (var a, var b) => [a, b],
-        (var a, var b, var c) => [a, b, c],
-        (var a, var b, var c, var d) => [a, b, c, d],
+        (final a,) => [a],
+        (final a, final b) => [a, b],
+        (final a, final b, final c) => [a, b, c],
+        (final a, final b, final c, final d) => [a, b, c, d],
         _ => <dynamic>[],
       };
 
@@ -67,19 +67,19 @@ void main() {
 
       // Single field syntax
       expect(() {
-        final cursor = (25,);
+        const cursor = (25,);
         expect(cursor is (int,), isTrue);
       }, returnsNormally);
 
       // Multi-field syntax
       expect(() {
-        final cursor = (25, 'Alice');
+        const cursor = (25, 'Alice');
         expect(cursor is (int, String), isTrue);
       }, returnsNormally);
 
       // Complex multi-field syntax
       expect(() {
-        final cursor = (4.5, 30, 'John', 'user123');
+        const cursor = (4.5, 30, 'John', 'user123');
         expect(cursor is (double, int, String, String), isTrue);
       }, returnsNormally);
     });

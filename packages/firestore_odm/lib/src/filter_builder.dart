@@ -774,7 +774,7 @@ class DurationFieldUpdate<T extends Duration?> extends PatchBuilder<T, int?> {
 
   /// Increment field value by a Duration
   UpdateOperation increment(Duration value) {
-    final int milliseconds = const DurationConverter().toJson(value)!;
+    final int milliseconds = const DurationConverter().toJson(value);
     return IncrementOperation(path, milliseconds);
   }
 }

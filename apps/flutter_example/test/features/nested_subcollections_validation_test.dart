@@ -1,12 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-
-import 'package:flutter_example/test_schema.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:flutter_example/models/comment.dart';
 import 'package:flutter_example/models/post.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔧 Nested Subcollections Bug Fix Validation', () {
@@ -78,14 +77,14 @@ void main() {
       '✅ should support the expected API pattern for nested collections',
       () async {
         // This validates that the expected API works as described in the GitHub issue
-        final profile = Profile(
+        const profile = Profile(
           bio: 'Test bio',
           avatar: 'avatar.jpg',
           socialLinks: {},
           interests: ['coding', 'testing'],
         );
 
-        final user = User(
+        const user = User(
           id: 'user_123',
           name: 'Test User',
           email: 'test@example.com',

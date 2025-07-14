@@ -1,7 +1,7 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
 
 void main() async {
@@ -22,12 +22,11 @@ void main() async {
       interests: ['maps'],
       followers: 100,
       lastActive: DateTime.now(),
-      story: null,
     ),
     settings: {'theme': 'auto', 'notifications': 'enabled'},
     metadata: {'version': '1.0'},
     tags: [],
-    rating: 4.0,
+    rating: 4,
     createdAt: DateTime.now(),
   );
 

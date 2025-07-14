@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🔧 New OrderedQuery Features', () {
@@ -26,7 +26,7 @@ void main() {
               name: 'Alice',
               email: 'alice@example.com',
               age: 25,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Alice bio',
                 avatar: 'alice.jpg',
                 socialLinks: {},
@@ -35,7 +35,6 @@ void main() {
               ),
               rating: 4.5,
               isActive: true,
-              isPremium: false,
               createdAt: DateTime.now(),
             ),
             User(
@@ -43,7 +42,7 @@ void main() {
               name: 'Bob',
               email: 'bob@example.com',
               age: 30,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Bob bio',
                 avatar: 'bob.jpg',
                 socialLinks: {},
@@ -51,7 +50,6 @@ void main() {
                 followers: 1000,
               ),
               rating: 3.8,
-              isActive: false, // Inactive
               isPremium: true,
               createdAt: DateTime.now(),
             ),
@@ -60,7 +58,7 @@ void main() {
               name: 'Charlie',
               email: 'charlie@example.com',
               age: 35,
-              profile: Profile(
+              profile: const Profile(
                 bio: 'Charlie bio',
                 avatar: 'charlie.jpg',
                 socialLinks: {},
@@ -114,7 +112,7 @@ void main() {
             name: 'Premium Active',
             email: 'premium@example.com',
             age: 28,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Premium active user',
               avatar: 'premium.jpg',
               socialLinks: {},
@@ -131,7 +129,7 @@ void main() {
             name: 'Premium Inactive',
             email: 'inactive@example.com',
             age: 32,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Premium inactive user',
               avatar: 'inactive.jpg',
               socialLinks: {},
@@ -139,7 +137,6 @@ void main() {
               followers: 1500,
             ),
             rating: 4.2,
-            isActive: false, // Will be filtered out
             isPremium: true,
             createdAt: DateTime.now(),
           ),
@@ -148,7 +145,7 @@ void main() {
             name: 'Regular Active',
             email: 'regular@example.com',
             age: 26,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Regular active user',
               avatar: 'regular.jpg',
               socialLinks: {},
@@ -157,7 +154,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false, // Will be filtered out
             createdAt: DateTime.now(),
           ),
         ];
@@ -196,16 +192,15 @@ void main() {
             name: 'User 1',
             email: 'user1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 1 bio',
               avatar: 'user1.jpg',
               socialLinks: {},
               interests: ['testing'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false, // Will be updated
             createdAt: DateTime.now(),
           ),
           User(
@@ -213,7 +208,7 @@ void main() {
             name: 'User 2',
             email: 'user2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'User 2 bio',
               avatar: 'user2.jpg',
               socialLinks: {},
@@ -222,7 +217,6 @@ void main() {
             ),
             rating: 3.5,
             isActive: true,
-            isPremium: false, // Will be updated
             createdAt: DateTime.now(),
           ),
         ];
@@ -265,16 +259,15 @@ void main() {
             name: 'Modify User 1',
             email: 'modify1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 1',
               avatar: 'modify1.jpg',
               socialLinks: {},
               interests: ['modify'],
               followers: 200,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -282,16 +275,15 @@ void main() {
             name: 'Modify User 2',
             email: 'modify2@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Original bio 2',
               avatar: 'modify2.jpg',
               socialLinks: {},
               interests: ['modify'],
               followers: 300,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -333,16 +325,15 @@ void main() {
             name: 'Inc User 1',
             email: 'inc1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Inc bio 1',
               avatar: 'inc1.jpg',
               socialLinks: {},
               interests: ['increment'],
               followers: 100,
             ),
-            rating: 3.0,
+            rating: 3,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
           User(
@@ -350,16 +341,15 @@ void main() {
             name: 'Inc User 2',
             email: 'inc2@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Inc bio 2',
               avatar: 'inc2.jpg',
               socialLinks: {},
               interests: ['increment'],
               followers: 200,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -409,14 +399,14 @@ void main() {
             name: 'Agg User 1',
             email: 'agg1@example.com',
             age: 25,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Agg user 1',
               avatar: 'agg1.jpg',
               socialLinks: {},
               interests: ['aggregation'],
               followers: 500,
             ),
-            rating: 4.0,
+            rating: 4,
             isActive: true,
             isPremium: true,
             createdAt: DateTime.now(),
@@ -426,7 +416,7 @@ void main() {
             name: 'Agg User 2',
             email: 'agg2@example.com',
             age: 35,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Agg user 2',
               avatar: 'agg2.jpg',
               socialLinks: {},
@@ -443,7 +433,7 @@ void main() {
             name: 'Agg User 3',
             email: 'agg3@example.com',
             age: 30,
-            profile: Profile(
+            profile: const Profile(
               bio: 'Agg user 3',
               avatar: 'agg3.jpg',
               socialLinks: {},
@@ -452,7 +442,6 @@ void main() {
             ),
             rating: 3.8,
             isActive: true,
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         ];
@@ -503,7 +492,6 @@ void main() {
             ),
             rating: 3.0 + (i * 0.2),
             isActive: i % 2 == 0, // Even indices are active
-            isPremium: false,
             createdAt: DateTime.now(),
           ),
         );

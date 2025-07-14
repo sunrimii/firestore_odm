@@ -1,10 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/models/post.dart';
 import 'package:flutter_example/models/profile.dart';
+import 'package:flutter_example/models/user.dart';
 import 'package:flutter_example/test_schema.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('🕐 FirestoreODM.serverTimestamp Tests', () {
@@ -24,17 +24,16 @@ void main() {
           name: 'Timestamp User',
           email: 'timestamp@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing server timestamps',
             avatar: 'timestamp.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1), // Fixed timestamp for testing
+          createdAt: DateTime(2024), // Fixed timestamp for testing
         );
 
         await odm.users(user.id).update(user);
@@ -77,8 +76,7 @@ void main() {
           tags: ['timestamp', 'test'],
           metadata: {'type': 'test'},
           likes: 5,
-          published: false,
-          createdAt: DateTime(2024, 1, 1), // Fixed timestamp
+          createdAt: DateTime(2024), // Fixed timestamp
         );
 
         await odm.posts(post.id).update(post);
@@ -117,7 +115,7 @@ void main() {
           name: 'Multi Timestamp User',
           email: 'multi@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Multiple timestamps test',
             avatar: 'multi.jpg',
             socialLinks: {},
@@ -126,8 +124,7 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
@@ -170,23 +167,22 @@ void main() {
           name: 'Arithmetic Test User',
           email: 'arithmetic@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing arithmetic limitations',
             avatar: 'arithmetic.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
 
         // This creates a regular DateTime, NOT a server timestamp
-        final futureDate = FirestoreODM.serverTimestamp.add(Duration(days: 30));
+        final futureDate = FirestoreODM.serverTimestamp.add(const Duration(days: 30));
         
         await odm.users(user.id).modify((user) => user.copyWith(
               lastLogin: FirestoreODM.serverTimestamp, // This IS a server timestamp
@@ -204,7 +200,7 @@ void main() {
         // updatedAt should be the calculated future date (regular DateTime)
         // The calculated date is based on the impossible timestamp value
         expect(updated.updatedAt, equals(futureDate));
-        expect(updated.updatedAt!.isBefore(DateTime(1970, 1, 1)), isTrue); // Way in the past
+        expect(updated.updatedAt!.isBefore(DateTime(1970)), isTrue); // Way in the past
 
         print('✅ Arithmetic operations create regular DateTime as expected');
         print('   lastLogin (server): ${updated.lastLogin}');
@@ -220,10 +216,10 @@ void main() {
         expect(serverTimestamp.millisecondsSinceEpoch, equals(-8640000000000000));
         
         // Should be way before epoch
-        expect(serverTimestamp.isBefore(DateTime(1970, 1, 1)), isTrue);
+        expect(serverTimestamp.isBefore(DateTime(1970)), isTrue);
         
         // Should be way before any reasonable date
-        expect(serverTimestamp.isBefore(DateTime(1900, 1, 1)), isTrue);
+        expect(serverTimestamp.isBefore(DateTime(1900)), isTrue);
 
         print('✅ Server timestamp constant has expected impossible value');
         print('   Value: ${serverTimestamp.millisecondsSinceEpoch}');
@@ -238,8 +234,7 @@ void main() {
           authorId: 'test_author',
           tags: ['null', 'test'],
           metadata: {},
-          published: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
           // publishedAt and updatedAt are null initially
         );
 
@@ -276,17 +271,16 @@ void main() {
           name: 'Timestamp to Null User',
           email: 'tonull@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Testing timestamp to null',
             avatar: 'tonull.jpg',
             socialLinks: {},
             interests: ['testing'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
           lastLogin: FirestoreODM.serverTimestamp, // Set server timestamp initially
         );
 
@@ -317,17 +311,16 @@ void main() {
           name: 'Transaction User',
           email: 'transaction@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Transaction timestamp test',
             avatar: 'transaction.jpg',
             socialLinks: {},
             interests: ['transactions'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
@@ -359,7 +352,7 @@ void main() {
           name: 'Batch User 1',
           email: 'batch1@test.com',
           age: 25,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Batch test 1',
             avatar: 'batch1.jpg',
             socialLinks: {},
@@ -368,8 +361,7 @@ void main() {
           ),
           rating: 3.5,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         final user2 = User(
@@ -377,7 +369,7 @@ void main() {
           name: 'Batch User 2',
           email: 'batch2@test.com',
           age: 35,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Batch test 2',
             avatar: 'batch2.jpg',
             socialLinks: {},
@@ -387,7 +379,7 @@ void main() {
           rating: 4.5,
           isActive: true,
           isPremium: true,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         // Create initial users
@@ -439,17 +431,16 @@ void main() {
           name: 'Nested Test User',
           email: 'nested@test.com',
           age: 28,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Original bio',
             avatar: 'nested.jpg',
             socialLinks: {'twitter': '@nested'},
             interests: ['nested'],
             followers: 75,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
@@ -507,8 +498,7 @@ void main() {
           authorId: 'test_author',
           tags: ['copywith', 'test'],
           metadata: {'type': 'test'},
-          published: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.posts(originalPost.id).update(originalPost);
@@ -542,17 +532,16 @@ void main() {
           name: 'Rapid Updates User',
           email: 'rapid@test.com',
           age: 30,
-          profile: Profile(
+          profile: const Profile(
             bio: 'Rapid updates test',
             avatar: 'rapid.jpg',
             socialLinks: {},
             interests: ['speed'],
             followers: 100,
           ),
-          rating: 4.0,
+          rating: 4,
           isActive: true,
-          isPremium: false,
-          createdAt: DateTime(2024, 1, 1),
+          createdAt: DateTime(2024),
         );
 
         await odm.users(user.id).update(user);
