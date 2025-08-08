@@ -15,7 +15,8 @@ abstract class User with _$User {
     required String name,
     required String email,
     required int age,
-    required Profile profile, // Nested object, @Default([]) List<String> tags,
+    required Profile profile, // Nested object
+    @Default([]) List<String> tags,
     @Default([]) List<int> scores,
     @Default({}) Map<String, String> settings,
     @Default({}) Map<String, dynamic> metadata,
