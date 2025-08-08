@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element2.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -131,10 +132,13 @@ class TypeAnalyzer {
   /// Check if a type is a custom class (not primitive or built-in)
   static bool isCustomClass(DartType type) {
     final nonNullableType = _getNonNullableType(type);
-
+ 
     return !isPrimitiveType(nonNullableType) &&
         !isIterableType(nonNullableType) &&
         !_mapChecker.isAssignableFromType(nonNullableType) &&
+        // exclude enums from being treated as custom classes
+        !(nonNullableType is InterfaceType &&
+          (nonNullableType as InterfaceType).element is EnumElement) &&
         !nonNullableType.isDartCoreType;
   }
 

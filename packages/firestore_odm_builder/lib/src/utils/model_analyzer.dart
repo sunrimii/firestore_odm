@@ -47,7 +47,9 @@ bool isHandledType(DartType type) {
       TypeChecker.fromRuntime(Map).isAssignableFromType(type) ||
       TypeChecker.fromRuntime(IMap).isAssignableFromType(type) ||
       TypeChecker.fromRuntime(DateTime).isExactlyType(type) ||
-      TypeChecker.fromRuntime(Duration).isExactlyType(type);
+      TypeChecker.fromRuntime(Duration).isExactlyType(type) ||
+      // Treat enums as handled (serialized via name or @JsonValue)
+      (type is InterfaceType && type.element is EnumElement);
 }
 
 bool isUserType(DartType type) {
@@ -173,6 +175,43 @@ String getDocumentIdFieldName(InterfaceType type) {
 TypeReference getJsonType({required DartType type}) {
   if (isPrimitive(type)) {
     return type.reference;
+  }
+
+  // Enum -> underlying JSON primitive type (String by default, or @JsonValue type)
+  final el = (type is InterfaceType) ? type.element : null;
+  if (el is EnumElement) {
+    // Inspect @JsonValue types across constants
+    final constants = el.fields.where((f) => f.isEnumConstant).toList();
+    var allString = true;
+    var allInt = true;
+
+    for (final c in constants) {
+      final ann = TypeChecker.fromRuntime(JsonValue).firstAnnotationOfExact(c);
+      if (ann == null) {
+        // default = name -> String
+        continue;
+      }
+      final reader = ConstantReader(ann);
+      final raw = reader.read('value').literalValue;
+      if (raw is String) {
+        // ok
+      } else if (raw is int) {
+        allString = false;
+      } else if (raw is double || raw is bool) {
+        allString = false;
+        allInt = false;
+      } else {
+        allString = false;
+        allInt = false;
+      }
+    }
+
+    final base = allString
+        ? TypeReferences.string
+        : allInt
+            ? TypeReferences.int
+            : TypeReferences.dynamic;
+    return base.withNullability(type.isNullable);
   }
 
   if (TypeChecker.fromRuntime(DateTime).isAssignableFromType(type)) {

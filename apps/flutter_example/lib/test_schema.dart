@@ -13,6 +13,7 @@ import 'package:flutter_example/models/simple_generic.dart';
 import 'package:flutter_example/models/simple_story.dart';
 import 'package:flutter_example/models/task.dart';
 import 'package:flutter_example/models/user.dart';
+import 'package:flutter_example/models/enum_models.dart';
 
 part 'test_schema.g.dart';
 
@@ -56,4 +57,5 @@ part 'test_schema.g.dart';
 @Collection<User>('snake_case_users') // Test snake_case to camelCase conversion
 @Collection<Post>('snake_case_users/*/user_posts') // Test snake_case subcollection
 @Collection<Comment>('snake_case_users/*/user_posts/*/post_comments') // Test nested snake_case subcollection
+@Collection<EnumUser>('enumUsers') // Enum + JsonValue test
 const TestSchema testSchema = _$TestSchema;
