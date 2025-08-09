@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm_annotation` - `v4.0.0-dev.1`](#firestore_odm_annotation---v400-dev1)
+
+---
+
+#### `firestore_odm_annotation` - `v4.0.0-dev.1`
+
+ - Bump "firestore_odm_annotation" to `4.0.0-dev.1`.
+
+
+## 2025-08-09
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm` - `v4.0.0-dev.1`](#firestore_odm---v400-dev1)
 
 ---
