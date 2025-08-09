@@ -1,3 +1,9 @@
+## 4.0.0-dev.1
+
+ - **REFACTOR**: tests and update model serialization. ([75adad50](https://github.com/sylphxltd/firestore_odm/commit/75adad50194afbd8c5c9471d03c9e030685296f8))
+ - **FEAT**: add comprehensive enum support with numeric and string @JsonValue handling, including orderBy functionality and default value generation. ([04edb090](https://github.com/sylphxltd/firestore_odm/commit/04edb09042d17f5ee49c1e236ff671509a7e5be8))
+ - **FEAT**: add EnumUser model with AccountType enum and default value handling. ([66cd2676](https://github.com/sylphxltd/firestore_odm/commit/66cd2676fc3f68c2416865ba660ad1cd1c11ddfc))
+
 ## 4.0.0-dev
 
  - **REFACTOR**: remove unused ODM parts and update build configurations for Firestore ODM. ([a8927b4f](https://github.com/sylphxltd/firestore_odm/commit/a8927b4ffed7beeac6b32600f556790e13175bd4))
