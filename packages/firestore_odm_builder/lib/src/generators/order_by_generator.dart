@@ -1,3 +1,4 @@
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart' hide FunctionType;
 import 'package:code_builder/code_builder.dart';
@@ -42,6 +43,31 @@ class OrderByGenerator {
       );
     }
 
+    // Check if the field is an enum type
+    final type = field.type;
+    if (type is InterfaceType && type.element is EnumElement) {
+      // For enum types, use the first enum value as default (value doesn't matter, just for typing)
+      final enumElement = type.element as EnumElement;
+      final firstEnumValue = enumElement.fields
+          .where((f) => f.isEnumConstant)
+          .firstOrNull;
+      
+      if (firstEnumValue != null) {
+        final enumDefaultValue = '${enumElement.name}.${firstEnumValue.name}';
+        return TypeDefinition(
+          type: TypeReference(
+            (b) => b
+              ..symbol = 'OrderByField'
+              ..types.add(field.type.reference),
+          ),
+          namedArguments: {
+            ...args,
+            'defaultValue': refer(enumDefaultValue),
+          },
+        );
+      }
+    }
+    
     return TypeDefinition(
       type: TypeReference(
         (b) => b

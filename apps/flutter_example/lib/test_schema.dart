@@ -58,4 +58,6 @@ part 'test_schema.g.dart';
 @Collection<Post>('snake_case_users/*/user_posts') // Test snake_case subcollection
 @Collection<Comment>('snake_case_users/*/user_posts/*/post_comments') // Test nested snake_case subcollection
 @Collection<EnumUser>('enumUsers') // Enum + JsonValue test
+@Collection<EnumTask>('enumTasks') // Enum with numeric @JsonValue test
+@Collection<SimpleEnumTask>('simpleEnumTasks') // Simplified enum for automatic orderBy support
 const TestSchema testSchema = _$TestSchema;
