@@ -15,6 +15,28 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`firestore_odm` - `v4.0.0-dev.1`](#firestore_odm---v400-dev1)
+
+---
+
+#### `firestore_odm` - `v4.0.0-dev.1`
+
+ - **REFACTOR**: tests and update model serialization. ([75adad50](https://github.com/sylphxltd/firestore_odm/commit/75adad50194afbd8c5c9471d03c9e030685296f8))
+ - **FEAT**: add comprehensive enum support with numeric and string @JsonValue handling, including orderBy functionality and default value generation. ([04edb090](https://github.com/sylphxltd/firestore_odm/commit/04edb09042d17f5ee49c1e236ff671509a7e5be8))
+
+
+## 2025-08-09
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`firestore_odm_builder` - `v4.0.0-dev.1`](#firestore_odm_builder---v400-dev1)
 
 ---

@@ -1,3 +1,8 @@
+## 4.0.0-dev.1
+
+ - **REFACTOR**: tests and update model serialization. ([75adad50](https://github.com/sylphxltd/firestore_odm/commit/75adad50194afbd8c5c9471d03c9e030685296f8))
+ - **FEAT**: add comprehensive enum support with numeric and string @JsonValue handling, including orderBy functionality and default value generation. ([04edb090](https://github.com/sylphxltd/firestore_odm/commit/04edb09042d17f5ee49c1e236ff671509a7e5be8))
+
 ## 4.0.0-dev
 
  - **REFACTOR**: rename Node2 to Node for improved consistency across classes. ([a0b82da5](https://github.com/sylphxltd/firestore_odm/commit/a0b82da5cabc3a1c9191719549d49f657a95abfc))
