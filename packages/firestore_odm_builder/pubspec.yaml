@@ -1,9 +1,9 @@
 name: firestore_odm_builder
 description: Code generator for Firestore ODM annotations. Generates type-safe Firestore operations from annotated classes.
 version: 4.0.0-dev.1
-homepage: https://github.com/sylphxltd/firestore_odm
-repository: https://github.com/sylphxltd/firestore_odm
-issue_tracker: https://github.com/sylphxltd/firestore_odm/issues
+homepage: https://github.com/sunrimii/firestore_odm
+repository: https://github.com/sunrimii/firestore_odm
+issue_tracker: https://github.com/sunrimii/firestore_odm/issues
 documentation: https://sylphxltd.github.io/firestore_odm/
 resolution: workspace
 
@@ -15,21 +15,19 @@ topics:
   - flutter
 
 environment:
-  sdk: '^3.8.1'
+  sdk: '^3.9.2'
 
 dependencies:
-  build: ^2.4.1
-  source_gen: ^2.0.0
-  analyzer: ^7.4.5
+  build: ^3.1.0
+  source_gen: ^3.0.3
+  analyzer: ^7.7.1
   fast_immutable_collections: ^11.0.4
   json_annotation: ^4.9.0
   firestore_odm_annotation: ^4.0.0-dev.1
-  code_builder: ^4.10.1
-  signals: ^6.0.2
+  code_builder: ^4.11.0
+  signals: ^6.2.0
   collection: ^1.19.1
 
 dev_dependencies:
-  build_runner: ^2.4.9
-  very_good_analysis: ^9.0.0
-
-# Publishing to pub.dev (default when omitted)
+  build_runner: ^2.7.1
+  very_good_analysis: ^10.0.0

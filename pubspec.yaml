@@ -1,25 +1,19 @@
 name: firestore_odm_workspace
 description: A monorepo workspace for Firestore ODM packages
 version: 1.0.0
-homepage: https://github.com/sylphxltd/firestore_odm
-repository: https://github.com/sylphxltd/firestore_odm
+homepage: https://github.com/sunrimii/firestore_odm
+repository: https://github.com/sunrimii/firestore_odm
 
-# This is a workspace root - should not be published
 publish_to: none
 
 environment:
-  sdk: '^3.8.1'
-
-# This is a workspace root - no dependencies needed
-# Individual packages have their own dependencies
+  sdk: '^3.9.2'
 
 dev_dependencies:
-  melos: ^6.3.0
-  very_good_analysis: ^9.0.0
+  melos: ^7.1.1
+  very_good_analysis: ^10.0.0
 
-  
 workspace:
   - packages/firestore_odm
   - packages/firestore_odm_annotation
   - packages/firestore_odm_builder
-  - apps/flutter_example
