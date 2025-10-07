@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart' hide FunctionType, RecordType;
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -209,8 +210,8 @@ class SchemaGenerator {
         .expand((c) => scan(c.modelType))
         .where(isUserType)
         .whereType<InterfaceType>()
-        .map((t) => t.element.thisType)
-        .where((t) => !odmTypeChecker.hasAnnotationOf(t.element));
+        .map((t) => t.element3.thisType)
+        .where((t) => !odmTypeChecker.hasAnnotationOf(t.element3));
     if (missingAnnotations.isNotEmpty) {
       throw ArgumentError(
         'The following model types are missing @FirestoreOdm annotation: '
