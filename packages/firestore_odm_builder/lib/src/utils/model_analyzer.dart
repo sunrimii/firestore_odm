@@ -1,6 +1,8 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -85,9 +87,17 @@ Map<String, FieldInfo> getFields(InterfaceType type) {
     var jsonName = parameter.name;
     // check JsonKey annotation for custom names
     if (parameter.metadata.isNotEmpty) {
-      final jsonKey = TypeChecker.fromRuntime(
-        JsonKey,
-      ).firstAnnotationOfExact(parameter);
+      // Find JsonKey annotation from metadata
+      DartObject? jsonKey;
+      for (final annotation in parameter.metadata) {
+        final value = annotation.computeConstantValue();
+        if (value != null && 
+            value.type?.element?.name == 'JsonKey') {
+          jsonKey = value;
+          break;
+        }
+      }
+      
       if (jsonKey != null) {
         final reader = ConstantReader(jsonKey);
 
@@ -148,9 +158,17 @@ String getDocumentIdFieldName(InterfaceType type) {
     );
   }
 
-  final params = constructor.parameters.where(
-    (p) => TypeChecker.fromRuntime(DocumentIdField).hasAnnotationOf(p),
-  );
+  final params = constructor.parameters.where((p) {
+    // Check if parameter has DocumentIdField annotation
+    for (final annotation in p.metadata) {
+      final value = annotation.computeConstantValue();
+      if (value != null && 
+          value.type?.element?.name == 'DocumentIdField') {
+        return true;
+      }
+    }
+    return false;
+  });
 
   if (params.length > 1) {
     throw ArgumentError(
@@ -186,7 +204,17 @@ TypeReference getJsonType({required DartType type}) {
     var allInt = true;
 
     for (final c in constants) {
-      final ann = TypeChecker.fromRuntime(JsonValue).firstAnnotationOfExact(c);
+      // Find JsonValue annotation from metadata
+      DartObject? ann;
+      for (final annotation in c.metadata) {
+        final value = annotation.computeConstantValue();
+        if (value != null && 
+            value.type?.element?.name == 'JsonValue') {
+          ann = value;
+          break;
+        }
+      }
+      
       if (ann == null) {
         // default = name -> String
         continue;

@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/element/type.dart' hide FunctionType;
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:firestore_odm_builder/src/utils/reference_utils.dart';
 import 'package:firestore_odm_builder/src/utils/string_utils.dart';
@@ -36,8 +37,17 @@ class ConverterGenerator {
     var allInt = true;
 
     for (final c in constants) {
-      final ann =
-          TypeChecker.fromRuntime(JsonValue).firstAnnotationOfExact(c);
+      // Find JsonValue annotation from metadata
+      DartObject? ann;
+      for (final annotation in c.metadata) {
+        final value = annotation.computeConstantValue();
+        if (value != null && 
+            value.type?.element?.name == 'JsonValue') {
+          ann = value;
+          break;
+        }
+      }
+      
       dynamic raw;
       if (ann != null) {
         final reader = ConstantReader(ann);

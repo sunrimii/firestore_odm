@@ -1,4 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/element2.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
@@ -12,26 +13,30 @@ class SchemaGenerator2 extends GeneratorForAnnotation<Schema> {
 
   @override
   String generateForAnnotatedElement(
-    Element element,
+    Element2 element,
     ConstantReader annotation,
     BuildStep buildStep,
   ) {
-    if (element is! TopLevelVariableElement) {
+    // Convert Element2 to Element for internal use via fragment
+    final fragment = element.firstFragment as Element;
+    
+    if (fragment is! TopLevelVariableElement) {
       throw InvalidGenerationSourceError(
         'Schema annotation can only be applied to top-level variables.',
-        element: element,
+        element: element,  // element is already Element2
       );
     }
 
-    return _generateForSchema(element, buildStep.resolver);
+    return _generateForSchema(element, fragment, buildStep.resolver);
   }
 
   String _generateForSchema(
+    Element2 element2,
     TopLevelVariableElement element,
     Resolver resolver,
   ) {
     // 1. Extract all @Collection annotations from this schema variable
-    final collections = _extractCollectionAnnotations(element);
+    final collections = _extractCollectionAnnotations(element2, element);
 
     print('Found ${collections.length} collections in schema');
 
@@ -41,6 +46,7 @@ class SchemaGenerator2 extends GeneratorForAnnotation<Schema> {
 
   /// Extract @Collection annotations from a schema variable
   List<SchemaCollectionInfo> _extractCollectionAnnotations(
+    Element2 element2,
     TopLevelVariableElement element,
   ) {
     final collections = <SchemaCollectionInfo>[];
@@ -62,7 +68,7 @@ class SchemaGenerator2 extends GeneratorForAnnotation<Schema> {
           if (modelType is! InterfaceType) {
             throw InvalidGenerationSourceError(
               'Model type must be an InterfaceType for @Collection annotation.',
-              element: element,
+              element: element2,
             );
           }
 
